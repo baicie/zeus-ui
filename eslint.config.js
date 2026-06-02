@@ -52,6 +52,7 @@ export default defineConfig(
       'explorations/',
       'dts-build/packages',
       'playground',
+      '**/*.md',
     ],
   },
 )

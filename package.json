@@ -12,6 +12,7 @@
     "clean": "rimraf --glob packages/*/dist temp node_modules/.cache/.eslintcache node_modules/.cache/.prettiercache docs/.vitepress/dist",
     "check": "tsc --incremental --noEmit",
     "lint": "eslint --cache --cache-location node_modules/.cache/.eslintcache .",
+    "lint-fix": "eslint --fix --cache --cache-location node_modules/.cache/.eslintcache .",
     "format": "prettier --write --cache --cache-location node_modules/.cache/.prettiercache .",
     "format-check": "prettier --check --cache --cache-location node_modules/.cache/.prettiercache .",
     "test": "vitest",
@@ -47,15 +48,12 @@
     "commit-msg": "node -e \"import('@baicie/scripts').then(m => m.verifyCommit())\""
   },
   "lint-staged": {
-    "*.{js,json}": [
+    "*.{js,json,md,ts,tsx,yaml,yml}": [
       "prettier --write --cache --cache-location node_modules/.cache/.prettiercache"
     ],
     "*.ts?(x)": [
       "eslint --fix --cache --cache-location node_modules/.cache/.eslintcache",
       "prettier --parser=typescript --write --cache --cache-location node_modules/.cache/.prettiercache"
-    ],
-    "*.md": [
-      "prettier --write --cache --cache-location node_modules/.cache/.prettiercache"
     ]
   }
 }
