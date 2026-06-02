@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "pnpm": {
+      "source": "onmax/nuxt-skills",
+      "sourceType": "github",
+      "computedHash": "0e72c2b2563556bc027cd025d0b3e11bf7147f362f4815ac9ad083ccbac55750"
+    },
+    "turborepo": {
+      "source": "vercel/turborepo",
+      "sourceType": "github",
+      "computedHash": "e9c923a56fb6f16c22c438b37ee9db2a520588b439bfffb85c2ee025e992028f"
+    },
+    "vitest": {
+      "source": "onmax/nuxt-skills",
+      "sourceType": "github",
+      "computedHash": "04ed1b09da8ac778d693ad12fab49b1c48aadfe1758fe13eb4d6de3fdcbb22f4"
+    }
+  }
+}

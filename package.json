@@ -1,0 +1,61 @@
+{
+  "name": "root",
+  "type": "module",
+  "private": true,
+  "packageManager": "pnpm@11.3.0",
+  "engines": {
+    "node": ">=18.12.0"
+  },
+  "scripts": {
+    "dev": "echo dev",
+    "build": "echo build",
+    "clean": "rimraf --glob packages/*/dist temp node_modules/.cache/.eslintcache node_modules/.cache/.prettiercache docs/.vitepress/dist",
+    "check": "tsc --incremental --noEmit",
+    "lint": "eslint --cache --cache-location node_modules/.cache/.eslintcache .",
+    "format": "prettier --write --cache --cache-location node_modules/.cache/.prettiercache .",
+    "format-check": "prettier --check --cache --cache-location node_modules/.cache/.prettiercache .",
+    "test": "vitest",
+    "test-unit": "vitest --project unit*",
+    "test-e2e": "node scripts/build.js zeus -f global -d && vitest --project e2e",
+    "test-coverage": "vitest run --project unit* --coverage",
+    "release": "tsx scripts/release.ts",
+    "ci-publish": "tsx scripts/publish.ts",
+    "preinstall": "npx only-allow pnpm",
+    "postinstall": "simple-git-hooks",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^9.0.0",
+    "@baicie/release": "^0.2.0",
+    "@baicie/scripts": "^0.1.2",
+    "@types/node": "^25.9.1",
+    "eslint": "^10.4.1",
+    "jsdom": "^29.1.1",
+    "lint-staged": "^17.0.7",
+    "picocolors": "^1.1.1",
+    "prettier": "^3.8.3",
+    "simple-git-hooks": "^2.13.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vitepress": "^1.6.4",
+    "vitest": "^4.1.8"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm lint-staged && pnpm check",
+    "commit-msg": "node -e \"import('@baicie/scripts').then(m => m.verifyCommit())\""
+  },
+  "lint-staged": {
+    "*.{js,json}": [
+      "prettier --write --cache --cache-location node_modules/.cache/.prettiercache"
+    ],
+    "*.ts?(x)": [
+      "eslint --fix --cache --cache-location node_modules/.cache/.eslintcache",
+      "prettier --parser=typescript --write --cache --cache-location node_modules/.cache/.prettiercache"
+    ],
+    "*.md": [
+      "prettier --write --cache --cache-location node_modules/.cache/.prettiercache"
+    ]
+  }
+}

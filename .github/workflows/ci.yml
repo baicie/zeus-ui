@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - minor
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    if: ${{ ! startsWith(github.event.head_commit.message, 'release:') && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
+    uses: ./.github/workflows/test.yml
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install
+      - run: pnpm build

@@ -1,0 +1,9 @@
+[build]
+command = "pnpm ci-docs"
+ignore = "./scripts/docs-check.sh"
+publish = "docs/.vitepress/dist"
+
+[build.environment]
+NODE_VERSION = "24"
+# don't need playwright for docs build
+PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
