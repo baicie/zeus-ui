@@ -1,3 +1,7 @@
+// Shared utilities for Zeus Web.
+// Provides minimal helpers not covered by third-party libs (e.g. clsx).
+// Prefer lightweight implementations over adding heavy dependencies.
+
 export type ClassValue =
   | string
   | number

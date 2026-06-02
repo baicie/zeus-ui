@@ -15,6 +15,10 @@ export interface PackageRuleResult {
   errors: string[]
 }
 
+function toForwardSlash(p: string): string {
+  return p.replace(/\\/g, '/')
+}
+
 export function validatePackageRules(
   root: string,
   packageJsonPath: string,
@@ -23,7 +27,7 @@ export function validatePackageRules(
   const pkg = JSON.parse(
     readFileSync(packageJsonPath, 'utf8'),
   ) as PackageJsonLike
-  const rel = relative(root, packageJsonPath)
+  const rel = toForwardSlash(relative(root, packageJsonPath))
   const isPrimitive = rel.startsWith('packages/primitives/')
 
   if (pkg.private) {
@@ -56,7 +60,7 @@ function validatePrimitivePackage(
   pkg: PackageJsonLike,
   errors: string[],
 ): void {
-  const packageDir = packageJsonPath.replace(/\/package\.json$/, '')
+  const packageDir = packageJsonPath.replace(/[/\\]package\.json$/, '')
 
   if (!existsSync(join(packageDir, 'rollup.config.mjs'))) {
     errors.push(`${pkg.name}: primitive package must have rollup.config.mjs`)

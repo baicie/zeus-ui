@@ -2,5 +2,4 @@ import { createPrimitiveRollupConfig } from '../../../scripts/rollup/createPrimi
 
 export default createPrimitiveRollupConfig({
   input: 'src/index.ts',
-  tagPrefix: 'zw-',
 })

@@ -40,7 +40,7 @@ expect.extend({
   },
 
   toHaveBeenWarnedLast(received: string) {
-    const lastCall = warn.mock.calls.at(-1)
+    const lastCall = warn.mock.calls[warn.mock.calls.length - 1]
     if (!lastCall) {
       return {
         pass: false,

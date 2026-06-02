@@ -5,8 +5,8 @@
     /* 项目引用 */
     "composite": true,
     /* 基础配置 */
-    "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "target": "ES2016",
+    "lib": ["ES2016", "DOM", "DOM.Iterable"],
 
     /* 类字段 */
     "useDefineForClassFields": false,

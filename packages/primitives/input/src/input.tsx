@@ -1,4 +1,5 @@
-import { bindAttr, bindProp, defineElement } from '@zeus-js/runtime-dom'
+import type { DefineElementSetup } from '@zeus-js/runtime-dom'
+import { defineElement, Host } from '@zeus-js/runtime-dom'
 
 export type InputType =
   | 'text'
@@ -25,40 +26,58 @@ export interface InputValueChangeDetail {
   nativeEvent: Event
 }
 
-function getInputValue(props: InputProps): string {
-  if (props.value !== undefined) {
-    return props.value
-  }
-
-  if (props.defaultValue !== undefined) {
-    return props.defaultValue
-  }
-
-  return ''
+function resolveInputValue(props: InputProps): string | undefined {
+  return props.value !== undefined
+    ? props.value
+    : props.defaultValue !== undefined
+      ? props.defaultValue
+      : undefined
 }
 
-function getDefaultValue(props: InputProps): string {
-  return props.defaultValue === undefined ? '' : props.defaultValue
-}
+const setup: DefineElementSetup<InputProps> = (props, ctx) => {
+  const handleInput = (event: Event) => {
+    const target = event.currentTarget as HTMLInputElement
+    ctx.emit('value-change', {
+      value: target.value,
+      nativeEvent: event,
+    })
+  }
 
-function getInputType(props: InputProps): InputType {
-  return props.type === undefined ? 'text' : props.type
+  return (
+    <Host
+      data-slot="input-root"
+      data-disabled={props.disabled ? '' : undefined}
+    >
+      <input
+        part="root"
+        data-slot="input"
+        type={props.type ?? 'text'}
+        placeholder={props.placeholder}
+        disabled={props.disabled}
+        readOnly={props.readonly}
+        required={props.required}
+        name={props.name}
+        value={resolveInputValue(props)}
+        onInput={handleInput}
+      />
+    </Host>
+  )
 }
 
 export const Input = defineElement<InputProps>(
-  'zw-input',
+  'z-input',
   {
     shadow: false,
     props: {
       value: {
         type: String,
-        default: '',
+        default: undefined,
         reflect: true,
       },
       defaultValue: {
         type: String,
         attr: 'default-value',
-        default: '',
+        default: undefined,
       },
       type: {
         type: String,
@@ -115,35 +134,8 @@ export const Input = defineElement<InputProps>(
           },
         },
       },
-      cssParts: ['input'],
+      cssParts: ['root'],
     },
   },
-  (props, { host, emit }) => {
-    const input = document.createElement('input')
-
-    input.part.add('input')
-    input.setAttribute('data-slot', 'input')
-
-    bindAttr(host, 'data-slot', () => 'input-root')
-    bindAttr(host, 'data-disabled', () => (props.disabled ? '' : null))
-
-    bindProp(input, 'value', () => getInputValue(props))
-    bindProp(input, 'defaultValue', () => getDefaultValue(props))
-    bindProp(input, 'type', () => getInputType(props))
-    bindProp(input, 'disabled', () => Boolean(props.disabled))
-    bindProp(input, 'readOnly', () => Boolean(props.readonly))
-    bindProp(input, 'required', () => Boolean(props.required))
-
-    bindAttr(input, 'placeholder', () => props.placeholder)
-    bindAttr(input, 'name', () => props.name)
-
-    input.addEventListener('input', nativeEvent => {
-      emit('value-change', {
-        value: input.value,
-        nativeEvent,
-      })
-    })
-
-    return input
-  },
+  setup,
 )

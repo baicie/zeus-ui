@@ -1,6 +1,6 @@
-import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { execa } from 'execa'
 
 const root = process.cwd()
 
@@ -18,59 +18,65 @@ const requiredFiles = [
 
 const requiredDtsFiles = requiredFiles.filter(file => file.endsWith('.d.ts'))
 
-let hasError = false
+async function main() {
+  let hasError = false
 
-for (const file of requiredFiles) {
-  const abs = join(root, file)
+  for (const file of requiredFiles) {
+    const abs = join(root, file)
 
-  if (!existsSync(abs)) {
-    console.error(`[build-output] missing ${file}`)
-    hasError = true
+    if (!existsSync(abs)) {
+      console.error(`[build-output] missing ${file}`)
+      hasError = true
+    }
   }
+
+  if (!hasError) {
+    const result = await execa(
+      'pnpm',
+      [
+        'exec',
+        'tsc',
+        ...requiredDtsFiles,
+        '--ignoreConfig',
+        '--noEmit',
+        '--module',
+        'ESNext',
+        '--moduleResolution',
+        'bundler',
+        '--target',
+        'ES2016',
+        '--jsx',
+        'preserve',
+        '--skipLibCheck',
+        'true',
+        '--types',
+        'node',
+      ],
+      {
+        cwd: root,
+      },
+    )
+
+    if (result.exitCode !== 0) {
+      console.error('[build-output] generated dts files are invalid')
+      if (result.stdout) {
+        console.error(result.stdout)
+      }
+      if (result.stderr) {
+        console.error(result.stderr)
+      }
+      hasError = true
+    }
+  }
+
+  if (hasError) {
+    process.exit(1)
+  }
+
+  console.log('Build output looks good.')
 }
 
-if (!hasError) {
-  const result = spawnSync(
-    'pnpm',
-    [
-      'exec',
-      'tsc',
-      ...requiredDtsFiles,
-      '--ignoreConfig',
-      '--noEmit',
-      '--module',
-      'ESNext',
-      '--moduleResolution',
-      'bundler',
-      '--target',
-      'ES2022',
-      '--jsx',
-      'preserve',
-      '--skipLibCheck',
-      'true',
-      '--types',
-      'node',
-    ],
-    {
-      cwd: root,
-      encoding: 'utf8',
-    },
-  )
-
-  if (result.status !== 0) {
-    console.error('[build-output] generated dts files are invalid')
-    if (result.stdout) {
-      console.error(result.stdout)
-    }
-    if (result.stderr) {
-      console.error(result.stderr)
-    }
-    hasError = true
-  }
-}
-
-if (hasError) {
+main().catch(error => {
+  console.error(error)
   process.exit(1)
-}
-
-console.log('Build output looks good.')
+})

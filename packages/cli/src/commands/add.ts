@@ -29,8 +29,11 @@ export async function add(args: string[]) {
 
     console.log(pc.green(`Add ${component}`))
     console.log(`Dependencies: ${deps.join(', ')}`)
-    console.log(
-      pc.gray('Phase 0 only prints plan. Phase 5/6 will copy registry files.'),
-    )
+    // Phase 5/6 implementation plan:
+    // 1. Read registry from @zeus-ui/registry/registry.json
+    // 2. Resolve component dependencies and install packages via pnpm
+    // 3. Copy styled source files from registry to user project
+    // 4. Merge theme CSS variables into user's global stylesheet
+    // 5. Generate or update components.json
   }
 }
