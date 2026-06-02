@@ -1,5 +1,5 @@
 import { configDefaults, defineConfig } from 'vitest/config'
-import { entries } from './scripts/aliases'
+import { entries } from './scripts/config/aliases'
 
 export default defineConfig({
   define: {
@@ -12,7 +12,7 @@ export default defineConfig({
   test: {
     globals: true,
     pool: 'threads',
-    setupFiles: 'scripts/setup-vitest.ts',
+    setupFiles: 'scripts/config/setup-vitest.ts',
     sequence: {
       hooks: 'list',
     },
@@ -36,7 +36,10 @@ export default defineConfig({
           name: 'unit-jsdom',
           include: [
             'packages/*/*.{test,spec}.*',
+            'packages/*/__tests__/**/*.{test,spec}.*',
             'packages/primitives/*/*.{test,spec}.*',
+            'packages/primitives/*/__tests__/**/*.{test,spec}.*',
+            'scripts/checks/__tests__/**/*.{test,spec}.*',
           ],
           exclude: [...configDefaults.exclude, '**/e2e/**'],
           environment: 'jsdom',

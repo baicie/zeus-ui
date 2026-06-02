@@ -14,11 +14,15 @@
     /* 装饰器支持 */
     "experimentalDecorators": true,
     /* 路径别名 */
-    "baseUrl": ".",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "jsx": "preserve",
     "paths": {
-      "@zeus-web/*": ["./packages/*/src", "./packages/primitives/*/src"]
+      "@zeus-web/input": ["../../packages/primitives/input/src/index"],
+      "@zeus-web/input/wc": ["../../packages/primitives/input/src/index"],
+      "@zeus-web/input/react": ["../../packages/primitives/input/src/index"],
+      "@zeus-web/input/vue": ["../../packages/primitives/input/src/index"],
+      "@zeus-web/*": ["../../packages/*/src", "../../packages/primitives/*/src"]
     },
     "resolveJsonModule": true,
     /* 类型检查 */
@@ -45,19 +49,19 @@
   },
   "references": [{ "path": "./tsconfig.build.json" }],
   "include": [
-    "../packages/*/src",
-    "../packages/primitives/*/src",
-    "../packages/*/__tests__",
-    "../packages/primitives/*/__tests__",
-    "../scripts/**/*",
-    "../apps/**/*",
-    "../examples/**/*"
+    "../../packages/*/src",
+    "../../packages/primitives/*/src",
+    "../../packages/*/__tests__",
+    "../../packages/primitives/*/__tests__",
+    "../../scripts/**/*",
+    "../../apps/**/*",
+    "../../examples/**/*"
   ],
   "exclude": [
     "**/dist",
     "**/temp",
     "**/node_modules",
     "**/tsconfig.tsbuildinfo",
-    "../playground"
+    "../../playground"
   ]
 }

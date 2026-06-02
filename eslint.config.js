@@ -52,6 +52,13 @@ export default defineConfig(
     },
   },
 
+  {
+    files: ['pnpm-workspace.yaml'],
+    rules: {
+      'pnpm/yaml-enforce-settings': 'off',
+    },
+  },
+
   // CLI package - CLI tools need console and process
   {
     files: ['packages/cli/**'],

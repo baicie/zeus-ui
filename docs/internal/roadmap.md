@@ -1,266 +1,346 @@
-重新按新增要求整理后，最终架构应该是：
+对，我前面确实没扫完整，问题不在 `@zeus-js/runtime-dom`，而是 **`zeus` 里 `packages/web-c` 已经把组件库需要的 Web Component 输出生态都封装好了**。所以 `zeus-ui` 的路线要重写：**不是自己写 `wc/react/vue` 入口，也不是手写 wrapper，而是写源组件，然后用 `@zeus-js/bundler-plugin + output-*` 生成产物。**
 
-```txt id="v0e11r"
-zeus-js
-  只负责 Web Component 编译/运行时/输出生态，后续不再扩展 UI 使用层
+# 1. `zeus/packages/web-c` 已经提供了什么
 
-zeus-web
-  只负责组件库使用层
-  核心模式 = 单组件 headless primitive 包 + 聚合包 + shadcn-like registry + CLI + themes + AI rules
+## 1.1 `@zeus-js/bundler-plugin`
+
+这是组件构建宿主，不是简单 Vite 插件。它导出：
+
+```ts
+createZeusPlugin
+zeus
+createOutputRegistry
 ```
 
-核心变化是：**底层 headless UI 必须拆成独立 primitive 包**。比如用户只想用 Input，就可以只安装：
+并且类型里已经定义了 `ZeusBuildContext`、`ZeusComponentPlugin`、`ZeusOutputRegistry`、`ZeusOutputKind` 等输出插件协议。
 
-```bash id="wls7tm"
+它的输出类型已经覆盖：
+
+```txt
+wc
+react
+vue
+icons-react
+icons-vue
+icons-wc
+asset
+```
+
+说明这套体系本身就是为了“一个组件源 → 多目标输出”设计的。
+
+`@zeus-js/bundler-plugin` 还带 Vite adapter，导出 `createZeusVitePlugin` / `zeus`，并且会处理 `@zeus-js/runtime-dom` alias、dedupe，以及根据输出插件 external 自动合并构建 external。
+
+## 1.2 `@zeus-js/component-analyzer`
+
+它负责分析组件源码，导出：
+
+```ts
+analyzeFile
+analyzeComponents
+ComponentManifest
+ComponentRecord
+ComponentProp
+ComponentEvent
+ComponentSlot
+```
+
+这说明 `zeus-ui` 不需要自己维护 registry meta 的底层分析能力，可以依赖 ComponentManifest。
+
+## 1.3 `@zeus-js/component-dts`
+
+它是基于 ComponentManifest 的 DTS 生成器，`output-wc / output-react-wrapper / output-vue-wrapper` 都依赖它。
+
+## 1.4 `@zeus-js/output-wc`
+
+它负责生成 Web Component 产物，不需要 `zeus-ui` 手写 `wc.ts`。
+
+它会生成：
+
+```txt
+wc 每组件入口
+wc/index.js
+zeus.components.json
+custom-elements.json
+wc d.ts
+JSX IntrinsicElements d.ts
+```
+
+源码里可以看到它生成 WC virtual modules、manifest、custom-elements.json、dts。
+
+并且它的 options 已支持：
+
+```ts
+outDir
+stripPrefix
+fileName
+manifestFile
+customElementsFile
+dts
+jsxDts
+index
+```
+
+## 1.5 `@zeus-js/output-react-wrapper`
+
+它负责生成 React wrapper，不需要 `zeus-ui` 手写 `packages/react` 聚合 wrapper。
+
+关键点是：**React wrapper 依赖 wc() 插件**，如果没有 wc 输出会直接报错。
+
+它会生成：
+
+```txt
+react 每组件 wrapper
+react/index.js
+react/index.d.ts
+```
+
+并且支持 named slot 策略：
+
+```ts
+namedSlots?: 'props' | 'none'
+```
+
+## 1.6 `@zeus-js/output-vue-wrapper`
+
+它负责生成 Vue wrapper，也要求先有 wc 输出。
+
+它会生成：
+
+```txt
+vue 每组件 wrapper
+vue/index.js
+vue/index.d.ts
+vue/global.d.ts
+```
+
+## 1.7 `@zeus-js/output-icons`
+
+它负责 no-runtime icon 输出，可以生成：
+
+```txt
+icons/react
+icons/vue
+icons/wc
+icons/svg
+对应 d.ts
+```
+
+并且支持 `react / vue / wc / svg / dts / tagPrefix` 等配置。
+
+# 2. 新结论：`zeus-ui` 应该怎么定位
+
+之前我说：
+
+```txt
+@zeus-web/input 自己输出 ./wc ./react ./vue
+```
+
+这不对。
+
+正确应该是：
+
+```txt
+zeus-ui / zeus-web
+  只写组件源代码、主题、registry、CLI、docs、examples
+
+zeus/packages/web-c
+  负责分析组件源代码
+  负责生成 wc 产物
+  负责生成 React wrapper
+  负责生成 Vue wrapper
+  负责生成 custom-elements.json
+  负责生成 d.ts
+  负责生成 icons 产物
+```
+
+所以 `zeus-ui` 的核心结构应该变成：
+
+```txt
+packages/primitives/input/src/input.tsx
+packages/primitives/button/src/button.tsx
+packages/primitives/dialog/src/dialog.tsx
+```
+
+然后通过 build 配置输出：
+
+```txt
+packages/primitives/input/dist/wc/index.js
+packages/primitives/input/dist/wc/input.js
+packages/primitives/input/dist/react/index.js
+packages/primitives/input/dist/vue/index.js
+packages/primitives/input/dist/custom-elements.json
+packages/primitives/input/dist/zeus.components.json
+```
+
+也就是说：**源码包不手写 wc/react/vue，产物由 `@zeus-js/output-*` 生成。**
+
+# 3. `zeus-ui` 当前实现要推翻哪些东西
+
+当前 `@zeus-web/input` 手写了：
+
+```ts
+class ZeusInputElement extends HTMLElement
+customElements.define(...)
+```
+
+这个应该删除。
+
+当前 `react.ts` / `vue.ts` 只是 placeholder：
+
+```ts
+export const Input = 'zw-input'
+export const ZInput = 'zw-input'
+```
+
+这个也不应该继续发展。
+
+当前 `@zeus-web/react`、`@zeus-web/vue` 是手写 re-export 聚合包。 这个后面也应该改成 **构建产物聚合**，而不是源码手写 wrapper。
+
+# 4. 新架构
+
+## 4.1 源码层
+
+```txt
+packages/
+  primitives/
+    input/
+      src/
+        input.tsx
+        index.ts
+      package.json
+      rollup.config.ts
+
+    button/
+      src/
+        button.tsx
+        index.ts
+      package.json
+      rollup.config.ts
+
+  themes/
+  registry/
+  cli/
+  icons/
+```
+
+## 4.2 产物层
+
+每个 primitive 独立包构建后：
+
+```txt
+packages/primitives/input/dist/
+  wc/
+    index.js
+    input.js
+    index.d.ts
+    input.d.ts
+
+  react/
+    index.js
+    index.d.ts
+
+  vue/
+    index.js
+    index.d.ts
+    global.d.ts
+
+  custom-elements.json
+  zeus.components.json
+```
+
+## 4.3 用户使用方式
+
+单组件安装：
+
+```bash
 pnpm add @zeus-web/input
 ```
 
-而不是必须安装整个 `@zeus-web/headless`。
+Web Component：
 
-# 1. 最终架构总览
-
-```txt id="xm6ag9"
-┌────────────────────────────────────────────┐
-│ apps/docs                                  │
-│ 文档、组件预览、registry preview、AI docs    │
-└────────────────────────────────────────────┘
-                    ↓
-┌────────────────────────────────────────────┐
-│ @zeus-web/cli                              │
-│ zweb init / add / update / registry / ai    │
-└────────────────────────────────────────────┘
-                    ↓
-┌────────────────────────────────────────────┐
-│ @zeus-web/registry                         │
-│ shadcn-like 可复制源码组件                   │
-│ 依赖单个 primitive 包，而不是全量大包          │
-└────────────────────────────────────────────┘
-                    ↓
-┌────────────────────────────────────────────┐
-│ @zeus-web/themes                           │
-│ CSS Variables / Tailwind tokens / themes    │
-└────────────────────────────────────────────┘
-                    ↓
-┌────────────────────────────────────────────┐
-│ @zeus-web/react / @zeus-web/vue             │
-│ 聚合 wrapper 包，方便一次性使用               │
-└────────────────────────────────────────────┘
-                    ↓
-┌────────────────────────────────────────────┐
-│ @zeus-web/headless                         │
-│ 聚合 Web Component headless 包              │
-└────────────────────────────────────────────┘
-                    ↓
-┌────────────────────────────────────────────┐
-│ @zeus-web/button / input / dialog / ...     │
-│ 单组件 headless primitive 包                │
-└────────────────────────────────────────────┘
-                    ↓
-┌────────────────────────────────────────────┐
-│ zeus-js                                    │
-│ defineElement / Host / Slot / compiler      │
-└────────────────────────────────────────────┘
-```
-
-你之前 `zeus-js` 里已经有 `defineElement / Host / Slot / Web Component output / React wrapper / Vue wrapper / dts output` 这些方向，后续 `zeus-web` 不应该再重复做编译基础设施，而是消费这些能力。原有内部路线里也已经明确了 `Headless Components` 负责行为，`Registry` 负责可复制、可定制 UI。
-
-## 2. 最终包设计
-
-## 2.1 单组件 primitive 包
-
-每个底层 headless 组件都是一个独立 npm 包：
-
-```txt id="m6iicp"
-@zeus-web/button
-@zeus-web/input
-@zeus-web/textarea
-@zeus-web/checkbox
-@zeus-web/switch
-@zeus-web/radio-group
-@zeus-web/tabs
-@zeus-web/dialog
-@zeus-web/popover
-@zeus-web/tooltip
-@zeus-web/select
-@zeus-web/dropdown-menu
-@zeus-web/combobox
-```
-
-用户可以最小安装：
-
-```bash id="m3epox"
-pnpm add @zeus-web/input
-```
-
-原生 Web Component 使用：
-
-```ts id="j0dlbs"
+```ts
 import '@zeus-web/input/wc'
 ```
 
-```html id="k9q2ji"
-<zw-input placeholder="Email"></zw-input>
-```
+React：
 
-React 使用：
-
-```tsx id="p50xx7"
+```tsx
 import { Input } from '@zeus-web/input/react'
-;<Input placeholder="Email" />
 ```
 
-Vue 使用：
+Vue：
 
-```vue id="k2peml"
-<script setup lang="ts">
+```ts
 import { ZInput } from '@zeus-web/input/vue'
-</script>
-
-<template>
-  <ZInput placeholder="Email" />
-</template>
 ```
 
-## 2.2 聚合包
+shadcn-like registry：
 
-为了方便用户，也提供聚合包：
-
-```txt id="m6o0ot"
-@zeus-web/headless
-@zeus-web/react
-@zeus-web/vue
+```bash
+zweb add input
 ```
 
-使用：
+生成的源码依赖：
 
-```tsx id="zbn2kq"
-import { Button, Dialog, Input } from '@zeus-web/react'
+```ts
+import { Input as InputPrimitive } from '@zeus-web/input/react'
 ```
 
-聚合包只做 re-export：
+# 5. `@zeus-web/input/package.json` 应该长这样
 
-```ts id="oofr3g"
-export * from '@zeus-web/button/react'
-export * from '@zeus-web/dialog/react'
-export * from '@zeus-web/input/react'
-```
-
-这样同时满足两类用户：
-
-```txt id="th61m4"
-追求最小依赖：
-  pnpm add @zeus-web/input
-
-追求使用方便：
-  pnpm add @zeus-web/react
-```
-
-## 3. 包命名最终建议
-
-## npm scope
-
-```txt id="jsfviq"
-@zeus-web
-```
-
-## CLI 包
-
-```txt id="vk30da"
-@zeus-web/cli
-```
-
-## CLI bin
-
-```txt id="q7nzlm"
-zweb
-```
-
-使用：
-
-```bash id="zwub3c"
-pnpm dlx @zeus-web/cli init
-pnpm dlx @zeus-web/cli add input
-pnpm dlx @zeus-web/cli add button dialog tabs
-```
-
-## Web Component 标签前缀
-
-建议用：
-
-```txt id="f5p2tm"
-zw-
-```
-
-例如：
-
-```html id="r2x9v3"
-<zw-button></zw-button>
-<zw-input></zw-input>
-<zw-dialog></zw-dialog>
-<zw-tabs></zw-tabs>
-```
-
-不用 `z-`，因为太泛；`zw-` 更明确代表 `zeus-web`。
-
-## 4. 单组件包结构
-
-以 `@zeus-web/input` 为例：
-
-```txt id="jyuwm4"
-packages/primitives/input/
-  src/
-    input.tsx
-    input.types.ts
-    input.events.ts
-    input.meta.ts
-    wc.ts
-    react.tsx
-    vue.ts
-    index.ts
-  package.json
-```
-
-建议每个 primitive 包都输出：
-
-```txt id="ceadgp"
-.
-./wc
-./react
-./vue
-./custom-elements.json
-```
-
-`package.json` 示例：
-
-```json id="pjjzsr"
+```json
 {
   "name": "@zeus-web/input",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "type": "module",
-  "sideEffects": ["./dist/wc.js", "./dist/**/*.css"],
+  "description": "Headless input primitive for Zeus Web.",
+  "license": "MIT",
+  "sideEffects": ["./dist/wc/index.js", "./dist/wc/*.js", "./dist/**/*.css"],
+  "files": ["dist"],
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/wc/index.d.ts",
+      "import": "./dist/wc/index.js"
     },
     "./wc": {
-      "types": "./dist/wc.d.ts",
-      "import": "./dist/wc.js"
+      "types": "./dist/wc/index.d.ts",
+      "import": "./dist/wc/index.js"
     },
     "./react": {
-      "types": "./dist/react.d.ts",
-      "import": "./dist/react.js"
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
     },
     "./vue": {
-      "types": "./dist/vue.d.ts",
-      "import": "./dist/vue.js"
+      "types": "./dist/vue/index.d.ts",
+      "import": "./dist/vue/index.js"
+    },
+    "./vue/global": {
+      "types": "./dist/vue/global.d.ts"
     },
     "./custom-elements.json": {
       "default": "./dist/custom-elements.json"
+    },
+    "./zeus.components.json": {
+      "default": "./dist/zeus.components.json"
     }
   },
+  "scripts": {
+    "dev": "rollup -c --watch",
+    "build": "rollup -c",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest --project unit-jsdom"
+  },
   "peerDependencies": {
-    "@zeus-js/runtime-dom": "^0.1.0"
+    "@zeus-js/runtime-dom": "^0.1.0-beta.0"
+  },
+  "devDependencies": {
+    "@zeus-js/bundler-plugin": "^0.1.0-beta.0",
+    "@zeus-js/output-wc": "^0.1.0-beta.0",
+    "@zeus-js/output-react-wrapper": "^0.1.0-beta.0",
+    "@zeus-js/output-vue-wrapper": "^0.1.0-beta.0",
+    "@zeus-js/runtime-dom": "^0.1.0-beta.0",
+    "rollup": "^4.0.0",
+    "typescript": "^6.0.0"
   },
   "peerDependenciesMeta": {
     "react": {
@@ -273,276 +353,269 @@ packages/primitives/input/
 }
 ```
 
-## 5. Monorepo 结构
+# 6. 组件源码应该怎么写
 
-推荐单独建仓库：`baicie/zeus-web`。
+## `packages/primitives/input/src/input.tsx`
 
-```txt id="b04wo6"
-zeus-web/
-  package.json
-  pnpm-workspace.yaml
-  tsconfig.base.json
-  eslint.config.ts
-  prettier.config.ts
+```tsx
+import { defineElement, Host } from '@zeus-js/runtime-dom'
 
-  packages/
-    primitives/
-      button/
-      input/
-      textarea/
-      checkbox/
-      switch/
-      radio-group/
-      tabs/
-      dialog/
-      popover/
-      tooltip/
-      select/
-      dropdown-menu/
-      combobox/
-
-    headless/
-      src/index.ts
-      package.json
-
-    react/
-      src/index.ts
-      package.json
-
-    vue/
-      src/index.ts
-      package.json
-
-    themes/
-      src/
-        tokens.css
-        default.css
-        slate.css
-        zinc.css
-        neutral.css
-      package.json
-
-    registry/
-      registry.json
-      default/
-        button/
-        input/
-        dialog/
-        tabs/
-      blocks/
-        login-form/
-        dashboard-shell/
-        data-table-page/
-      rules/
-        zeus-web.md
-        accessibility.md
-        ai-usage.md
-      package.json
-
-    cli/
-      src/
-        commands/
-          init.ts
-          add.ts
-          update.ts
-          list.ts
-          search.ts
-          registry.ts
-          ai.ts
-        index.ts
-      package.json
-
-    utils/
-      src/
-        cn.ts
-        compose-event.ts
-        dom.ts
-      package.json
-
-  apps/
-    docs/
-
-  examples/
-    vanilla/
-    vite-react/
-    vite-vue/
-    registry-react/
-    registry-vue/
-```
-
-`pnpm-workspace.yaml`：
-
-```yaml id="jww8ph"
-packages:
-  - 'packages/primitives/*'
-  - 'packages/*'
-  - 'apps/*'
-  - 'examples/*'
-```
-
-## 6. Registry 依赖策略
-
-这是新增要求影响最大的地方。
-
-之前 registry 组件可能会依赖：
-
-```json id="wcc4sl"
-{
-  "dependencies": ["@zeus-web/react"]
+export interface InputProps {
+  value?: string
+  defaultValue?: string
+  type?: 'text' | 'email' | 'password' | 'search' | 'tel' | 'url' | 'number'
+  placeholder?: string
+  disabled?: boolean
+  readonly?: boolean
+  required?: boolean
+  name?: string
 }
-```
 
-现在要改成：**registry 组件依赖对应单组件 primitive 包**。
+export const Input = defineElement<InputProps>(
+  'zw-input',
+  {
+    shadow: false,
+    props: {
+      value: {
+        type: String,
+        default: '',
+        reflect: true,
+      },
+      defaultValue: {
+        type: String,
+        attr: 'default-value',
+        default: '',
+      },
+      type: {
+        type: String,
+        default: 'text',
+        reflect: true,
+      },
+      placeholder: {
+        type: String,
+        default: '',
+      },
+      disabled: {
+        type: Boolean,
+        reflect: true,
+      },
+      readonly: {
+        type: Boolean,
+        attr: 'readonly',
+        reflect: true,
+      },
+      required: {
+        type: Boolean,
+        reflect: true,
+      },
+      name: {
+        type: String,
+        default: '',
+      },
+    },
+    meta: {
+      description: 'Headless input primitive.',
+      events: {
+        'value-change': {
+          description: 'Emitted when the input value changes.',
+          detail: {
+            value: 'Current input value.',
+            nativeEvent: 'Original input event.',
+          },
+        },
+      },
+      cssParts: ['input'],
+    },
+  },
+  (props, { emit }) => {
+    function handleInput(event: Event) {
+      const target = event.currentTarget as HTMLInputElement
 
-例如 `zweb add input` 生成的 registry item 依赖：
-
-```json id="r2yuoj"
-{
-  "name": "input",
-  "type": "registry:ui",
-  "dependencies": [
-    "@zeus-web/input",
-    "clsx",
-    "tailwind-merge",
-    "class-variance-authority"
-  ],
-  "files": [
-    {
-      "path": "default/input/input.tsx",
-      "target": "components/ui/input.tsx",
-      "type": "registry:ui"
+      emit('value-change', {
+        value: target.value,
+        nativeEvent: event,
+      })
     }
-  ]
+
+    return (
+      <Host
+        data-slot="input-root"
+        data-disabled={props.disabled ? '' : undefined}
+      >
+        <input
+          part="input"
+          data-slot="input"
+          value={props.value ?? props.defaultValue ?? ''}
+          defaultValue={props.defaultValue}
+          type={props.type ?? 'text'}
+          placeholder={props.placeholder}
+          disabled={props.disabled}
+          readOnly={props.readonly}
+          required={props.required}
+          name={props.name}
+          onInput={handleInput}
+        />
+      </Host>
+    )
+  },
+)
+```
+
+## `packages/primitives/input/src/index.ts`
+
+```ts
+export { Input }
+export type { InputProps } from './input'
+```
+
+注意：这里是否会自动注册，取决于 `defineElement` 的行为。当前 `defineElement` 内部会调用 `customElements.define`。 所以这个源入口本身就是组件定义入口。后续真实产物由 `output-wc` 生成 `wc/input.js` 和 `wc/index.js`，用户最终应该 import 生成后的 `@zeus-web/input/wc`。
+
+# 7. Rollup 构建配置
+
+## `packages/primitives/input/rollup.config.ts`
+
+```ts
+import zeus from '@zeus-js/bundler-plugin'
+import wc from '@zeus-js/output-wc'
+import react from '@zeus-js/output-react-wrapper'
+import vue from '@zeus-js/output-vue-wrapper'
+
+import type { RollupOptions } from 'rollup'
+
+const config: RollupOptions = {
+  input: 'src/index.ts',
+  output: {
+    dir: 'dist',
+    format: 'esm',
+    preserveModules: false,
+  },
+  external: ['@zeus-js/runtime-dom', '@zeus-js/signal', 'react', 'vue'],
+  plugins: [
+    zeus({
+      root: process.cwd(),
+      components: {
+        include: ['src/**/*.{ts,tsx}'],
+      },
+      dts: true,
+      plugins: [
+        wc({
+          outDir: 'wc',
+          stripPrefix: 'zw-',
+          manifestFile: 'zeus.components.json',
+          customElementsFile: 'custom-elements.json',
+          dts: true,
+          jsxDts: true,
+          index: true,
+        }),
+        react({
+          outDir: 'react',
+          stripPrefix: 'zw-',
+          dts: true,
+          index: true,
+          namedSlots: 'props',
+        }),
+        vue({
+          outDir: 'vue',
+          stripPrefix: 'zw-',
+          dts: true,
+          globalDts: true,
+          index: true,
+        }),
+      ],
+    }),
+  ],
 }
+
+export default config
 ```
 
-生成的 `input.tsx`：
+这才是正确路线：**input 源码只写一次，wc/react/vue 全部由 Zeus web-c 输出插件生成。**
 
-```tsx id="ggpwhn"
-import { Input as InputPrimitive } from '@zeus-web/input/react'
-import { cn } from '@/lib/utils'
+# 8. `zeus-ui` 新路线图
 
-export function Input({ className, ...props }) {
-  return (
-    <InputPrimitive
-      data-slot="input"
-      className={cn(
-        'border-input placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs transition-colors outline-none focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50',
-        className,
-      )}
-      {...props}
-    />
-  )
-}
+## Phase 0：工程地基修正
+
+目标：把当前 scaffold 从“手写 wc 包结构”改成“消费 Zeus web-c 输出生态”。
+
+要做：
+
+```txt
+0.1 删除当前 @zeus-web/input 手写 wc/react/vue 入口
+0.2 根 devDependencies 补 @zeus-js/bundler-plugin
+0.3 补 @zeus-js/output-wc
+0.4 补 @zeus-js/output-react-wrapper
+0.5 补 @zeus-js/output-vue-wrapper
+0.6 补 @zeus-js/runtime-dom
+0.7 primitive 包统一使用 rollup + zeus plugin 构建
+0.8 package exports 指向 dist/wc、dist/react、dist/vue
+0.9 测试 check:exports 必须要求 primitive 包依赖 zeus web-c 输出体系
 ```
 
-这样用户只添加 Input，就不会安装 Button、Dialog、Tabs 等无关 primitive。
+测试：
 
-## 7. DOM 策略
-
-最终定为：
-
-```txt id="wtcy1k"
-默认 Light DOM
-支持 Shadow DOM option
+```txt
+- package-rules.test.ts：primitive 包必须声明 @zeus-js/runtime-dom peerDependency
+- package-rules.test.ts：primitive 包不能出现手写 src/wc.ts / src/react.ts / src/vue.ts
+- build-config.test.ts：primitive 包必须有 rollup.config.ts
 ```
 
-规则：
+## Phase 1：Input primitive 迁移到 Zeus 输出体系
 
-```txt id="pqh2vc"
-headless primitive 默认 light DOM
-registry styled 组件默认 light DOM + Tailwind
-企业嵌入 / SDK / 强隔离组件允许 shadow DOM
+目标：`@zeus-web/input` 作为第一个标准 primitive 模板。
+
+要做：
+
+```txt
+1.1 新建 src/input.tsx
+1.2 使用 defineElement + Host 实现 zw-input
+1.3 通过 meta 声明 props/events/cssParts
+1.4 rollup 构建生成 wc/react/vue/custom-elements
+1.5 删除手写 HTMLElement 实现
+1.6 删除 placeholder react/vue 入口
+1.7 补 build 产物 smoke test
 ```
 
-原因：
+测试：
 
-```txt id="zjcpi0"
-Light DOM 更适合 Tailwind
-Light DOM 更适合 shadcn-like 源码复制
-Light DOM 更适合 data-state / className / class 覆盖
-Shadow DOM 更适合隔离，但不适合作为默认 UI 库模式
+```txt
+- input.source.test.ts：源码导出 Input
+- input.wc.test.ts：dist/wc/index.js 能注册 zw-input
+- input.react.test.ts：dist/react/index.js 能导出 Input
+- input.vue.test.ts：dist/vue/index.js 能导出 ZInput 或 Input
+- input.custom-elements.test.ts：dist/custom-elements.json 包含 zw-input
+- input.events.test.ts：input 事件能触发 value-change
 ```
 
-## 8. Phase 0：项目初始化与边界确认
+## Phase 2：Primitive Package 模板固化
 
-## 目标
+目标：后续所有组件都照 `input` 模板生成。
 
-建立 `zeus-web` 独立项目，并明确只做使用层。
+要做：
 
-## 要做的事
-
-```txt id="kh71o4"
-0.1 新建 baicie/zeus-web 仓库
-0.2 确定 npm scope：@zeus-web
-0.3 确定 CLI：@zeus-web/cli
-0.4 确定 CLI bin：zweb
-0.5 确定 Web Component 前缀：zw-
-0.6 配置 pnpm workspace
-0.7 配置 tsconfig / eslint / prettier
-0.8 配置 vitest / playwright
-0.9 配置 changesets
-0.10 配置 GitHub Actions
-0.11 配置 release dry-run
-0.12 确定 zeus-js 作为底层 peer/dev dependency
+```txt
+2.1 抽 packages/build/createPrimitiveRollupConfig.ts
+2.2 统一 stripPrefix: 'zw-'
+2.3 统一 outDir: wc/react/vue
+2.4 统一 custom-elements.json / zeus.components.json
+2.5 统一 package exports
+2.6 统一测试模板
 ```
 
-## 验收标准
+测试：
 
-```bash id="jkkobv"
-pnpm install
-pnpm build
-pnpm check
-pnpm test
-pnpm release:dry
+```txt
+- createPrimitiveRollupConfig.test.ts
+- package exports test
+- build output path test
 ```
 
-全部通过。
+## Phase 3：首批 Headless primitives
 
-## 9. Phase 1：Primitive Package 架构
+目标：补齐 MVP 组件。
 
-## 目标
+组件：
 
-先把“单组件独立包”的标准定好。
-
-## 要做的事
-
-```txt id="bndngf"
-1.1 建立 packages/primitives/* 目录规范
-1.2 定义 primitive package template
-1.3 定义 package exports 规范
-1.4 定义 ./wc / ./react / ./vue 子路径规范
-1.5 定义 sideEffects 规范
-1.6 定义 peerDependencies 规范
-1.7 定义 custom-elements.json 输出规范
-1.8 定义组件命名规范
-1.9 定义事件命名规范
-1.10 定义 data-state / data-disabled / data-slot 规范
-```
-
-## 每个 primitive 必须支持
-
-```txt id="qycu3m"
-@zeus-web/input
-@zeus-web/input/wc
-@zeus-web/input/react
-@zeus-web/input/vue
-@zeus-web/input/custom-elements.json
-```
-
-## 验收标准
-
-做一个空的 `@zeus-web/input` 模板包，能 build、能导出类型、能被 example 安装。
-
-## 10. Phase 2：Headless Primitive MVP
-
-## 目标
-
-实现第一批独立 headless primitive 包。
-
-## 首批组件
-
-```txt id="xn94uo"
+```txt
 @zeus-web/button
 @zeus-web/input
 @zeus-web/checkbox
@@ -551,807 +624,209 @@ pnpm release:dry
 @zeus-web/dialog
 ```
 
-注意这版把 `input` 放进 MVP，因为你已经明确提出“input 包可以单独安装”。
+每个组件都要：
 
-## 每个组件要做的事
-
-```txt id="j9gj1i"
-2.x.1 实现 primitive Web Component
-2.x.2 输出 ./wc
-2.x.3 输出 ./react
-2.x.4 输出 ./vue
-2.x.5 输出类型
-2.x.6 输出 custom-elements.json
-2.x.7 补单测
-2.x.8 补 keyboard 测试
-2.x.9 补 accessibility 测试
-2.x.10 补 vanilla/react/vue examples
+```txt
+- src/{name}.tsx
+- defineElement
+- meta
+- rollup config
+- wc/react/vue 产物
+- custom-elements.json
+- 单测
+- 事件测试
+- 产物 smoke test
 ```
 
-## 验收标准
+这里不能再手写 wrapper。
 
-最小安装可用：
+## Phase 4：聚合包生成
 
-```bash id="h38wrt"
-pnpm add @zeus-web/input
-```
+目标：`@zeus-web/headless`、`@zeus-web/react`、`@zeus-web/vue` 不再手写 placeholder，而是聚合各 primitive 的生成产物。
 
-React 中可用：
+结构：
 
-```tsx id="fqt6h2"
-import { Input } from '@zeus-web/input/react'
-;<Input placeholder="Email" />
-```
-
-原生 HTML 中可用：
-
-```ts id="bz761k"
-import '@zeus-web/input/wc'
-```
-
-```html id="g8o3y7"
-<zw-input placeholder="Email"></zw-input>
-```
-
-## 11. Phase 3：聚合包
-
-## 目标
-
-在单组件包之上，提供方便使用的聚合包。
-
-## 包
-
-```txt id="qhpzze"
+```txt
 @zeus-web/headless
+  re-export @zeus-web/input/wc
+  re-export @zeus-web/button/wc
+
 @zeus-web/react
+  re-export @zeus-web/input/react
+  re-export @zeus-web/button/react
+
 @zeus-web/vue
+  re-export @zeus-web/input/vue
+  re-export @zeus-web/button/vue
 ```
 
-## 要做的事
+测试：
 
-```txt id="qfitul"
-3.1 @zeus-web/headless re-export 所有 primitive 的 wc 入口
-3.2 @zeus-web/react re-export 所有 primitive react wrapper
-3.3 @zeus-web/vue re-export 所有 primitive vue wrapper
-3.4 验证 tree-shaking
-3.5 验证只 import Input 不打入 Dialog
-3.6 验证 sideEffects 不误删 wc 注册模块
+```txt
+- 聚合包导出测试
+- tree-shaking smoke test
+- sideEffects 测试
 ```
 
-## 验收标准
+## Phase 5：Registry MVP
 
-聚合使用可用：
+目标：shadcn-like copy layer。
 
-```tsx id="egqhx6"
-import { Button, Dialog, Input } from '@zeus-web/react'
-```
+注意 registry 组件依赖单 primitive 包：
 
-单包使用仍可用：
-
-```tsx id="pi0dn2"
-import { Input } from '@zeus-web/input/react'
-```
-
-## 12. Phase 4：主题系统
-
-## 目标
-
-提供 Tailwind + CSS Variables 的主题能力。
-
-## 包
-
-```txt id="f14nfe"
-@zeus-web/themes
-```
-
-## 要做的事
-
-```txt id="uuzqma"
-4.1 定义 tokens.css
-4.2 定义 default.css
-4.3 定义 light/dark mode
-4.4 定义 color tokens
-4.5 定义 radius tokens
-4.6 定义 spacing / typography tokens
-4.7 定义 Tailwind v4 适配方式
-4.8 兼容 Tailwind v3
-4.9 支持 slate / zinc / neutral / stone
-4.10 支持用户覆盖变量
-```
-
-## 验收标准
-
-registry 组件只依赖 CSS variables，不写死主题色。
-
-## 13. Phase 5：Registry MVP
-
-## 目标
-
-做 shadcn-like 可复制源码层。
-
-## 组件
-
-```txt id="ch98f4"
-button
-input
-checkbox
-switch
-tabs
-dialog
-```
-
-## 要做的事
-
-```txt id="kvcy0s"
-5.1 定义 registry.json
-5.2 定义 registry-item schema
-5.3 每个 registry item 依赖单组件 primitive 包
-5.4 编写 button 源码模板
-5.5 编写 input 源码模板
-5.6 编写 checkbox 源码模板
-5.7 编写 switch 源码模板
-5.8 编写 tabs 源码模板
-5.9 编写 dialog 源码模板
-5.10 编写 theme.css
-5.11 编写 utils.ts
-```
-
-## 关键规则
-
-```txt id="pzrg5o"
-zweb add input
-  只安装 @zeus-web/input
-
-zweb add dialog
-  只安装 @zeus-web/dialog
-
-zweb add button dialog tabs
-  安装 @zeus-web/button、@zeus-web/dialog、@zeus-web/tabs
-```
-
-## 验收标准
-
-```bash id="q2llq7"
-zweb add input
+```json
+{
+  "dependencies": ["@zeus-web/input"]
+}
 ```
 
 生成：
 
-```txt id="jck8lj"
-src/components/ui/input.tsx
+```tsx
+import { Input as InputPrimitive } from '@zeus-web/input/react'
 ```
 
-安装：
+测试：
 
-```txt id="jr72uj"
-@zeus-web/input
-clsx
-tailwind-merge
-class-variance-authority
+```txt
+- registry item schema test
+- zweb add input 只安装 @zeus-web/input
+- registry source import test
 ```
 
-不会安装整个 `@zeus-web/react`。
+## Phase 6：CLI MVP
 
-## 14. Phase 6：CLI MVP
+目标：
 
-## 目标
-
-实现 `zweb init / add`。
-
-## 命令
-
-```bash id="jpbaqv"
+```bash
 zweb init
 zweb add input
 zweb add button dialog tabs
-zweb add --all
-zweb list
-zweb search input
 ```
 
-## 要做的事
+要做：
 
-```txt id="ye7qkj"
-6.1 实现项目类型检测
-6.2 检测 React / Vue / Vite / Next
-6.3 检测 TypeScript
-6.4 检测 Tailwind
+```txt
+6.1 读取 registry
+6.2 安装对应 primitive 包
+6.3 复制 styled 源码
+6.4 合并 theme.css
 6.5 生成 components.json
-6.6 读取 registry item
-6.7 安装单组件 primitive 依赖
-6.8 复制组件源码
-6.9 合并 theme.css
-6.10 生成 utils.ts
-6.11 支持 --dry-run
-6.12 支持 --overwrite
-6.13 支持冲突检测
 ```
 
-## components.json
+测试：
 
-```json id="g3t6qn"
-{
-  "$schema": "https://zeus-web.dev/schema/components.json",
-  "framework": "react",
-  "style": "default",
-  "tailwind": {
-    "css": "src/styles/globals.css",
-    "cssVariables": true
-  },
-  "aliases": {
-    "components": "@/components",
-    "ui": "@/components/ui",
-    "lib": "@/lib"
-  }
-}
+```txt
+- createAddPlan test
+- init temp dir test
+- add temp dir test
+- 不覆盖用户文件测试
 ```
 
-## 验收标准
+## Phase 7：主题系统
 
-空 Vite React 项目中：
+目标：Tailwind + CSS Variables。
 
-```bash id="d77qmz"
-pnpm dlx @zeus-web/cli init
-pnpm dlx @zeus-web/cli add input button dialog
-pnpm dev
-```
+包：
 
-可以直接运行。
-
-## 15. Phase 7：文档与 Playground
-
-## 目标
-
-让用户能理解三种使用方式：
-
-```txt id="pydhvi"
-单组件 primitive 包
-聚合包
-registry 可复制源码
-```
-
-## 文档结构
-
-```txt id="ynrvd9"
-docs/
-  introduction
-  installation
-  primitive-packages
-  aggregated-packages
-  cli
-  registry
-  theming
-  dark-mode
-  components/
-    button
-    input
-    checkbox
-    switch
-    tabs
-    dialog
-  accessibility/
-  ai/
-```
-
-## 每个组件文档必须包含
-
-```txt id="vxb94z"
-Primitive install
-Registry install
-React usage
-Vue usage
-Web Component usage
-Props
-Events
-Slots
-Data attributes
-Keyboard interactions
-Accessibility
-```
-
-## 验收标准
-
-Input 文档里必须同时有：
-
-```bash id="x2czha"
-pnpm add @zeus-web/input
-```
-
-和：
-
-```bash id="cex41d"
-zweb add input
-```
-
-两种方式。
-
-## 16. Phase 8：表单组件扩展
-
-## 目标
-
-补齐表单 primitive 独立包。
-
-## 新增 primitive 包
-
-```txt id="iwt2di"
-@zeus-web/textarea
-@zeus-web/label
-@zeus-web/radio-group
-@zeus-web/select
-@zeus-web/slider
-@zeus-web/field
-@zeus-web/input-otp
-```
-
-## 要做的事
-
-```txt id="sh8ops"
-8.1 每个表单组件独立包
-8.2 每个包输出 ./wc / ./react / ./vue
-8.3 每个 registry item 只依赖对应 primitive
-8.4 支持 data-invalid
-8.5 支持 data-required
-8.6 支持 aria-describedby
-8.7 支持 form association 可行性调研
-8.8 补表单 examples
-```
-
-## 验收标准
-
-```bash id="lwfr9q"
-zweb add input textarea label checkbox button
-```
-
-可以拼出完整登录表单。
-
-## 17. Phase 9：Overlay 与复杂交互组件
-
-## 目标
-
-实现复杂交互 primitive 包。
-
-## 新增 primitive 包
-
-```txt id="p16ejq"
-@zeus-web/tooltip
-@zeus-web/popover
-@zeus-web/dropdown-menu
-@zeus-web/context-menu
-@zeus-web/hover-card
-@zeus-web/sheet
-@zeus-web/alert-dialog
-@zeus-web/command
-@zeus-web/combobox
-@zeus-web/toast
-```
-
-## 需要抽象的内部能力
-
-这些能力可以放到内部工具包：
-
-```txt id="gpak7k"
-@zeus-web/focus-scope
-@zeus-web/dismissable-layer
-@zeus-web/portal
-@zeus-web/popper
-@zeus-web/roving-focus
-```
-
-是否公开发包可以后续决定，但内部需要拆清楚。
-
-## 要做的事
-
-```txt id="dq28j0"
-9.1 focus trap
-9.2 outside click
-9.3 escape key
-9.4 scroll lock
-9.5 portal
-9.6 positioning
-9.7 nested overlay
-9.8 roving tabindex
-9.9 typeahead
-9.10 overlay stack manager
-```
-
-## 验收标准
-
-```txt id="ywwpuy"
-Dialog 里能打开 Popover
-Dropdown 支持键盘选择
-Tooltip 不抢焦点
-Toast 支持自动消失
-Command 支持搜索和键盘选择
-```
-
-## 18. Phase 10：数据展示与中后台组件
-
-## 目标
-
-支撑 SQL GUI、管理后台、docs 后台等项目。
-
-## 新增包
-
-```txt id="gjow6w"
-@zeus-web/table
-@zeus-web/pagination
-@zeus-web/breadcrumb
-@zeus-web/resizable
-@zeus-web/sidebar
-@zeus-web/tree
-@zeus-web/card
-@zeus-web/badge
-@zeus-web/skeleton
-@zeus-web/empty
-```
-
-## 要做的事
-
-```txt id="x8z79e"
-10.1 实现基础 Table primitive
-10.2 实现 Data Table registry 模板
-10.3 实现 Pagination
-10.4 实现 Sidebar
-10.5 实现 Resizable Panels
-10.6 实现 Tree
-10.7 实现 Breadcrumb
-10.8 实现 dashboard block
-```
-
-## 验收标准
-
-```bash id="sp08x3"
-zweb add sidebar table pagination breadcrumb
-```
-
-能生成一个基础后台布局。
-
-## 19. Phase 11：Icons 与 Blocks
-
-## 目标
-
-从组件库升级为页面片段生态。
-
-## Icons
-
-```txt id="slmc64"
-@zeus-web/icons
-```
-
-建议 icons 不按每个 icon 一个 npm 包，而是一个 icons 包，内部保证 tree-shaking。
-
-要做的事：
-
-```txt id="xhpvvi"
-11.1 建立 icons manifest
-11.2 SVG source 管理
-11.3 React icon 输出
-11.4 Vue icon 输出
-11.5 Web Component icon 输出
-11.6 支持 no-runtime static icon
-11.7 支持 tree-shaking
-```
-
-## Blocks
-
-```txt id="qcg9db"
-login-form
-register-form
-dashboard-shell
-settings-page
-data-table-page
-command-menu
-empty-state
-error-page
-```
-
-## 验收标准
-
-```bash id="t0zymz"
-zweb add login-form
-zweb add dashboard-shell
-```
-
-可以生成完整页面片段。
-
-## 20. Phase 12：AI-ready 生态
-
-## 目标
-
-让 AI 能正确使用 `zeus-web`。
-
-## 要做的事
-
-```txt id="qdfr6g"
-12.1 生成 llms.txt
-12.2 生成 llms-full.txt
-12.3 生成 Cursor rules
-12.4 生成 Copilot instructions
-12.5 生成 AGENTS.md snippet
-12.6 生成组件 AI metadata
-12.7 生成 registry AI metadata
-12.8 生成 usage examples
-12.9 生成 anti-pattern examples
-12.10 CLI 支持 ai export
-```
-
-## CLI
-
-```bash id="y5uak9"
-zweb ai export
-zweb ai cursor
-zweb ai copilot
-zweb ai agents
-```
-
-## 组件 AI metadata 示例
-
-```json id="zi777f"
-{
-  "name": "input",
-  "primitivePackage": "@zeus-web/input",
-  "registryCommand": "zweb add input",
-  "description": "Use Input for text-like form controls.",
-  "imports": {
-    "primitiveReact": "@zeus-web/input/react",
-    "registryReact": "@/components/ui/input"
-  },
-  "examples": [
-    "<Input placeholder=\"Email\" />",
-    "<Input type=\"password\" placeholder=\"Password\" />"
-  ],
-  "rules": [
-    "Use Label with Input when the field needs a visible label.",
-    "Use aria-label when no visible label exists.",
-    "Use data-invalid for invalid state."
-  ]
-}
-```
-
-## 验收标准
-
-AI 生成代码时：
-
-```txt id="oamzfc"
-不会把 registry import 和 primitive import 混用
-不会乱造不存在的 props
-知道 zweb add input 只安装 @zeus-web/input
-知道 Button/Input/Dialog 的正确使用方式
-```
-
-## 21. Phase 13：质量体系
-
-## 目标
-
-保证多包、多组件、多入口不会失控。
-
-## 要做的事
-
-```txt id="nuxqb4"
-13.1 primitive 单测
-13.2 wc 注册测试
-13.3 react wrapper 测试
-13.4 vue wrapper 测试
-13.5 accessibility 测试
-13.6 keyboard interaction 测试
-13.7 visual regression 测试
-13.8 bundle size 测试
-13.9 tree-shaking 测试
-13.10 CLI e2e 测试
-13.11 registry smoke test
-13.12 package exports 检查
-```
-
-## 重点测试
-
-```txt id="gtf37r"
-安装 @zeus-web/input 不应包含 dialog 代码
-import { Input } from '@zeus-web/react' 不应打入所有组件
-import '@zeus-web/input/wc' 必须能注册 zw-input
-sideEffects 不能导致 wc 注册被 tree-shaking 删除
-```
-
-## 验收标准
-
-```bash id="p5xj0u"
-pnpm check
-pnpm lint
-pnpm test
-pnpm test:e2e
-pnpm test:a11y
-pnpm size
-pnpm registry:check
-pnpm examples:check
-```
-
-全部通过。
-
-## 22. Phase 14：发布与版本策略
-
-## 目标
-
-管理大量 primitive 包的发版。
-
-## 发布顺序
-
-```txt id="arokhu"
-@zeus-web/utils
+```txt
 @zeus-web/themes
-
-@zeus-web/button
-@zeus-web/input
-@zeus-web/checkbox
-@zeus-web/switch
-@zeus-web/tabs
-@zeus-web/dialog
-
-@zeus-web/headless
-@zeus-web/react
-@zeus-web/vue
-
-@zeus-web/registry
-@zeus-web/cli
 ```
 
-## 版本节奏
+测试：
 
-```txt id="msuobf"
-0.1.0：项目初始化 + primitive package template
-0.2.0：首批 primitive 单组件包
-0.3.0：聚合包 + React/Vue 使用层
-0.4.0：themes + registry MVP
-0.5.0：CLI init/add
-0.6.0：docs + playground
-0.7.0：form primitive 扩展
-0.8.0：overlay primitive 扩展
-0.9.0：admin/data components + blocks + AI
-1.0.0：稳定版
+```txt
+- tokens 文件存在测试
+- registry 组件只引用 CSS vars 测试
+- dark mode class 测试
 ```
 
-## 验收标准
+## Phase 8：Icons
 
-```txt id="ezsxpk"
-npm provenance 正常
-changesets 正常
-tag 正常
-docs 自动部署
-CLI 可 pnpm dlx 使用
-单组件包可独立安装
-聚合包 tree-shaking 正常
+这次应该直接用 `@zeus-js/output-icons`，不要自己写 icon generator。
+
+要做：
+
+```txt
+8.1 准备 icons source
+8.2 调用 @zeus-js/output-icons
+8.3 输出 icons/react
+8.4 输出 icons/vue
+8.5 输出 icons/wc
+8.6 输出 svg
 ```
 
-## 23. Phase 15：稳定版 1.0
+测试：
 
-## 目标
-
-对外宣布稳定。
-
-## 1.0 前必须完成
-
-```txt id="jtqcwm"
-15.1 单组件包模型稳定
-15.2 registry schema 稳定
-15.3 CLI init/add/update 稳定
-15.4 React/Vue wrapper 类型稳定
-15.5 Tailwind theme 稳定
-15.6 docs 完整
-15.7 AI rules 可用
-15.8 a11y 测试覆盖核心组件
-15.9 examples 全部可 build
-15.10 release 流程稳定
+```txt
+- IconHome react 导出测试
+- IconHome vue 导出测试
+- z-icon-home wc 注册测试
+- no-runtime size smoke test
 ```
 
-## 24. 最终路线总览
+## Phase 9：Docs / Playground
 
-```txt id="t1mvle"
-Phase 0   项目初始化与边界确认
-Phase 1   Primitive Package 架构
-Phase 2   Headless Primitive MVP：button/input/checkbox/switch/tabs/dialog
-Phase 3   聚合包：headless/react/vue
-Phase 4   Tailwind + CSS Variables 主题系统
-Phase 5   shadcn-like Registry MVP
-Phase 6   CLI MVP：init/add/list/search
-Phase 7   文档与 Playground
-Phase 8   表单组件扩展
-Phase 9   Overlay 与复杂交互组件
-Phase 10  数据展示与中后台组件
-Phase 11  Icons 与 Blocks
-Phase 12  AI-ready 生态
-Phase 13  质量体系
-Phase 14  发布与版本策略
-Phase 15  1.0 稳定版
+目标：展示三种用法：
+
+```txt
+wc
+react
+vue
+registry
 ```
 
-## 25. 最推荐的实际推进顺序
+测试：
 
-不要一上来铺所有组件，先打穿最小闭环。
-
-## 第一闭环：单组件包成立
-
-```txt id="qb0g5s"
-Phase 0 → Phase 1 → Phase 2
+```txt
+- docs build
+- example build
+- registry example smoke test
 ```
+
+## Phase 10：AI-ready
 
 目标：
 
-```bash id="vyvf88"
-pnpm add @zeus-web/input
+```txt
+llms.txt
+Cursor rules
+Copilot instructions
+组件 AI metadata
+registry usage examples
 ```
 
-可以使用：
+AI metadata 应该从 `zeus.components.json / custom-elements.json / registry.json` 派生，不要手写两份。
 
-```tsx id="sclp0p"
-import { Input } from '@zeus-web/input/react'
+测试：
+
+```txt
+- ai metadata schema test
+- 每个 registry item 都有 AI usage
+- 每个 primitive 都能在 metadata 找到
 ```
 
-这是新增要求的核心验收点。
+# 9. 最终正确路线一句话
 
-## 第二闭环：聚合使用成立
-
-```txt id="fy32tw"
-Phase 3
+```txt
+zeus-ui 不实现 Web Component 编译和 wrapper 生成；
+zeus-ui 只写 headless primitive 源组件、主题、registry、CLI、docs；
+wc/react/vue/custom-elements/dts/icons 全部交给 zeus/packages/web-c 里的 @zeus-js/bundler-plugin 和 @zeus-js/output-*。
 ```
 
-目标：
+所以接下来最该做的不是继续强化当前手写 `HTMLElement`，而是开一个修正 PR：
 
-```tsx id="x80jbh"
-import { Button, Dialog, Input } from '@zeus-web/react'
+```txt
+refactor(input): migrate primitive output to zeus web-c pipeline
 ```
 
-并且 tree-shaking 正常。
+这个 PR 的核心就是：
 
-## 第三闭环：shadcn-like 成立
-
-```txt id="ughcfe"
-Phase 4 → Phase 5 → Phase 6
+```txt
+删除手写 src/wc.ts / src/react.ts / src/vue.ts
+新增 src/input.tsx
+新增 rollup.config.ts
+使用 @zeus-js/bundler-plugin + output-wc + output-react-wrapper + output-vue-wrapper
+修正 package exports
+补构建产物测试
 ```
-
-目标：
-
-```bash id="ktn4tv"
-pnpm dlx @zeus-web/cli init
-pnpm dlx @zeus-web/cli add input button dialog
-```
-
-生成可改源码，并且只安装对应 primitive 包。
-
-## 第四闭环：生态成立
-
-```txt id="cv9id4"
-Phase 7 → Phase 12
-```
-
-目标：
-
-```txt id="h2ibj2"
-文档完善
-组件丰富
-blocks 可用
-AI 能正确生成 zeus-web 代码
-```
-
-## 26. 最终一句话结论
-
-最终 `zeus-web` 应该这样设计：
-
-```txt id="lhy086"
-底层每个 headless primitive 都是独立 npm 包：
-@zeus-web/input
-@zeus-web/button
-@zeus-web/dialog
-
-中层提供聚合包：
-@zeus-web/headless
-@zeus-web/react
-@zeus-web/vue
-
-上层提供 shadcn-like 使用体验：
-@zeus-web/registry
-@zeus-web/themes
-@zeus-web/cli
-
-CLI 默认按需安装单组件 primitive：
-zweb add input 只安装 @zeus-web/input
-```
-
-这条路线比“一个大 headless 包 + 一个 registry”更适合长期维护，也更符合你想要的“使用方面生态”：**用户想轻量用就单包安装，想方便用就聚合包，想高度定制就 registry 复制源码。**

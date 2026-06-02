@@ -9,6 +9,6 @@
     "noEmit": false,
     "stripInternal": true
   },
-  "include": ["../packages/*/src", "../packages/primitives/*/src"],
+  "include": ["../../packages/*/src", "../../packages/primitives/*/src"],
   "exclude": ["**/__tests__", "**/dist", "**/playground", "**/node_modules"]
 }
