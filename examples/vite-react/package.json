@@ -1,0 +1,8 @@
+{
+  "name": "@zeus-web/example-vite-react",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Vite + React example for Zeus Web.",
+  "license": "MIT"
+}

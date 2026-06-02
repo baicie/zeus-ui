@@ -18,6 +18,8 @@ export default defineConfig(
       'no-restricted-globals': ['error', ...DOMGlobals, ...NodeGlobals],
 
       'no-restricted-syntax': ['error', banConstEnum],
+      'style/operator-linebreak': 'off',
+      'antfu/if-newline': 'off',
     },
   },
 
@@ -41,11 +43,33 @@ export default defineConfig(
       'no-restricted-globals': 'off',
       'no-restricted-syntax': ['error', banConstEnum],
       'no-console': 'off',
+      'node/prefer-global/process': 'off',
+      'style/arrow-parens': 'off',
+      'style/brace-style': 'off',
+      'style/operator-linebreak': 'off',
+      'antfu/if-newline': 'off',
+      'jsonc/sort-keys': 'off',
+    },
+  },
+
+  // CLI package - CLI tools need console and process
+  {
+    files: ['packages/cli/**'],
+    rules: {
+      'no-console': 'off',
+      'node/prefer-global/process': 'off',
+    },
+  },
+
+  // Web Component packages - need DOM globals
+  {
+    files: ['packages/primitives/**'],
+    rules: {
+      'no-restricted-globals': 'off',
     },
   },
 
   // Let ESLint format TypeScript files via @stylistic instead of Prettier
-  // Only add rules antfu doesn't already apply (it uses "style/" prefix)
   {
     files: ['**/*.ts', '**/*.tsx'],
     plugins: {
@@ -60,6 +84,12 @@ export default defineConfig(
       '@/keyword-spacing': 'error',
       '@/object-curly-spacing': ['error', 'always'],
       '@/space-infix-ops': 'error',
+      'jsonc/sort-keys': 'off',
+      'style/operator-linebreak': 'off',
+      'style/arrow-parens': ['error', 'as-needed'],
+      'antfu/if-newline': 'off',
+      'style/brace-style': ['error', '1tbs', { allowSingleLine: true }],
+      'perfectionist/sort-named-exports': 'off',
     },
   },
 
@@ -68,11 +98,15 @@ export default defineConfig(
       '**/dist/',
       '**/temp/',
       '**/coverage/',
+      '**/node_modules/',
       '.idea/',
       'explorations/',
       'dts-build/packages',
       'playground',
       '**/*.md',
+      '**/.vitepress/cache/',
+      '**/.vitepress/dist/',
+      'packages/napi',
     ],
   },
 )

@@ -1,0 +1,8 @@
+{
+  "name": "@zeus-web/example-vite-vue",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Vite + Vue example for Zeus Web.",
+  "license": "MIT"
+}

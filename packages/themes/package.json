@@ -1,0 +1,27 @@
+{
+  "name": "@zeus-web/themes",
+  "type": "module",
+  "version": "0.0.0",
+  "description": "Theme tokens for Zeus Web.",
+  "license": "MIT",
+  "sideEffects": [
+    "./dist/*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./tokens.css": "./src/tokens.css",
+    "./default.css": "./src/default.css"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "dev": "tsup src/index.ts --format esm --dts --clean --watch",
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "check": "tsc -p tsconfig.json --noEmit"
+  }
+}

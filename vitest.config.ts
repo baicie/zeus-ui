@@ -19,7 +19,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      include: ['packages/*/src/**'],
+      include: ['packages/*/src/**', 'packages/primitives/*/src/**'],
       exclude: [],
     },
     projects: [
@@ -34,7 +34,10 @@ export default defineConfig({
         extends: true,
         test: {
           name: 'unit-jsdom',
-          include: ['packages/*/*.{test,spec}.*'],
+          include: [
+            'packages/*/*.{test,spec}.*',
+            'packages/primitives/*/*.{test,spec}.*',
+          ],
           exclude: [...configDefaults.exclude, '**/e2e/**'],
           environment: 'jsdom',
         },
@@ -44,7 +47,10 @@ export default defineConfig({
         test: {
           name: 'e2e',
           environment: 'jsdom',
-          include: ['packages/*/__tests__/e2e/*.spec.ts'],
+          include: [
+            'packages/*/__tests__/e2e/*.spec.ts',
+            'packages/primitives/*/__tests__/e2e/*.spec.ts',
+          ],
         },
       },
     ],

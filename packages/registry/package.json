@@ -1,0 +1,26 @@
+{
+  "name": "@zeus-web/registry",
+  "type": "module",
+  "version": "0.0.0",
+  "description": "Registry for Zeus Web shadcn-like components.",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./registry.json": {
+      "default": "./registry.json"
+    }
+  },
+  "files": [
+    "dist",
+    "registry.json"
+  ],
+  "scripts": {
+    "dev": "tsup src/index.ts --format esm --dts --clean --watch",
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "check": "tsc -p tsconfig.json --noEmit"
+  }
+}

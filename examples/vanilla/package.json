@@ -1,0 +1,8 @@
+{
+  "name": "@zeus-web/example-vanilla",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Vanilla JS example for Zeus Web.",
+  "license": "MIT"
+}

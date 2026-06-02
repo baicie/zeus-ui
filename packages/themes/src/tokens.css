@@ -1,0 +1,10 @@
+:root {
+  --zw-radius: 0.5rem;
+  --zw-background: 0 0% 100%;
+  --zw-foreground: 240 10% 3.9%;
+  --zw-primary: 240 5.9% 10%;
+  --zw-primary-foreground: 0 0% 98%;
+  --zw-border: 240 5.9% 90%;
+  --zw-input: 240 5.9% 90%;
+  --zw-ring: 240 5.9% 10%;
+}

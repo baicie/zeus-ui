@@ -1,0 +1,27 @@
+{
+  "name": "@zeus-web/headless",
+  "type": "module",
+  "version": "0.0.0",
+  "description": "Aggregated headless Web Components for Zeus Web.",
+  "license": "MIT",
+  "sideEffects": [
+    "./dist/index.js"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsup src/index.ts --format esm --dts --clean --watch",
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@zeus-web/input": "workspace:*"
+  }
+}

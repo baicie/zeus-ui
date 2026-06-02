@@ -1,0 +1,24 @@
+{
+  "$schema": "https://zeus-web.dev/schema/registry.json",
+  "name": "zeus-web",
+  "homepage": "https://zeus-web.dev",
+  "items": [
+    {
+      "name": "input",
+      "type": "registry:ui",
+      "dependencies": [
+        "@zeus-web/input",
+        "clsx",
+        "tailwind-merge",
+        "class-variance-authority"
+      ],
+      "files": [
+        {
+          "path": "default/input.tsx",
+          "target": "components/ui/input.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    }
+  ]
+}

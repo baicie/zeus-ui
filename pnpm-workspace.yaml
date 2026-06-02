@@ -3,8 +3,14 @@ shellEmulator: true
 trustPolicy: no-downgrade
 
 packages:
-  - packages/*
+  - 'packages/*'
+  - 'packages/primitives/*'
+  - 'apps/*'
+  - 'examples/*'
 
 allowBuilds:
   esbuild: true
   simple-git-hooks: true
+
+overrides:
+  chokidar: 4.0.2

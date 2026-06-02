@@ -1,0 +1,27 @@
+{
+  "name": "@zeus-web/cli",
+  "type": "module",
+  "version": "0.0.0",
+  "description": "CLI for Zeus Web.",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "zweb": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "tsup && node -e \"const fs=require('fs');const f='dist/index.cjs';const c=fs.readFileSync(f,'utf8');if(!c.startsWith('#!/'))fs.writeFileSync(f,'#!/usr/bin/env node\\n'+c,'utf8');\"",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "picocolors": "^1.1.1"
+  }
+}
