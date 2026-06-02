@@ -28,7 +28,9 @@
     "postinstall": "simple-git-hooks",
     "docs:dev": "vitepress dev apps/docs",
     "docs:build": "vitepress build apps/docs",
-    "docs:preview": "vitepress preview apps/docs"
+    "docs:preview": "vitepress preview apps/docs",
+    "link:zeus-js": "tsx scripts/commands/link-local-zeus.ts",
+    "unlink:zeus-js": "tsx scripts/commands/unlink-local-zeus.ts && pnpm install"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.0.0",
