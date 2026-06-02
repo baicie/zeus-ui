@@ -33,7 +33,7 @@ expect.extend({
           `expected "${received}" to have been warned${
             msgs.length
               ? `.\n\nActual messages:\n\n - ${msgs}`
-              : ` but no warning was recorded.`
+              : ' but no warning was recorded.'
           }`,
       }
     }

@@ -1,4 +1,5 @@
 import defineConfig from '@antfu/eslint-config'
+import stylistic from '@stylistic/eslint-plugin'
 
 const DOMGlobals = ['window', 'document']
 const NodeGlobals = ['module', 'require']
@@ -40,6 +41,25 @@ export default defineConfig(
       'no-restricted-globals': 'off',
       'no-restricted-syntax': ['error', banConstEnum],
       'no-console': 'off',
+    },
+  },
+
+  // Let ESLint format TypeScript files via @stylistic instead of Prettier
+  // Only add rules antfu doesn't already apply (it uses "style/" prefix)
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+    plugins: {
+      style: stylistic,
+    },
+    rules: {
+      'prettier/prettier': 'off',
+      // Extra rules not covered by antfu's defaults
+      '@/comma-dangle': ['error', 'always-multiline'],
+      '@/func-call-spacing': ['error', 'never'],
+      '@/key-spacing': ['error', { beforeColon: false, afterColon: true }],
+      '@/keyword-spacing': 'error',
+      '@/object-curly-spacing': ['error', 'always'],
+      '@/space-infix-ops': 'error',
     },
   },
 
