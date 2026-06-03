@@ -8,6 +8,7 @@ export interface PackageJsonLike {
   sideEffects?: boolean | string[]
   exports?: Record<string, unknown>
   peerDependencies?: Record<string, string>
+  dependencies?: Record<string, string>
 }
 
 export interface PackageRuleResult {
@@ -78,9 +79,24 @@ function validatePrimitivePackage(
     )
   }
 
-  if (!pkg.peerDependencies || !pkg.peerDependencies['@zeus-js/runtime-dom']) {
+  if (!pkg.peerDependencies || !pkg.peerDependencies['@zeus-js/zeus']) {
     errors.push(
-      `${pkg.name}: primitive package must peer depend on @zeus-js/runtime-dom`,
+      `${pkg.name}: primitive package must peer depend on @zeus-js/zeus`,
+    )
+  }
+
+  if (
+    !pkg.dependencies ||
+    pkg.dependencies['@zeus-web/zeus-compat'] !== 'workspace:*'
+  ) {
+    errors.push(
+      `${pkg.name}: primitive package must depend on @zeus-web/zeus-compat workspace:*`,
+    )
+  }
+
+  if (pkg.peerDependencies?.['@zeus-js/runtime-dom']) {
+    errors.push(
+      `${pkg.name}: primitive package must not peer depend on @zeus-js/runtime-dom; use @zeus-js/zeus via @zeus-web/zeus-compat`,
     )
   }
 

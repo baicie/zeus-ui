@@ -1,5 +1,5 @@
-import type { DefineElementSetup } from '@zeus-js/runtime-dom'
-import { defineElement, Host } from '@zeus-js/runtime-dom'
+import type { DefineElementSetup } from '@zeus-web/zeus-compat'
+import { defineElement, Host } from '@zeus-web/zeus-compat'
 
 export type InputType =
   | 'text'
@@ -65,7 +65,7 @@ const setup: DefineElementSetup<InputProps> = (props, ctx) => {
 }
 
 export const Input = defineElement<InputProps>(
-  'z-input',
+  'zw-input',
   {
     shadow: false,
     props: {

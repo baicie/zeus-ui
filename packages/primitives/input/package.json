@@ -46,7 +46,7 @@
     "test": "vitest --project unit-jsdom"
   },
   "peerDependencies": {
-    "@zeus-js/runtime-dom": "^0.1.0-beta.0"
+    "@zeus-js/zeus": ">=0.1.0-beta.0 <0.2.0"
   },
   "peerDependenciesMeta": {
     "react": {
@@ -55,5 +55,8 @@
     "vue": {
       "optional": true
     }
+  },
+  "dependencies": {
+    "@zeus-web/zeus-compat": "workspace:*"
   }
 }

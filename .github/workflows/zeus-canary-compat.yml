@@ -1,0 +1,79 @@
+name: Zeus Canary Compatibility
+
+on:
+  repository_dispatch:
+    types:
+      - zeus-canary-published
+
+  workflow_dispatch:
+
+  schedule:
+    - cron: '0 2 * * *'
+
+concurrency:
+  group: zeus-canary-compat-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compatibility:
+    runs-on: ubuntu-latest
+
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Install latest Zeus canary packages
+        run: |
+          pnpm add -D \
+            @zeus-js/zeus@canary \
+            @zeus-js/runtime-dom@canary \
+            @zeus-js/signal@canary \
+            @zeus-js/compiler@canary \
+            @zeus-js/component-analyzer@canary \
+            @zeus-js/component-dts@canary \
+            @zeus-js/bundler-plugin@canary \
+            @zeus-js/output-wc@canary \
+            @zeus-js/output-react-wrapper@canary \
+            @zeus-js/output-vue-wrapper@canary \
+            @zeus-js/output-css@canary \
+            @zeus-js/output-icons@canary \
+            @zeus-js/preset-component-library@canary \
+            @zeus-js/vite-plugin@canary \
+            --save-exact
+
+      - name: Print Zeus versions
+        run: |
+          pnpm list @zeus-js/zeus @zeus-js/bundler-plugin @zeus-js/output-wc @zeus-js/runtime-dom
+
+      - name: Check import boundaries
+        run: pnpm check:zeus-imports
+
+      - name: Typecheck
+        run: pnpm check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests
+        run: pnpm test-unit
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Check package exports
+        run: pnpm check:exports
+
+      - name: Check build output
+        run: pnpm check:build-output
