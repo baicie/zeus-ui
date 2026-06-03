@@ -42,7 +42,10 @@ describe('package rules', () => {
         './zeus.components.json': {},
       },
       peerDependencies: {
-        '@zeus-js/runtime-dom': '^0.1.0-beta.0',
+        '@zeus-js/zeus': '>=0.1.0-beta.0 <0.2.0',
+      },
+      dependencies: {
+        '@zeus-web/zeus-compat': 'workspace:*',
       },
     })
 
@@ -75,7 +78,10 @@ describe('package rules', () => {
         './zeus.components.json': {},
       },
       peerDependencies: {
-        '@zeus-js/runtime-dom': '^0.1.0-beta.0',
+        '@zeus-js/zeus': '>=0.1.0-beta.0 <0.2.0',
+      },
+      dependencies: {
+        '@zeus-web/zeus-compat': 'workspace:*',
       },
     })
 
@@ -89,7 +95,7 @@ describe('package rules', () => {
     ).toBe(true)
   })
 
-  it('rejects primitive package without @zeus-js/runtime-dom peer dependency', () => {
+  it('rejects primitive package without @zeus-js/zeus peer dependency', () => {
     const root = createTempRoot()
     const dir = join(root, 'packages/primitives/input')
     mkdirSync(join(dir, 'src'), { recursive: true })
@@ -115,9 +121,9 @@ describe('package rules', () => {
     const result = validatePackageRules(root, join(dir, 'package.json'))
 
     expect(result.valid).toBe(false)
-    expect(
-      result.errors.some(error => error.includes('@zeus-js/runtime-dom')),
-    ).toBe(true)
+    expect(result.errors.some(error => error.includes('@zeus-js/zeus'))).toBe(
+      true,
+    )
   })
 
   it('rejects primitive package without rollup.config.mjs', () => {
@@ -140,7 +146,10 @@ describe('package rules', () => {
         './zeus.components.json': {},
       },
       peerDependencies: {
-        '@zeus-js/runtime-dom': '^0.1.0-beta.0',
+        '@zeus-js/zeus': '>=0.1.0-beta.0 <0.2.0',
+      },
+      dependencies: {
+        '@zeus-web/zeus-compat': 'workspace:*',
       },
     })
 
@@ -175,7 +184,10 @@ describe('package rules', () => {
         './zeus.components.json': {},
       },
       peerDependencies: {
-        '@zeus-js/runtime-dom': '^0.1.0-beta.0',
+        '@zeus-js/zeus': '>=0.1.0-beta.0 <0.2.0',
+      },
+      dependencies: {
+        '@zeus-web/zeus-compat': 'workspace:*',
       },
     })
 
@@ -213,7 +225,10 @@ describe('package rules', () => {
         './zeus.components.json': {},
       },
       peerDependencies: {
-        '@zeus-js/runtime-dom': '^0.1.0-beta.0',
+        '@zeus-js/zeus': '>=0.1.0-beta.0 <0.2.0',
+      },
+      dependencies: {
+        '@zeus-web/zeus-compat': 'workspace:*',
       },
     })
 

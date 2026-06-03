@@ -30,6 +30,8 @@ export default defineConfig({
           exclude: [
             ...configDefaults.exclude,
             '**/e2e/**',
+            // zeus-compat tests need jsdom and use Zeus DOM APIs — skip in Node-only unit pool.
+            'packages/zeus-compat/**',
             // Canary-only test — only runs in zeus-canary-compat.yml.
             'packages/zeus-compat/__tests__/canary-capabilities.spec.ts',
           ],

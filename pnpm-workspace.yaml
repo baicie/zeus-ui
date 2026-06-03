@@ -1,5 +1,3 @@
-shellEmulator: true
-
 packages:
   - 'packages/*'
   - 'packages/primitives/*'
@@ -11,4 +9,16 @@ allowBuilds:
   simple-git-hooks: true
 
 overrides:
+  '@zeus-js/bundler-plugin': 'link:d:/workspace/git-code/zeus/packages/web-c/bundler-plugin'
+  '@zeus-js/compiler': 'link:d:/workspace/git-code/zeus/packages/core/compiler'
+  '@zeus-js/component-analyzer': 'link:d:/workspace/git-code/zeus/packages/web-c/component-analyzer'
+  '@zeus-js/component-dts': 'link:d:/workspace/git-code/zeus/packages/web-c/component-dts'
+  '@zeus-js/output-icons': 'link:d:/workspace/git-code/zeus/packages/web-c/output-icons'
+  '@zeus-js/output-react-wrapper': 'link:d:/workspace/git-code/zeus/packages/web-c/output-react-wrapper'
+  '@zeus-js/output-vue-wrapper': 'link:d:/workspace/git-code/zeus/packages/web-c/output-vue-wrapper'
+  '@zeus-js/output-wc': 'link:d:/workspace/git-code/zeus/packages/web-c/output-wc'
+  '@zeus-js/runtime-dom': 'link:d:/workspace/git-code/zeus/packages/core/runtime-dom'
+  '@zeus-js/shared': 'link:d:/workspace/git-code/zeus/packages/core/shared'
+  '@zeus-js/signal': 'link:d:/workspace/git-code/zeus/packages/core/signal'
+  '@zeus-js/zeus': 'link:d:/workspace/git-code/zeus/packages/core/zeus'
   chokidar: 4.0.2

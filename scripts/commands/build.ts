@@ -1,5 +1,6 @@
 import { existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { execa } from 'execa'
 
 const root = process.cwd()
@@ -42,9 +43,12 @@ async function main() {
   console.log(`Building ${dirs.length} package(s)...\n`)
 
   for (const dir of dirs) {
-    const pkgJson = await import(join(dir, 'package.json'), {
-      with: { type: 'json' },
-    }).then(m => m.default)
+    const pkgJson = await import(
+      pathToFileURL(join(dir, 'package.json')).href,
+      {
+        with: { type: 'json' },
+      }
+    ).then(m => m.default)
     console.log(`\nBuilding @ ${pkgJson.name}`)
 
     await execa('pnpm', ['--dir', dir, 'build'], {
