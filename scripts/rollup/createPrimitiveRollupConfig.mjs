@@ -16,7 +16,6 @@ export function createPrimitiveRollupConfig(options = {}) {
     },
     external: [
       '@zeus-js/zeus',
-      '@zeus-js/signal',
       '@zeus-web/zeus-compat',
       'react',
       'vue',

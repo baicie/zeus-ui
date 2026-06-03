@@ -1,20 +1,38 @@
-// capabilities — inline (before external packages)
-export { ZEUS_CAPABILITIES } from './capabilities'
-export type { ZeusCapabilities } from './capabilities'
+// NOTE: @zeus-js/zeus/capabilities does not exist yet in the Zeus monorepo.
+// When Zeus exports it, this file should be updated to:
+//   export { ZEUS_CAPABILITIES } from '@zeus-js/zeus/capabilities'
+// Until then, capabilities are maintained in ./capabilities.ts.
+export {
+  ZEUS_CAPABILITIES,
+  assertZeusCompatRequirements,
+  getMissingZeusCompatRequirements,
+} from './capabilities'
+export type { ZeusCapabilities, ZeusCompatRequirement } from './capabilities'
 
-// runtime — from @zeus-js/runtime-dom
+// All public APIs are re-exported from the unified @zeus-js/zeus public API.
+// This is the only allowed import path — downstream packages MUST NOT import
+// @zeus-js/runtime-dom or @zeus-js/signal directly.
 export {
   For,
   Host,
   Show,
   Slot,
+  batch,
+  computed,
   createContext,
   defineElement,
+  effect,
   inject,
+  nextTick,
+  onCleanup,
   provide,
   render,
+  scope,
+  state,
+  untrack,
   useContext,
-} from '@zeus-js/runtime-dom'
+  watch,
+} from '@zeus-js/zeus'
 
 export type {
   Component,
@@ -30,17 +48,4 @@ export type {
   JSXValue,
   ShowProps,
   SlotProps,
-} from '@zeus-js/runtime-dom'
-
-// reactivity — from @zeus-js/signal
-export {
-  batch,
-  computed,
-  effect,
-  nextTick,
-  onCleanup,
-  scope,
-  state,
-  untrack,
-  watch,
-} from '@zeus-js/signal'
+} from '@zeus-js/zeus'

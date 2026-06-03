@@ -1,1 +1,6 @@
-export { Input } from './input'
+export {
+  Input,
+  type InputProps,
+  type InputType,
+  type InputValueChangeDetail,
+} from './input'

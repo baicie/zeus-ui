@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { defineElement, Host, Slot, ZEUS_CAPABILITIES } from '../src'
+import {
+  assertZeusCompatRequirements,
+  defineElement,
+  Host,
+  Slot,
+  ZEUS_CAPABILITIES,
+} from '../src'
 
 describe('@zeus-web/zeus-compat contract', () => {
   it('exposes runtime component APIs required by primitives', () => {
@@ -16,5 +22,9 @@ describe('@zeus-web/zeus-compat contract', () => {
     expect(ZEUS_CAPABILITIES.webComponents.props).toBe(true)
     expect(ZEUS_CAPABILITIES.webComponents.attrs).toBe(true)
     expect(ZEUS_CAPABILITIES.webComponents.events).toBe(true)
+  })
+
+  it('passes required compatibility requirements', () => {
+    expect(() => assertZeusCompatRequirements()).not.toThrow()
   })
 })

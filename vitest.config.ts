@@ -28,6 +28,14 @@ export default defineConfig({
         test: {
           name: 'unit',
           exclude: [...configDefaults.exclude, '**/e2e/**'],
+          include: [
+            'packages/zeus-compat/__tests__/**/*.test.ts',
+            'packages/zeus-compat/__tests__/**/*.spec.ts',
+            'packages/primitives/input/__tests__/**/*.test.ts',
+            'packages/primitives/input/__tests__/**/*.spec.ts',
+            'scripts/checks/__tests__/**/*.test.ts',
+            'scripts/checks/__tests__/**/*.spec.ts',
+          ],
         },
       },
       {
@@ -48,7 +56,11 @@ export default defineConfig({
             'scripts/checks/__tests__/**/*.test.ts',
             'scripts/checks/__tests__/**/*.spec.ts',
           ],
-          exclude: [...configDefaults.exclude, '**/e2e/**'],
+          exclude: [
+            ...configDefaults.exclude,
+            '**/e2e/**',
+            'packages/zeus-compat/**',
+          ],
           environment: 'jsdom',
         },
       },
@@ -61,6 +73,7 @@ export default defineConfig({
             'packages/*/__tests__/e2e/*.spec.ts',
             'packages/primitives/*/__tests__/e2e/*.spec.ts',
           ],
+          exclude: ['packages/zeus-compat/**'],
         },
       },
     ],

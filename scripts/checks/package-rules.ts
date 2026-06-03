@@ -30,6 +30,7 @@ export function validatePackageRules(
   ) as PackageJsonLike
   const rel = toForwardSlash(relative(root, packageJsonPath))
   const isPrimitive = rel.startsWith('packages/primitives/')
+  const isCompat = rel.startsWith('packages/zeus-compat/')
 
   if (pkg.private) {
     return {
@@ -48,6 +49,10 @@ export function validatePackageRules(
 
   if (isPrimitive) {
     validatePrimitivePackage(packageJsonPath, pkg, errors)
+  }
+
+  if (isCompat) {
+    validateCompatPackage(packageJsonPath, pkg, errors)
   }
 
   return {
@@ -159,4 +164,34 @@ function hasCreatePrimitiveRollupConfigImport(config: string): boolean {
   return /import\s*\{\s*createPrimitiveRollupConfig\s*\}\s*from\s*['"](?:\.\.\/)+scripts\/rollup\/createPrimitiveRollupConfig\.mjs['"]/.test(
     config,
   )
+}
+
+function validateCompatPackage(
+  _packageJsonPath: string,
+  pkg: PackageJsonLike,
+  errors: string[],
+): void {
+  // zeus-compat must only peer-depend on @zeus-js/zeus, not the internals.
+  if (!pkg.peerDependencies || !pkg.peerDependencies['@zeus-js/zeus']) {
+    errors.push(`${pkg.name}: must peer depend on @zeus-js/zeus`)
+  }
+
+  if (pkg.peerDependencies?.['@zeus-js/runtime-dom']) {
+    errors.push(
+      `${pkg.name}: must not peer depend on @zeus-js/runtime-dom; use @zeus-js/zeus instead`,
+    )
+  }
+
+  if (pkg.peerDependencies?.['@zeus-js/signal']) {
+    errors.push(
+      `${pkg.name}: must not peer depend on @zeus-js/signal; use @zeus-js/zeus instead`,
+    )
+  }
+
+  // Must export both '.' and './capabilities'.
+  for (const key of ['.', './capabilities']) {
+    if (!pkg.exports || !(key in pkg.exports)) {
+      errors.push(`${pkg.name}: must export ${key}`)
+    }
+  }
 }
