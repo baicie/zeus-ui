@@ -6,6 +6,8 @@ export {
   ZEUS_CAPABILITIES,
   assertZeusCompatRequirements,
   getMissingZeusCompatRequirements,
+  getZeusCapabilities,
+  resolveZeusCapabilities,
 } from './capabilities'
 export type { ZeusCapabilities, ZeusCompatRequirement } from './capabilities'
 

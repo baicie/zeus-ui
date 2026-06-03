@@ -31,6 +31,13 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
 
+      - name: Print dispatch payload
+        if: github.event_name == 'repository_dispatch'
+        run: |
+          echo "source=${{ github.event.client_payload.source }}"
+          echo "sha=${{ github.event.client_payload.sha }}"
+          echo "version=${{ github.event.client_payload.version }}"
+
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
@@ -70,6 +77,9 @@ jobs:
 
       - name: Unit tests
         run: pnpm test-unit
+
+      - name: Zeus capabilities contract (canary only)
+        run: pnpm vitest run packages/zeus-compat/__tests__/canary-capabilities.spec.ts
 
       - name: Build packages
         run: pnpm build

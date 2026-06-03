@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest'
 import {
   assertZeusCompatRequirements,
   defineElement,
+  getZeusCapabilities,
   Host,
+  resolveZeusCapabilities,
   Slot,
   ZEUS_CAPABILITIES,
 } from '../src'
@@ -26,5 +28,15 @@ describe('@zeus-web/zeus-compat contract', () => {
 
   it('passes required compatibility requirements', () => {
     expect(() => assertZeusCompatRequirements()).not.toThrow()
+  })
+
+  it('supports dynamic resolution of Zeus capabilities', async () => {
+    await resolveZeusCapabilities()
+    // After resolving, getZeusCapabilities() should return the same object
+    // as the static ZEUS_CAPABILITIES export (either fallback or real Zeus).
+    const resolved = getZeusCapabilities()
+    expect(resolved).toBeDefined()
+    expect(resolved.webComponents).toBeDefined()
+    expect(typeof resolved.webComponents.defineElement).toBe('boolean')
   })
 })

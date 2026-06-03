@@ -18,15 +18,12 @@ const checkedRoots = [
 
 // packages/zeus-compat is the ONLY package allowed to import @zeus-js/zeus.
 // It must NOT import @zeus-js/runtime-dom or @zeus-js/signal directly.
-const zeusCompatAllowedFiles = new Set([
-  'packages/zeus-compat/src/index.ts',
-  'packages/zeus-compat/src/capabilities.ts',
-])
+const zeusCompatRoot = 'packages/zeus-compat'
 
-// All other packages must use @zeus-web/zeus-compat and must NOT bypass it.
+// Forbidden everywhere — zeus-ui packages must not bypass the compat layer.
 const hardForbiddenImports = ['@zeus-js/runtime-dom', '@zeus-js/signal']
 
-// Forbidden everywhere except zeus-compat's allowed files.
+// Forbidden everywhere except zeus-compat files (which use @zeus-js/zeus directly).
 const downstreamForbiddenImports = [
   '@zeus-js/zeus',
   '@zeus-js/zeus/capabilities',
@@ -59,20 +56,28 @@ function walk(dir: string, files: string[] = []): string[] {
   return files
 }
 
+function isCompatFile(rel: string): boolean {
+  return rel.startsWith(zeusCompatRoot)
+}
+
 function checkFile(rel: string, source: string): void {
+  const isCompat = isCompatFile(rel)
+
   for (const specifier of hardForbiddenImports) {
     if (importsFrom(source, specifier)) {
       hasError = true
+      // zeus-compat uses @zeus-js/zeus; downstream uses @zeus-web/zeus-compat.
+      const suggestion = isCompat
+        ? 'Use @zeus-js/zeus instead'
+        : 'Use @zeus-web/zeus-compat instead'
       console.error(
-        pc.red(
-          `${rel}: do not import ${specifier} directly. Use @zeus-js/zeus instead.`,
-        ),
+        pc.red(`${rel}: do not import ${specifier} directly. ${suggestion}.`),
       )
     }
   }
 
-  // Only check @zeus-js/zeus imports outside of zeus-compat allowed files.
-  if (!zeusCompatAllowedFiles.has(rel)) {
+  // Only check @zeus-js/zeus imports in downstream packages.
+  if (!isCompat) {
     for (const specifier of downstreamForbiddenImports) {
       if (importsFrom(source, specifier)) {
         hasError = true

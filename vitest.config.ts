@@ -27,12 +27,17 @@ export default defineConfig({
         extends: true,
         test: {
           name: 'unit',
-          exclude: [...configDefaults.exclude, '**/e2e/**'],
+          exclude: [
+            ...configDefaults.exclude,
+            '**/e2e/**',
+            // Canary-only test — only runs in zeus-canary-compat.yml.
+            'packages/zeus-compat/__tests__/canary-capabilities.spec.ts',
+          ],
           include: [
-            'packages/zeus-compat/__tests__/**/*.test.ts',
-            'packages/zeus-compat/__tests__/**/*.spec.ts',
-            'packages/primitives/input/__tests__/**/*.test.ts',
-            'packages/primitives/input/__tests__/**/*.spec.ts',
+            'packages/**/*.test.ts',
+            'packages/**/*.spec.ts',
+            'packages/**/*.test.tsx',
+            'packages/**/*.spec.tsx',
             'scripts/checks/__tests__/**/*.test.ts',
             'scripts/checks/__tests__/**/*.spec.ts',
           ],
@@ -47,14 +52,6 @@ export default defineConfig({
             'packages/**/*.spec.ts',
             'packages/**/*.test.tsx',
             'packages/**/*.spec.tsx',
-            'packages/**/*.test.js',
-            'packages/**/*.spec.js',
-            'packages/primitives/**/*.test.ts',
-            'packages/primitives/**/*.spec.ts',
-            'packages/primitives/**/*.test.tsx',
-            'packages/primitives/**/*.spec.tsx',
-            'scripts/checks/__tests__/**/*.test.ts',
-            'scripts/checks/__tests__/**/*.spec.ts',
           ],
           exclude: [
             ...configDefaults.exclude,
