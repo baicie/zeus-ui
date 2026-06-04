@@ -61,11 +61,36 @@ export function validatePackageRules(
   }
 }
 
+function validateZeusDependencyBoundary(
+  pkg: PackageJsonLike,
+  errors: string[],
+): void {
+  for (const field of ['dependencies', 'peerDependencies'] as const) {
+    const dependencies = pkg[field] ?? {}
+
+    for (const name of Object.keys(dependencies)) {
+      if (!name.startsWith('@zeus-js/')) continue
+
+      const isAllowedPeer =
+        field === 'peerDependencies' && name === '@zeus-js/zeus'
+
+      if (isAllowedPeer) continue
+
+      errors.push(
+        `${pkg.name}: must not declare ${field}.${name}; ` +
+          'consume Zeus only through peerDependencies.@zeus-js/zeus',
+      )
+    }
+  }
+}
+
 function validatePrimitivePackage(
   packageJsonPath: string,
   pkg: PackageJsonLike,
   errors: string[],
 ): void {
+  validateZeusDependencyBoundary(pkg, errors)
+
   const packageDir = packageJsonPath.replace(/[/\\]package\.json$/, '')
 
   if (!existsSync(join(packageDir, 'rollup.config.mjs'))) {
@@ -96,12 +121,6 @@ function validatePrimitivePackage(
   ) {
     errors.push(
       `${pkg.name}: primitive package must depend on @zeus-web/zeus-compat workspace:*`,
-    )
-  }
-
-  if (pkg.peerDependencies?.['@zeus-js/runtime-dom']) {
-    errors.push(
-      `${pkg.name}: primitive package must not peer depend on @zeus-js/runtime-dom; use @zeus-js/zeus via @zeus-web/zeus-compat`,
     )
   }
 
@@ -171,24 +190,12 @@ function validateCompatPackage(
   pkg: PackageJsonLike,
   errors: string[],
 ): void {
-  // zeus-compat must only peer-depend on @zeus-js/zeus, not the internals.
+  validateZeusDependencyBoundary(pkg, errors)
+
   if (!pkg.peerDependencies || !pkg.peerDependencies['@zeus-js/zeus']) {
     errors.push(`${pkg.name}: must peer depend on @zeus-js/zeus`)
   }
 
-  if (pkg.peerDependencies?.['@zeus-js/runtime-dom']) {
-    errors.push(
-      `${pkg.name}: must not peer depend on @zeus-js/runtime-dom; use @zeus-js/zeus instead`,
-    )
-  }
-
-  if (pkg.peerDependencies?.['@zeus-js/signal']) {
-    errors.push(
-      `${pkg.name}: must not peer depend on @zeus-js/signal; use @zeus-js/zeus instead`,
-    )
-  }
-
-  // Must export both '.' and './capabilities'.
   for (const key of ['.', './capabilities']) {
     if (!pkg.exports || !(key in pkg.exports)) {
       errors.push(`${pkg.name}: must export ${key}`)

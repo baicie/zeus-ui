@@ -10,6 +10,9 @@ on:
   schedule:
     - cron: '0 2 * * *'
 
+permissions:
+  contents: read
+
 concurrency:
   group: zeus-canary-compat-${{ github.ref }}
   cancel-in-progress: true
@@ -33,18 +36,27 @@ jobs:
 
       - name: Print dispatch payload
         if: github.event_name == 'repository_dispatch'
+        env:
+          DISPATCH_SOURCE: ${{ github.event.client_payload.source }}
+          DISPATCH_SHA: ${{ github.event.client_payload.sha }}
+          DISPATCH_VERSION: ${{ github.event.client_payload.version }}
         run: |
-          echo "source=${{ github.event.client_payload.source }}"
-          echo "sha=${{ github.event.client_payload.sha }}"
-          echo "version=${{ github.event.client_payload.version }}"
+          printf 'source=%s\n' "$DISPATCH_SOURCE"
+          printf 'sha=%s\n' "$DISPATCH_SHA"
+          printf 'version=%s\n' "$DISPATCH_VERSION"
 
       - name: Resolve Zeus version
         shell: bash
+        env:
+          DISPATCH_VERSION: ${{ github.event.client_payload.version }}
         run: |
-          VERSION='${{ github.event.client_payload.version }}'
+          set -euo pipefail
 
-          if [ -z "$VERSION" ]; then
-            VERSION='canary'
+          VERSION="${DISPATCH_VERSION:-canary}"
+
+          if [[ ! "$VERSION" =~ ^(canary|[0-9]+\.[0-9]+\.[0-9]+-[0-9A-Za-z.-]+)$ ]]; then
+            echo "Invalid Zeus canary version: $VERSION" >&2
+            exit 1
           fi
 
           echo "ZEUS_VERSION=$VERSION" >> "$GITHUB_ENV"
@@ -60,23 +72,9 @@ jobs:
         run: pnpm check:zeus-baseline
 
       - name: Relax Zeus peer ranges for selected canary
-        shell: bash
-        run: |
-          node --input-type=module -e "
-            import fs from 'node:fs'
-
-            for (const file of [
-              'packages/zeus-compat/package.json',
-              'packages/primitives/input/package.json',
-            ]) {
-              const pkg = JSON.parse(fs.readFileSync(file, 'utf8'))
-              pkg.peerDependencies['@zeus-js/zeus'] = '*'
-              fs.writeFileSync(file, `${JSON.stringify(pkg, null, 2)}\n`)
-            }
-          "
+        run: pnpm zeus:relax-peer-ranges
 
       - name: Install selected Zeus packages
-        # Intentionally mutates package.json / pnpm-lock.yaml in the CI workspace only.
         run: |
           pnpm add -Dw \
             "@zeus-js/zeus@${ZEUS_VERSION}" \
@@ -95,32 +93,67 @@ jobs:
             "@zeus-js/vite-plugin@${ZEUS_VERSION}" \
             --save-exact
 
-      - name: Verify installed Zeus version
-        shell: bash
+      - name: Verify installed Zeus versions
         run: |
-          if [ "$ZEUS_VERSION" = "canary" ]; then
-            exit 0
-          fi
+          node --input-type=module <<'EOF'
+          import fs from 'node:fs'
+          import path from 'node:path'
 
-          node --input-type=module -e "
-            import fs from 'node:fs'
+          const packageNames = [
+            '@zeus-js/zeus',
+            '@zeus-js/runtime-dom',
+            '@zeus-js/signal',
+            '@zeus-js/compiler',
+            '@zeus-js/component-analyzer',
+            '@zeus-js/component-dts',
+            '@zeus-js/bundler-plugin',
+            '@zeus-js/output-wc',
+            '@zeus-js/output-react-wrapper',
+            '@zeus-js/output-vue-wrapper',
+            '@zeus-js/output-css',
+            '@zeus-js/output-icons',
+            '@zeus-js/preset-component-library',
+            '@zeus-js/vite-plugin',
+          ]
 
-            const pkg = JSON.parse(
-              fs.readFileSync(
-                'node_modules/@zeus-js/zeus/package.json',
-                'utf8',
-              ),
+          const versions = new Map(
+            packageNames.map(name => {
+              const file = path.join(
+                'node_modules',
+                ...name.split('/'),
+                'package.json',
+              )
+
+              const pkg = JSON.parse(fs.readFileSync(file, 'utf8'))
+
+              return [name, pkg.version]
+            }),
+          )
+
+          const zeusVersion = versions.get('@zeus-js/zeus')
+          const expectedVersion = process.env.ZEUS_VERSION
+
+          if (
+            expectedVersion !== 'canary' &&
+            zeusVersion !== expectedVersion
+          ) {
+            console.error(
+              `Expected @zeus-js/zeus@${expectedVersion}, got ${zeusVersion}`,
             )
+            process.exit(1)
+          }
 
-            if (pkg.version !== process.env.ZEUS_VERSION) {
+          for (const [name, version] of versions) {
+            if (version !== zeusVersion) {
               console.error(
-                \`Expected @zeus-js/zeus@\${process.env.ZEUS_VERSION}, got \${pkg.version}\`,
+                `Expected ${name}@${zeusVersion}, got ${name}@${version}`,
               )
               process.exit(1)
             }
+          }
 
-            console.log(\`Verified @zeus-js/zeus@\${pkg.version}\`)
-          "
+          console.log(`Verified synchronized Zeus version: ${zeusVersion}`)
+          EOF
 
       - name: Print Zeus versions
         run: |
