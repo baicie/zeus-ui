@@ -14,13 +14,18 @@ on:
         type: string
 
   schedule:
-    - cron: '0 2 * * *'
+    - cron: '17 2 * * *'
 
 permissions:
   contents: read
 
 concurrency:
-  group: zeus-canary-compat-${{ github.ref }}
+  group: >-
+    zeus-canary-compat-${{
+      github.event.client_payload.target_ref ||
+      inputs.target_ref ||
+      'mvp'
+    }}
   cancel-in-progress: true
 
 jobs:

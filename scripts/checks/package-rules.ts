@@ -9,6 +9,7 @@ export interface PackageJsonLike {
   exports?: Record<string, unknown>
   peerDependencies?: Record<string, string>
   dependencies?: Record<string, string>
+  optionalDependencies?: Record<string, string>
 }
 
 export interface PackageRuleResult {
@@ -67,7 +68,11 @@ function validateZeusDependencyBoundary(
   pkg: PackageJsonLike,
   errors: string[],
 ): void {
-  for (const field of ['dependencies', 'peerDependencies'] as const) {
+  for (const field of [
+    'dependencies',
+    'optionalDependencies',
+    'peerDependencies',
+  ] as const) {
     const dependencies = pkg[field] ?? {}
 
     for (const name of Object.keys(dependencies)) {
