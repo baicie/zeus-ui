@@ -13,6 +13,12 @@ on:
         default: mvp
         type: string
 
+      zeus_version:
+        description: Exact Zeus canary version or canary dist-tag
+        required: false
+        default: canary
+        type: string
+
   schedule:
     - cron: '17 2 * * *'
 
@@ -31,6 +37,7 @@ concurrency:
 jobs:
   compatibility:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
@@ -86,10 +93,11 @@ jobs:
         shell: bash
         env:
           DISPATCH_VERSION: ${{ github.event.client_payload.version }}
+          MANUAL_VERSION: ${{ inputs.zeus_version }}
         run: |
           set -euo pipefail
 
-          VERSION="${DISPATCH_VERSION:-canary}"
+          VERSION="${DISPATCH_VERSION:-${MANUAL_VERSION:-canary}}"
 
           if [[ ! "$VERSION" =~ ^(canary|[0-9]+\.[0-9]+\.[0-9]+-[0-9A-Za-z.-]+)$ ]]; then
             echo "Invalid Zeus canary version: $VERSION" >&2
