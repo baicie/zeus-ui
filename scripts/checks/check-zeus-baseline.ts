@@ -141,7 +141,8 @@ if (baselineVersion && exactVersionRE.test(baselineVersion)) {
     if (actualPeerRange !== expectedPeerRange) {
       error(
         `${pkg.name ?? toForwardSlash(relative(root, file))}: ` +
-          `@zeus-js/zeus peer range must be "${expectedPeerRange}", `,
+          `@zeus-js/zeus peer range must be "${expectedPeerRange}", ` +
+          `got "${actualPeerRange}"`,
       )
     }
   }

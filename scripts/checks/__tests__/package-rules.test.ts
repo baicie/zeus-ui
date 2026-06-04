@@ -313,4 +313,28 @@ describe('package rules', () => {
       true,
     )
   })
+
+  it('rejects any public package that declares Zeus internal dependencies', () => {
+    const root = createTempRoot()
+    const dir = join(root, 'packages/headless')
+
+    mkdirSync(dir, { recursive: true })
+
+    writeJson(join(dir, 'package.json'), {
+      name: '@zeus-web/headless',
+      exports: {
+        '.': {},
+      },
+      dependencies: {
+        '@zeus-js/runtime-dom': '0.1.0-beta.2',
+      },
+    })
+
+    const result = validatePackageRules(root, join(dir, 'package.json'))
+
+    expect(result.valid).toBe(false)
+    expect(
+      result.errors.some(error => error.includes('@zeus-js/runtime-dom')),
+    ).toBe(true)
+  })
 })

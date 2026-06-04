@@ -47,6 +47,8 @@ export function validatePackageRules(
     errors.push(`${pkg.name}: missing exports`)
   }
 
+  validateZeusDependencyBoundary(pkg, errors)
+
   if (isPrimitive) {
     validatePrimitivePackage(packageJsonPath, pkg, errors)
   }
@@ -89,8 +91,6 @@ function validatePrimitivePackage(
   pkg: PackageJsonLike,
   errors: string[],
 ): void {
-  validateZeusDependencyBoundary(pkg, errors)
-
   const packageDir = packageJsonPath.replace(/[/\\]package\.json$/, '')
 
   if (!existsSync(join(packageDir, 'rollup.config.mjs'))) {
@@ -190,8 +190,6 @@ function validateCompatPackage(
   pkg: PackageJsonLike,
   errors: string[],
 ): void {
-  validateZeusDependencyBoundary(pkg, errors)
-
   if (!pkg.peerDependencies || !pkg.peerDependencies['@zeus-js/zeus']) {
     errors.push(`${pkg.name}: must peer depend on @zeus-js/zeus`)
   }

@@ -6,6 +6,12 @@ on:
       - zeus-canary-published
 
   workflow_dispatch:
+    inputs:
+      target_ref:
+        description: Branch to test against Zeus canary
+        required: false
+        default: mvp
+        type: string
 
   schedule:
     - cron: '0 2 * * *'
@@ -25,7 +31,31 @@ jobs:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
 
     steps:
+      - name: Resolve target ref
+        shell: bash
+        env:
+          DISPATCH_TARGET_REF: ${{ github.event.client_payload.target_ref }}
+          MANUAL_TARGET_REF: ${{ inputs.target_ref }}
+        run: |
+          set -euo pipefail
+
+          TARGET_REF="${DISPATCH_TARGET_REF:-${MANUAL_TARGET_REF:-mvp}}"
+
+          case "$TARGET_REF" in
+            main|mvp)
+              ;;
+            *)
+              echo "Unsupported target ref: $TARGET_REF" >&2
+              exit 1
+              ;;
+          esac
+
+          echo "TARGET_REF=$TARGET_REF" >> "$GITHUB_ENV"
+          echo "Testing zeus-ui ref: $TARGET_REF"
+
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TARGET_REF }}
 
       - uses: pnpm/action-setup@v4
 
@@ -40,10 +70,12 @@ jobs:
           DISPATCH_SOURCE: ${{ github.event.client_payload.source }}
           DISPATCH_SHA: ${{ github.event.client_payload.sha }}
           DISPATCH_VERSION: ${{ github.event.client_payload.version }}
+          DISPATCH_TARGET_REF: ${{ github.event.client_payload.target_ref }}
         run: |
           printf 'source=%s\n' "$DISPATCH_SOURCE"
           printf 'sha=%s\n' "$DISPATCH_SHA"
           printf 'version=%s\n' "$DISPATCH_VERSION"
+          printf 'target_ref=%s\n' "$DISPATCH_TARGET_REF"
 
       - name: Resolve Zeus version
         shell: bash
