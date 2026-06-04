@@ -38,36 +38,78 @@ jobs:
           echo "sha=${{ github.event.client_payload.sha }}"
           echo "version=${{ github.event.client_payload.version }}"
 
+      - name: Resolve Zeus version
+        shell: bash
+        run: |
+          VERSION='${{ github.event.client_payload.version }}'
+
+          if [ -z "$VERSION" ]; then
+            VERSION='canary'
+          fi
+
+          echo "ZEUS_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Testing Zeus version: $VERSION"
+
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
       - name: Check workspace overrides
         run: pnpm check:workspace-overrides
 
-      - name: Install latest Zeus canary packages
+      - name: Install selected Zeus packages
         # Intentionally mutates package.json / pnpm-lock.yaml in the CI workspace only.
-        # This verifies zeus-ui against the latest Zeus canary without changing the branch.
         run: |
           pnpm add -D \
-            @zeus-js/zeus@canary \
-            @zeus-js/runtime-dom@canary \
-            @zeus-js/signal@canary \
-            @zeus-js/compiler@canary \
-            @zeus-js/component-analyzer@canary \
-            @zeus-js/component-dts@canary \
-            @zeus-js/bundler-plugin@canary \
-            @zeus-js/output-wc@canary \
-            @zeus-js/output-react-wrapper@canary \
-            @zeus-js/output-vue-wrapper@canary \
-            @zeus-js/output-css@canary \
-            @zeus-js/output-icons@canary \
-            @zeus-js/preset-component-library@canary \
-            @zeus-js/vite-plugin@canary \
+            "@zeus-js/zeus@${ZEUS_VERSION}" \
+            "@zeus-js/runtime-dom@${ZEUS_VERSION}" \
+            "@zeus-js/signal@${ZEUS_VERSION}" \
+            "@zeus-js/compiler@${ZEUS_VERSION}" \
+            "@zeus-js/component-analyzer@${ZEUS_VERSION}" \
+            "@zeus-js/component-dts@${ZEUS_VERSION}" \
+            "@zeus-js/bundler-plugin@${ZEUS_VERSION}" \
+            "@zeus-js/output-wc@${ZEUS_VERSION}" \
+            "@zeus-js/output-react-wrapper@${ZEUS_VERSION}" \
+            "@zeus-js/output-vue-wrapper@${ZEUS_VERSION}" \
+            "@zeus-js/output-css@${ZEUS_VERSION}" \
+            "@zeus-js/output-icons@${ZEUS_VERSION}" \
+            "@zeus-js/preset-component-library@${ZEUS_VERSION}" \
+            "@zeus-js/vite-plugin@${ZEUS_VERSION}" \
             --save-exact
+
+      - name: Verify installed Zeus version
+        shell: bash
+        run: |
+          if [ "$ZEUS_VERSION" = "canary" ]; then
+            exit 0
+          fi
+
+          node --input-type=module -e "
+            import fs from 'node:fs'
+
+            const pkg = JSON.parse(
+              fs.readFileSync(
+                'node_modules/@zeus-js/zeus/package.json',
+                'utf8',
+              ),
+            )
+
+            if (pkg.version !== process.env.ZEUS_VERSION) {
+              console.error(
+                \`Expected @zeus-js/zeus@\${process.env.ZEUS_VERSION}, got \${pkg.version}\`,
+              )
+              process.exit(1)
+            }
+
+            console.log(\`Verified @zeus-js/zeus@\${pkg.version}\`)
+          "
 
       - name: Print Zeus versions
         run: |
-          pnpm list @zeus-js/zeus @zeus-js/bundler-plugin @zeus-js/output-wc @zeus-js/runtime-dom
+          pnpm list \
+            @zeus-js/zeus \
+            @zeus-js/bundler-plugin \
+            @zeus-js/output-wc \
+            @zeus-js/runtime-dom
 
       - name: Check import boundaries
         run: pnpm check:zeus-imports
@@ -81,8 +123,8 @@ jobs:
       - name: Unit tests
         run: pnpm test-unit
 
-      - name: Zeus capabilities contract (canary only)
-        run: pnpm vitest run packages/zeus-compat/__tests__/canary-capabilities.spec.ts
+      - name: Zeus capabilities contract
+        run: pnpm vitest run --project canary
 
       - name: Build packages
         run: pnpm build

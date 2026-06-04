@@ -260,4 +260,57 @@ describe('package rules', () => {
     expect(result.valid).toBe(true)
     expect(result.errors).toEqual([])
   })
+
+  it('accepts a valid zeus-compat package', () => {
+    const root = createTempRoot()
+    const dir = join(root, 'packages/zeus-compat')
+
+    mkdirSync(dir, { recursive: true })
+
+    writeJson(join(dir, 'package.json'), {
+      name: '@zeus-web/zeus-compat',
+      exports: {
+        '.': {},
+        './capabilities': {},
+      },
+      peerDependencies: {
+        '@zeus-js/zeus': '>=0.1.0-beta.1 <0.2.0',
+      },
+    })
+
+    const result = validatePackageRules(root, join(dir, 'package.json'))
+
+    expect(result.valid).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+
+  it('rejects zeus-compat packages that peer depend on Zeus internals', () => {
+    const root = createTempRoot()
+    const dir = join(root, 'packages/zeus-compat')
+
+    mkdirSync(dir, { recursive: true })
+
+    writeJson(join(dir, 'package.json'), {
+      name: '@zeus-web/zeus-compat',
+      exports: {
+        '.': {},
+        './capabilities': {},
+      },
+      peerDependencies: {
+        '@zeus-js/zeus': '>=0.1.0-beta.1 <0.2.0',
+        '@zeus-js/runtime-dom': '0.1.0-beta.1',
+        '@zeus-js/signal': '0.1.0-beta.1',
+      },
+    })
+
+    const result = validatePackageRules(root, join(dir, 'package.json'))
+
+    expect(result.valid).toBe(false)
+    expect(
+      result.errors.some(error => error.includes('@zeus-js/runtime-dom')),
+    ).toBe(true)
+    expect(result.errors.some(error => error.includes('@zeus-js/signal'))).toBe(
+      true,
+    )
+  })
 })

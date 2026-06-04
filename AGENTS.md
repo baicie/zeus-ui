@@ -126,20 +126,20 @@ pnpm test-coverage # 生成测试覆盖率报告
 
 ### 包总览
 
-| 包名 | 路径 | 类型 | 说明 |
-|------|------|------|------|
-| `@zeus-js/zeus` | `packages/core/zeus` | core | 统一入口，导出所有公共 API |
-| `@zeus-js/signal` | `packages/core/signal` | core | 响应式核心，基于 alien-signals |
-| `@zeus-js/runtime-dom` | `packages/core/runtime-dom` | core | DOM runtime helpers |
-| `@zeus-js/compiler` | `packages/core/compiler` | core | Babel JSX 编译器插件 |
-| `@zeus-js/shared` | `packages/core/shared` | core | 内部工具函数，无外部依赖 |
-| `@zeus-js/vite-plugin` | `packages/devtools/vite-plugin` | devtools | Vite 集成插件 |
-| `@zeus-js/output-wc` | `packages/web-c/output-wc` | web-c | Web Component 输出插件 |
-| `@zeus-js/component-analyzer` | `packages/web-c/component-analyzer` | web-c | 组件分析器（解析 JSX） |
-| `@zeus-js/bundler-plugin` | `packages/web-c/bundler-plugin` | web-c | bundler 插件宿主（Vite / Rollup） |
-| `@zeus-js/preset-component-library` | `packages/web-c/preset-component-library` | web-c | 组件库预设（一键集成） |
-| `@zeus-ui/registry` | `packages/create/registry` | create | UI 组件注册表（copyable 源码） |
-| `zeus-ui` | `packages/create/zeus-ui` | create | CLI 工具添加 UI 组件到项目 |
+| 包名                                | 路径                                      | 类型     | 说明                              |
+| ----------------------------------- | ----------------------------------------- | -------- | --------------------------------- |
+| `@zeus-js/zeus`                     | `packages/core/zeus`                      | core     | 统一入口，导出所有公共 API        |
+| `@zeus-js/signal`                   | `packages/core/signal`                    | core     | 响应式核心，基于 alien-signals    |
+| `@zeus-js/runtime-dom`              | `packages/core/runtime-dom`               | core     | DOM runtime helpers               |
+| `@zeus-js/compiler`                 | `packages/core/compiler`                  | core     | Babel JSX 编译器插件              |
+| `@zeus-js/shared`                   | `packages/core/shared`                    | core     | 内部工具函数，无外部依赖          |
+| `@zeus-js/vite-plugin`              | `packages/devtools/vite-plugin`           | devtools | Vite 集成插件                     |
+| `@zeus-js/output-wc`                | `packages/web-c/output-wc`                | web-c    | Web Component 输出插件            |
+| `@zeus-js/component-analyzer`       | `packages/web-c/component-analyzer`       | web-c    | 组件分析器（解析 JSX）            |
+| `@zeus-js/bundler-plugin`           | `packages/web-c/bundler-plugin`           | web-c    | bundler 插件宿主（Vite / Rollup） |
+| `@zeus-js/preset-component-library` | `packages/web-c/preset-component-library` | web-c    | 组件库预设（一键集成）            |
+| `@zeus-ui/registry`                 | `packages/create/registry`                | create   | UI 组件注册表（copyable 源码）    |
+| `zeus-ui`                           | `packages/create/zeus-ui`                 | create   | CLI 工具添加 UI 组件到项目        |
 
 详细 API 文档见 [docs/internal/packages.md](docs/internal/packages.md)。
 
