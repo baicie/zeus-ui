@@ -34,41 +34,37 @@ function resolveInputValue(props: InputProps): string | undefined {
       : undefined
 }
 
-const setup: DefineElementSetup = (props, ctx) => {
-  const inputProps = props as InputProps
+const setup: DefineElementSetup<InputProps> = (props, ctx) => {
   const handleInput = (event: Event) => {
     const target = event.currentTarget as HTMLInputElement
-    ;(ctx as { emit: (event: string, detail: unknown) => void }).emit(
-      'value-change',
-      {
-        value: target.value,
-        nativeEvent: event,
-      },
-    )
+    ctx.emit('value-change', {
+      value: target.value,
+      nativeEvent: event,
+    })
   }
 
   return (
     <Host
       data-slot="input-root"
-      data-disabled={inputProps.disabled ? '' : undefined}
+      data-disabled={props.disabled ? '' : undefined}
     >
       <input
         part="root"
         data-slot="input"
-        type={inputProps.type ?? 'text'}
-        placeholder={inputProps.placeholder}
-        disabled={inputProps.disabled}
-        readOnly={inputProps.readonly}
-        required={inputProps.required}
-        name={inputProps.name}
-        value={resolveInputValue(inputProps)}
+        type={props.type ?? 'text'}
+        placeholder={props.placeholder}
+        disabled={props.disabled}
+        readOnly={props.readonly}
+        required={props.required}
+        name={props.name}
+        value={resolveInputValue(props)}
         onInput={handleInput}
       />
     </Host>
   )
 }
 
-export const Input = defineElement(
+export const Input = defineElement<InputProps>(
   'zw-input',
   {
     shadow: false,
@@ -142,4 +138,4 @@ export const Input = defineElement(
     },
   },
   setup,
-) as unknown as { new (): unknown } & typeof defineElement
+)

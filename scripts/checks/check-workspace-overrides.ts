@@ -5,30 +5,31 @@ const workspaceFile = 'pnpm-workspace.yaml'
 const source = readFileSync(workspaceFile, 'utf8')
 
 const forbiddenPatterns = [
-  /link:[a-zA-Z]:[\\/]/,
-  /link:\/Users\//,
-  /link:\/home\//,
-  /link:\/mnt\//,
-  /workspace[\\/].*zeus/,
+  {
+    label: 'local @zeus-js link/file override',
+    pattern: /^\s*['"]?@zeus-js\/[^'":\s]+['"]?\s*:\s*['"]?(?:link:|file:)/m,
+  },
+  {
+    label: 'absolute local link/file path',
+    pattern: /(?:link:|file:)(?:[a-zA-Z]:[\\/]|\/(?:Users|home|mnt)\/)/,
+  },
 ]
 
 let hasError = false
 
-for (const pattern of forbiddenPatterns) {
-  if (pattern.test(source)) {
-    hasError = true
-    console.error(
-      pc.red(
-        `${workspaceFile}: contains local machine link override matching ${pattern}`,
-      ),
-    )
-  }
+for (const { label, pattern } of forbiddenPatterns) {
+  if (!pattern.test(source)) continue
+
+  hasError = true
+  console.error(
+    pc.red(`${workspaceFile}: contains forbidden ${label}: ${pattern}`),
+  )
 }
 
 if (hasError) {
   console.error(
     pc.yellow(
-      'Do not commit local Zeus link overrides. Use pnpm link:zeus-js locally and revert workspace changes before committing.',
+      'Do not commit local Zeus overrides. Use pnpm link:zeus-js locally and revert workspace changes before committing.',
     ),
   )
   process.exit(1)

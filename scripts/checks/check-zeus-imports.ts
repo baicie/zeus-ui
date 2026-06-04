@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import pc from 'picocolors'
+import ts from 'typescript'
 
 const root = process.cwd()
 
@@ -16,18 +17,21 @@ const checkedRoots = [
   'packages/cli',
 ]
 
-// packages/zeus-compat is the ONLY package allowed to import @zeus-js/zeus.
-// It must NOT import @zeus-js/runtime-dom or @zeus-js/signal directly.
-const zeusCompatRoot = 'packages/zeus-compat'
-
-// Forbidden everywhere — zeus-ui packages must not bypass the compat layer.
-const hardForbiddenImports = ['@zeus-js/runtime-dom', '@zeus-js/signal']
-
-// Forbidden everywhere except zeus-compat files (which use @zeus-js/zeus directly).
-const downstreamForbiddenImports = [
-  '@zeus-js/zeus',
-  '@zeus-js/zeus/capabilities',
-]
+const allowedZeusImports = new Map<string, ReadonlySet<string>>([
+  ['packages/zeus-compat/src/index.ts', new Set(['@zeus-js/zeus'])],
+  [
+    'packages/zeus-compat/src/capabilities.ts',
+    new Set(['@zeus-js/zeus/capabilities']),
+  ],
+  [
+    'packages/zeus-compat/__tests__/contract.spec.ts',
+    new Set(['@zeus-js/zeus/capabilities']),
+  ],
+  [
+    'packages/zeus-compat/__tests__/canary-capabilities.spec.ts',
+    new Set(['@zeus-js/zeus/capabilities']),
+  ],
+])
 
 let hasError = false
 
@@ -56,47 +60,64 @@ function walk(dir: string, files: string[] = []): string[] {
   return files
 }
 
-function isCompatFile(rel: string): boolean {
-  return rel.startsWith(zeusCompatRoot)
+function getScriptKind(file: string): ts.ScriptKind {
+  if (file.endsWith('.tsx')) return ts.ScriptKind.TSX
+  if (file.endsWith('.mts')) return ts.ScriptKind.TS
+  if (file.endsWith('.cts')) return ts.ScriptKind.TS
+  return ts.ScriptKind.TS
+}
+
+function collectModuleSpecifiers(file: string, source: string): string[] {
+  const sourceFile = ts.createSourceFile(
+    file,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    getScriptKind(file),
+  )
+
+  const specifiers: string[] = []
+
+  function visit(node: ts.Node): void {
+    if (
+      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+      node.moduleSpecifier &&
+      ts.isStringLiteral(node.moduleSpecifier)
+    ) {
+      specifiers.push(node.moduleSpecifier.text)
+    }
+
+    if (
+      ts.isCallExpression(node) &&
+      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+      node.arguments.length === 1 &&
+      ts.isStringLiteral(node.arguments[0])
+    ) {
+      specifiers.push(node.arguments[0].text)
+    }
+
+    ts.forEachChild(node, visit)
+  }
+
+  visit(sourceFile)
+
+  return specifiers
 }
 
 function checkFile(rel: string, source: string): void {
-  const isCompat = isCompatFile(rel)
+  const allowed = allowedZeusImports.get(rel) ?? new Set<string>()
 
-  for (const specifier of hardForbiddenImports) {
-    if (importsFrom(source, specifier)) {
-      hasError = true
-      // zeus-compat uses @zeus-js/zeus; downstream uses @zeus-web/zeus-compat.
-      const suggestion = isCompat
-        ? 'Use @zeus-js/zeus instead'
-        : 'Use @zeus-web/zeus-compat instead'
-      console.error(
-        pc.red(`${rel}: do not import ${specifier} directly. ${suggestion}.`),
-      )
-    }
+  for (const specifier of collectModuleSpecifiers(rel, source)) {
+    if (!specifier.startsWith('@zeus-js/')) continue
+    if (allowed.has(specifier)) continue
+
+    hasError = true
+    console.error(
+      pc.red(
+        `${rel}: do not import ${specifier} directly. Use @zeus-web/zeus-compat instead.`,
+      ),
+    )
   }
-
-  // Only check @zeus-js/zeus imports in downstream packages.
-  if (!isCompat) {
-    for (const specifier of downstreamForbiddenImports) {
-      if (importsFrom(source, specifier)) {
-        hasError = true
-        console.error(
-          pc.red(
-            `${rel}: do not import ${specifier} directly. Use @zeus-web/zeus-compat instead.`,
-          ),
-        )
-      }
-    }
-  }
-}
-
-function importsFrom(source: string, specifier: string): boolean {
-  const escaped = specifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const staticImport = new RegExp(`from\\s+['"]${escaped}['"]`)
-  const bareImport = new RegExp(`import\\s+['"]${escaped}['"]`)
-
-  return staticImport.test(source) || bareImport.test(source)
 }
 
 for (const relRoot of checkedRoots) {
