@@ -56,10 +56,29 @@ jobs:
       - name: Check workspace overrides
         run: pnpm check:workspace-overrides
 
+      - name: Check Zeus baseline
+        run: pnpm check:zeus-baseline
+
+      - name: Relax Zeus peer ranges for selected canary
+        shell: bash
+        run: |
+          node --input-type=module -e "
+            import fs from 'node:fs'
+
+            for (const file of [
+              'packages/zeus-compat/package.json',
+              'packages/primitives/input/package.json',
+            ]) {
+              const pkg = JSON.parse(fs.readFileSync(file, 'utf8'))
+              pkg.peerDependencies['@zeus-js/zeus'] = '*'
+              fs.writeFileSync(file, `${JSON.stringify(pkg, null, 2)}\n`)
+            }
+          "
+
       - name: Install selected Zeus packages
         # Intentionally mutates package.json / pnpm-lock.yaml in the CI workspace only.
         run: |
-          pnpm add -D \
+          pnpm add -Dw \
             "@zeus-js/zeus@${ZEUS_VERSION}" \
             "@zeus-js/runtime-dom@${ZEUS_VERSION}" \
             "@zeus-js/signal@${ZEUS_VERSION}" \

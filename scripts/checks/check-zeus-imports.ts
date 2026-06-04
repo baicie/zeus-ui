@@ -29,7 +29,7 @@ const allowedZeusImports = new Map<string, ReadonlySet<string>>([
   ],
   [
     'packages/zeus-compat/__tests__/canary-capabilities.spec.ts',
-    new Set(['@zeus-js/zeus/capabilities']),
+    new Set(['@zeus-js/zeus', '@zeus-js/zeus/capabilities']),
   ],
 ])
 

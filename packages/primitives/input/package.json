@@ -46,7 +46,9 @@
     "test": "vitest --project unit-jsdom"
   },
   "peerDependencies": {
-    "@zeus-js/zeus": ">=0.1.0-beta.1 <0.2.0"
+    "@zeus-js/zeus": ">=0.1.0-beta.2 <0.2.0",
+    "react": ">=18 || >=19",
+    "vue": ">=3"
   },
   "peerDependenciesMeta": {
     "react": {

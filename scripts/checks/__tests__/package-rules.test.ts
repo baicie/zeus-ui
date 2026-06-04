@@ -42,7 +42,7 @@ describe('package rules', () => {
         './zeus.components.json': {},
       },
       peerDependencies: {
-        '@zeus-js/zeus': '>=0.1.0-beta.0 <0.2.0',
+        '@zeus-js/zeus': '>=0.1.0-beta.2 <0.2.0',
       },
       dependencies: {
         '@zeus-web/zeus-compat': 'workspace:*',
@@ -78,7 +78,7 @@ describe('package rules', () => {
         './zeus.components.json': {},
       },
       peerDependencies: {
-        '@zeus-js/zeus': '>=0.1.0-beta.0 <0.2.0',
+        '@zeus-js/zeus': '>=0.1.0-beta.2 <0.2.0',
       },
       dependencies: {
         '@zeus-web/zeus-compat': 'workspace:*',
@@ -146,7 +146,7 @@ describe('package rules', () => {
         './zeus.components.json': {},
       },
       peerDependencies: {
-        '@zeus-js/zeus': '>=0.1.0-beta.0 <0.2.0',
+        '@zeus-js/zeus': '>=0.1.0-beta.2 <0.2.0',
       },
       dependencies: {
         '@zeus-web/zeus-compat': 'workspace:*',
@@ -184,7 +184,7 @@ describe('package rules', () => {
         './zeus.components.json': {},
       },
       peerDependencies: {
-        '@zeus-js/zeus': '>=0.1.0-beta.0 <0.2.0',
+        '@zeus-js/zeus': '>=0.1.0-beta.2 <0.2.0',
       },
       dependencies: {
         '@zeus-web/zeus-compat': 'workspace:*',
@@ -225,7 +225,7 @@ describe('package rules', () => {
         './zeus.components.json': {},
       },
       peerDependencies: {
-        '@zeus-js/zeus': '>=0.1.0-beta.0 <0.2.0',
+        '@zeus-js/zeus': '>=0.1.0-beta.2 <0.2.0',
       },
       dependencies: {
         '@zeus-web/zeus-compat': 'workspace:*',
@@ -274,7 +274,7 @@ describe('package rules', () => {
         './capabilities': {},
       },
       peerDependencies: {
-        '@zeus-js/zeus': '>=0.1.0-beta.1 <0.2.0',
+        '@zeus-js/zeus': '>=0.1.0-beta.2 <0.2.0',
       },
     })
 
@@ -297,9 +297,9 @@ describe('package rules', () => {
         './capabilities': {},
       },
       peerDependencies: {
-        '@zeus-js/zeus': '>=0.1.0-beta.1 <0.2.0',
-        '@zeus-js/runtime-dom': '0.1.0-beta.1',
-        '@zeus-js/signal': '0.1.0-beta.1',
+        '@zeus-js/zeus': '>=0.1.0-beta.2 <0.2.0',
+        '@zeus-js/runtime-dom': '0.1.0-beta.2',
+        '@zeus-js/signal': '0.1.0-beta.2',
       },
     })
 

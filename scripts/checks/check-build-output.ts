@@ -136,8 +136,6 @@ async function main(): Promise<void> {
         'ES2016',
         '--jsx',
         'preserve',
-        '--skipLibCheck',
-        'true',
         '--types',
         'node',
       ],

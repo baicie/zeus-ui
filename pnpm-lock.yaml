@@ -32,39 +32,42 @@ importers:
       '@types/node':
         specifier: ^25.9.1
         version: 25.9.1
+      '@types/react':
+        specifier: ^18.3.30
+        version: 18.3.30
       '@zeus-js/bundler-plugin':
-        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
-        version: 0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.0-beta.2
+        version: 0.1.0-beta.2(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/compiler':
-        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
-        version: 0.1.0-canary.20260604.2.1.b299cfcd(@babel/core@7.29.7)
+        specifier: 0.1.0-beta.2
+        version: 0.1.0-beta.2(@babel/core@7.29.7)
       '@zeus-js/component-analyzer':
-        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
-        version: 0.1.0-canary.20260604.2.1.b299cfcd
+        specifier: 0.1.0-beta.2
+        version: 0.1.0-beta.2
       '@zeus-js/component-dts':
-        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
-        version: 0.1.0-canary.20260604.2.1.b299cfcd
+        specifier: 0.1.0-beta.2
+        version: 0.1.0-beta.2
       '@zeus-js/output-icons':
-        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
-        version: 0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
+        specifier: 0.1.0-beta.2
+        version: 0.1.0-beta.2(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
-        version: 0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.0-beta.2
+        version: 0.1.0-beta.2(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
-        version: 0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
+        specifier: 0.1.0-beta.2
+        version: 0.1.0-beta.2(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
       '@zeus-js/output-wc':
-        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
-        version: 0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.0-beta.2
+        version: 0.1.0-beta.2(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
-        version: 0.1.0-canary.20260604.2.1.b299cfcd
+        specifier: 0.1.0-beta.2
+        version: 0.1.0-beta.2
       '@zeus-js/signal':
-        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
-        version: 0.1.0-canary.20260604.2.1.b299cfcd
+        specifier: 0.1.0-beta.2
+        version: 0.1.0-beta.2
       '@zeus-js/zeus':
-        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
-        version: 0.1.0-canary.20260604.2.1.b299cfcd
+        specifier: 0.1.0-beta.2
+        version: 0.1.0-beta.2
       esbuild:
         specifier: ^0.28.0
         version: 0.28.0
@@ -112,10 +115,13 @@ importers:
         version: 8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0)
       vitepress:
         specifier: ^1.6.4
-        version: 1.6.4(@algolia/client-search@5.53.0)(@types/node@25.9.1)(change-case@5.4.4)(lightningcss@1.32.0)(postcss@8.5.15)(search-insights@2.17.3)(typescript@6.0.3)
+        version: 1.6.4(@algolia/client-search@5.53.0)(@types/node@25.9.1)(@types/react@18.3.30)(change-case@5.4.4)(lightningcss@1.32.0)(postcss@8.5.15)(search-insights@2.17.3)(typescript@6.0.3)
       vitest:
         specifier: ^4.1.8
         version: 4.1.8(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
+      vue:
+        specifier: ^3.5.35
+        version: 3.5.35(typescript@6.0.3)
 
   apps/docs: {}
 
@@ -140,11 +146,17 @@ importers:
   packages/primitives/input:
     dependencies:
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.1 <0.2.0'
-        version: 0.1.0-beta.1
+        specifier: '>=0.1.0-beta.2 <0.2.0'
+        version: 0.1.0-beta.2
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
 
   packages/react:
     dependencies:
@@ -173,8 +185,8 @@ importers:
   packages/zeus-compat:
     dependencies:
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.1 <0.2.0'
-        version: 0.1.0-beta.1
+        specifier: '>=0.1.0-beta.2 <0.2.0'
+        version: 0.1.0-beta.2
 
 packages:
 
@@ -1537,6 +1549,12 @@ packages:
   '@types/normalize-package-data@2.4.4':
     resolution: {integrity: sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==}
 
+  '@types/prop-types@15.7.15':
+    resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
+
+  '@types/react@18.3.30':
+    resolution: {integrity: sha512-3ek6mwJL5/VBewBcY4S66cqlCtK3qi4WIq37Z0m/NHw1hjhI7274Mx1qz/+ggSzyBCOEf7eHjBN6INjPAWYfYw==}
+
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
 
@@ -1796,8 +1814,8 @@ packages:
   '@vueuse/shared@12.8.2':
     resolution: {integrity: sha512-dznP38YzxZoNloI0qpEfpkms8knDtaoQ6Y/sfS0L7Yki4zh40LFHEhur0odJC6xTHG5dxWVPiUWBXn+wCG2s5w==}
 
-  '@zeus-js/bundler-plugin@0.1.0-canary.20260604.2.1.b299cfcd':
-    resolution: {integrity: sha512-iV5vZy8qochADyxvozbqtTuC03kcuRbJzJ/Am8zkCJYdpqoaQz/IZZxbSYrjePxgUuQZM1Vdzu6Y51eF3gRH7Q==}
+  '@zeus-js/bundler-plugin@0.1.0-beta.2':
+    resolution: {integrity: sha512-keUBCOLdapbhRhmZPfPWh0y6Tfd1dkpSiHT+c8457sR1A27pRyQZXr0vGh9e2/gwe0ovPL1jpSK2qoLqjGfFKw==}
     peerDependencies:
       rolldown: ^1.0.0
       rollup: ^4.0.0
@@ -1810,19 +1828,19 @@ packages:
       vite:
         optional: true
 
-  '@zeus-js/compiler@0.1.0-canary.20260604.2.1.b299cfcd':
-    resolution: {integrity: sha512-6tXJCNXTo5fqe3mt2o9K4Zhg0g/pw2vJq0acGg/UyPfd2Ww7TRz2qHbXAU63ezQJQOky/Z6Sz5Gv00Qs+5D2GQ==}
+  '@zeus-js/compiler@0.1.0-beta.2':
+    resolution: {integrity: sha512-zi/qJh0PgalMn3CYpvJDLCga+E6J0h1b2y/S5tNn+lG320tZ2qQik4mFiNPsagbsCPXUWUfQR7fBAV//qATE1Q==}
     peerDependencies:
       '@babel/core': ^7.29.0
 
-  '@zeus-js/component-analyzer@0.1.0-canary.20260604.2.1.b299cfcd':
-    resolution: {integrity: sha512-appxd/QE6ZsO9JrzcupLwET7iXGovzqmeRlUA/+PdVFWoA1tfEb7oLLOmbSX1SnjYzgVrvinAJLM9UT3TLJMkg==}
+  '@zeus-js/component-analyzer@0.1.0-beta.2':
+    resolution: {integrity: sha512-eoVHpkVYG3koypofLIEM7KZoJWBnkq+SFt4kgiZBfWeBJjES36YhabNQaEZsrAVfqlNxM5ujvK8WrYTiUlPu6g==}
 
-  '@zeus-js/component-dts@0.1.0-canary.20260604.2.1.b299cfcd':
-    resolution: {integrity: sha512-cYESkE+2ZX7Qto8JrugjOs2HZOO1mJcBKijNcUsG7+YFKsi4ZhrIhUVlHeWeQYnsUJGaOsa2rv7pIny0P9pv+w==}
+  '@zeus-js/component-dts@0.1.0-beta.2':
+    resolution: {integrity: sha512-O08J4J+9E+QJn1i/XGKJJb5ESWLL3nrUj8sxtRTOv51qOOd7szm7nzgZ/JudHghURoAoBt+c73KGGGVn3Jg7Qg==}
 
-  '@zeus-js/output-icons@0.1.0-canary.20260604.2.1.b299cfcd':
-    resolution: {integrity: sha512-neMRSkmBsc8Dt8bkMYZVTsJIwhHS0qHcdN1fGm3ls0C2b8ny9XEPxyu3RVJBBahfuOOzZMq1MFuDO3Y7nM4nCw==}
+  '@zeus-js/output-icons@0.1.0-beta.2':
+    resolution: {integrity: sha512-vZbm7KIXlBZT3YH42ocx10s/bz9sjM0ynSli+cTuj0Kujm6VX+Q3HyOKvYoT1gvCPgmIaScfhgBb8MknFLmvLA==}
     peerDependencies:
       react: '>=18 || >=19'
       vue: '>=3'
@@ -1832,53 +1850,41 @@ packages:
       vue:
         optional: true
 
-  '@zeus-js/output-react-wrapper@0.1.0-canary.20260604.2.1.b299cfcd':
-    resolution: {integrity: sha512-o617FapQwu1S1XrAa6LyE0/OfdhAOLsMGuu7iuhMSQLGC6fnb2c4jY12GQrNimd5ACjZZz3XFNCUUa0yRTMC4w==}
+  '@zeus-js/output-react-wrapper@0.1.0-beta.2':
+    resolution: {integrity: sha512-UTazNQPhMXmIcUa+4fr6/eT6m94gsws6hFNCmgwXDCQPkvbX5Lbm/V+19efFGPxsVPwqtZJgX6275rKUQerltA==}
     peerDependencies:
       react: '>=18 || >=19'
     peerDependenciesMeta:
       react:
         optional: true
 
-  '@zeus-js/output-vue-wrapper@0.1.0-canary.20260604.2.1.b299cfcd':
-    resolution: {integrity: sha512-OREri+0Q0ewKEsp9lrO0+Zvgmwo1++3j26BnGgkGR6wWNcDn1wjktY8/JxwuAsFtTCnDZIkJxEQj92+Ss0SZDg==}
+  '@zeus-js/output-vue-wrapper@0.1.0-beta.2':
+    resolution: {integrity: sha512-SG0TVDxH8cDHU+YOPMHr+aC9mAiIz5y1J20QuKlTVhJvUj78x2PWYtcveUNn7W0elH+ZdFnUxudI4G5nHvPDbw==}
     peerDependencies:
       vue: '>=3'
     peerDependenciesMeta:
       vue:
         optional: true
 
-  '@zeus-js/output-wc@0.1.0-canary.20260604.2.1.b299cfcd':
-    resolution: {integrity: sha512-MXxFfl0Etnv+m6q9OxbWIoZrj2KgfNmH+qJCKFhkYLrilz86GaFXnwBDksRAztj2GZnpRLgphOvgup5LMJqeFw==}
+  '@zeus-js/output-wc@0.1.0-beta.2':
+    resolution: {integrity: sha512-lLmJ+frUw95BrZvYPA3xc3ONSYGuSR+YCD7nQMcz8TEfXCLPgUWsTcQ0RL8AgvpICwxQUDyOIijg7gMts4Ir5A==}
     peerDependencies:
       rollup: ^4.0.0
     peerDependenciesMeta:
       rollup:
         optional: true
 
-  '@zeus-js/runtime-dom@0.1.0-beta.1':
-    resolution: {integrity: sha512-4krVk4/1+cpESHQPF8kS9PbaYECbJOyRa27GjpQ3aJw/4K33PoSrVHMC+qNVLn2X2q+7y0MspHlBsIwPwkk/kg==}
+  '@zeus-js/runtime-dom@0.1.0-beta.2':
+    resolution: {integrity: sha512-8iDqHwC5fN2t65kfg7C4E6hcnxIbGZk0WprVe5shLALWwwg4+ivhtJNnqL79UP8Fhj6wtMavKfIwI0RJfPcEPQ==}
 
-  '@zeus-js/runtime-dom@0.1.0-canary.20260604.2.1.b299cfcd':
-    resolution: {integrity: sha512-Y1NHodmtdc32Bw/ZJjFKMsmzHqvFVwVKGYx35rAnHE6sLM8en5nsxovEt4l5BZJL1vmHGdhbBhOMDl6GUl+Tvg==}
+  '@zeus-js/shared@0.1.0-beta.2':
+    resolution: {integrity: sha512-h1gYoNXndcgaamlm9be2JNhasF9f4aZU1swfuuHOGy3jnjtny8djIqLhNnilZy0BZYtKdG2GnhN4BtoCZxElfw==}
 
-  '@zeus-js/shared@0.1.0-beta.1':
-    resolution: {integrity: sha512-AnuISg1KqZp4tHFnYWN0HE+W6H88nrWekyC8+UiShMTsn/yV21+fK3IQFjl3KjsNUTsNjg/LOhEoQGPLrL3EDQ==}
+  '@zeus-js/signal@0.1.0-beta.2':
+    resolution: {integrity: sha512-hpO7KBxWHreUiBO51dQesULKnn6BTRWHRdGrtNrYW2iNqpPz431WlRh1r/sQg30pD420stL4bNBPDr1CDMFNyQ==}
 
-  '@zeus-js/shared@0.1.0-canary.20260604.2.1.b299cfcd':
-    resolution: {integrity: sha512-BPWdg4VsFq0LgwzhZAtJXNT1BE9l8bCLJ0YX8N6VtH4tvs8lAwsvkDLSpMg0JhVMm3bQDfxFFDkG/BHKH/fTaQ==}
-
-  '@zeus-js/signal@0.1.0-beta.1':
-    resolution: {integrity: sha512-Q/DMD7fFmO7httGtonrmOxWGEHn7ClKLj4JctDx8L28C5/iAIN01DYyaV97KrhIEILUrhXYS35b6sN6UgFAVig==}
-
-  '@zeus-js/signal@0.1.0-canary.20260604.2.1.b299cfcd':
-    resolution: {integrity: sha512-OFQlL8vtNpn/Dv25L2bCmo3lOegoowA0VIs8WrEy7cc3KG7jIA++FnuJlYh3jl+FeBBVptqDsjFYm3e3Ut9cWQ==}
-
-  '@zeus-js/zeus@0.1.0-beta.1':
-    resolution: {integrity: sha512-J97qFNSDGi14Bwj/cHnrhjvpaex7J5TGXdjMbLV0Pq0mERkiRDyeGzM/IwAuoCebrqdVd8T3v6cd1szAFtUTaQ==}
-
-  '@zeus-js/zeus@0.1.0-canary.20260604.2.1.b299cfcd':
-    resolution: {integrity: sha512-IOk7CXePWd6VGpuiOAUVZC+tm3pvkr62zV/ftraYxRLC8085KwUYMSriyJDsQZHQMEGfHzIG0ddLqBAyDv0mpg==}
+  '@zeus-js/zeus@0.1.0-beta.2':
+    resolution: {integrity: sha512-GgWsYKeu/NrGivPwyd+G66co8L0gTUboBflw2Tgwl4nSJneyC7m014dRGDyvpVjKmSaNFbBi/Z1B4xewlphhbg==}
 
   acorn-jsx@5.3.2:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
@@ -4306,9 +4312,9 @@ snapshots:
 
   '@docsearch/css@3.8.2': {}
 
-  '@docsearch/js@3.8.2(@algolia/client-search@5.53.0)(search-insights@2.17.3)':
+  '@docsearch/js@3.8.2(@algolia/client-search@5.53.0)(@types/react@18.3.30)(search-insights@2.17.3)':
     dependencies:
-      '@docsearch/react': 3.8.2(@algolia/client-search@5.53.0)(search-insights@2.17.3)
+      '@docsearch/react': 3.8.2(@algolia/client-search@5.53.0)(@types/react@18.3.30)(search-insights@2.17.3)
       preact: 10.29.2
     transitivePeerDependencies:
       - '@algolia/client-search'
@@ -4317,13 +4323,14 @@ snapshots:
       - react-dom
       - search-insights
 
-  '@docsearch/react@3.8.2(@algolia/client-search@5.53.0)(search-insights@2.17.3)':
+  '@docsearch/react@3.8.2(@algolia/client-search@5.53.0)(@types/react@18.3.30)(search-insights@2.17.3)':
     dependencies:
       '@algolia/autocomplete-core': 1.17.7(@algolia/client-search@5.53.0)(algoliasearch@5.53.0)(search-insights@2.17.3)
       '@algolia/autocomplete-preset-algolia': 1.17.7(@algolia/client-search@5.53.0)(algoliasearch@5.53.0)
       '@docsearch/css': 3.8.2
       algoliasearch: 5.53.0
     optionalDependencies:
+      '@types/react': 18.3.30
       search-insights: 2.17.3
     transitivePeerDependencies:
       - '@algolia/client-search'
@@ -4985,6 +4992,13 @@ snapshots:
 
   '@types/normalize-package-data@2.4.4': {}
 
+  '@types/prop-types@15.7.15': {}
+
+  '@types/react@18.3.30':
+    dependencies:
+      '@types/prop-types': 15.7.15
+      csstype: 3.2.3
+
   '@types/unist@3.0.3': {}
 
   '@types/web-bluetooth@0.0.21': {}
@@ -5317,12 +5331,12 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@zeus-js/bundler-plugin@0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))':
+  '@zeus-js/bundler-plugin@0.1.0-beta.2(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))':
     dependencies:
       '@babel/core': 7.29.7
       '@babel/preset-typescript': 7.29.7(@babel/core@7.29.7)
-      '@zeus-js/compiler': 0.1.0-canary.20260604.2.1.b299cfcd(@babel/core@7.29.7)
-      '@zeus-js/component-analyzer': 0.1.0-canary.20260604.2.1.b299cfcd
+      '@zeus-js/compiler': 0.1.0-beta.2(@babel/core@7.29.7)
+      '@zeus-js/component-analyzer': 0.1.0-beta.2
       fast-glob: 3.3.3
       picomatch: 4.0.4
     optionalDependencies:
@@ -5332,27 +5346,27 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@zeus-js/compiler@0.1.0-canary.20260604.2.1.b299cfcd(@babel/core@7.29.7)':
+  '@zeus-js/compiler@0.1.0-beta.2(@babel/core@7.29.7)':
     dependencies:
       '@babel/core': 7.29.7
       '@babel/helper-plugin-utils': 7.29.7
       '@babel/types': 7.29.7
       '@baicie/logger': 0.2.0
-      '@zeus-js/shared': 0.1.0-canary.20260604.2.1.b299cfcd
+      '@zeus-js/shared': 0.1.0-beta.2
 
-  '@zeus-js/component-analyzer@0.1.0-canary.20260604.2.1.b299cfcd':
+  '@zeus-js/component-analyzer@0.1.0-beta.2':
     dependencies:
       '@babel/parser': 7.29.7
       '@babel/types': 7.29.7
       fast-glob: 3.3.3
 
-  '@zeus-js/component-dts@0.1.0-canary.20260604.2.1.b299cfcd':
+  '@zeus-js/component-dts@0.1.0-beta.2':
     dependencies:
-      '@zeus-js/component-analyzer': 0.1.0-canary.20260604.2.1.b299cfcd
+      '@zeus-js/component-analyzer': 0.1.0-beta.2
 
-  '@zeus-js/output-icons@0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))':
+  '@zeus-js/output-icons@0.1.0-beta.2(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))':
     dependencies:
-      '@zeus-js/bundler-plugin': 0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
+      '@zeus-js/bundler-plugin': 0.1.0-beta.2(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
     optionalDependencies:
       vue: 3.5.35(typescript@6.0.3)
     transitivePeerDependencies:
@@ -5361,22 +5375,22 @@ snapshots:
       - supports-color
       - vite
 
-  '@zeus-js/output-react-wrapper@0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))':
+  '@zeus-js/output-react-wrapper@0.1.0-beta.2(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))':
     dependencies:
-      '@zeus-js/bundler-plugin': 0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
-      '@zeus-js/component-analyzer': 0.1.0-canary.20260604.2.1.b299cfcd
-      '@zeus-js/component-dts': 0.1.0-canary.20260604.2.1.b299cfcd
+      '@zeus-js/bundler-plugin': 0.1.0-beta.2(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
+      '@zeus-js/component-analyzer': 0.1.0-beta.2
+      '@zeus-js/component-dts': 0.1.0-beta.2
     transitivePeerDependencies:
       - rolldown
       - rollup
       - supports-color
       - vite
 
-  '@zeus-js/output-vue-wrapper@0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))':
+  '@zeus-js/output-vue-wrapper@0.1.0-beta.2(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))':
     dependencies:
-      '@zeus-js/bundler-plugin': 0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
-      '@zeus-js/component-analyzer': 0.1.0-canary.20260604.2.1.b299cfcd
-      '@zeus-js/component-dts': 0.1.0-canary.20260604.2.1.b299cfcd
+      '@zeus-js/bundler-plugin': 0.1.0-beta.2(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
+      '@zeus-js/component-analyzer': 0.1.0-beta.2
+      '@zeus-js/component-dts': 0.1.0-beta.2
     optionalDependencies:
       vue: 3.5.35(typescript@6.0.3)
     transitivePeerDependencies:
@@ -5385,11 +5399,11 @@ snapshots:
       - supports-color
       - vite
 
-  '@zeus-js/output-wc@0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))':
+  '@zeus-js/output-wc@0.1.0-beta.2(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))':
     dependencies:
-      '@zeus-js/bundler-plugin': 0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
-      '@zeus-js/component-analyzer': 0.1.0-canary.20260604.2.1.b299cfcd
-      '@zeus-js/component-dts': 0.1.0-canary.20260604.2.1.b299cfcd
+      '@zeus-js/bundler-plugin': 0.1.0-beta.2(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
+      '@zeus-js/component-analyzer': 0.1.0-beta.2
+      '@zeus-js/component-dts': 0.1.0-beta.2
     optionalDependencies:
       rollup: 4.61.0
     transitivePeerDependencies:
@@ -5397,37 +5411,21 @@ snapshots:
       - supports-color
       - vite
 
-  '@zeus-js/runtime-dom@0.1.0-beta.1':
+  '@zeus-js/runtime-dom@0.1.0-beta.2':
     dependencies:
-      '@zeus-js/signal': 0.1.0-beta.1
+      '@zeus-js/signal': 0.1.0-beta.2
 
-  '@zeus-js/runtime-dom@0.1.0-canary.20260604.2.1.b299cfcd':
+  '@zeus-js/shared@0.1.0-beta.2': {}
+
+  '@zeus-js/signal@0.1.0-beta.2':
     dependencies:
-      '@zeus-js/signal': 0.1.0-canary.20260604.2.1.b299cfcd
-
-  '@zeus-js/shared@0.1.0-beta.1': {}
-
-  '@zeus-js/shared@0.1.0-canary.20260604.2.1.b299cfcd': {}
-
-  '@zeus-js/signal@0.1.0-beta.1':
-    dependencies:
-      '@zeus-js/shared': 0.1.0-beta.1
+      '@zeus-js/shared': 0.1.0-beta.2
       alien-signals: 3.2.1
 
-  '@zeus-js/signal@0.1.0-canary.20260604.2.1.b299cfcd':
+  '@zeus-js/zeus@0.1.0-beta.2':
     dependencies:
-      '@zeus-js/shared': 0.1.0-canary.20260604.2.1.b299cfcd
-      alien-signals: 3.2.1
-
-  '@zeus-js/zeus@0.1.0-beta.1':
-    dependencies:
-      '@zeus-js/runtime-dom': 0.1.0-beta.1
-      '@zeus-js/signal': 0.1.0-beta.1
-
-  '@zeus-js/zeus@0.1.0-canary.20260604.2.1.b299cfcd':
-    dependencies:
-      '@zeus-js/runtime-dom': 0.1.0-canary.20260604.2.1.b299cfcd
-      '@zeus-js/signal': 0.1.0-canary.20260604.2.1.b299cfcd
+      '@zeus-js/runtime-dom': 0.1.0-beta.2
+      '@zeus-js/signal': 0.1.0-beta.2
 
   acorn-jsx@5.3.2(acorn@8.16.0):
     dependencies:
@@ -7465,10 +7463,10 @@ snapshots:
       tsx: 4.22.4
       yaml: 2.9.0
 
-  vitepress@1.6.4(@algolia/client-search@5.53.0)(@types/node@25.9.1)(change-case@5.4.4)(lightningcss@1.32.0)(postcss@8.5.15)(search-insights@2.17.3)(typescript@6.0.3):
+  vitepress@1.6.4(@algolia/client-search@5.53.0)(@types/node@25.9.1)(@types/react@18.3.30)(change-case@5.4.4)(lightningcss@1.32.0)(postcss@8.5.15)(search-insights@2.17.3)(typescript@6.0.3):
     dependencies:
       '@docsearch/css': 3.8.2
-      '@docsearch/js': 3.8.2(@algolia/client-search@5.53.0)(search-insights@2.17.3)
+      '@docsearch/js': 3.8.2(@algolia/client-search@5.53.0)(@types/react@18.3.30)(search-insights@2.17.3)
       '@iconify-json/simple-icons': 1.2.84
       '@shikijs/core': 2.5.0
       '@shikijs/transformers': 2.5.0

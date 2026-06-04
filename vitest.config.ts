@@ -21,11 +21,6 @@ const runtimeDomEsmPath = resolve(
   'node_modules/@zeus-js/runtime-dom/dist/runtime-dom.esm-bundler.js',
 )
 
-const zeusCapabilitiesPath = resolve(
-  process.cwd(),
-  'node_modules/@zeus-js/zeus/dist/capabilities.js',
-)
-
 export default defineConfig({
   define: {
     __DEV__: true,
@@ -93,6 +88,7 @@ export default defineConfig({
           ],
         },
         resolve: {
+          conditions: ['import', 'module', 'browser', 'default'],
           alias: [
             // More specific patterns first.
             {
@@ -103,16 +99,23 @@ export default defineConfig({
               find: /^@zeus-js\/runtime-dom$/,
               replacement: runtimeDomEsmPath,
             },
-            {
-              find: /^@zeus-js\/zeus\/capabilities$/,
-              replacement: zeusCapabilitiesPath,
-            },
             // Then workspace aliases required by local packages.
             ...Object.entries(entries).map(([find, replacement]) => ({
               find,
               replacement,
             })),
           ],
+        },
+        ssr: {
+          noExternal: ['@zeus-js/zeus', '@zeus-js/runtime-dom'],
+          resolve: {
+            externalConditions: ['import', 'module', 'browser', 'default'],
+          },
+        },
+        server: {
+          deps: {
+            inline: ['@zeus-js/zeus', '@zeus-js/runtime-dom'],
+          },
         },
       },
 
@@ -124,12 +127,18 @@ export default defineConfig({
           include: [canaryCapabilitiesTest],
         },
         resolve: {
-          alias: [
-            {
-              find: /^@zeus-js\/zeus\/capabilities$/,
-              replacement: zeusCapabilitiesPath,
-            },
-          ],
+          conditions: ['import', 'module', 'browser', 'default'],
+        },
+        ssr: {
+          noExternal: ['@zeus-js/zeus'],
+          resolve: {
+            externalConditions: ['import', 'module', 'browser', 'default'],
+          },
+        },
+        server: {
+          deps: {
+            inline: ['@zeus-js/zeus', '@zeus-js/runtime-dom'],
+          },
         },
       },
 
