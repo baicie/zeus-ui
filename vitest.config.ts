@@ -1,9 +1,30 @@
+import { resolve } from 'node:path'
+
 import { configDefaults, defineConfig } from 'vitest/config'
 
 import { entries } from './scripts/config/aliases'
 
 const canaryCapabilitiesTest =
   'packages/zeus-compat/__tests__/canary-capabilities.spec.ts'
+
+// Zeus package default node entry is CJS-like but published as ESM.
+// Use the browser ESM bundle in jsdom so runtime-dom stays inlined.
+const zeusEsmPath = resolve(
+  process.cwd(),
+  'node_modules/@zeus-js/zeus/dist/zeus.esm-browser.js',
+)
+
+// ESM bundler imports @zeus-js/runtime-dom which also has a CJS index.js.
+// Alias it to its ESM bundle so transitive deps resolve correctly in jsdom.
+const runtimeDomEsmPath = resolve(
+  process.cwd(),
+  'node_modules/@zeus-js/runtime-dom/dist/runtime-dom.esm-bundler.js',
+)
+
+const zeusCapabilitiesPath = resolve(
+  process.cwd(),
+  'node_modules/@zeus-js/zeus/dist/capabilities.js',
+)
 
 export default defineConfig({
   define: {
@@ -67,10 +88,30 @@ export default defineConfig({
           exclude: [
             ...configDefaults.exclude,
             '**/e2e/**',
-            // @zeus-js/zeus/capabilities is only available from real Zeus packages.
-            'packages/zeus-compat/__tests__/contract.spec.ts',
-            // Only run against an installed Zeus canary.
+            // Only run this test against an installed Zeus canary.
             canaryCapabilitiesTest,
+          ],
+        },
+        resolve: {
+          alias: [
+            // More specific patterns first.
+            {
+              find: /^@zeus-js\/zeus$/,
+              replacement: zeusEsmPath,
+            },
+            {
+              find: /^@zeus-js\/runtime-dom$/,
+              replacement: runtimeDomEsmPath,
+            },
+            {
+              find: /^@zeus-js\/zeus\/capabilities$/,
+              replacement: zeusCapabilitiesPath,
+            },
+            // Then workspace aliases required by local packages.
+            ...Object.entries(entries).map(([find, replacement]) => ({
+              find,
+              replacement,
+            })),
           ],
         },
       },
@@ -81,6 +122,14 @@ export default defineConfig({
           name: 'canary',
           environment: 'jsdom',
           include: [canaryCapabilitiesTest],
+        },
+        resolve: {
+          alias: [
+            {
+              find: /^@zeus-js\/zeus\/capabilities$/,
+              replacement: zeusCapabilitiesPath,
+            },
+          ],
         },
       },
 

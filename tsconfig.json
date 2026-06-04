@@ -15,5 +15,6 @@
     "scripts/**/*",
     "apps/**/*",
     "examples/**/*"
-  ]
+  ],
+  "exclude": ["packages/zeus-compat/__tests__/canary-capabilities.spec.ts"]
 }

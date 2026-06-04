@@ -33,38 +33,38 @@ importers:
         specifier: ^25.9.1
         version: 25.9.1
       '@zeus-js/bundler-plugin':
-        specifier: 0.1.0-beta.0
-        version: 0.1.0-beta.0(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
+        version: 0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/compiler':
-        specifier: 0.1.0-beta.0
-        version: 0.1.0-beta.0(@babel/core@7.29.7)
+        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
+        version: 0.1.0-canary.20260604.2.1.b299cfcd(@babel/core@7.29.7)
       '@zeus-js/component-analyzer':
-        specifier: 0.1.0-beta.0
-        version: 0.1.0-beta.0
+        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
+        version: 0.1.0-canary.20260604.2.1.b299cfcd
       '@zeus-js/component-dts':
-        specifier: 0.1.0-beta.0
-        version: 0.1.0-beta.0
+        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
+        version: 0.1.0-canary.20260604.2.1.b299cfcd
       '@zeus-js/output-icons':
-        specifier: 0.1.0-beta.0
-        version: 0.1.0-beta.0(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
+        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
+        version: 0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.0-beta.0
-        version: 0.1.0-beta.0(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
+        version: 0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.0-beta.0
-        version: 0.1.0-beta.0(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
+        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
+        version: 0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
       '@zeus-js/output-wc':
-        specifier: 0.1.0-beta.0
-        version: 0.1.0-beta.0(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
+        version: 0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.0-beta.0
-        version: 0.1.0-beta.0
+        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
+        version: 0.1.0-canary.20260604.2.1.b299cfcd
       '@zeus-js/signal':
-        specifier: 0.1.0-beta.0
-        version: 0.1.0-beta.0
+        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
+        version: 0.1.0-canary.20260604.2.1.b299cfcd
       '@zeus-js/zeus':
-        specifier: 0.1.0-beta.0
-        version: 0.1.0-beta.0
+        specifier: 0.1.0-canary.20260604.2.1.b299cfcd
+        version: 0.1.0-canary.20260604.2.1.b299cfcd
       esbuild:
         specifier: ^0.28.0
         version: 0.28.0
@@ -140,8 +140,8 @@ importers:
   packages/primitives/input:
     dependencies:
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.0 <0.2.0'
-        version: 0.1.0-beta.0
+        specifier: '>=0.1.0-beta.1 <0.2.0'
+        version: 0.1.0-beta.1
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -173,8 +173,8 @@ importers:
   packages/zeus-compat:
     dependencies:
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.0 <0.2.0'
-        version: 0.1.0-beta.0
+        specifier: '>=0.1.0-beta.1 <0.2.0'
+        version: 0.1.0-beta.1
 
 packages:
 
@@ -349,12 +349,26 @@ packages:
     resolution: {integrity: sha512-DkXD5OJQaAQIdZ1bt3UZdEnHAn9Imd3IVBdX03UFe+ony9Ojw5pzr9YVKGDY1jt+Gcn/FnGkNf8r+Vj5NOJWtQ==}
     engines: {node: '>=6.9.0'}
 
+  '@babel/helper-annotate-as-pure@7.29.7':
+    resolution: {integrity: sha512-OoK6239jHPuSQOoS0kfTVKn0b/rVTk0seKq4Gd2UMLtmOVLjDC0ki3e+c90Trqv2gMfvJFqkiljrr568+qddiw==}
+    engines: {node: '>=6.9.0'}
+
   '@babel/helper-compilation-targets@7.29.7':
     resolution: {integrity: sha512-wem6WaBj4NaVYVdNhLPPVacES6ZJ+KBBfSkTMD3YZxbP3rm3Di85tJU5ljaUNhaOynt+Aj0xruhYuzQBt8n71g==}
     engines: {node: '>=6.9.0'}
 
+  '@babel/helper-create-class-features-plugin@7.29.7':
+    resolution: {integrity: sha512-IY3ZD9Tmooqr3TUhc3DUWxiuo8xx1DWLhd5M7hQ+ZWJamqM2BbalrBJb2MisSLoYorOj75U03qULCxQTY9r3hg==}
+    engines: {node: '>=6.9.0'}
+    peerDependencies:
+      '@babel/core': ^7.0.0
+
   '@babel/helper-globals@7.29.7':
     resolution: {integrity: sha512-3nQVUAtvkKH9zahfWgw96Jc/uFOmjACE1kQz82E2lqWmHBgjzbNlsC22nuQTfahmWeQtTq5nQ/4Nnd2A1wj4zA==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-member-expression-to-functions@7.29.7':
+    resolution: {integrity: sha512-j+7JYmk1JYDtACIGj0QJqqWZjoUpMoEikQGADMaHgCMCSDqd2+P32rfcibUNrGOMWrlzK1WJBdxrB3JJQZwWtg==}
     engines: {node: '>=6.9.0'}
 
   '@babel/helper-module-imports@7.29.7':
@@ -367,8 +381,22 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0
 
+  '@babel/helper-optimise-call-expression@7.29.7':
+    resolution: {integrity: sha512-+kmGVjcT9RGYzoDwdwEqEvGgKe3BYq+O1iGzjFubaNgZHwYHP6lsF2Yghf4kEuv9BV7tYDZ913aBW9am6YKong==}
+    engines: {node: '>=6.9.0'}
+
   '@babel/helper-plugin-utils@7.29.7':
     resolution: {integrity: sha512-G7sHYigPY17oO5SYWnfD/0MTBwVR781S/JI643e/JhUYgVgWE/61SoW3NH9KWUKyKq5LVh3npif99Wkt6j86Jw==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-replace-supers@7.29.7':
+    resolution: {integrity: sha512-atfGXWSeCiF4DnKZIfmJfQRkSw9b9gNNXR1kqKjbhG4pGYCOnkp8OcTB8E3NXjBu8NpheSnOeNKz8KT7UNFTmQ==}
+    engines: {node: '>=6.9.0'}
+    peerDependencies:
+      '@babel/core': ^7.0.0
+
+  '@babel/helper-skip-transparent-expression-wrappers@7.29.7':
+    resolution: {integrity: sha512-brcMGQaVzIeUb+6/bs1Av0f8YuNNjKY2JyvfRCsFuFsdKccEQ5Ges2y74D74NZ1Rz8lKJ9ksJkfqwQFJ/iNEyQ==}
     engines: {node: '>=6.9.0'}
 
   '@babel/helper-string-parser@7.29.7':
@@ -394,6 +422,30 @@ packages:
 
   '@babel/plugin-syntax-jsx@7.29.7':
     resolution: {integrity: sha512-TSu8+mHCoEaaCDEZ0I3+6mvTBYR4PCxQwf2z9/r5Tbztv6NaLR3B9thGTTxX2WGuGHJqRiAbKPeGTJ5XWXVg6A==}
+    engines: {node: '>=6.9.0'}
+    peerDependencies:
+      '@babel/core': ^7.0.0-0
+
+  '@babel/plugin-syntax-typescript@7.29.7':
+    resolution: {integrity: sha512-ngr+82Sh0xMz25TPCZi+nC2iTzjfCdWS2ONXTp/PtSCHCgaCNBpdMqgvJ2ccdLlClVZ7sisIgB914j/JFe+RZA==}
+    engines: {node: '>=6.9.0'}
+    peerDependencies:
+      '@babel/core': ^7.0.0-0
+
+  '@babel/plugin-transform-modules-commonjs@7.29.7':
+    resolution: {integrity: sha512-j0vCldybPC5b5dwCQOJ21uKtHzt7hxLygJTg9eF1ScfaikEDNfzn94XoW5Fi+seBR0nCyL23xaBFFkq7dTM8XQ==}
+    engines: {node: '>=6.9.0'}
+    peerDependencies:
+      '@babel/core': ^7.0.0-0
+
+  '@babel/plugin-transform-typescript@7.29.7':
+    resolution: {integrity: sha512-jK52h8LaLc7JarhQV2ofeFMts4H7vnOXnqZNA6fYglBTZewRBE51KWt3BUltW1P+KoPsYkHoJeXePuz4zo2LMw==}
+    engines: {node: '>=6.9.0'}
+    peerDependencies:
+      '@babel/core': ^7.0.0-0
+
+  '@babel/preset-typescript@7.29.7':
+    resolution: {integrity: sha512-/Foi8vKY2EVbed/1eZx0gJEEwHAIxogrySI7rULcRIvhZzbvoE/b5qG5Ghc0WKAFKOHA9SD1x7RsFlOYdutIiQ==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
       '@babel/core': ^7.0.0-0
@@ -1744,30 +1796,33 @@ packages:
   '@vueuse/shared@12.8.2':
     resolution: {integrity: sha512-dznP38YzxZoNloI0qpEfpkms8knDtaoQ6Y/sfS0L7Yki4zh40LFHEhur0odJC6xTHG5dxWVPiUWBXn+wCG2s5w==}
 
-  '@zeus-js/bundler-plugin@0.1.0-beta.0':
-    resolution: {integrity: sha512-zB8OhUazlrzTITG0rZuxDL4whwcUXm3m7CrP00Svb97NMgMs+q/A76KKeAT+9rFcuybyXEiDnayV2bOaJOmdPw==}
+  '@zeus-js/bundler-plugin@0.1.0-canary.20260604.2.1.b299cfcd':
+    resolution: {integrity: sha512-iV5vZy8qochADyxvozbqtTuC03kcuRbJzJ/Am8zkCJYdpqoaQz/IZZxbSYrjePxgUuQZM1Vdzu6Y51eF3gRH7Q==}
     peerDependencies:
+      rolldown: ^1.0.0
       rollup: ^4.0.0
       vite: ^8.0.5
     peerDependenciesMeta:
+      rolldown:
+        optional: true
       rollup:
         optional: true
       vite:
         optional: true
 
-  '@zeus-js/compiler@0.1.0-beta.0':
-    resolution: {integrity: sha512-UHj0gP27/xwHAprcPzIvKgI9oZHijV96UaH8TRKV/5rER1E9TANkrv/s8dG8PTtcHJTHE6s3c/v1RSqpwt7kjg==}
+  '@zeus-js/compiler@0.1.0-canary.20260604.2.1.b299cfcd':
+    resolution: {integrity: sha512-6tXJCNXTo5fqe3mt2o9K4Zhg0g/pw2vJq0acGg/UyPfd2Ww7TRz2qHbXAU63ezQJQOky/Z6Sz5Gv00Qs+5D2GQ==}
     peerDependencies:
       '@babel/core': ^7.29.0
 
-  '@zeus-js/component-analyzer@0.1.0-beta.0':
-    resolution: {integrity: sha512-iMIcCkNZ7dz0loUwerDsTrd/H1ogbJF+HVK+Yn2rHl/Ku17Y6aN/NL2ZrOxsGNpiwR9e+er/9afv12wi7dDXcQ==}
+  '@zeus-js/component-analyzer@0.1.0-canary.20260604.2.1.b299cfcd':
+    resolution: {integrity: sha512-appxd/QE6ZsO9JrzcupLwET7iXGovzqmeRlUA/+PdVFWoA1tfEb7oLLOmbSX1SnjYzgVrvinAJLM9UT3TLJMkg==}
 
-  '@zeus-js/component-dts@0.1.0-beta.0':
-    resolution: {integrity: sha512-cGX/B6IO/HbjOZTieQwf5aQfYRi88uyi2kfvlCpZS8qgE8iZ108UuvKxfWJ1/MIsVsm6LbWu0NdIaudtWPCv6A==}
+  '@zeus-js/component-dts@0.1.0-canary.20260604.2.1.b299cfcd':
+    resolution: {integrity: sha512-cYESkE+2ZX7Qto8JrugjOs2HZOO1mJcBKijNcUsG7+YFKsi4ZhrIhUVlHeWeQYnsUJGaOsa2rv7pIny0P9pv+w==}
 
-  '@zeus-js/output-icons@0.1.0-beta.0':
-    resolution: {integrity: sha512-kc7An/zrXl0VAuR1fdXxYHXxmaRuXi3mSn/azJoEtfkDx3rFYuqRRhHI1liLt6432H0WP79LfFmwr/dtQarNOw==}
+  '@zeus-js/output-icons@0.1.0-canary.20260604.2.1.b299cfcd':
+    resolution: {integrity: sha512-neMRSkmBsc8Dt8bkMYZVTsJIwhHS0qHcdN1fGm3ls0C2b8ny9XEPxyu3RVJBBahfuOOzZMq1MFuDO3Y7nM4nCw==}
     peerDependencies:
       react: '>=18 || >=19'
       vue: '>=3'
@@ -1777,41 +1832,53 @@ packages:
       vue:
         optional: true
 
-  '@zeus-js/output-react-wrapper@0.1.0-beta.0':
-    resolution: {integrity: sha512-EqUeI9x27WuE58o21yovNygm4CBZgaVwo6HLIoWZzWQsa+2PWJ4pK71merFIJzmiq4lBFxbzaY+KRpbsnCTstw==}
+  '@zeus-js/output-react-wrapper@0.1.0-canary.20260604.2.1.b299cfcd':
+    resolution: {integrity: sha512-o617FapQwu1S1XrAa6LyE0/OfdhAOLsMGuu7iuhMSQLGC6fnb2c4jY12GQrNimd5ACjZZz3XFNCUUa0yRTMC4w==}
     peerDependencies:
       react: '>=18 || >=19'
     peerDependenciesMeta:
       react:
         optional: true
 
-  '@zeus-js/output-vue-wrapper@0.1.0-beta.0':
-    resolution: {integrity: sha512-OINj6FbPPVJzxJnemrHzXxR+hjSRuHSCC9IhhMTXhDm/RauOLOTVFKiTmDwcaKyaaemhQ9EOvX2K+qlldRp/aA==}
+  '@zeus-js/output-vue-wrapper@0.1.0-canary.20260604.2.1.b299cfcd':
+    resolution: {integrity: sha512-OREri+0Q0ewKEsp9lrO0+Zvgmwo1++3j26BnGgkGR6wWNcDn1wjktY8/JxwuAsFtTCnDZIkJxEQj92+Ss0SZDg==}
     peerDependencies:
       vue: '>=3'
     peerDependenciesMeta:
       vue:
         optional: true
 
-  '@zeus-js/output-wc@0.1.0-beta.0':
-    resolution: {integrity: sha512-+uWGfSZdnEfkmwtlddlU6/nGekOmgF+seryPw/d9MmB/+Eah2cW0qeuqOFQFH938BI0f71DkZmggnk1AgaSWCg==}
+  '@zeus-js/output-wc@0.1.0-canary.20260604.2.1.b299cfcd':
+    resolution: {integrity: sha512-MXxFfl0Etnv+m6q9OxbWIoZrj2KgfNmH+qJCKFhkYLrilz86GaFXnwBDksRAztj2GZnpRLgphOvgup5LMJqeFw==}
     peerDependencies:
       rollup: ^4.0.0
     peerDependenciesMeta:
       rollup:
         optional: true
 
-  '@zeus-js/runtime-dom@0.1.0-beta.0':
-    resolution: {integrity: sha512-gz9K6pxDCeaiYBNwNe1XmlTv/a54/6MGzDS/LhRCQX+SyjQzmrzG42m6kF4eCMZ78EdnOTzDIi1mXyPZBzLvDA==}
+  '@zeus-js/runtime-dom@0.1.0-beta.1':
+    resolution: {integrity: sha512-4krVk4/1+cpESHQPF8kS9PbaYECbJOyRa27GjpQ3aJw/4K33PoSrVHMC+qNVLn2X2q+7y0MspHlBsIwPwkk/kg==}
 
-  '@zeus-js/shared@0.1.0-beta.0':
-    resolution: {integrity: sha512-sasGrnXqc7CZaPlIV5+SPnkRQmhWLX21aJWnFQ4JvpMx/T9W85NDxrvqVXHhUnVg3xJ/6Bs8bTTQZMWdFJtSPg==}
+  '@zeus-js/runtime-dom@0.1.0-canary.20260604.2.1.b299cfcd':
+    resolution: {integrity: sha512-Y1NHodmtdc32Bw/ZJjFKMsmzHqvFVwVKGYx35rAnHE6sLM8en5nsxovEt4l5BZJL1vmHGdhbBhOMDl6GUl+Tvg==}
 
-  '@zeus-js/signal@0.1.0-beta.0':
-    resolution: {integrity: sha512-26I88muo0sJhzE6Ve0+R+ADeozGfgkmTK74WytAQCvSgfa7nibcm+2J4h0qYF9wi9RwciQZTmD45mvFXa0FsRQ==}
+  '@zeus-js/shared@0.1.0-beta.1':
+    resolution: {integrity: sha512-AnuISg1KqZp4tHFnYWN0HE+W6H88nrWekyC8+UiShMTsn/yV21+fK3IQFjl3KjsNUTsNjg/LOhEoQGPLrL3EDQ==}
 
-  '@zeus-js/zeus@0.1.0-beta.0':
-    resolution: {integrity: sha512-bOlDSlxpuJ6ZseJmwcwR+2mTV5pp9WjnEoYLXNKO9Y9oE/4QAp6eQ508Wmzmq8mUU54ygc1HHV3FPd++ToXDaw==}
+  '@zeus-js/shared@0.1.0-canary.20260604.2.1.b299cfcd':
+    resolution: {integrity: sha512-BPWdg4VsFq0LgwzhZAtJXNT1BE9l8bCLJ0YX8N6VtH4tvs8lAwsvkDLSpMg0JhVMm3bQDfxFFDkG/BHKH/fTaQ==}
+
+  '@zeus-js/signal@0.1.0-beta.1':
+    resolution: {integrity: sha512-Q/DMD7fFmO7httGtonrmOxWGEHn7ClKLj4JctDx8L28C5/iAIN01DYyaV97KrhIEILUrhXYS35b6sN6UgFAVig==}
+
+  '@zeus-js/signal@0.1.0-canary.20260604.2.1.b299cfcd':
+    resolution: {integrity: sha512-OFQlL8vtNpn/Dv25L2bCmo3lOegoowA0VIs8WrEy7cc3KG7jIA++FnuJlYh3jl+FeBBVptqDsjFYm3e3Ut9cWQ==}
+
+  '@zeus-js/zeus@0.1.0-beta.1':
+    resolution: {integrity: sha512-J97qFNSDGi14Bwj/cHnrhjvpaex7J5TGXdjMbLV0Pq0mERkiRDyeGzM/IwAuoCebrqdVd8T3v6cd1szAFtUTaQ==}
+
+  '@zeus-js/zeus@0.1.0-canary.20260604.2.1.b299cfcd':
+    resolution: {integrity: sha512-IOk7CXePWd6VGpuiOAUVZC+tm3pvkr62zV/ftraYxRLC8085KwUYMSriyJDsQZHQMEGfHzIG0ddLqBAyDv0mpg==}
 
   acorn-jsx@5.3.2:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
@@ -4017,6 +4084,10 @@ snapshots:
       '@jridgewell/trace-mapping': 0.3.31
       jsesc: 3.1.0
 
+  '@babel/helper-annotate-as-pure@7.29.7':
+    dependencies:
+      '@babel/types': 7.29.7
+
   '@babel/helper-compilation-targets@7.29.7':
     dependencies:
       '@babel/compat-data': 7.29.7
@@ -4025,7 +4096,27 @@ snapshots:
       lru-cache: 5.1.1
       semver: 6.3.1
 
+  '@babel/helper-create-class-features-plugin@7.29.7(@babel/core@7.29.7)':
+    dependencies:
+      '@babel/core': 7.29.7
+      '@babel/helper-annotate-as-pure': 7.29.7
+      '@babel/helper-member-expression-to-functions': 7.29.7
+      '@babel/helper-optimise-call-expression': 7.29.7
+      '@babel/helper-replace-supers': 7.29.7(@babel/core@7.29.7)
+      '@babel/helper-skip-transparent-expression-wrappers': 7.29.7
+      '@babel/traverse': 7.29.7
+      semver: 6.3.1
+    transitivePeerDependencies:
+      - supports-color
+
   '@babel/helper-globals@7.29.7': {}
+
+  '@babel/helper-member-expression-to-functions@7.29.7':
+    dependencies:
+      '@babel/traverse': 7.29.7
+      '@babel/types': 7.29.7
+    transitivePeerDependencies:
+      - supports-color
 
   '@babel/helper-module-imports@7.29.7':
     dependencies:
@@ -4043,7 +4134,27 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@babel/helper-optimise-call-expression@7.29.7':
+    dependencies:
+      '@babel/types': 7.29.7
+
   '@babel/helper-plugin-utils@7.29.7': {}
+
+  '@babel/helper-replace-supers@7.29.7(@babel/core@7.29.7)':
+    dependencies:
+      '@babel/core': 7.29.7
+      '@babel/helper-member-expression-to-functions': 7.29.7
+      '@babel/helper-optimise-call-expression': 7.29.7
+      '@babel/traverse': 7.29.7
+    transitivePeerDependencies:
+      - supports-color
+
+  '@babel/helper-skip-transparent-expression-wrappers@7.29.7':
+    dependencies:
+      '@babel/traverse': 7.29.7
+      '@babel/types': 7.29.7
+    transitivePeerDependencies:
+      - supports-color
 
   '@babel/helper-string-parser@7.29.7': {}
 
@@ -4064,6 +4175,41 @@ snapshots:
     dependencies:
       '@babel/core': 7.29.7
       '@babel/helper-plugin-utils': 7.29.7
+
+  '@babel/plugin-syntax-typescript@7.29.7(@babel/core@7.29.7)':
+    dependencies:
+      '@babel/core': 7.29.7
+      '@babel/helper-plugin-utils': 7.29.7
+
+  '@babel/plugin-transform-modules-commonjs@7.29.7(@babel/core@7.29.7)':
+    dependencies:
+      '@babel/core': 7.29.7
+      '@babel/helper-module-transforms': 7.29.7(@babel/core@7.29.7)
+      '@babel/helper-plugin-utils': 7.29.7
+    transitivePeerDependencies:
+      - supports-color
+
+  '@babel/plugin-transform-typescript@7.29.7(@babel/core@7.29.7)':
+    dependencies:
+      '@babel/core': 7.29.7
+      '@babel/helper-annotate-as-pure': 7.29.7
+      '@babel/helper-create-class-features-plugin': 7.29.7(@babel/core@7.29.7)
+      '@babel/helper-plugin-utils': 7.29.7
+      '@babel/helper-skip-transparent-expression-wrappers': 7.29.7
+      '@babel/plugin-syntax-typescript': 7.29.7(@babel/core@7.29.7)
+    transitivePeerDependencies:
+      - supports-color
+
+  '@babel/preset-typescript@7.29.7(@babel/core@7.29.7)':
+    dependencies:
+      '@babel/core': 7.29.7
+      '@babel/helper-plugin-utils': 7.29.7
+      '@babel/helper-validator-option': 7.29.7
+      '@babel/plugin-syntax-jsx': 7.29.7(@babel/core@7.29.7)
+      '@babel/plugin-transform-modules-commonjs': 7.29.7(@babel/core@7.29.7)
+      '@babel/plugin-transform-typescript': 7.29.7(@babel/core@7.29.7)
+    transitivePeerDependencies:
+      - supports-color
 
   '@babel/template@7.29.7':
     dependencies:
@@ -5171,96 +5317,117 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@zeus-js/bundler-plugin@0.1.0-beta.0(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))':
+  '@zeus-js/bundler-plugin@0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))':
     dependencies:
       '@babel/core': 7.29.7
-      '@zeus-js/compiler': 0.1.0-beta.0(@babel/core@7.29.7)
-      '@zeus-js/component-analyzer': 0.1.0-beta.0
+      '@babel/preset-typescript': 7.29.7(@babel/core@7.29.7)
+      '@zeus-js/compiler': 0.1.0-canary.20260604.2.1.b299cfcd(@babel/core@7.29.7)
+      '@zeus-js/component-analyzer': 0.1.0-canary.20260604.2.1.b299cfcd
       fast-glob: 3.3.3
       picomatch: 4.0.4
     optionalDependencies:
+      rolldown: 1.0.3
       rollup: 4.61.0
       vite: 8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0)
     transitivePeerDependencies:
       - supports-color
 
-  '@zeus-js/compiler@0.1.0-beta.0(@babel/core@7.29.7)':
+  '@zeus-js/compiler@0.1.0-canary.20260604.2.1.b299cfcd(@babel/core@7.29.7)':
     dependencies:
       '@babel/core': 7.29.7
       '@babel/helper-plugin-utils': 7.29.7
-      '@babel/plugin-syntax-jsx': 7.29.7(@babel/core@7.29.7)
       '@babel/types': 7.29.7
       '@baicie/logger': 0.2.0
-      '@zeus-js/shared': 0.1.0-beta.0
+      '@zeus-js/shared': 0.1.0-canary.20260604.2.1.b299cfcd
 
-  '@zeus-js/component-analyzer@0.1.0-beta.0':
+  '@zeus-js/component-analyzer@0.1.0-canary.20260604.2.1.b299cfcd':
     dependencies:
       '@babel/parser': 7.29.7
       '@babel/types': 7.29.7
       fast-glob: 3.3.3
 
-  '@zeus-js/component-dts@0.1.0-beta.0':
+  '@zeus-js/component-dts@0.1.0-canary.20260604.2.1.b299cfcd':
     dependencies:
-      '@zeus-js/component-analyzer': 0.1.0-beta.0
+      '@zeus-js/component-analyzer': 0.1.0-canary.20260604.2.1.b299cfcd
 
-  '@zeus-js/output-icons@0.1.0-beta.0(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))':
+  '@zeus-js/output-icons@0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))':
     dependencies:
-      '@zeus-js/bundler-plugin': 0.1.0-beta.0(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
+      '@zeus-js/bundler-plugin': 0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
     optionalDependencies:
       vue: 3.5.35(typescript@6.0.3)
     transitivePeerDependencies:
+      - rolldown
       - rollup
       - supports-color
       - vite
 
-  '@zeus-js/output-react-wrapper@0.1.0-beta.0(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))':
+  '@zeus-js/output-react-wrapper@0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))':
     dependencies:
-      '@zeus-js/bundler-plugin': 0.1.0-beta.0(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
-      '@zeus-js/component-analyzer': 0.1.0-beta.0
-      '@zeus-js/component-dts': 0.1.0-beta.0
+      '@zeus-js/bundler-plugin': 0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
+      '@zeus-js/component-analyzer': 0.1.0-canary.20260604.2.1.b299cfcd
+      '@zeus-js/component-dts': 0.1.0-canary.20260604.2.1.b299cfcd
     transitivePeerDependencies:
+      - rolldown
       - rollup
       - supports-color
       - vite
 
-  '@zeus-js/output-vue-wrapper@0.1.0-beta.0(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))':
+  '@zeus-js/output-vue-wrapper@0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))':
     dependencies:
-      '@zeus-js/bundler-plugin': 0.1.0-beta.0(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
-      '@zeus-js/component-analyzer': 0.1.0-beta.0
-      '@zeus-js/component-dts': 0.1.0-beta.0
+      '@zeus-js/bundler-plugin': 0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
+      '@zeus-js/component-analyzer': 0.1.0-canary.20260604.2.1.b299cfcd
+      '@zeus-js/component-dts': 0.1.0-canary.20260604.2.1.b299cfcd
     optionalDependencies:
       vue: 3.5.35(typescript@6.0.3)
     transitivePeerDependencies:
+      - rolldown
       - rollup
       - supports-color
       - vite
 
-  '@zeus-js/output-wc@0.1.0-beta.0(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))':
+  '@zeus-js/output-wc@0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))':
     dependencies:
-      '@zeus-js/bundler-plugin': 0.1.0-beta.0(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
-      '@zeus-js/component-analyzer': 0.1.0-beta.0
-      '@zeus-js/component-dts': 0.1.0-beta.0
+      '@zeus-js/bundler-plugin': 0.1.0-canary.20260604.2.1.b299cfcd(rolldown@1.0.3)(rollup@4.61.0)(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
+      '@zeus-js/component-analyzer': 0.1.0-canary.20260604.2.1.b299cfcd
+      '@zeus-js/component-dts': 0.1.0-canary.20260604.2.1.b299cfcd
     optionalDependencies:
       rollup: 4.61.0
     transitivePeerDependencies:
+      - rolldown
       - supports-color
       - vite
 
-  '@zeus-js/runtime-dom@0.1.0-beta.0':
+  '@zeus-js/runtime-dom@0.1.0-beta.1':
     dependencies:
-      '@zeus-js/signal': 0.1.0-beta.0
+      '@zeus-js/signal': 0.1.0-beta.1
 
-  '@zeus-js/shared@0.1.0-beta.0': {}
-
-  '@zeus-js/signal@0.1.0-beta.0':
+  '@zeus-js/runtime-dom@0.1.0-canary.20260604.2.1.b299cfcd':
     dependencies:
-      '@zeus-js/shared': 0.1.0-beta.0
+      '@zeus-js/signal': 0.1.0-canary.20260604.2.1.b299cfcd
+
+  '@zeus-js/shared@0.1.0-beta.1': {}
+
+  '@zeus-js/shared@0.1.0-canary.20260604.2.1.b299cfcd': {}
+
+  '@zeus-js/signal@0.1.0-beta.1':
+    dependencies:
+      '@zeus-js/shared': 0.1.0-beta.1
       alien-signals: 3.2.1
 
-  '@zeus-js/zeus@0.1.0-beta.0':
+  '@zeus-js/signal@0.1.0-canary.20260604.2.1.b299cfcd':
     dependencies:
-      '@zeus-js/runtime-dom': 0.1.0-beta.0
-      '@zeus-js/signal': 0.1.0-beta.0
+      '@zeus-js/shared': 0.1.0-canary.20260604.2.1.b299cfcd
+      alien-signals: 3.2.1
+
+  '@zeus-js/zeus@0.1.0-beta.1':
+    dependencies:
+      '@zeus-js/runtime-dom': 0.1.0-beta.1
+      '@zeus-js/signal': 0.1.0-beta.1
+
+  '@zeus-js/zeus@0.1.0-canary.20260604.2.1.b299cfcd':
+    dependencies:
+      '@zeus-js/runtime-dom': 0.1.0-canary.20260604.2.1.b299cfcd
+      '@zeus-js/signal': 0.1.0-canary.20260604.2.1.b299cfcd
 
   acorn-jsx@5.3.2(acorn@8.16.0):
     dependencies:

@@ -38,32 +38,30 @@ function listPackageJsonFiles(): string[] {
     }
   }
 
-  return files
+  return files.sort()
 }
 
-function collectExportTargets(
-  value: unknown,
-  targets: Set<string>,
-  packageDir: string,
-): void {
+function collectExportTargets(value: unknown, targets: Set<string>): void {
   if (typeof value === 'string') {
     if (value.startsWith('./') && !value.includes('*')) {
       targets.add(value)
     }
+
     return
   }
 
   if (Array.isArray(value)) {
     for (const item of value) {
-      collectExportTargets(item, targets, packageDir)
+      collectExportTargets(item, targets)
     }
+
     return
   }
 
   if (!value || typeof value !== 'object') return
 
   for (const nested of Object.values(value)) {
-    collectExportTargets(nested, targets, packageDir)
+    collectExportTargets(nested, targets)
   }
 }
 
@@ -80,12 +78,9 @@ function listExportTargets(): ExportTarget[] {
     const packageDir = dirname(packageJsonFile)
     const targets = new Set<string>()
 
-    collectExportTargets(pkg.exports, targets, packageDir)
+    collectExportTargets(pkg.exports, targets)
 
     for (const target of targets) {
-      const absoluteTarget = join(packageDir, target)
-      if (!existsSync(absoluteTarget)) continue
-
       result.push({
         packageName: pkg.name,
         packageDir,
@@ -94,12 +89,18 @@ function listExportTargets(): ExportTarget[] {
     }
   }
 
-  return result
+  return result.sort((a, b) => {
+    const packageCompare = a.packageName.localeCompare(b.packageName)
+
+    if (packageCompare !== 0) return packageCompare
+
+    return a.target.localeCompare(b.target)
+  })
 }
 
 async function main(): Promise<void> {
   let hasError = false
-  const dtsFiles: string[] = []
+  const dtsFiles = new Set<string>()
 
   for (const item of listExportTargets()) {
     const absoluteTarget = join(item.packageDir, item.target)
@@ -114,11 +115,11 @@ async function main(): Promise<void> {
     }
 
     if (absoluteTarget.endsWith('.d.ts')) {
-      dtsFiles.push(relativeTarget)
+      dtsFiles.add(relativeTarget)
     }
   }
 
-  if (!hasError && dtsFiles.length > 0) {
+  if (dtsFiles.size > 0) {
     const result = await execa(
       'pnpm',
       [

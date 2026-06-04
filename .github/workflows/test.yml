@@ -36,6 +36,7 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm run test-unit
 
   e2e-test:
     runs-on: ubuntu-latest
