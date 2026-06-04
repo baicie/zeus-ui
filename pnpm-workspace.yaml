@@ -1,5 +1,3 @@
-shellEmulator: true
-
 packages:
   - 'packages/*'
   - 'packages/primitives/*'

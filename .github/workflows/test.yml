@@ -21,7 +21,7 @@ jobs:
         with:
           node-version-file: .node-version
           cache: pnpm
-      - run: pnpm install
+      - run: pnpm install --frozen-lockfile
       - run: pnpm run test-unit
 
   unit-test-windows:
@@ -35,7 +35,8 @@ jobs:
         with:
           node-version-file: .node-version
           cache: pnpm
-      - run: pnpm install
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run test-unit
 
   e2e-test:
     runs-on: ubuntu-latest
@@ -46,7 +47,8 @@ jobs:
         with:
           node-version-file: .node-version
           cache: pnpm
-      - run: pnpm run test-e2e
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
 
   lint-and-test-dts:
     runs-on: ubuntu-latest
@@ -59,7 +61,7 @@ jobs:
         with:
           node-version-file: .node-version
           cache: pnpm
-      - run: pnpm install
+      - run: pnpm install --frozen-lockfile
       - run: pnpm run lint
       - run: pnpm run format-check
       - run: pnpm run check

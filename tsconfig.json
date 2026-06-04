@@ -5,5 +5,16 @@
     "noEmit": true,
     "outDir": "temp",
     "isolatedDeclarations": false
-  }
+  },
+  "include": [
+    "scripts/config/jsx.d.ts",
+    "packages/*/src",
+    "packages/primitives/*/src",
+    "packages/*/__tests__",
+    "packages/primitives/*/__tests__",
+    "scripts/**/*",
+    "apps/**/*",
+    "examples/**/*"
+  ],
+  "exclude": ["packages/zeus-compat/__tests__/canary-capabilities.spec.ts"]
 }

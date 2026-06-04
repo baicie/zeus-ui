@@ -8,6 +8,8 @@ export interface PackageJsonLike {
   sideEffects?: boolean | string[]
   exports?: Record<string, unknown>
   peerDependencies?: Record<string, string>
+  dependencies?: Record<string, string>
+  optionalDependencies?: Record<string, string>
 }
 
 export interface PackageRuleResult {
@@ -29,6 +31,7 @@ export function validatePackageRules(
   ) as PackageJsonLike
   const rel = toForwardSlash(relative(root, packageJsonPath))
   const isPrimitive = rel.startsWith('packages/primitives/')
+  const isCompat = rel.startsWith('packages/zeus-compat/')
 
   if (pkg.private) {
     return {
@@ -45,13 +48,46 @@ export function validatePackageRules(
     errors.push(`${pkg.name}: missing exports`)
   }
 
+  validateZeusDependencyBoundary(pkg, errors)
+
   if (isPrimitive) {
     validatePrimitivePackage(packageJsonPath, pkg, errors)
+  }
+
+  if (isCompat) {
+    validateCompatPackage(packageJsonPath, pkg, errors)
   }
 
   return {
     valid: errors.length === 0,
     errors,
+  }
+}
+
+function validateZeusDependencyBoundary(
+  pkg: PackageJsonLike,
+  errors: string[],
+): void {
+  for (const field of [
+    'dependencies',
+    'optionalDependencies',
+    'peerDependencies',
+  ] as const) {
+    const dependencies = pkg[field] ?? {}
+
+    for (const name of Object.keys(dependencies)) {
+      if (!name.startsWith('@zeus-js/')) continue
+
+      const isAllowedPeer =
+        field === 'peerDependencies' && name === '@zeus-js/zeus'
+
+      if (isAllowedPeer) continue
+
+      errors.push(
+        `${pkg.name}: must not declare ${field}.${name}; ` +
+          'consume Zeus only through peerDependencies.@zeus-js/zeus',
+      )
+    }
   }
 }
 
@@ -78,9 +114,18 @@ function validatePrimitivePackage(
     )
   }
 
-  if (!pkg.peerDependencies || !pkg.peerDependencies['@zeus-js/runtime-dom']) {
+  if (!pkg.peerDependencies || !pkg.peerDependencies['@zeus-js/zeus']) {
     errors.push(
-      `${pkg.name}: primitive package must peer depend on @zeus-js/runtime-dom`,
+      `${pkg.name}: primitive package must peer depend on @zeus-js/zeus`,
+    )
+  }
+
+  if (
+    !pkg.dependencies ||
+    pkg.dependencies['@zeus-web/zeus-compat'] !== 'workspace:*'
+  ) {
+    errors.push(
+      `${pkg.name}: primitive package must depend on @zeus-web/zeus-compat workspace:*`,
     )
   }
 
@@ -143,4 +188,20 @@ function hasCreatePrimitiveRollupConfigImport(config: string): boolean {
   return /import\s*\{\s*createPrimitiveRollupConfig\s*\}\s*from\s*['"](?:\.\.\/)+scripts\/rollup\/createPrimitiveRollupConfig\.mjs['"]/.test(
     config,
   )
+}
+
+function validateCompatPackage(
+  _packageJsonPath: string,
+  pkg: PackageJsonLike,
+  errors: string[],
+): void {
+  if (!pkg.peerDependencies || !pkg.peerDependencies['@zeus-js/zeus']) {
+    errors.push(`${pkg.name}: must peer depend on @zeus-js/zeus`)
+  }
+
+  for (const key of ['.', './capabilities']) {
+    if (!pkg.exports || !(key in pkg.exports)) {
+      errors.push(`${pkg.name}: must export ${key}`)
+    }
+  }
 }

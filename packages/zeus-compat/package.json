@@ -1,0 +1,30 @@
+{
+  "name": "@zeus-web/zeus-compat",
+  "type": "module",
+  "version": "0.0.0",
+  "description": "Compatibility layer between Zeus Web and @zeus-js public APIs.",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./capabilities": {
+      "types": "./dist/capabilities.d.ts",
+      "import": "./dist/capabilities.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsup src/index.ts src/capabilities.ts --format esm --dts --clean --watch",
+    "build": "tsup src/index.ts src/capabilities.ts --format esm --dts --clean",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest --project unit-jsdom"
+  },
+  "peerDependencies": {
+    "@zeus-js/zeus": ">=0.1.0-beta.2 <0.2.0"
+  }
+}

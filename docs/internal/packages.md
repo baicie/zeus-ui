@@ -20,28 +20,29 @@
 
 所有包版本均为 `0.1.0-beta.0`（另有说明的除外），位于 monorepo `packages/` 下，通过 pnpm workspace 管理。
 
-| 包名 | 路径 | 版本 | 类型 | 说明 |
-|------|------|------|------|------|
-| `@zeus-js/zeus` | `packages/core/zeus` | 0.1.0-beta.0 | core | 统一入口，导出所有公共 API |
-| `@zeus-js/signal` | `packages/core/signal` | 0.1.0-beta.0 | core | 响应式核心，基于 alien-signals |
-| `@zeus-js/runtime-dom` | `packages/core/runtime-dom` | 0.1.0-beta.0 | core | DOM runtime helpers |
-| `@zeus-js/compiler` | `packages/core/compiler` | 0.1.0-beta.0 | core | Babel JSX 编译器插件 |
-| `@zeus-js/shared` | `packages/core/shared` | 0.1.0-beta.0 | core | 内部工具函数，无外部依赖 |
-| `@zeus-js/vite-plugin` | `packages/devtools/vite-plugin` | 0.0.2 | devtools | Vite 集成插件 |
-| `create-zeus` | `packages/devtools/create-zeus` | 0.0.1 | devtools | 项目脚手架生成器（CLI） |
-| `@zeus-js/output-wc` | `packages/web-c/output-wc` | 0.1.0-beta.0 | web-c | Web Component 输出插件 |
-| `@zeus-js/output-react-wrapper` | `packages/web-c/output-react-wrapper` | 0.1.0-beta.0 | web-c | React wrapper 输出插件 |
-| `@zeus-js/output-vue-wrapper` | `packages/web-c/output-vue-wrapper` | 0.1.0-beta.0 | web-c | Vue wrapper 输出插件 |
-| `@zeus-js/output-icons` | `packages/web-c/output-icons` | 0.1.0-beta.0 | web-c | 图标输出插件 |
-| `@zeus-js/output-css` | `packages/web-c/output-css` | 0.1.0-beta.0 | web-c | CSS 资源输出插件 |
-| `@zeus-js/component-analyzer` | `packages/web-c/component-analyzer` | 0.1.0-beta.0 | web-c | 组件分析器（解析 JSX） |
-| `@zeus-js/component-dts` | `packages/web-c/component-dts` | 0.1.0-beta.0 | web-c | manifest DTS 生成器 |
-| `@zeus-js/bundler-plugin` | `packages/web-c/bundler-plugin` | 0.1.0-beta.0 | web-c | bundler 插件宿主（Vite / Rollup） |
-| `@zeus-js/preset-component-library` | `packages/web-c/preset-component-library` | 0.1.0-beta.0 | web-c | 组件库预设（一键集成） |
-| `@zeus-ui/registry` | `packages/create/registry` | 0.0.1 | create | UI 组件注册表（copyable 源码） |
-| `zeus-ui` | `packages/create/zeus-ui` | 0.0.1 | create | CLI 工具添加 UI 组件到项目 |
+| 包名                                | 路径                                      | 版本         | 类型     | 说明                              |
+| ----------------------------------- | ----------------------------------------- | ------------ | -------- | --------------------------------- |
+| `@zeus-js/zeus`                     | `packages/core/zeus`                      | 0.1.0-beta.0 | core     | 统一入口，导出所有公共 API        |
+| `@zeus-js/signal`                   | `packages/core/signal`                    | 0.1.0-beta.0 | core     | 响应式核心，基于 alien-signals    |
+| `@zeus-js/runtime-dom`              | `packages/core/runtime-dom`               | 0.1.0-beta.0 | core     | DOM runtime helpers               |
+| `@zeus-js/compiler`                 | `packages/core/compiler`                  | 0.1.0-beta.0 | core     | Babel JSX 编译器插件              |
+| `@zeus-js/shared`                   | `packages/core/shared`                    | 0.1.0-beta.0 | core     | 内部工具函数，无外部依赖          |
+| `@zeus-js/vite-plugin`              | `packages/devtools/vite-plugin`           | 0.0.2        | devtools | Vite 集成插件                     |
+| `create-zeus`                       | `packages/devtools/create-zeus`           | 0.0.1        | devtools | 项目脚手架生成器（CLI）           |
+| `@zeus-js/output-wc`                | `packages/web-c/output-wc`                | 0.1.0-beta.0 | web-c    | Web Component 输出插件            |
+| `@zeus-js/output-react-wrapper`     | `packages/web-c/output-react-wrapper`     | 0.1.0-beta.0 | web-c    | React wrapper 输出插件            |
+| `@zeus-js/output-vue-wrapper`       | `packages/web-c/output-vue-wrapper`       | 0.1.0-beta.0 | web-c    | Vue wrapper 输出插件              |
+| `@zeus-js/output-icons`             | `packages/web-c/output-icons`             | 0.1.0-beta.0 | web-c    | 图标输出插件                      |
+| `@zeus-js/output-css`               | `packages/web-c/output-css`               | 0.1.0-beta.0 | web-c    | CSS 资源输出插件                  |
+| `@zeus-js/component-analyzer`       | `packages/web-c/component-analyzer`       | 0.1.0-beta.0 | web-c    | 组件分析器（解析 JSX）            |
+| `@zeus-js/component-dts`            | `packages/web-c/component-dts`            | 0.1.0-beta.0 | web-c    | manifest DTS 生成器               |
+| `@zeus-js/bundler-plugin`           | `packages/web-c/bundler-plugin`           | 0.1.0-beta.0 | web-c    | bundler 插件宿主（Vite / Rollup） |
+| `@zeus-js/preset-component-library` | `packages/web-c/preset-component-library` | 0.1.0-beta.0 | web-c    | 组件库预设（一键集成）            |
+| `@zeus-ui/registry`                 | `packages/create/registry`                | 0.0.1        | create   | UI 组件注册表（copyable 源码）    |
+| `zeus-ui`                           | `packages/create/zeus-ui`                 | 0.0.1        | create   | CLI 工具添加 UI 组件到项目        |
 
 **不推荐直接引入的内部包**（无 `main`/`exports`，仅供 workspace 内部使用）：
+
 - `packages/core/runtime-dom/src/` 下的各子模块（template、bindings、events、context 等）
 
 ---
@@ -109,45 +110,45 @@
 
 #### 响应式 API（来自 `@zeus-js/signal`）
 
-| API | 签名 | 说明 |
-|-----|------|------|
-| `state` | `(initial: T) => T` | 创建响应式状态，返回代理对象 |
-| `computed` | `(fn: () => T) => ComputedRef<T>` | 创建派生值，自动追踪依赖 |
-| `effect` | `(fn: () => void, options?) => ReactiveEffectRunner` | 创建副作用，自动追踪依赖 |
-| `watch` | `(source, cb, options?) => WatchHandle` | 监听数据源变化 |
-| `scope` | `(fn: () => T) => T` | 创建响应式作用域 |
-| `batch` | `(fn: () => void) => void` | 批量更新，合并多次变更 |
-| `untrack` | `(fn: () => T) => T` | 在无追踪上下文执行函数 |
-| `nextTick` | `() => Promise<void>` | 等待响应式更新 flush 后执行 |
-| `onCleanup` | `(fn: () => void) => void` | 注册清理函数 |
+| API         | 签名                                                 | 说明                         |
+| ----------- | ---------------------------------------------------- | ---------------------------- |
+| `state`     | `(initial: T) => T`                                  | 创建响应式状态，返回代理对象 |
+| `computed`  | `(fn: () => T) => ComputedRef<T>`                    | 创建派生值，自动追踪依赖     |
+| `effect`    | `(fn: () => void, options?) => ReactiveEffectRunner` | 创建副作用，自动追踪依赖     |
+| `watch`     | `(source, cb, options?) => WatchHandle`              | 监听数据源变化               |
+| `scope`     | `(fn: () => T) => T`                                 | 创建响应式作用域             |
+| `batch`     | `(fn: () => void) => void`                           | 批量更新，合并多次变更       |
+| `untrack`   | `(fn: () => T) => T`                                 | 在无追踪上下文执行函数       |
+| `nextTick`  | `() => Promise<void>`                                | 等待响应式更新 flush 后执行  |
+| `onCleanup` | `(fn: () => void) => void`                           | 注册清理函数                 |
 
 #### DOM Runtime API
 
-| API | 签名 | 说明 |
-|-----|------|------|
-| `render` | `(vnode: JSXValue, target: Element, options?) => () => void` | 将 JSX 渲染到 DOM 节点，返回 dispose 函数 |
-| `Show` | `(props: ShowProps) => JSXValue` | 条件渲染组件 |
-| `For` | `<T>(props: ForProps<T>) => JSXValue` | 列表渲染组件 |
-| `Host` | `(props: HostProps) => JSXValue` | Web Component 宿主边界（编译期内置） |
-| `Slot` | `(props: SlotProps) => JSXValue` | Web Component slot（编译期内置） |
-| `defineElement` | `(tagName, options, setup) => CustomElementConstructor` | 定义 custom element |
+| API             | 签名                                                         | 说明                                      |
+| --------------- | ------------------------------------------------------------ | ----------------------------------------- |
+| `render`        | `(vnode: JSXValue, target: Element, options?) => () => void` | 将 JSX 渲染到 DOM 节点，返回 dispose 函数 |
+| `Show`          | `(props: ShowProps) => JSXValue`                             | 条件渲染组件                              |
+| `For`           | `<T>(props: ForProps<T>) => JSXValue`                        | 列表渲染组件                              |
+| `Host`          | `(props: HostProps) => JSXValue`                             | Web Component 宿主边界（编译期内置）      |
+| `Slot`          | `(props: SlotProps) => JSXValue`                             | Web Component slot（编译期内置）          |
+| `defineElement` | `(tagName, options, setup) => CustomElementConstructor`      | 定义 custom element                       |
 
 #### Context API
 
-| API | 签名 | 说明 |
-|-----|------|------|
-| `createContext` | `<T>(defaultValue?: T) => Context<T>` | 创建 context |
-| `provide` | `(context: Context<T>, value: T) => void` | 提供值 |
-| `inject` | `<T>(context: Context<T>) => T` | 注入值 |
-| `useContext` | `<T>(context: Context<T>) => T` | 同 `inject`（别名） |
+| API             | 签名                                      | 说明                |
+| --------------- | ----------------------------------------- | ------------------- |
+| `createContext` | `<T>(defaultValue?: T) => Context<T>`     | 创建 context        |
+| `provide`       | `(context: Context<T>, value: T) => void` | 提供值              |
+| `inject`        | `<T>(context: Context<T>) => T`           | 注入值              |
+| `useContext`    | `<T>(context: Context<T>) => T`           | 同 `inject`（别名） |
 
 #### JSX Runtime
 
-| API | 说明 |
-|-----|------|
-| `jsx` | 编译时调用，创建 JSX 元素 |
-| `jsxs` | 编译时调用，创建多个子元素 |
-| `jsxDEV` | 开发环境 JSX 运行时 |
+| API        | 说明                         |
+| ---------- | ---------------------------- |
+| `jsx`      | 编译时调用，创建 JSX 元素    |
+| `jsxs`     | 编译时调用，创建多个子元素   |
+| `jsxDEV`   | 开发环境 JSX 运行时          |
 | `Fragment` | JSX Fragment，等价于 `<></>` |
 
 #### 类型导出
@@ -177,7 +178,15 @@ type ContextBridgeProps<T>
 #### 使用示例
 
 ```tsx
-import { render, Show, For, state, computed, effect, onCleanup } from '@zeus-js/zeus'
+import {
+  render,
+  Show,
+  For,
+  state,
+  computed,
+  effect,
+  onCleanup,
+} from '@zeus-js/zeus'
 
 // 基础渲染
 const [count, setCount] = state(0)
@@ -194,7 +203,7 @@ render(
     <p>doubled: {doubled()}</p>
     <button onClick={() => setCount(c => c + 1)}>+</button>
   </div>,
-  document.getElementById('app')!
+  document.getElementById('app')!,
 )
 
 // 条件渲染
@@ -202,16 +211,14 @@ render(
   <Show when={count() > 5} fallback={<p>small</p>}>
     <p>big!</p>
   </Show>,
-  document.getElementById('app')!
+  document.getElementById('app')!,
 )
 
 // 列表渲染
 const items = state(['apple', 'banana', 'cherry'])
 render(
-  <For each={items()}>
-    {(item, i) => <li key={i()}>{item}</li>}
-  </For>,
-  document.getElementById('app')!
+  <For each={items()}>{(item, i) => <li key={i()}>{item}</li>}</For>,
+  document.getElementById('app')!,
 )
 ```
 
@@ -228,10 +235,36 @@ render(
 export { state, isValueState, type State, type ValueState }
 
 // computed
-export { computed, type ComputedRef, type WritableComputedRef, type WritableComputedOptions, type ComputedGetter, type ComputedSetter, type ComputedRefImpl }
+export {
+  computed,
+  type ComputedRef,
+  type WritableComputedRef,
+  type WritableComputedOptions,
+  type ComputedGetter,
+  type ComputedSetter,
+  type ComputedRefImpl,
+}
 
 // effect
-export { effect, stop, enableTracking, pauseTracking, resetTracking, onEffectCleanup, ReactiveEffect, EffectFlags, batch, untrack, getCurrentEffect, type ReactiveEffectRunner, type ReactiveEffectOptions, type EffectScheduler, type DebuggerOptions, type DebuggerEvent, type DebuggerEventExtraInfo }
+export {
+  effect,
+  stop,
+  enableTracking,
+  pauseTracking,
+  resetTracking,
+  onEffectCleanup,
+  ReactiveEffect,
+  EffectFlags,
+  batch,
+  untrack,
+  getCurrentEffect,
+  type ReactiveEffectRunner,
+  type ReactiveEffectOptions,
+  type EffectScheduler,
+  type DebuggerOptions,
+  type DebuggerEvent,
+  type DebuggerEventExtraInfo,
+}
 
 // scheduler
 export { queueJob, flushJobs, nextTick }
@@ -244,7 +277,21 @@ export { effectScope, EffectScope, getCurrentScope, onScopeDispose }
 export { scope, type Scope }
 
 // watch
-export { watch, getCurrentWatcher, traverse, onWatcherCleanup, WatchErrorCodes, type WatchOptions, type WatchScheduler, type WatchStopHandle, type WatchHandle, type WatchEffect, type WatchSource, type WatchCallback, type OnCleanup }
+export {
+  watch,
+  getCurrentWatcher,
+  traverse,
+  onWatcherCleanup,
+  WatchErrorCodes,
+  type WatchOptions,
+  type WatchScheduler,
+  type WatchStopHandle,
+  type WatchHandle,
+  type WatchEffect,
+  type WatchSource,
+  type WatchCallback,
+  type OnCleanup,
+}
 
 // lifecycle
 export { onCleanup }
@@ -259,19 +306,22 @@ export { TrackOpTypes, TriggerOpTypes, ReactiveFlags }
 #### 详细 API
 
 **state** — 创建响应式状态
+
 ```ts
 const count = state(0)
-count()        // 读取 → 0
-count(1)       // 写入 → 1
+count() // 读取 → 0
+count(1) // 写入 → 1
 count(c => c + 1) // 回调式写入
 ```
 
 **computed** — 派生值
+
 ```ts
 const doubled = computed(() => count() * 2)
 ```
 
 **effect** — 副作用
+
 ```ts
 const runner = effect(() => {
   document.title = `count: ${count()}`
@@ -280,16 +330,20 @@ runner.stop() // 停止 effect
 ```
 
 **watch** — 监听
+
 ```ts
 const stop = watch(
-  count,              // 要监听的值（signal、getter、数组）
-  (newVal, oldVal) => { console.log('changed', newVal) },
-  { immediate: false, flush: 'pre' } // 可选配置
+  count, // 要监听的值（signal、getter、数组）
+  (newVal, oldVal) => {
+    console.log('changed', newVal)
+  },
+  { immediate: false, flush: 'pre' }, // 可选配置
 )
 stop() // 停止监听
 ```
 
 **batch** — 批量更新
+
 ```ts
 batch(() => {
   count(1)
@@ -299,6 +353,7 @@ batch(() => {
 ```
 
 **scope** — 隔离作用域
+
 ```ts
 const result = scope(() => {
   const local = state(42)
@@ -310,6 +365,7 @@ const result = scope(() => {
 ```
 
 **effectScope** — 命名的 effect 作用域
+
 ```ts
 const scope = effectScope()
 scope.run(() => {
@@ -319,6 +375,7 @@ scope.stop() // 整个 scope 内的 effect 全部清理
 ```
 
 **onCleanup** — 注册清理函数
+
 ```ts
 effect(() => {
   const timer = setInterval(() => {}, 100)
@@ -327,6 +384,7 @@ effect(() => {
 ```
 
 **nextTick** — 等待更新 flush
+
 ```ts
 count(1)
 await nextTick()
@@ -343,7 +401,16 @@ await nextTick()
 
 ```ts
 // types
-export type { JSXValue, JSXGetter, Component, TemplateFactory, AttrValue, ClassValue, StyleValue, RefTarget }
+export type {
+  JSXValue,
+  JSXGetter,
+  Component,
+  TemplateFactory,
+  AttrValue,
+  ClassValue,
+  StyleValue,
+  RefTarget,
+}
 
 // template
 export { template }
@@ -358,7 +425,16 @@ export { insert, mountDynamic, insertTracked }
 export { marker, child, removeNodes }
 
 // bindings
-export { bindText, bindTextContent, bindAttr, bindProp, bindClass, bindStyle, setAttr, normalizeClass }
+export {
+  bindText,
+  bindTextContent,
+  bindAttr,
+  bindProp,
+  bindClass,
+  bindStyle,
+  setAttr,
+  normalizeClass,
+}
 
 // events
 export { bindEvent, delegateEvents }
@@ -370,21 +446,62 @@ export { setRef, bindRef }
 export { createComponent }
 
 // control flow
-export { Show, For, mountShow, mountFor, resolveValue, type ShowProps, type ForProps }
+export {
+  Show,
+  For,
+  mountShow,
+  mountFor,
+  resolveValue,
+  type ShowProps,
+  type ForProps,
+}
 
 // web components
-export { defineElement, type DefineElementOptions, type DefineElementMeta, type DefineElementContext, type DefineElementSetup, type ElementPropConstructor, type PropDefinition, type PropOptions }
+export {
+  defineElement,
+  type DefineElementOptions,
+  type DefineElementMeta,
+  type DefineElementContext,
+  type DefineElementSetup,
+  type ElementPropConstructor,
+  type PropDefinition,
+  type PropOptions,
+}
 export { Host, Slot, type HostProps, type SlotProps }
 export { createSlot }
 
 // host context
-export { getCurrentHostContext, withHostContext, captureCurrentHostContext, withCapturedHostContext, type HostRenderContext, type HostRenderMode }
+export {
+  getCurrentHostContext,
+  withHostContext,
+  captureCurrentHostContext,
+  withCapturedHostContext,
+  type HostRenderContext,
+  type HostRenderMode,
+}
 
 // context
 export { createContext, useContext, provide, inject }
 
 // advanced context (内部)
-export { getCurrentOwner, createOwner, runWithOwner, createDOMContextBoundary, provideDOMContext, requestDOMContext, resolveDOMContext, ZEUS_CONTEXT_REQUEST, type Context, type ContextId, type ContextProviderProps, type ContextBridgeProps, type Owner, type ZeusContextRequestDetail, type ZeusContextRequestEvent, type DOMContextResolution }
+export {
+  getCurrentOwner,
+  createOwner,
+  runWithOwner,
+  createDOMContextBoundary,
+  provideDOMContext,
+  requestDOMContext,
+  resolveDOMContext,
+  ZEUS_CONTEXT_REQUEST,
+  type Context,
+  type ContextId,
+  type ContextProviderProps,
+  type ContextBridgeProps,
+  type Owner,
+  type ZeusContextRequestDetail,
+  type ZeusContextRequestEvent,
+  type DOMContextResolution,
+}
 ```
 
 #### defineElement 详解
@@ -402,10 +519,10 @@ const Counter = defineElement(
       open: Boolean,
       data: {
         type: Object,
-        attr: 'data-config',  // 指定 attribute 名称
-        reflect: true,          // prop → attribute 反射
-        default: () => ({ value: 0 })
-      }
+        attr: 'data-config', // 指定 attribute 名称
+        reflect: true, // prop → attribute 反射
+        default: () => ({ value: 0 }),
+      },
     },
     styles: `
       :host { display: block; padding: 1rem; }
@@ -415,8 +532,13 @@ const Counter = defineElement(
     meta: {
       description: 'A simple counter component',
       props: { count: { description: 'Current count value' } },
-      events: { change: { description: 'Fired when count changes', detail: { value: 'number' } } }
-    }
+      events: {
+        change: {
+          description: 'Fired when count changes',
+          detail: { value: 'number' },
+        },
+      },
+    },
   },
   (props, context) => {
     // props: Readonly<P>，响应式
@@ -425,11 +547,13 @@ const Counter = defineElement(
       <Host>
         <h2>{props.title ?? 'Default Title'}</h2>
         <p>Count: {props.count}</p>
-        <button onClick={() => context.emit('change', props.count + 1)}>+</button>
+        <button onClick={() => context.emit('change', props.count + 1)}>
+          +
+        </button>
         <Slot name="extra" />
       </Host>
     )
-  }
+  },
 )
 
 // 使用
@@ -483,46 +607,51 @@ import type { CompilerOptions } from '@zeus-js/compiler'
 
 // 作为 Babel 插件直接使用
 const result = await transformAsync(code, {
-  plugins: [[zeusCompiler, {
-    moduleName: '@zeus-js/runtime-dom',
-    generate: 'dom',
-    hydratable: false,
-    delegateEvents: true,
-    delegatedEvents: [],
-    builtIns: [],
-    wrapConditionals: true,
-    omitNestedClosingTags: false,
-    omitLastClosingTag: true,
-    omitQuotes: true,
-    contextToCustomElements: false,
-    staticMarker: '@once',
-    effectWrapper: 'effect',
-    memoWrapper: 'memo',
-    validate: true,
-    inlineStyles: true,
-  } satisfies Partial<CompilerOptions>]]
+  plugins: [
+    [
+      zeusCompiler,
+      {
+        moduleName: '@zeus-js/runtime-dom',
+        generate: 'dom',
+        hydratable: false,
+        delegateEvents: true,
+        delegatedEvents: [],
+        builtIns: [],
+        wrapConditionals: true,
+        omitNestedClosingTags: false,
+        omitLastClosingTag: true,
+        omitQuotes: true,
+        contextToCustomElements: false,
+        staticMarker: '@once',
+        effectWrapper: 'effect',
+        memoWrapper: 'memo',
+        validate: true,
+        inlineStyles: true,
+      } satisfies Partial<CompilerOptions>,
+    ],
+  ],
 })
 ```
 
 #### CompilerOptions 说明
 
-| 选项 | 默认值 | 说明 |
-|------|--------|------|
-| `moduleName` | `@zeus-js/runtime-dom` | 运行时模块名（生成的 import 路径） |
-| `generate` | `'dom'` | 输出模式，目前仅支持 `'dom'` |
-| `hydratable` | `false` | 是否生成可 hydrate 的标记 |
-| `delegateEvents` | `true` | 自动事件委托（onClick → click 事件冒泡） |
-| `delegatedEvents` | `[]` | 额外需要委托的事件列表 |
-| `builtIns` | `[]` | 内置组件列表（编译器不报错） |
-| `wrapConditionals` | `true` | 优化简单条件表达式 |
-| `staticMarker` | `'@once'` | 静态表达式标记注释 |
-| `effectWrapper` | `'effect'` | 响应式包装函数名 |
-| `memoWrapper` | `'memo'` | 派生值包装函数名 |
-| `contextToCustomElements` | `false` | 是否向 custom element 传递 context |
-| `inlineStyles` | `true` | 是否内联 style |
-| `validate` | `true` | HTML 验证 |
-| `omitLastClosingTag` | `true` | 省略最后一个闭合标签 |
-| `omitQuotes` | `true` | 省略可省略的属性引号 |
+| 选项                      | 默认值                 | 说明                                     |
+| ------------------------- | ---------------------- | ---------------------------------------- |
+| `moduleName`              | `@zeus-js/runtime-dom` | 运行时模块名（生成的 import 路径）       |
+| `generate`                | `'dom'`                | 输出模式，目前仅支持 `'dom'`             |
+| `hydratable`              | `false`                | 是否生成可 hydrate 的标记                |
+| `delegateEvents`          | `true`                 | 自动事件委托（onClick → click 事件冒泡） |
+| `delegatedEvents`         | `[]`                   | 额外需要委托的事件列表                   |
+| `builtIns`                | `[]`                   | 内置组件列表（编译器不报错）             |
+| `wrapConditionals`        | `true`                 | 优化简单条件表达式                       |
+| `staticMarker`            | `'@once'`              | 静态表达式标记注释                       |
+| `effectWrapper`           | `'effect'`             | 响应式包装函数名                         |
+| `memoWrapper`             | `'memo'`               | 派生值包装函数名                         |
+| `contextToCustomElements` | `false`                | 是否向 custom element 传递 context       |
+| `inlineStyles`            | `true`                 | 是否内联 style                           |
+| `validate`                | `true`                 | HTML 验证                                |
+| `omitLastClosingTag`      | `true`                 | 省略最后一个闭合标签                     |
+| `omitQuotes`              | `true`                 | 省略可省略的属性引号                     |
 
 ---
 
@@ -534,8 +663,8 @@ const result = await transformAsync(code, {
 
 ```ts
 export { makeMap } from './makeMap'
-export * from './general'    // 通用工具函数
-export * from './typeUtils'  // 类型工具
+export * from './general' // 通用工具函数
+export * from './typeUtils' // 类型工具
 ```
 
 ---
@@ -553,10 +682,10 @@ import { createZeus, zeus } from '@zeus-js/vite-plugin'
 // createZeus === zeus
 
 export interface ZeusVitePluginOptions {
-  include?: RegExp | RegExp[]   // 包含的文件，默认 /\.t[j]sx/
-  exclude?: RegExp | RegExp[]   // 排除的文件，默认 node_modules
-  compiler?: Partial<CompilerOptions>  // 编译器选项
-  diagnostics?: boolean        // 是否输出诊断信息
+  include?: RegExp | RegExp[] // 包含的文件，默认 /\.t[j]sx/
+  exclude?: RegExp | RegExp[] // 排除的文件，默认 node_modules
+  compiler?: Partial<CompilerOptions> // 编译器选项
+  diagnostics?: boolean // 是否输出诊断信息
 }
 ```
 
@@ -576,8 +705,8 @@ export default defineConfig({
         // ... 其他编译器选项
       },
       diagnostics: true,
-    })
-  ]
+    }),
+  ],
 })
 
 // 方式 2：别名
@@ -642,6 +771,7 @@ export { createManifestPlugin } from './manifest'
 **用途**：将组件的 CSS 提取并处理为独立资源文件。
 
 **peerDependencies**（全部 optional）：
+
 - `lightningcss`
 - `postcss` + `postcss-load-config`
 - `sass`
@@ -677,6 +807,7 @@ export { createManifestPlugin } from './manifest'
 **用途**：一键预设，集成上述所有输出插件，简化组件库发布配置。
 
 **peerDependencies**：
+
 - `@zeus-js/output-css`
 - `@zeus-js/output-react-wrapper`
 - `@zeus-js/output-vue-wrapper`
@@ -752,14 +883,14 @@ pnpm add @zeus-ui/cli
 
 ## 附录 A：package.json exports 速查
 
-| 包 | ESM 入口 | CJS 入口 | 全局 CDN |
-|----|----------|----------|----------|
-| `@zeus-js/zeus` | `dist/zeus.esm-bundler.js` | `dist/zeus.cjs.js` | `dist/zeus.global.js` |
-| `@zeus-js/signal` | `dist/signal.esm-bundler.js` | `dist/signal.cjs.js` | `dist/signal.global.js` |
+| 包                     | ESM 入口                          | CJS 入口                  | 全局 CDN                     |
+| ---------------------- | --------------------------------- | ------------------------- | ---------------------------- |
+| `@zeus-js/zeus`        | `dist/zeus.esm-bundler.js`        | `dist/zeus.cjs.js`        | `dist/zeus.global.js`        |
+| `@zeus-js/signal`      | `dist/signal.esm-bundler.js`      | `dist/signal.cjs.js`      | `dist/signal.global.js`      |
 | `@zeus-js/runtime-dom` | `dist/runtime-dom.esm-bundler.js` | `dist/runtime-dom.cjs.js` | `dist/runtime-dom.global.js` |
-| `@zeus-js/compiler` | `dist/compiler.esm-bundler.js` | `dist/compiler.cjs.js` | `dist/compiler.global.js` |
-| `@zeus-js/shared` | `dist/shared.esm-bundler.js` | `dist/shared.cjs.js` | — |
-| `@zeus-js/vite-plugin` | `dist/vite-plugin.esm-bundler.js` | `dist/vite-plugin.cjs.js` | — |
+| `@zeus-js/compiler`    | `dist/compiler.esm-bundler.js`    | `dist/compiler.cjs.js`    | `dist/compiler.global.js`    |
+| `@zeus-js/shared`      | `dist/shared.esm-bundler.js`      | `dist/shared.cjs.js`      | —                            |
+| `@zeus-js/vite-plugin` | `dist/vite-plugin.esm-bundler.js` | `dist/vite-plugin.cjs.js` | —                            |
 
 ## 附录 B：pnpm catalog 共享依赖版本
 

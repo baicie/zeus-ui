@@ -97,6 +97,8 @@ export default defineConfig(
       'antfu/if-newline': 'off',
       'style/brace-style': ['error', '1tbs', { allowSingleLine: true }],
       'perfectionist/sort-named-exports': 'off',
+      // Disable in favour of Prettier's formatting.
+      'style/member-delimiter-style': 'off',
     },
   },
 
