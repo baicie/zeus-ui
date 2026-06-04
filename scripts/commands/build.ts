@@ -1,57 +1,93 @@
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
 import { execa } from 'execa'
 
 const root = process.cwd()
 
-function listPackageDirs() {
-  const dirs: string[] = []
+interface WorkspacePackage {
+  name: string
+  dir: string
+  private?: boolean
+  scripts?: Record<string, string>
+}
 
-  // Primitives must be built first, before other packages that depend on them
+const foundationPackages = ['zeus-compat', 'utils']
+
+function readPackage(dir: string): WorkspacePackage | null {
+  const packageJsonPath = join(dir, 'package.json')
+
+  if (!existsSync(packageJsonPath)) {
+    return null
+  }
+
+  const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as {
+    name?: string
+    private?: boolean
+    scripts?: Record<string, string>
+  }
+
+  if (!pkg.name) {
+    return null
+  }
+
+  return {
+    name: pkg.name,
+    dir,
+    private: pkg.private,
+    scripts: pkg.scripts,
+  }
+}
+
+function listDirs(parent: string): string[] {
+  if (!existsSync(parent)) {
+    return []
+  }
+
+  return readdirSync(parent)
+    .map(name => join(parent, name))
+    .filter(dir => existsSync(join(dir, 'package.json')))
+}
+
+function listPackages(): WorkspacePackage[] {
+  const packagesRoot = join(root, 'packages')
   const primitivesRoot = join(root, 'packages/primitives')
-  if (existsSync(primitivesRoot)) {
-    for (const name of readdirSync(primitivesRoot)) {
-      const dir = join(primitivesRoot, name)
-      if (existsSync(join(dir, 'package.json'))) {
-        dirs.push(dir)
-      }
-    }
-  }
 
-  const packageRoot = join(root, 'packages')
-  if (existsSync(packageRoot)) {
-    for (const name of readdirSync(packageRoot)) {
-      const dir = join(packageRoot, name)
-      if (existsSync(join(dir, 'package.json'))) {
-        dirs.push(dir)
-      }
-    }
-  }
+  const topLevelPackages = listDirs(packagesRoot)
+    .filter(dir => !dir.endsWith(join('packages', 'primitives')))
+    .map(readPackage)
+    .filter(Boolean) as WorkspacePackage[]
 
-  return dirs
+  const primitivePackages = listDirs(primitivesRoot)
+    .map(readPackage)
+    .filter(Boolean) as WorkspacePackage[]
+
+  const foundations = topLevelPackages.filter(pkg =>
+    foundationPackages.some(name => pkg.dir.endsWith(join('packages', name))),
+  )
+
+  const restTopLevel = topLevelPackages.filter(
+    pkg => !foundations.some(found => found.dir === pkg.dir),
+  )
+
+  return [...foundations, ...primitivePackages, ...restTopLevel].filter(
+    pkg => !pkg.private && pkg.scripts?.build,
+  )
 }
 
 async function main() {
-  const dirs = listPackageDirs()
+  const packages = listPackages()
 
-  if (dirs.length === 0) {
-    console.log('No packages found.')
+  if (packages.length === 0) {
+    console.log('No buildable packages found.')
     return
   }
 
-  console.log(`Building ${dirs.length} package(s)...\n`)
+  console.log(`Building ${packages.length} package(s)...\n`)
 
-  for (const dir of dirs) {
-    const pkgJson = await import(
-      pathToFileURL(join(dir, 'package.json')).href,
-      {
-        with: { type: 'json' },
-      }
-    ).then(m => m.default)
-    console.log(`\nBuilding @ ${pkgJson.name}`)
+  for (const pkg of packages) {
+    console.log(`\nBuilding ${pkg.name}`)
 
-    await execa('pnpm', ['--dir', dir, 'build'], {
+    await execa('pnpm', ['--dir', pkg.dir, 'build'], {
       stdio: 'inherit',
     })
   }

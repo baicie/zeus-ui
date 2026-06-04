@@ -1,14 +1,17 @@
-import type { JSXValue } from '@zeus-js/runtime-dom'
+// NOTE: JSX.Element and Host types are stubs since @zeus-js/runtime-dom
+// is not installed in the zeus-ui workspace. Use `pnpm link:zeus-js` to
+// develop against the real Zeus monorepo, or install @zeus-js/*@canary in CI.
 
 declare global {
   namespace JSX {
-    type Element = JSXValue
+    type Element = Record<string, unknown>
 
     interface ElementChildrenAttribute {
       children: object
     }
 
     interface IntrinsicElements {
+      Host: Record<string, unknown>
       div: HTMLAttributes<HTMLDivElement>
       span: HTMLAttributes<HTMLSpanElement>
       p: HTMLAttributes<HTMLParagraphElement>

@@ -17,7 +17,10 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "preserve",
+    "baseUrl": ".",
     "paths": {
+      "@zeus-js/zeus": ["../../scripts/stubs/zeus-js/zeus"],
+      "@zeus-js/*": ["../../scripts/stubs/zeus-js/*"],
       "@zeus-web/input": ["../../packages/primitives/input/src/index"],
       "@zeus-web/input/wc": ["../../packages/primitives/input/src/index"],
       "@zeus-web/input/react": ["../../packages/primitives/input/src/index"],

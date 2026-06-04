@@ -30,6 +30,7 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm check:workspace-overrides
       - run: pnpm check:zeus-imports
       - run: pnpm check
       - run: pnpm build
