@@ -1,5 +1,5 @@
 {
-  "extends": "../../../scripts/config/tsconfig.base.json",
+  "extends": "../../../scripts/config/tsconfig.zeus-jsx.json",
   "compilerOptions": {
     "composite": false,
     "rootDir": "src",

@@ -1,10 +1,4 @@
-import {
-  existsSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { execa } from 'execa'
@@ -77,35 +71,22 @@ async function buildFull(pkg: PkgInfo): Promise<void> {
 
 async function buildDeclarations(pkg: PkgInfo): Promise<void> {
   if (pkg.isPrimitive) {
-    /*
-     * Temporarily drop a JSX types shim into src/ so tsc can resolve
-     * the JSX.IntrinsicElements namespace (the project-level jsx.d.ts
-     * lives outside the package tree). We use the package's own tsconfig
-     * with overrides for emit-only mode and an explicit rootDir.
-     */
-    const shimFile = join(pkg.dir, 'src', '__jsx.d.ts')
-    writeFileSync(shimFile, 'import "@zeus-js/zeus/jsx";\nexport {}\n')
-
-    try {
-      await execa(
-        'tsc',
-        [
-          '-p',
-          'tsconfig.json',
-          '--emitDeclarationOnly',
-          '--declaration',
-          '--outDir',
-          'dist',
-          '--declarationDir',
-          'dist',
-          '--rootDir',
-          'src',
-        ],
-        { cwd: pkg.dir, stdio: 'inherit' },
-      )
-    } finally {
-      rmSync(shimFile, { force: true })
-    }
+    await execa(
+      'tsc',
+      [
+        '-p',
+        'tsconfig.json',
+        '--emitDeclarationOnly',
+        '--declaration',
+        '--outDir',
+        'dist',
+        '--declarationDir',
+        'dist',
+        '--rootDir',
+        'src',
+      ],
+      { cwd: pkg.dir, stdio: 'inherit' },
+    )
   } else {
     // tsup-based packages: --dts already produces declarations alongside the bundle
     await buildFull(pkg)

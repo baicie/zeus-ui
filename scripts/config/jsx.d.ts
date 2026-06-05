@@ -6,6 +6,9 @@ declare global {
     interface ElementChildrenAttribute {
       children: unknown
     }
+    interface IntrinsicElements {
+      [elemName: string]: Record<string, unknown>
+    }
   }
 }
 
