@@ -41,7 +41,6 @@
   ],
   "scripts": {
     "dev": "rolldown -c ../../../rolldown.config.ts --watch",
-    "build": "rimraf dist && rolldown -c ../../../rolldown.config.ts",
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "vitest --project unit-jsdom"
   },

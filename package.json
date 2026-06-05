@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "pnpm -r --parallel --filter './packages/**' dev",
     "build": "tsx scripts/commands/build.ts",
-    "build:packages": "pnpm -r --filter './packages/**' build",
+    "build:packages": "tsx scripts/commands/build.ts",
     "clean": "rimraf --glob 'packages/**/dist' --glob 'apps/**/.vitepress/dist' --glob 'examples/**/dist' temp node_modules/.cache",
     "check": "tsc -p tsconfig.json --incremental --noEmit",
     "check:exports": "tsx scripts/checks/check-package-exports.ts",

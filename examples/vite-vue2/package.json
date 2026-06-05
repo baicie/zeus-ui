@@ -1,9 +1,9 @@
 {
-  "name": "@zeus-web/example-vite-react",
+  "name": "@zeus-web/example-vite-vue2",
   "type": "module",
   "version": "0.0.0",
   "private": true,
-  "description": "Vite + React example for Zeus Web.",
+  "description": "Vite + Vue 2 example for Zeus Web.",
   "license": "MIT",
   "scripts": {
     "dev": "vite",
@@ -12,13 +12,9 @@
   },
   "dependencies": {
     "@zeus-web/input": "workspace:*",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "vue": "^3.5.35"
   },
   "devDependencies": {
-    "@types/react": "^19.2.16",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.2",
     "vite": "^8.0.16"
   }
 }
