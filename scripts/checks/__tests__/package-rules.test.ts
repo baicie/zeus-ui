@@ -13,10 +13,10 @@ function writeJson(file: string, value: unknown) {
   writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`)
 }
 
-function writeZeusRollupConfig(file: string) {
+function writeZeusRolldownConfig(file: string) {
   writeFileSync(
     file,
-    'import { createPrimitiveRollupConfig } from "../../../scripts/rollup/createPrimitiveRollupConfig.mjs"\nexport default createPrimitiveRollupConfig()\n',
+    'import { createPrimitiveRolldownConfig } from "./scripts/rolldown/createPrimitiveRolldownConfig.mjs"\nexport default createPrimitiveRolldownConfig()\n',
   )
 }
 
@@ -26,11 +26,11 @@ describe('package rules', () => {
     const dir = join(root, 'packages/primitives/input')
     mkdirSync(join(dir, 'src'), { recursive: true })
 
-    writeZeusRollupConfig(join(dir, 'rollup.config.mjs'))
+    writeZeusRolldownConfig(join(root, 'rolldown.config.ts'))
     writeJson(join(dir, 'package.json'), {
       name: '@zeus-web/input',
       scripts: {
-        build: 'rollup -c',
+        build: 'rolldown -c ../../../rolldown.config.ts',
       },
       sideEffects: ['./dist/wc/index.js', './dist/wc/*.js'],
       exports: {
@@ -45,6 +45,8 @@ describe('package rules', () => {
         '@zeus-js/zeus': '>=0.1.0-beta.2 <0.2.0',
       },
       dependencies: {
+        '@zeus-js/runtime-dom': '0.1.0-beta.2',
+        '@zeus-js/web-c-runtime': '0.1.0-beta.2',
         '@zeus-web/zeus-compat': 'workspace:*',
       },
     })
@@ -60,13 +62,13 @@ describe('package rules', () => {
     const dir = join(root, 'packages/primitives/input')
     mkdirSync(join(dir, 'src'), { recursive: true })
 
-    writeZeusRollupConfig(join(dir, 'rollup.config.mjs'))
+    writeZeusRolldownConfig(join(root, 'rolldown.config.ts'))
     writeFileSync(join(dir, 'src/wc.ts'), 'export {}\n')
 
     writeJson(join(dir, 'package.json'), {
       name: '@zeus-web/input',
       scripts: {
-        build: 'rollup -c',
+        build: 'rolldown -c ../../../rolldown.config.ts',
       },
       sideEffects: ['./dist/wc/index.js'],
       exports: {
@@ -100,12 +102,12 @@ describe('package rules', () => {
     const dir = join(root, 'packages/primitives/input')
     mkdirSync(join(dir, 'src'), { recursive: true })
 
-    writeZeusRollupConfig(join(dir, 'rollup.config.mjs'))
+    writeZeusRolldownConfig(join(root, 'rolldown.config.ts'))
 
     writeJson(join(dir, 'package.json'), {
       name: '@zeus-web/input',
       scripts: {
-        build: 'rollup -c',
+        build: 'rolldown -c ../../../rolldown.config.ts',
       },
       sideEffects: ['./dist/wc/index.js'],
       exports: {
@@ -126,7 +128,7 @@ describe('package rules', () => {
     )
   })
 
-  it('rejects primitive package without rollup.config.mjs', () => {
+  it('rejects primitive package without root rolldown.config.ts', () => {
     const root = createTempRoot()
     const dir = join(root, 'packages/primitives/input')
     mkdirSync(join(dir, 'src'), { recursive: true })
@@ -134,7 +136,7 @@ describe('package rules', () => {
     writeJson(join(dir, 'package.json'), {
       name: '@zeus-web/input',
       scripts: {
-        build: 'rollup -c',
+        build: 'rolldown -c ../../../rolldown.config.ts',
       },
       sideEffects: ['./dist/wc/index.js'],
       exports: {
@@ -158,21 +160,21 @@ describe('package rules', () => {
     expect(result.valid).toBe(false)
     expect(
       result.errors.some(error =>
-        error.includes('must have rollup.config.mjs'),
+        error.includes('missing root rolldown.config.ts'),
       ),
     ).toBe(true)
   })
 
-  it('rejects primitive package without zeus web-c rollup config', () => {
+  it('rejects primitive package without zeus web-c root rolldown config', () => {
     const root = createTempRoot()
     const dir = join(root, 'packages/primitives/input')
     mkdirSync(join(dir, 'src'), { recursive: true })
 
-    writeFileSync(join(dir, 'rollup.config.mjs'), 'export default {}\n')
+    writeFileSync(join(root, 'rolldown.config.ts'), 'export default {}\n')
     writeJson(join(dir, 'package.json'), {
       name: '@zeus-web/input',
       scripts: {
-        build: 'rollup -c',
+        build: 'rolldown -c ../../../rolldown.config.ts',
       },
       sideEffects: ['./dist/wc/index.js'],
       exports: {
@@ -201,19 +203,19 @@ describe('package rules', () => {
     ).toBe(true)
   })
 
-  it('rejects primitive package with fake local createPrimitiveRollupConfig', () => {
+  it('rejects primitive package with fake root createPrimitiveRolldownConfig', () => {
     const root = createTempRoot()
     const dir = join(root, 'packages/primitives/input')
     mkdirSync(join(dir, 'src'), { recursive: true })
 
     writeFileSync(
-      join(dir, 'rollup.config.mjs'),
-      'const createPrimitiveRollupConfig = () => ({})\nexport default createPrimitiveRollupConfig()\n',
+      join(root, 'rolldown.config.ts'),
+      'const createPrimitiveRolldownConfig = () => ({})\nexport default createPrimitiveRolldownConfig()\n',
     )
     writeJson(join(dir, 'package.json'), {
       name: '@zeus-web/input',
       scripts: {
-        build: 'rollup -c',
+        build: 'rolldown -c ../../../rolldown.config.ts',
       },
       sideEffects: ['./dist/wc/index.js'],
       exports: {
@@ -238,6 +240,86 @@ describe('package rules', () => {
     expect(
       result.errors.some(error =>
         error.includes('must use Zeus web-c output pipeline'),
+      ),
+    ).toBe(true)
+  })
+
+  it('rejects primitive package with a local rolldown config', () => {
+    const root = createTempRoot()
+    const dir = join(root, 'packages/primitives/input')
+    mkdirSync(join(dir, 'src'), { recursive: true })
+
+    writeZeusRolldownConfig(join(root, 'rolldown.config.ts'))
+    writeFileSync(join(dir, 'rolldown.config.ts'), 'export default {}\n')
+    writeJson(join(dir, 'package.json'), {
+      name: '@zeus-web/input',
+      scripts: {
+        build: 'rolldown -c ../../../rolldown.config.ts',
+      },
+      sideEffects: ['./dist/wc/index.js'],
+      exports: {
+        '.': {},
+        './wc': {},
+        './react': {},
+        './vue': {},
+        './custom-elements.json': {},
+        './zeus.components.json': {},
+      },
+      peerDependencies: {
+        '@zeus-js/zeus': '>=0.1.0-beta.2 <0.2.0',
+      },
+      dependencies: {
+        '@zeus-web/zeus-compat': 'workspace:*',
+      },
+    })
+
+    const result = validatePackageRules(root, join(dir, 'package.json'))
+
+    expect(result.valid).toBe(false)
+    expect(
+      result.errors.some(error =>
+        error.includes('must use root rolldown.config.ts'),
+      ),
+    ).toBe(true)
+  })
+
+  it('rejects primitive package optional Zeus runtime dependencies', () => {
+    const root = createTempRoot()
+    const dir = join(root, 'packages/primitives/input')
+    mkdirSync(join(dir, 'src'), { recursive: true })
+
+    writeZeusRolldownConfig(join(root, 'rolldown.config.ts'))
+    writeJson(join(dir, 'package.json'), {
+      name: '@zeus-web/input',
+      scripts: {
+        build: 'rolldown -c ../../../rolldown.config.ts',
+      },
+      sideEffects: ['./dist/wc/index.js'],
+      exports: {
+        '.': {},
+        './wc': {},
+        './react': {},
+        './vue': {},
+        './custom-elements.json': {},
+        './zeus.components.json': {},
+      },
+      peerDependencies: {
+        '@zeus-js/zeus': '>=0.1.0-beta.2 <0.2.0',
+      },
+      dependencies: {
+        '@zeus-web/zeus-compat': 'workspace:*',
+      },
+      optionalDependencies: {
+        '@zeus-js/runtime-dom': '0.1.0-beta.2',
+      },
+    })
+
+    const result = validatePackageRules(root, join(dir, 'package.json'))
+
+    expect(result.valid).toBe(false)
+    expect(
+      result.errors.some(error =>
+        error.includes('optionalDependencies.@zeus-js/runtime-dom'),
       ),
     ).toBe(true)
   })
@@ -251,7 +333,7 @@ describe('package rules', () => {
       name: '@zeus-web/input',
       private: true,
       scripts: {
-        build: 'rollup -c',
+        build: 'rolldown -c',
       },
     })
 

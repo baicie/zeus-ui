@@ -106,9 +106,12 @@ function collectModuleSpecifiers(file: string, source: string): string[] {
 
 function checkFile(rel: string, source: string): void {
   const allowed = allowedZeusImports.get(rel) ?? new Set<string>()
+  const isPrimitiveCompilerInput =
+    rel.startsWith('packages/primitives/') && rel.includes('/src/')
 
   for (const specifier of collectModuleSpecifiers(rel, source)) {
     if (!specifier.startsWith('@zeus-js/')) continue
+    if (isPrimitiveCompilerInput && specifier === '@zeus-js/zeus') continue
     if (allowed.has(specifier)) continue
 
     hasError = true

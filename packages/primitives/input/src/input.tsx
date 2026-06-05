@@ -1,5 +1,5 @@
-import type { DefineElementSetup } from '@zeus-web/zeus-compat'
-import { defineElement, Host } from '@zeus-web/zeus-compat'
+import type { DefineElementSetup } from '@zeus-js/zeus'
+import { defineElement, Host } from '@zeus-js/zeus'
 
 export type InputType =
   | 'text'

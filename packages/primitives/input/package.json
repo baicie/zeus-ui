@@ -40,13 +40,13 @@
     "dist"
   ],
   "scripts": {
-    "dev": "rollup -c --watch",
-    "build": "rimraf dist && rollup -c",
+    "dev": "rolldown -c ../../../rolldown.config.ts --watch",
+    "build": "rimraf dist && rolldown -c ../../../rolldown.config.ts",
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "vitest --project unit-jsdom"
   },
   "peerDependencies": {
-    "@zeus-js/zeus": ">=0.1.0-beta.2 <0.2.0",
+    "@zeus-js/zeus": ">=0.1.0-canary.20260605.13.1.2e49f2f7 <0.2.0",
     "react": ">=18 || >=19",
     "vue": ">=3"
   },
@@ -59,6 +59,8 @@
     }
   },
   "dependencies": {
+    "@zeus-js/runtime-dom": "0.1.0-canary.20260605.13.1.2e49f2f7",
+    "@zeus-js/web-c-runtime": "0.1.0-canary.20260605.13.1.2e49f2f7",
     "@zeus-web/zeus-compat": "workspace:*"
   }
 }

@@ -125,6 +125,7 @@ jobs:
           pnpm add -Dw \
             "@zeus-js/zeus@${ZEUS_VERSION}" \
             "@zeus-js/runtime-dom@${ZEUS_VERSION}" \
+            "@zeus-js/web-c-runtime@${ZEUS_VERSION}" \
             "@zeus-js/signal@${ZEUS_VERSION}" \
             "@zeus-js/compiler@${ZEUS_VERSION}" \
             "@zeus-js/component-analyzer@${ZEUS_VERSION}" \
@@ -148,6 +149,7 @@ jobs:
           const packageNames = [
             '@zeus-js/zeus',
             '@zeus-js/runtime-dom',
+            '@zeus-js/web-c-runtime',
             '@zeus-js/signal',
             '@zeus-js/compiler',
             '@zeus-js/component-analyzer',
@@ -207,7 +209,8 @@ jobs:
             @zeus-js/zeus \
             @zeus-js/bundler-plugin \
             @zeus-js/output-wc \
-            @zeus-js/runtime-dom
+            @zeus-js/runtime-dom \
+            @zeus-js/web-c-runtime
 
       - name: Check import boundaries
         run: pnpm check:zeus-imports

@@ -48,7 +48,9 @@ export function validatePackageRules(
     errors.push(`${pkg.name}: missing exports`)
   }
 
-  validateZeusDependencyBoundary(pkg, errors)
+  validateZeusDependencyBoundary(pkg, errors, {
+    allowPrimitiveRuntimeDependencies: isPrimitive,
+  })
 
   if (isPrimitive) {
     validatePrimitivePackage(packageJsonPath, pkg, errors)
@@ -67,7 +69,15 @@ export function validatePackageRules(
 function validateZeusDependencyBoundary(
   pkg: PackageJsonLike,
   errors: string[],
+  options: {
+    allowPrimitiveRuntimeDependencies: boolean
+  },
 ): void {
+  const allowedPrimitiveRuntimeDependencies = new Set([
+    '@zeus-js/runtime-dom',
+    '@zeus-js/web-c-runtime',
+  ])
+
   for (const field of [
     'dependencies',
     'optionalDependencies',
@@ -80,12 +90,15 @@ function validateZeusDependencyBoundary(
 
       const isAllowedPeer =
         field === 'peerDependencies' && name === '@zeus-js/zeus'
+      const isAllowedPrimitiveRuntimeDependency =
+        options.allowPrimitiveRuntimeDependencies &&
+        field === 'dependencies' &&
+        allowedPrimitiveRuntimeDependencies.has(name)
 
-      if (isAllowedPeer) continue
+      if (isAllowedPeer || isAllowedPrimitiveRuntimeDependency) continue
 
       errors.push(
-        `${pkg.name}: must not declare ${field}.${name}; ` +
-          'consume Zeus only through peerDependencies.@zeus-js/zeus',
+        `${pkg.name}: must not declare ${field}.${name}; consume Zeus through peerDependencies.@zeus-js/zeus or generated primitive runtime dependencies`,
       )
     }
   }
@@ -98,19 +111,15 @@ function validatePrimitivePackage(
 ): void {
   const packageDir = packageJsonPath.replace(/[/\\]package\.json$/, '')
 
-  if (!existsSync(join(packageDir, 'rollup.config.mjs'))) {
-    errors.push(`${pkg.name}: primitive package must have rollup.config.mjs`)
-  } else {
-    validatePrimitiveRollupConfig(packageDir, pkg, errors)
-  }
+  validatePrimitiveRolldownConfig(packageDir, pkg, errors)
 
   if (
     !pkg.scripts ||
     !pkg.scripts.build ||
-    !pkg.scripts.build.includes('rollup -c')
+    !pkg.scripts.build.includes('rolldown -c ../../../rolldown.config.ts')
   ) {
     errors.push(
-      `${pkg.name}: primitive package build script must use rollup -c`,
+      `${pkg.name}: primitive package build script must use shared rolldown.config.ts`,
     )
   }
 
@@ -164,28 +173,47 @@ function validatePrimitivePackage(
   }
 }
 
-function validatePrimitiveRollupConfig(
+function validatePrimitiveRolldownConfig(
   packageDir: string,
   pkg: PackageJsonLike,
   errors: string[],
 ): void {
-  const config = readFileSync(join(packageDir, 'rollup.config.mjs'), 'utf8')
-  const usesSharedConfig = hasCreatePrimitiveRollupConfigImport(config)
+  if (existsSync(join(packageDir, 'rolldown.config.ts'))) {
+    errors.push(
+      `${pkg.name}: primitive package must use root rolldown.config.ts instead of local rolldown.config.ts`,
+    )
+  }
+
+  if (existsSync(join(packageDir, 'rolldown.config.mjs'))) {
+    errors.push(
+      `${pkg.name}: primitive package must use root rolldown.config.ts instead of local rolldown.config.mjs`,
+    )
+  }
+
+  const configPath = join(packageDir, '../../../rolldown.config.ts')
+
+  if (!existsSync(configPath)) {
+    errors.push(`${pkg.name}: missing root rolldown.config.ts`)
+    return
+  }
+
+  const config = readFileSync(configPath, 'utf8')
+  const usesSharedConfig = hasCreatePrimitiveRolldownConfigImport(config)
   const usesZeusOutputs =
-    config.includes('@zeus-js/bundler-plugin') &&
+    config.includes('@zeus-js/bundler-plugin/rolldown') &&
     config.includes('@zeus-js/output-wc') &&
     config.includes('@zeus-js/output-react-wrapper') &&
     config.includes('@zeus-js/output-vue-wrapper')
 
   if (!usesSharedConfig && !usesZeusOutputs) {
     errors.push(
-      `${pkg.name}: primitive rollup config must use Zeus web-c output pipeline`,
+      `${pkg.name}: primitive rolldown config must use Zeus web-c output pipeline`,
     )
   }
 }
 
-function hasCreatePrimitiveRollupConfigImport(config: string): boolean {
-  return /import\s*\{\s*createPrimitiveRollupConfig\s*\}\s*from\s*['"](?:\.\.\/)+scripts\/rollup\/createPrimitiveRollupConfig\.mjs['"]/.test(
+function hasCreatePrimitiveRolldownConfigImport(config: string): boolean {
+  return /import\s*\{\s*createPrimitiveRolldownConfig\s*\}\s*from\s*['"](?:\.\/|(?:\.\.\/)+)scripts\/rolldown\/createPrimitiveRolldownConfig\.mjs['"]/.test(
     config,
   )
 }
