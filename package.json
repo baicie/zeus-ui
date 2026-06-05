@@ -18,6 +18,7 @@
     "check:build-output": "tsx scripts/checks/check-build-output.ts",
     "check:workspace-overrides": "tsx scripts/checks/check-workspace-overrides.ts",
     "zeus:relax-peer-ranges": "tsx scripts/commands/relax-zeus-peer-ranges.ts",
+    "zeus:update-canary": "tsx scripts/commands/update-zeus-canary.ts",
     "lint": "eslint --cache --cache-location node_modules/.cache/.eslintcache .",
     "lint-fix": "eslint --fix --cache --cache-location node_modules/.cache/.eslintcache .",
     "format": "prettier --write --cache --cache-location node_modules/.cache/.prettiercache .",
