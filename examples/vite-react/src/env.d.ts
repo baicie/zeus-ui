@@ -6,11 +6,14 @@ declare module '@zeus-web/input/react' {
   export interface InputProps {
     defaultValue?: string
     disabled?: boolean
+    formatter?: (value: string) => string
+    invalid?: boolean
     name?: string
     placeholder?: string
     readonly?: boolean
     required?: boolean
-    type?: string
+    size?: 'sm' | 'md' | 'lg'
+    type?: 'text' | 'email' | 'password' | 'search' | 'tel' | 'url' | 'number'
     value?: string
 
     children?: React.ReactNode
@@ -19,17 +22,29 @@ declare module '@zeus-web/input/react' {
     onValueChange?: (
       event: CustomEvent<{ value: string; nativeEvent: Event }>,
     ) => void
+    onFocusChange?: (
+      event: CustomEvent<{ focused: boolean; nativeEvent: FocusEvent }>,
+    ) => void
+    prefix?: React.ReactNode
+    suffix?: React.ReactNode
+    message?: React.ReactNode
   }
 
   export interface InputElement extends HTMLElement {
     defaultValue?: string
     disabled?: boolean
+    formatter?: (value: string) => string
+    invalid?: boolean
     name?: string
     placeholder?: string
     readonly?: boolean
     required?: boolean
-    type?: string
+    size?: 'sm' | 'md' | 'lg'
+    type?: 'text' | 'email' | 'password' | 'search' | 'tel' | 'url' | 'number'
     value?: string
+    focus: () => void
+    blur: () => void
+    select: () => void
   }
 
   export declare const Input: React.ForwardRefExoticComponent<

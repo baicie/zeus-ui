@@ -24,6 +24,10 @@ const allowedZeusImports = new Map<string, ReadonlySet<string>>([
     new Set(['@zeus-js/zeus/capabilities']),
   ],
   [
+    'packages/primitives/input/__tests__/input.spec.ts',
+    new Set(['@zeus-js/component-analyzer']),
+  ],
+  [
     'packages/zeus-compat/__tests__/contract.spec.ts',
     new Set(['@zeus-js/zeus/capabilities']),
   ],

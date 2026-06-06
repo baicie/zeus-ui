@@ -40,6 +40,7 @@ export function createPrimitiveRolldownConfig(options = {}) {
             dts: true,
             index: true,
             namedSlots: 'props',
+            wrapper: 'event-bridge',
           }),
           vue({
             outDir: 'vue',

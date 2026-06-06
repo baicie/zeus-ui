@@ -150,6 +150,7 @@ export default defineConfig({
           include: [
             'packages/*/__tests__/e2e/*.spec.ts',
             'packages/primitives/*/__tests__/e2e/*.spec.ts',
+            'examples/*/__tests__/e2e/*.spec.ts',
           ],
           exclude: ['packages/zeus-compat/**'],
         },

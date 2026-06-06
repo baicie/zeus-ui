@@ -14,11 +14,14 @@ declare module '@zeus-web/input/vue' {
   export interface InputProps {
     defaultValue?: string
     disabled?: boolean
+    formatter?: (value: string) => string
+    invalid?: boolean
     name?: string
     placeholder?: string
     readonly?: boolean
     required?: boolean
-    type?: string
+    size?: 'sm' | 'md' | 'lg'
+    type?: 'text' | 'email' | 'password' | 'search' | 'tel' | 'url' | 'number'
     value?: string
   }
 
@@ -34,6 +37,10 @@ declare module '@zeus-web/input/vue' {
       'value-change': (
         event: CustomEvent<{ value: string; nativeEvent: Event }>,
       ) => void
+      'focus-change': (
+        event: CustomEvent<{ focused: boolean; nativeEvent: FocusEvent }>,
+      ) => void
+      'update:value': (value: string) => void
     }
   >
 }
