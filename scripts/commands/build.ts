@@ -48,7 +48,13 @@ function discoverPackages(): PkgInfo[] {
     }
   }
 
-  return pkgs.sort((a, b) => a.shortName.localeCompare(b.shortName))
+  return pkgs.sort((a, b) => {
+    // Primitives first (they are dependencies of non-primitive packages)
+    if (a.isPrimitive !== b.isPrimitive) {
+      return a.isPrimitive ? -1 : 1
+    }
+    return a.shortName.localeCompare(b.shortName)
+  })
 }
 
 /* ------------------------------------------------------------------ */
