@@ -19,7 +19,8 @@
   "scripts": {
     "dev": "tsup src/index.ts --format esm --dts --clean --watch",
     "build": "tsup src/index.ts --format esm --dts --clean",
-    "check": "tsc -p tsconfig.json --noEmit"
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest --root ../.. --project unit packages/headless/__tests__/headless.spec.ts"
   },
   "dependencies": {
     "@zeus-web/button": "workspace:*",

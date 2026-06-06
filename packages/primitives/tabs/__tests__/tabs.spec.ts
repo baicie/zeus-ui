@@ -37,6 +37,11 @@ describe('tabs primitive protocol', () => {
           default: 'horizontal',
           reflect: true,
         },
+        disabled: {
+          type: 'boolean',
+          default: false,
+          reflect: true,
+        },
       },
       events: {
         valueChange: {
@@ -44,6 +49,7 @@ describe('tabs primitive protocol', () => {
           reactName: 'onValueChange',
           detail: {
             value: 'unknown',
+            nativeEvent: 'unknown',
           },
         },
       },

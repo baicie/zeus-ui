@@ -83,16 +83,19 @@ function setup(
         <input
           ref={(element: HTMLInputElement | null) => {
             if (element) control = element
-            if (element) element.indeterminate = Boolean(props.indeterminate)
           }}
           part="control"
           data-slot="checkbox-control"
           prop:type={() => 'checkbox'}
           prop:checked={() => resolveChecked(props)}
+          prop:indeterminate={() => Boolean(props.indeterminate)}
           disabled={() => Boolean(props.disabled)}
           required={() => Boolean(props.required)}
           name={() => props.name}
           value={() => props.value}
+          aria-checked={() =>
+            props.indeterminate ? 'mixed' : String(resolveChecked(props))
+          }
           aria-invalid={() => (props.invalid ? 'true' : undefined)}
           onChange={handleChange}
           onFocus={nativeEvent => {

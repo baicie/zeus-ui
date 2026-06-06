@@ -16,10 +16,12 @@ export interface TabsProps {
   value?: string
   defaultValue?: string
   orientation?: TabsOrientation
+  disabled?: boolean
 }
 
 export interface TabsValueChangeDetail {
   value: string
+  nativeEvent?: Event
 }
 
 export interface TabsElement extends HTMLElement {
@@ -32,8 +34,9 @@ interface TabsEmits extends Record<string, EventDefinition<unknown>> {
 
 interface TabsContextValue {
   getValue: () => string | undefined
-  setValue: (value: string) => void
-  getOrientation: () => TabsOrientation | undefined
+  setValue: (value: string, nativeEvent?: Event) => void
+  getOrientation: () => TabsOrientation
+  isDisabled: () => boolean
 }
 
 const TabsContext = createContext<TabsContextValue>()
@@ -50,11 +53,12 @@ function setupTabs(
 ) {
   const context: TabsContextValue = {
     getValue: () => resolveValue(props),
-    setValue: (value: string) => {
+    setValue: (value: string, nativeEvent?: Event) => {
       ctx.host.value = value
-      ctx.emit.valueChange({ value })
+      ctx.emit.valueChange({ value, nativeEvent })
     },
     getOrientation: () => props.orientation || 'horizontal',
+    isDisabled: () => Boolean(props.disabled),
   }
 
   provide(TabsContext, context)
@@ -63,6 +67,7 @@ function setupTabs(
     <Host
       data-slot="tabs-root"
       data-orientation={() => props.orientation || 'horizontal'}
+      data-disabled={() => (props.disabled ? '' : undefined)}
     >
       <Slot />
     </Host>
@@ -86,6 +91,7 @@ export const Tabs = defineElement<TabsProps, TabsElement, TabsEmits>(
         default: 'horizontal',
         reflect: true,
       }),
+      disabled: prop(Boolean),
     },
     emits: {
       valueChange: event<TabsValueChangeDetail>(),
@@ -145,11 +151,11 @@ function setupTabsTrigger(
   const isSelected = () =>
     Boolean(props.value && tabs?.getValue() === props.value)
 
-  const isDisabled = () => Boolean(props.disabled)
+  const isDisabled = () => Boolean(props.disabled || tabs?.isDisabled())
 
-  const activate = () => {
+  const activate = (nativeEvent?: Event) => {
     if (isDisabled() || !props.value) return
-    tabs?.setValue(props.value)
+    tabs?.setValue(props.value, nativeEvent)
   }
 
   ctx.expose({
@@ -176,13 +182,13 @@ function setupTabsTrigger(
         aria-selected={() => String(isSelected())}
         tabIndex={() => (isSelected() ? 0 : -1)}
         disabled={() => isDisabled()}
-        onClick={() => {
-          activate()
+        onClick={event => {
+          activate(event)
         }}
         onKeyDown={event => {
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault()
-            activate()
+            activate(event)
           }
         }}
       >
