@@ -28,6 +28,26 @@ const allowedZeusImports = new Map<string, ReadonlySet<string>>([
     new Set(['@zeus-js/component-analyzer']),
   ],
   [
+    'packages/primitives/button/__tests__/button.spec.ts',
+    new Set(['@zeus-js/component-analyzer']),
+  ],
+  [
+    'packages/primitives/checkbox/__tests__/checkbox.spec.ts',
+    new Set(['@zeus-js/component-analyzer']),
+  ],
+  [
+    'packages/primitives/dialog/__tests__/dialog.spec.ts',
+    new Set(['@zeus-js/component-analyzer']),
+  ],
+  [
+    'packages/primitives/switch/__tests__/switch.spec.ts',
+    new Set(['@zeus-js/component-analyzer']),
+  ],
+  [
+    'packages/primitives/tabs/__tests__/tabs.spec.ts',
+    new Set(['@zeus-js/component-analyzer']),
+  ],
+  [
     'packages/zeus-compat/__tests__/contract.spec.ts',
     new Set(['@zeus-js/zeus/capabilities']),
   ],
