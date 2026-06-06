@@ -22,6 +22,11 @@
     "check": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@zeus-web/input": "workspace:*"
+    "@zeus-web/button": "workspace:*",
+    "@zeus-web/checkbox": "workspace:*",
+    "@zeus-web/dialog": "workspace:*",
+    "@zeus-web/input": "workspace:*",
+    "@zeus-web/switch": "workspace:*",
+    "@zeus-web/tabs": "workspace:*"
   }
 }

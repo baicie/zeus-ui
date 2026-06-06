@@ -197,9 +197,87 @@ importers:
 
   packages/headless:
     dependencies:
+      '@zeus-web/button':
+        specifier: workspace:*
+        version: link:../primitives/button
+      '@zeus-web/checkbox':
+        specifier: workspace:*
+        version: link:../primitives/checkbox
+      '@zeus-web/dialog':
+        specifier: workspace:*
+        version: link:../primitives/dialog
       '@zeus-web/input':
         specifier: workspace:*
         version: link:../primitives/input
+      '@zeus-web/switch':
+        specifier: workspace:*
+        version: link:../primitives/switch
+      '@zeus-web/tabs':
+        specifier: workspace:*
+        version: link:../primitives/tabs
+
+  packages/primitives/button:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.4
+        version: 0.1.0-beta.4
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.4 <0.2.0'
+        version: 0.1.0-beta.4
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
+
+  packages/primitives/checkbox:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.4
+        version: 0.1.0-beta.4
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.4 <0.2.0'
+        version: 0.1.0-beta.4
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
+
+  packages/primitives/dialog:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.4
+        version: 0.1.0-beta.4
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.4 <0.2.0'
+        version: 0.1.0-beta.4
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
 
   packages/primitives/input:
     dependencies:
@@ -222,11 +300,68 @@ importers:
         specifier: '>=3'
         version: 3.5.35(typescript@6.0.3)
 
+  packages/primitives/switch:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.4
+        version: 0.1.0-beta.4
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.4 <0.2.0'
+        version: 0.1.0-beta.4
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
+
+  packages/primitives/tabs:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.4
+        version: 0.1.0-beta.4
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.4 <0.2.0'
+        version: 0.1.0-beta.4
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
+
   packages/react:
     dependencies:
+      '@zeus-web/button':
+        specifier: workspace:*
+        version: link:../primitives/button
+      '@zeus-web/checkbox':
+        specifier: workspace:*
+        version: link:../primitives/checkbox
+      '@zeus-web/dialog':
+        specifier: workspace:*
+        version: link:../primitives/dialog
       '@zeus-web/input':
         specifier: workspace:*
         version: link:../primitives/input
+      '@zeus-web/switch':
+        specifier: workspace:*
+        version: link:../primitives/switch
+      '@zeus-web/tabs':
+        specifier: workspace:*
+        version: link:../primitives/tabs
       react:
         specifier: ^18 || ^19
         version: 19.2.7
@@ -239,9 +374,24 @@ importers:
 
   packages/vue:
     dependencies:
+      '@zeus-web/button':
+        specifier: workspace:*
+        version: link:../primitives/button
+      '@zeus-web/checkbox':
+        specifier: workspace:*
+        version: link:../primitives/checkbox
+      '@zeus-web/dialog':
+        specifier: workspace:*
+        version: link:../primitives/dialog
       '@zeus-web/input':
         specifier: workspace:*
         version: link:../primitives/input
+      '@zeus-web/switch':
+        specifier: workspace:*
+        version: link:../primitives/switch
+      '@zeus-web/tabs':
+        specifier: workspace:*
+        version: link:../primitives/tabs
       vue:
         specifier: ^3.4 || ^3.5
         version: 3.5.35(typescript@6.0.3)

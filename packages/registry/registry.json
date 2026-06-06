@@ -14,6 +14,66 @@
           "type": "registry:ui"
         }
       ]
+    },
+    {
+      "name": "button",
+      "type": "registry:ui",
+      "dependencies": ["@zeus-web/button"],
+      "files": [
+        {
+          "path": "button.tsx",
+          "target": "components/ui/button.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "checkbox",
+      "type": "registry:ui",
+      "dependencies": ["@zeus-web/checkbox"],
+      "files": [
+        {
+          "path": "checkbox.tsx",
+          "target": "components/ui/checkbox.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "switch",
+      "type": "registry:ui",
+      "dependencies": ["@zeus-web/switch"],
+      "files": [
+        {
+          "path": "switch.tsx",
+          "target": "components/ui/switch.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "tabs",
+      "type": "registry:ui",
+      "dependencies": ["@zeus-web/tabs"],
+      "files": [
+        {
+          "path": "tabs.tsx",
+          "target": "components/ui/tabs.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "dialog",
+      "type": "registry:ui",
+      "dependencies": ["@zeus-web/dialog"],
+      "files": [
+        {
+          "path": "dialog.tsx",
+          "target": "components/ui/dialog.tsx",
+          "type": "registry:ui"
+        }
+      ]
     }
   ]
 }
