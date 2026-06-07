@@ -1,29 +1,16 @@
-import { readFileSync } from 'node:fs'
+import type { Registry } from '../src'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
+
 import { fileURLToPath } from 'node:url'
-
-interface RegistryItem {
-  name: string
-  type: string
-  dependencies?: string[]
-  files: Array<{
-    path: string
-    target: string
-    type: string
-  }>
-}
-
-interface RegistryJson {
-  name: string
-  homepage?: string
-  items: RegistryItem[]
-}
+import { validateRegistry } from '../src'
 
 const testDir = dirname(fileURLToPath(import.meta.url))
-const registryJsonPath = resolve(testDir, '../registry.json')
+const registryRoot = resolve(testDir, '..')
+const registryJsonPath = resolve(registryRoot, 'registry.json')
 
-function readRegistry(): RegistryJson {
-  return JSON.parse(readFileSync(registryJsonPath, 'utf-8')) as RegistryJson
+function readRegistry(): Registry {
+  return JSON.parse(readFileSync(registryJsonPath, 'utf-8')) as Registry
 }
 
 describe('@zeus-web/registry registry.json', () => {
@@ -46,25 +33,66 @@ describe('@zeus-web/registry registry.json', () => {
     ])
   })
 
+  it('passes registry validation', () => {
+    const registry = readRegistry()
+    const result = validateRegistry(registry)
+
+    expect(result.errors).toEqual([])
+    expect(result.valid).toBe(true)
+  })
+
   it('uses per-primitive @zeus-web dependencies', () => {
     const registry = readRegistry()
 
     for (const item of registry.items) {
       expect(item.type).toBe('registry:ui')
-      const dep = `@zeus-web/${item.name}`
-      expect(item.dependencies).toContain(dep)
+      expect(item.dependencies).toContain(`@zeus-web/${item.name}`)
+      expect(item.dependencies).toContain('class-variance-authority')
+      expect(item.dependencies).toContain('clsx')
+      expect(item.dependencies).toContain('tailwind-merge')
     }
   })
 
-  it('maps files into components/ui', () => {
+  it('references existing registry source files', () => {
     const registry = readRegistry()
 
     for (const item of registry.items) {
-      expect(item.files).toHaveLength(1)
-      const file = item.files[0]
-      expect(file.path).toBe(`${item.name}.tsx`)
-      expect(file.target).toBe(`components/ui/${item.name}.tsx`)
-      expect(file.type).toBe('registry:ui')
+      for (const file of item.files) {
+        expect(
+          existsSync(resolve(registryRoot, file.path)),
+          `${item.name} -> ${file.path}`,
+        ).toBe(true)
+      }
+    }
+  })
+
+  it('ships shared utils source', () => {
+    expect(existsSync(resolve(registryRoot, 'default/lib/utils.ts'))).toBe(true)
+  })
+
+  it('does not depend on @zeus-web/react aggregate package', () => {
+    const registry = readRegistry()
+    const sourceFiles = registry.items.flatMap(item => item.files)
+
+    for (const file of sourceFiles) {
+      if (!file.path.endsWith('.tsx') && !file.path.endsWith('.ts')) continue
+
+      const source = readFileSync(resolve(registryRoot, file.path), 'utf-8')
+
+      expect(source).not.toContain('@zeus-web/react')
+    }
+  })
+
+  it('uses single primitive react entries in styled sources', () => {
+    const registry = readRegistry()
+
+    for (const item of registry.items) {
+      const uiFile = item.files.find(file => file.type === 'registry:ui')
+      expect(uiFile).toBeDefined()
+
+      const source = readFileSync(resolve(registryRoot, uiFile!.path), 'utf-8')
+
+      expect(source).toContain(`@zeus-web/${item.name}/react`)
     }
   })
 })

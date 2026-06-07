@@ -6,10 +6,21 @@
     {
       "name": "input",
       "type": "registry:ui",
-      "dependencies": ["@zeus-web/input"],
+      "description": "Text input styled component.",
+      "dependencies": [
+        "@zeus-web/input",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge"
+      ],
       "files": [
         {
-          "path": "input.tsx",
+          "path": "default/lib/utils.ts",
+          "target": "lib/utils.ts",
+          "type": "registry:lib"
+        },
+        {
+          "path": "default/input.tsx",
           "target": "components/ui/input.tsx",
           "type": "registry:ui"
         }
@@ -18,10 +29,21 @@
     {
       "name": "button",
       "type": "registry:ui",
-      "dependencies": ["@zeus-web/button"],
+      "description": "Button styled component.",
+      "dependencies": [
+        "@zeus-web/button",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge"
+      ],
       "files": [
         {
-          "path": "button.tsx",
+          "path": "default/lib/utils.ts",
+          "target": "lib/utils.ts",
+          "type": "registry:lib"
+        },
+        {
+          "path": "default/button.tsx",
           "target": "components/ui/button.tsx",
           "type": "registry:ui"
         }
@@ -30,10 +52,21 @@
     {
       "name": "checkbox",
       "type": "registry:ui",
-      "dependencies": ["@zeus-web/checkbox"],
+      "description": "Checkbox styled component.",
+      "dependencies": [
+        "@zeus-web/checkbox",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge"
+      ],
       "files": [
         {
-          "path": "checkbox.tsx",
+          "path": "default/lib/utils.ts",
+          "target": "lib/utils.ts",
+          "type": "registry:lib"
+        },
+        {
+          "path": "default/checkbox.tsx",
           "target": "components/ui/checkbox.tsx",
           "type": "registry:ui"
         }
@@ -42,10 +75,21 @@
     {
       "name": "switch",
       "type": "registry:ui",
-      "dependencies": ["@zeus-web/switch"],
+      "description": "Switch styled component.",
+      "dependencies": [
+        "@zeus-web/switch",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge"
+      ],
       "files": [
         {
-          "path": "switch.tsx",
+          "path": "default/lib/utils.ts",
+          "target": "lib/utils.ts",
+          "type": "registry:lib"
+        },
+        {
+          "path": "default/switch.tsx",
           "target": "components/ui/switch.tsx",
           "type": "registry:ui"
         }
@@ -54,10 +98,21 @@
     {
       "name": "tabs",
       "type": "registry:ui",
-      "dependencies": ["@zeus-web/tabs"],
+      "description": "Tabs styled component.",
+      "dependencies": [
+        "@zeus-web/tabs",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge"
+      ],
       "files": [
         {
-          "path": "tabs.tsx",
+          "path": "default/lib/utils.ts",
+          "target": "lib/utils.ts",
+          "type": "registry:lib"
+        },
+        {
+          "path": "default/tabs.tsx",
           "target": "components/ui/tabs.tsx",
           "type": "registry:ui"
         }
@@ -66,10 +121,21 @@
     {
       "name": "dialog",
       "type": "registry:ui",
-      "dependencies": ["@zeus-web/dialog"],
+      "description": "Dialog styled component.",
+      "dependencies": [
+        "@zeus-web/dialog",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge"
+      ],
       "files": [
         {
-          "path": "dialog.tsx",
+          "path": "default/lib/utils.ts",
+          "target": "lib/utils.ts",
+          "type": "registry:lib"
+        },
+        {
+          "path": "default/dialog.tsx",
           "target": "components/ui/dialog.tsx",
           "type": "registry:ui"
         }

@@ -16,7 +16,8 @@
   },
   "files": [
     "dist",
-    "registry.json"
+    "registry.json",
+    "default"
   ],
   "scripts": {
     "dev": "tsup src/index.ts --format esm --dts --clean --watch",
