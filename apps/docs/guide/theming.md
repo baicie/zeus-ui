@@ -4,13 +4,13 @@ Zeus Web uses shadcn-like CSS variables and Tailwind semantic tokens.
 
 ## Available themes
 
-```txt
-default
-slate
-zinc
-neutral
-stone
-```
+<div class="zw-badge-row">
+  <span class="zw-badge">default</span>
+  <span class="zw-badge">slate</span>
+  <span class="zw-badge">zinc</span>
+  <span class="zw-badge">neutral</span>
+  <span class="zw-badge">stone</span>
+</div>
 
 Initialize a theme:
 
@@ -28,27 +28,29 @@ to the configured CSS file.
 
 ## Semantic tokens
 
-Registry components use semantic Tailwind classes:
+Registry components use semantic Tailwind classes and CSS variables.
 
-```txt
-bg-background
-text-foreground
-border-input
-ring-ring
-bg-primary
-text-primary-foreground
-bg-muted
-text-muted-foreground
-```
-
-Avoid hard-coded colors in app components when a theme token exists.
+| Token                     | Usage                       |
+| ------------------------- | --------------------------- |
+| `bg-background`           | Page or panel background.   |
+| `text-foreground`         | Main text.                  |
+| `border-input`            | Input and control borders.  |
+| `ring-ring`               | Focus ring.                 |
+| `bg-primary`              | Primary actions.            |
+| `text-primary-foreground` | Text on primary background. |
+| `bg-muted`                | Subtle surfaces.            |
+| `text-muted-foreground`   | Secondary text.             |
 
 ## Dark mode
 
-Themes include `.dark` selectors. Add `dark` to your root element:
+Themes include `.dark` selectors.
 
 ```html
 <html class="dark">
   ...
 </html>
 ```
+
+## Rule
+
+Prefer semantic tokens over hard-coded colors.

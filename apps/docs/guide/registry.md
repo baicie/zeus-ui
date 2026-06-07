@@ -22,7 +22,7 @@ Registry components are meant to be owned by your app. You can edit the generate
 
 ## Per-component primitives
 
-Registry source imports per-component wrapper entries, for example:
+Registry source imports per-component wrapper entries.
 
 ```tsx
 import { Button as ButtonPrimitive } from '@zeus-web/button/react'
@@ -39,3 +39,20 @@ import { cn } from '@/lib/utils'
 ```
 
 The CLI rewrites this according to `components.json` aliases.
+
+## Registry item shape
+
+```json
+{
+  "name": "button",
+  "type": "registry:ui",
+  "dependencies": ["@zeus-web/button"],
+  "files": [
+    {
+      "path": "default/button.tsx",
+      "target": "components/ui/button.tsx",
+      "type": "registry:ui"
+    }
+  ]
+}
+```

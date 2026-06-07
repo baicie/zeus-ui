@@ -101,7 +101,9 @@ function readDoc(relativePath: string): string {
 }
 
 function checkFileExists(relativePath: string): string[] {
-  if (!existsSync(filePath(relativePath))) {
+  const file = filePath(relativePath)
+
+  if (!existsSync(file)) {
     return [`Missing docs file: apps/docs/${relativePath}`]
   }
 
@@ -110,11 +112,6 @@ function checkFileExists(relativePath: string): string[] {
 
 function checkRequiredContent(doc: RequiredDoc): string[] {
   const errors: string[] = []
-
-  if (!existsSync(filePath(doc.path))) {
-    return [`Missing docs file: apps/docs/${doc.path}`]
-  }
-
   const source = readDoc(doc.path)
 
   for (const text of doc.mustContain) {
@@ -134,22 +131,37 @@ function checkRequiredContent(doc: RequiredDoc): string[] {
 
 function checkVitePressConfig(): string[] {
   const configPath = filePath('.vitepress/config.ts')
+  const siteDataPath = filePath('.vitepress/data/site.ts')
+
+  const errors: string[] = []
 
   if (!existsSync(configPath)) {
     return ['Missing apps/docs/.vitepress/config.ts']
   }
 
-  const source = readFileSync(configPath, 'utf-8')
-  const errors: string[] = []
+  const configSource = readFileSync(configPath, 'utf-8')
 
   for (const text of [
+    "import { defineConfig } from 'vitepress'",
     "import { sidebar, topNav } from './data/site'",
     'nav: topNav',
-    'sidebar,',
-    "import { defineConfig } from 'vitepress'",
   ]) {
-    if (!source.includes(text)) {
-      errors.push(`apps/docs/.vitepress/config.ts must contain "${text}"`)
+    if (!configSource.includes(text)) {
+      errors.push(`VitePress config must contain "${text}"`)
+    }
+  }
+
+  if (existsSync(siteDataPath)) {
+    const siteSource = readFileSync(siteDataPath, 'utf-8')
+
+    for (const route of [
+      '/guide/getting-started',
+      '/components/button',
+      '/examples/react-vite',
+    ]) {
+      if (!siteSource.includes(route)) {
+        errors.push(`data/site.ts must contain route "${route}"`)
+      }
     }
   }
 
@@ -157,18 +169,24 @@ function checkVitePressConfig(): string[] {
 }
 
 function checkDocsTheme(): string[] {
-  return [
+  const files = [
     '.vitepress/theme/index.ts',
     '.vitepress/theme/style.css',
     '.vitepress/data/site.ts',
-  ].flatMap(checkFileExists)
+  ]
+
+  return files.flatMap(file => checkFileExists(file))
 }
 
 function main(): void {
   const errors: string[] = []
 
   for (const doc of requiredDocs) {
-    errors.push(...checkRequiredContent(doc))
+    errors.push(...checkFileExists(doc.path))
+
+    if (existsSync(filePath(doc.path))) {
+      errors.push(...checkRequiredContent(doc))
+    }
   }
 
   errors.push(...checkVitePressConfig())

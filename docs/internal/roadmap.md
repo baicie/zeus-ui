@@ -319,6 +319,42 @@ examples/native-wc/    原生 Web Component 使用路径
 
 ---
 
+## Phase 9.1：Docs Polish + Contract Check，已完成
+
+在 Phase 9 基础上完成文档质量和 CI 保障。
+
+已完成：
+
+```txt
+apps/docs/.vitepress/data/site.ts  统一 nav/sidebar 元数据
+apps/docs/.vitepress/theme/         自定义 VitePress 主题
+  index.ts
+  style.css                        品牌色、首页渐变、grid/card/badge 组件
+apps/docs/index.md                polish 首页：gradient hero、3 actions、badge/card/command
+apps/docs/guide/                  强化 guide 文档
+  getting-started.md               zw-grid card、Initialize 章节、直接 primitive 用法
+  cli.md                          命令总表 + 表格化选项
+  theming.md                      zw-badge-row + token 表格
+  registry.md                     registry item shape JSON
+  ai.md                           3 种生成方式分离 + recommended AI instruction
+
+scripts/checks/check-docs.ts      docs contract 检查脚本
+  14 个必需页面 mustContain 检查
+  2 个禁止模式检查（@zeus-ui / zeus-ui）
+  config.ts 结构检查（data/site.ts 引用）
+  theme 文件存在性检查
+
+根脚本：
+  pnpm docs:check                 check-docs.ts + @zeus-web/docs check
+  pnpm site:check                docs:check && docs:build && examples:check
+```
+
+不做：Playground、API 自动生成、自定义 Vue 组件。
+
+状态：**已完成**
+
+---
+
 # Phase 10：Accessibility & Interaction 完整化
 
 这阶段补“组件库质量”，不是继续扩组件数量。

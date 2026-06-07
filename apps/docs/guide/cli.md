@@ -2,6 +2,14 @@
 
 The Zeus Web CLI is published as `@zeus-web/cli`.
 
+## Commands
+
+| Command                 | Description                                       |
+| ----------------------- | ------------------------------------------------- |
+| `zweb init`             | Create `components.json` and set up theme CSS.    |
+| `zweb add <components>` | Copy registry component source into your project. |
+| `zweb ai`               | Generate AI-readable metadata and usage guide.    |
+
 ## init
 
 ```bash
@@ -10,14 +18,14 @@ zweb init
 
 Options:
 
-```txt
---cwd <dir>                 Use a specific project directory
---style <name>              default | slate | zinc | neutral | stone
---css <file>                CSS file to write theme import into
---overwrite                 Replace existing components.json
---no-install                Do not install dependencies
---package-manager <name>    pnpm | npm | yarn | bun
-```
+| Option                     | Description                                        |
+| -------------------------- | -------------------------------------------------- |
+| `--cwd <dir>`              | Use a specific project directory.                  |
+| `--style <name>`           | `default`, `slate`, `zinc`, `neutral`, or `stone`. |
+| `--css <file>`             | CSS file to write theme import into.               |
+| `--overwrite`              | Replace existing `components.json`.                |
+| `--no-install`             | Do not install dependencies.                       |
+| `--package-manager <name>` | `pnpm`, `npm`, `yarn`, or `bun`.                   |
 
 Example:
 
@@ -33,15 +41,15 @@ zweb add button input
 
 Options:
 
-```txt
---cwd <dir>                 Use a specific project directory
---dry-run                   Print the plan without writing files
---overwrite                 Replace existing files
---no-install                Do not install dependencies
---package-manager <name>    pnpm | npm | yarn | bun
-```
+| Option                     | Description                           |
+| -------------------------- | ------------------------------------- |
+| `--cwd <dir>`              | Use a specific project directory.     |
+| `--dry-run`                | Print the plan without writing files. |
+| `--overwrite`              | Replace existing files.               |
+| `--no-install`             | Do not install dependencies.          |
+| `--package-manager <name>` | `pnpm`, `npm`, `yarn`, or `bun`.      |
 
-Example:
+Examples:
 
 ```bash
 zweb add dialog --dry-run
@@ -56,17 +64,10 @@ zweb ai
 
 Options:
 
-```txt
---json                      Generate zeus-web.ai.json
---cursor                    Generate .cursor/rules/zeus-web.mdc
---output <file>             Write to a custom file
---overwrite                 Replace existing file
---dry-run                   Print the plan without writing
-```
-
-Example:
-
-```bash
-zweb ai --output docs/ai.md --overwrite
-zweb ai --cursor
-```
+| Option            | Description                            |
+| ----------------- | -------------------------------------- |
+| `--json`          | Generate `zeus-web.ai.json`.           |
+| `--cursor`        | Generate `.cursor/rules/zeus-web.mdc`. |
+| `--output <file>` | Write to a custom file.                |
+| `--overwrite`     | Replace existing file.                 |
+| `--dry-run`       | Print the plan without writing.        |
