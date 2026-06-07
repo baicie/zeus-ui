@@ -1,6 +1,6 @@
 {
   "$schema": "https://zeus-web.dev/schema/registry.json",
-  "name": "@zeus-ui/registry",
+  "name": "@zeus-web/registry",
   "homepage": "https://zeus-web.dev",
   "items": [
     {
