@@ -1,3 +1,11 @@
+import type {
+  Registry,
+  RegistryItem,
+  RegistryItemFile,
+} from '@zeus-web/registry'
+
+import { createRequire } from 'node:module'
+import { validateRegistry } from '@zeus-web/registry'
 import pc from 'picocolors'
 
 export interface RegistryFilePlan {
@@ -9,151 +17,90 @@ export interface RegistryFilePlan {
 export interface AddPlan {
   component: string
   dependencies: string[]
+  devDependencies: string[]
   files: RegistryFilePlan[]
 }
 
-const registryItems: Record<string, AddPlan> = {
-  input: {
-    component: 'input',
-    dependencies: [
-      '@zeus-web/input',
-      'class-variance-authority',
-      'clsx',
-      'tailwind-merge',
-    ],
-    files: [
-      {
-        source: 'default/lib/utils.ts',
-        target: 'lib/utils.ts',
-        type: 'registry:lib',
-      },
-      {
-        source: 'default/input.tsx',
-        target: 'components/ui/input.tsx',
-        type: 'registry:ui',
-      },
-    ],
-  },
-  button: {
-    component: 'button',
-    dependencies: [
-      '@zeus-web/button',
-      'class-variance-authority',
-      'clsx',
-      'tailwind-merge',
-    ],
-    files: [
-      {
-        source: 'default/lib/utils.ts',
-        target: 'lib/utils.ts',
-        type: 'registry:lib',
-      },
-      {
-        source: 'default/button.tsx',
-        target: 'components/ui/button.tsx',
-        type: 'registry:ui',
-      },
-    ],
-  },
-  checkbox: {
-    component: 'checkbox',
-    dependencies: [
-      '@zeus-web/checkbox',
-      'class-variance-authority',
-      'clsx',
-      'tailwind-merge',
-    ],
-    files: [
-      {
-        source: 'default/lib/utils.ts',
-        target: 'lib/utils.ts',
-        type: 'registry:lib',
-      },
-      {
-        source: 'default/checkbox.tsx',
-        target: 'components/ui/checkbox.tsx',
-        type: 'registry:ui',
-      },
-    ],
-  },
-  switch: {
-    component: 'switch',
-    dependencies: [
-      '@zeus-web/switch',
-      'class-variance-authority',
-      'clsx',
-      'tailwind-merge',
-    ],
-    files: [
-      {
-        source: 'default/lib/utils.ts',
-        target: 'lib/utils.ts',
-        type: 'registry:lib',
-      },
-      {
-        source: 'default/switch.tsx',
-        target: 'components/ui/switch.tsx',
-        type: 'registry:ui',
-      },
-    ],
-  },
-  tabs: {
-    component: 'tabs',
-    dependencies: [
-      '@zeus-web/tabs',
-      'class-variance-authority',
-      'clsx',
-      'tailwind-merge',
-    ],
-    files: [
-      {
-        source: 'default/lib/utils.ts',
-        target: 'lib/utils.ts',
-        type: 'registry:lib',
-      },
-      {
-        source: 'default/tabs.tsx',
-        target: 'components/ui/tabs.tsx',
-        type: 'registry:ui',
-      },
-    ],
-  },
-  dialog: {
-    component: 'dialog',
-    dependencies: [
-      '@zeus-web/dialog',
-      'class-variance-authority',
-      'clsx',
-      'tailwind-merge',
-    ],
-    files: [
-      {
-        source: 'default/lib/utils.ts',
-        target: 'lib/utils.ts',
-        type: 'registry:lib',
-      },
-      {
-        source: 'default/dialog.tsx',
-        target: 'components/ui/dialog.tsx',
-        type: 'registry:ui',
-      },
-    ],
-  },
+const require = createRequire(import.meta.url)
+
+function loadRegistry(): Registry {
+  const registry = require('@zeus-web/registry/registry.json') as Registry
+  const result = validateRegistry(registry)
+
+  if (!result.valid) {
+    throw new Error(
+      [
+        'Invalid @zeus-web/registry/registry.json:',
+        ...result.errors.map(error => `- ${error}`),
+      ].join('\n'),
+    )
+  }
+
+  return registry
 }
 
-export function listAvailableComponents(): string[] {
-  return Object.keys(registryItems)
+function toFilePlan(file: RegistryItemFile): RegistryFilePlan {
+  return {
+    source: file.path,
+    target: file.target,
+    type: file.type,
+  }
 }
 
-export function createAddPlan(components: string[]): AddPlan[] {
+function toAddPlan(item: RegistryItem): AddPlan {
+  return {
+    component: item.name,
+    dependencies: item.dependencies ?? [],
+    devDependencies: item.devDependencies ?? [],
+    files: item.files.map(toFilePlan),
+  }
+}
+
+function findRegistryItem(registry: Registry, component: string): RegistryItem {
+  const item = registry.items.find(entry => entry.name === component)
+
+  if (!item) {
+    throw new Error(`Unknown component: ${component}`)
+  }
+
+  return item
+}
+
+export function listAvailableComponents(registry = loadRegistry()): string[] {
+  const result = validateRegistry(registry)
+
+  if (!result.valid) {
+    throw new Error(
+      [
+        'Invalid @zeus-web/registry/registry.json:',
+        ...result.errors.map(error => `- ${error}`),
+      ].join('\n'),
+    )
+  }
+
+  return registry.items
+    .filter(item => item.type === 'registry:ui')
+    .map(item => item.name)
+}
+
+export function createAddPlan(
+  components: string[],
+  registry = loadRegistry(),
+): AddPlan[] {
+  const result = validateRegistry(registry)
+
+  if (!result.valid) {
+    throw new Error(
+      [
+        'Invalid @zeus-web/registry/registry.json:',
+        ...result.errors.map(error => `- ${error}`),
+      ].join('\n'),
+    )
+  }
+
   return components.map(component => {
-    const item = registryItems[component]
-
-    if (!item) {
-      throw new Error(`Unknown component: ${component}`)
-    }
-
-    return item
+    const item = findRegistryItem(registry, component)
+    return toAddPlan(item)
   })
 }
 
@@ -171,7 +118,15 @@ export async function add(args: string[]) {
 
     for (const plan of plans) {
       console.log(pc.green(`Add ${plan.component}`))
-      console.log(`Dependencies: ${plan.dependencies.join(', ')}`)
+
+      if (plan.dependencies.length > 0) {
+        console.log(`Dependencies: ${plan.dependencies.join(', ')}`)
+      }
+
+      if (plan.devDependencies.length > 0) {
+        console.log(`Dev dependencies: ${plan.devDependencies.join(', ')}`)
+      }
+
       console.log('Files:')
 
       for (const file of plan.files) {

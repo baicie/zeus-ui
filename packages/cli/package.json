@@ -23,6 +23,7 @@
     "test": "vitest --root ../.. --project unit packages/cli/__tests__/add.spec.ts"
   },
   "dependencies": {
+    "@zeus-web/registry": "workspace:*",
     "picocolors": "^1.1.1"
   }
 }

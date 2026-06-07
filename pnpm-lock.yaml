@@ -203,6 +203,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@zeus-web/registry':
+        specifier: workspace:*
+        version: link:../registry
       picocolors:
         specifier: ^1.1.1
         version: 1.1.1
