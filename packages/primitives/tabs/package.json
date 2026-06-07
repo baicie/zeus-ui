@@ -46,7 +46,7 @@
     "test": "vitest --root ../../.. --project unit packages/primitives/tabs/__tests__/tabs.spec.ts"
   },
   "peerDependencies": {
-    "@zeus-js/zeus": ">=0.1.0-beta.4 <0.2.0",
+    "@zeus-js/zeus": ">=0.1.0-beta.5 <0.2.0",
     "react": ">=18 || >=19",
     "vue": ">=3"
   },
@@ -59,7 +59,7 @@
     }
   },
   "dependencies": {
-    "@zeus-js/runtime-dom": "0.1.0-beta.4",
+    "@zeus-js/runtime-dom": "0.1.0-beta.5",
     "@zeus-js/web-c-runtime": "0.2.0",
     "@zeus-web/zeus-compat": "workspace:*"
   }
