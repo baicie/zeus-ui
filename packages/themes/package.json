@@ -5,7 +5,7 @@
   "description": "Theme tokens for Zeus Web.",
   "license": "MIT",
   "sideEffects": [
-    "./src/*.css"
+    "./src/**/*.css"
   ],
   "exports": {
     ".": {
@@ -13,7 +13,11 @@
       "import": "./dist/index.js"
     },
     "./tokens.css": "./src/tokens.css",
-    "./default.css": "./src/default.css"
+    "./default.css": "./src/default.css",
+    "./slate.css": "./src/slate.css",
+    "./zinc.css": "./src/zinc.css",
+    "./neutral.css": "./src/neutral.css",
+    "./stone.css": "./src/stone.css"
   },
   "files": [
     "dist",
@@ -22,6 +26,7 @@
   "scripts": {
     "dev": "tsup src/index.ts --format esm --dts --clean --watch",
     "build": "tsup src/index.ts --format esm --dts --clean",
-    "check": "tsc -p tsconfig.json --noEmit"
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest --root ../.. --project unit packages/themes/__tests__/themes.spec.ts"
   }
 }

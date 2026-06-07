@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@zeus-web/input": "workspace:*",
+    "@zeus-web/themes": "workspace:*",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

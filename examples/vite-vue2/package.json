@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@zeus-web/input": "workspace:*",
+    "@zeus-web/themes": "workspace:*",
     "vue": "^3.5.35"
   },
   "devDependencies": {

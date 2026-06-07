@@ -130,6 +130,9 @@ importers:
       '@zeus-web/input':
         specifier: workspace:*
         version: link:../../packages/primitives/input
+      '@zeus-web/themes':
+        specifier: workspace:*
+        version: link:../../packages/themes
     devDependencies:
       vite:
         specifier: ^8.0.16
@@ -140,6 +143,9 @@ importers:
       '@zeus-web/input':
         specifier: workspace:*
         version: link:../../packages/primitives/input
+      '@zeus-web/themes':
+        specifier: workspace:*
+        version: link:../../packages/themes
       react:
         specifier: ^19.2.7
         version: 19.2.7
@@ -165,6 +171,9 @@ importers:
       '@zeus-web/input':
         specifier: workspace:*
         version: link:../../packages/primitives/input
+      '@zeus-web/themes':
+        specifier: workspace:*
+        version: link:../../packages/themes
       vue:
         specifier: ^3.5.35
         version: 3.5.35(typescript@6.0.3)
@@ -181,6 +190,9 @@ importers:
       '@zeus-web/input':
         specifier: workspace:*
         version: link:../../packages/primitives/input
+      '@zeus-web/themes':
+        specifier: workspace:*
+        version: link:../../packages/themes
       vue:
         specifier: ^3.5.35
         version: 3.5.35(typescript@6.0.3)
@@ -363,7 +375,7 @@ importers:
         specifier: workspace:*
         version: link:../primitives/tabs
       react:
-        specifier: ^18 || ^19
+        specifier: '>=18 || >=19'
         version: 19.2.7
 
   packages/registry: {}
@@ -393,7 +405,7 @@ importers:
         specifier: workspace:*
         version: link:../primitives/tabs
       vue:
-        specifier: ^3.4 || ^3.5
+        specifier: '>=3'
         version: 3.5.35(typescript@6.0.3)
 
   packages/zeus-compat:

@@ -1,5 +1,6 @@
 /* eslint-disable no-restricted-globals */
 import { defineCustomElements } from '@zeus-web/input'
+import '@zeus-web/themes/default.css'
 
 // 注册自定义元素 <zw-input>
 defineCustomElements()

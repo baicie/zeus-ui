@@ -4,6 +4,44 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Zeus Web - Vue 2 Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: hsl(var(--muted));
+      color: hsl(var(--foreground));
+      min-height: 100vh;
+    }
+    .page { padding: 2rem; }
+    .title {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      color: hsl(var(--foreground));
+    }
+    .card {
+      background: hsl(var(--card));
+      color: hsl(var(--card-foreground));
+      padding: 1.5rem;
+      border-radius: var(--radius);
+      border: 1px solid hsl(var(--border));
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+      max-width: 400px;
+    }
+    .subtitle {
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      color: hsl(var(--muted-foreground));
+    }
+    .value-text {
+      margin-top: 1rem;
+      font-size: .875rem;
+      color: hsl(var(--muted-foreground));
+    }
+    .value-display {
+      color: hsl(var(--foreground));
+      font-weight: 500;
+    }
+  </style>
 </head>
 <body>
   <div id="app"></div>
