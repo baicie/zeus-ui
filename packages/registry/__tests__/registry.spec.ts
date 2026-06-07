@@ -95,4 +95,19 @@ describe('@zeus-web/registry registry.json', () => {
       expect(source).toContain(`@zeus-web/${item.name}/react`)
     }
   })
+
+  it('styles native controls through primitive data-slot selectors', () => {
+    const buttonSource = readFileSync(
+      resolve(registryRoot, 'default/button.tsx'),
+      'utf-8',
+    )
+    const inputSource = readFileSync(
+      resolve(registryRoot, 'default/input.tsx'),
+      'utf-8',
+    )
+
+    expect(buttonSource).toContain('[&_[data-slot=button]]')
+    expect(inputSource).toContain('[&_[data-slot=input]]')
+    expect(inputSource).toContain('[&_[part=root]]')
+  })
 })

@@ -217,10 +217,11 @@ describe('@zeus-web/cli add', () => {
         registryRoot,
       )
 
-      expect(result.written).toEqual([
+      expect(result.planned).toEqual([
         'lib/utils.ts',
         'components/ui/button.tsx',
       ])
+      expect(result.written).toEqual([])
       expect(existsSync(resolve(targetRoot, 'lib/utils.ts'))).toBe(false)
       expect(existsSync(resolve(targetRoot, 'components/ui/button.tsx'))).toBe(
         false,

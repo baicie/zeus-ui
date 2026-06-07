@@ -32,6 +32,7 @@ export interface AddOptions {
 }
 
 export interface AddExecutionResult {
+  planned: string[]
   written: string[]
   skipped: string[]
   dependencies: string[]
@@ -43,6 +44,8 @@ interface ParsedAddArgs {
   options: AddOptions
 }
 
+type CopyResult = 'planned' | 'written' | 'skipped'
+
 const require = createRequire(import.meta.url)
 
 function resolveRegistryJsonPath(): string {
@@ -53,18 +56,27 @@ function resolveRegistryRoot(): string {
   return dirname(resolveRegistryJsonPath())
 }
 
-export function loadRegistry(): Registry {
-  const registry = require('@zeus-web/registry/registry.json') as Registry
+function createInvalidRegistryError(errors: string[]): Error {
+  return new Error(
+    [
+      'Invalid @zeus-web/registry/registry.json:',
+      ...errors.map(error => `- ${error}`),
+    ].join('\n'),
+  )
+}
+
+function assertValidRegistry(registry: Registry): void {
   const result = validateRegistry(registry)
 
   if (!result.valid) {
-    throw new Error(
-      [
-        'Invalid @zeus-web/registry/registry.json:',
-        ...result.errors.map(error => `- ${error}`),
-      ].join('\n'),
-    )
+    throw createInvalidRegistryError(result.errors)
   }
+}
+
+export function loadRegistry(): Registry {
+  const registry = require('@zeus-web/registry/registry.json') as Registry
+
+  assertValidRegistry(registry)
 
   return registry
 }
@@ -118,16 +130,7 @@ function dedupePlans(plans: AddPlan[]): AddPlan[] {
 }
 
 export function listAvailableComponents(registry = loadRegistry()): string[] {
-  const result = validateRegistry(registry)
-
-  if (!result.valid) {
-    throw new Error(
-      [
-        'Invalid @zeus-web/registry/registry.json:',
-        ...result.errors.map(error => `- ${error}`),
-      ].join('\n'),
-    )
-  }
+  assertValidRegistry(registry)
 
   return registry.items
     .filter(item => item.type === 'registry:ui')
@@ -138,19 +141,11 @@ export function createAddPlan(
   components: string[],
   registry = loadRegistry(),
 ): AddPlan[] {
-  const result = validateRegistry(registry)
-
-  if (!result.valid) {
-    throw new Error(
-      [
-        'Invalid @zeus-web/registry/registry.json:',
-        ...result.errors.map(error => `- ${error}`),
-      ].join('\n'),
-    )
-  }
+  assertValidRegistry(registry)
 
   const plans = components.map(component => {
     const item = findRegistryItem(registry, component)
+
     return toAddPlan(item)
   })
 
@@ -248,7 +243,7 @@ async function copyRegistryFile(params: {
   file: RegistryFilePlan
   dryRun: boolean
   overwrite: boolean
-}): Promise<'written' | 'skipped'> {
+}): Promise<CopyResult> {
   const sourcePath = resolve(params.registryRoot, params.file.source)
   const targetPath = assertSafeTarget(params.cwd, params.file.target)
 
@@ -263,7 +258,7 @@ async function copyRegistryFile(params: {
   }
 
   if (params.dryRun) {
-    return 'written'
+    return 'planned'
   }
 
   await mkdir(dirname(targetPath), { recursive: true })
@@ -279,6 +274,7 @@ export async function executeAddPlan(
   options: AddOptions,
   registryRoot = resolveRegistryRoot(),
 ): Promise<AddExecutionResult> {
+  const planned: string[] = []
   const written: string[] = []
   const skipped: string[] = []
   const seenTargets = new Set<string>()
@@ -299,7 +295,9 @@ export async function executeAddPlan(
         overwrite: options.overwrite,
       })
 
-      if (result === 'written') {
+      if (result === 'planned') {
+        planned.push(file.target)
+      } else if (result === 'written') {
         written.push(file.target)
       } else {
         skipped.push(file.target)
@@ -310,6 +308,7 @@ export async function executeAddPlan(
   const installPlan = createCombinedInstallPlan(plans)
 
   return {
+    planned,
     written,
     skipped,
     dependencies: installPlan.dependencies,
@@ -350,6 +349,14 @@ function printPlan(plans: AddPlan[], options: AddOptions): void {
 }
 
 function printResult(result: AddExecutionResult): void {
+  if (result.planned.length > 0) {
+    console.log(pc.cyan('Planned files:'))
+
+    for (const file of result.planned) {
+      console.log(`  ${file}`)
+    }
+  }
+
   if (result.written.length > 0) {
     console.log(pc.green('Written files:'))
 
