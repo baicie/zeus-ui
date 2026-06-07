@@ -11,6 +11,7 @@ import {
   executeAddPlan,
   listAvailableComponents,
   parseAddArgs,
+  rewriteRegistrySource,
 } from '../src/commands/add'
 import { createDefaultComponentsConfig } from '../src/config'
 
@@ -452,5 +453,16 @@ describe('@zeus-web/cli add', () => {
       await rm(registryRoot, { recursive: true, force: true })
       await rm(targetRoot, { recursive: true, force: true })
     }
+  })
+
+  it('rewrites registry source lib alias from components config', () => {
+    const config = createDefaultComponentsConfig()
+    config.aliases.lib = '~/shared/lib'
+
+    const source = "import { cn } from '@/lib/utils'\n"
+
+    expect(rewriteRegistrySource(source, config)).toBe(
+      "import { cn } from '~/shared/lib/utils'\n",
+    )
   })
 })

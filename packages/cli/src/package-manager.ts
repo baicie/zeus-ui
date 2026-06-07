@@ -73,13 +73,16 @@ export function createInstallCommand(params: {
   }
 }
 
-export async function installDependencies(
-  options: InstallDependenciesOptions,
-): Promise<InstallCommand[]> {
+export function createInstallCommands(options: {
+  cwd: string
+  packageManager?: PackageManager
+  dependencies?: string[]
+  devDependencies?: string[]
+}): InstallCommand[] {
   const packageManager =
     options.packageManager ?? detectPackageManager(options.cwd)
 
-  const commands = [
+  return [
     createInstallCommand({
       packageManager,
       dependencies: options.dependencies ?? [],
@@ -91,6 +94,20 @@ export async function installDependencies(
       dev: true,
     }),
   ].filter((command): command is InstallCommand => Boolean(command))
+}
+
+export function formatInstallCommand(command: InstallCommand): string {
+  return `${command.command} ${command.args.join(' ')}`
+}
+
+export function formatInstallCommands(commands: InstallCommand[]): string[] {
+  return commands.map(formatInstallCommand)
+}
+
+export async function installDependencies(
+  options: InstallDependenciesOptions,
+): Promise<InstallCommand[]> {
+  const commands = createInstallCommands(options)
 
   if (options.dryRun) {
     return commands

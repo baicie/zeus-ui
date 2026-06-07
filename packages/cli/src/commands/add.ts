@@ -19,7 +19,11 @@ import {
   resolveRegistryTarget,
   toRelativeProjectPath,
 } from '../config'
-import { installDependencies } from '../package-manager'
+import {
+  createInstallCommands,
+  formatInstallCommands,
+  installDependencies,
+} from '../package-manager'
 
 export interface RegistryFilePlan {
   source: string
@@ -188,6 +192,19 @@ export function createCombinedInstallPlan(plans: AddPlan[]): {
   }
 }
 
+function normalizeImportAlias(alias: string): string {
+  return alias.replace(/\/$/, '')
+}
+
+export function rewriteRegistrySource(
+  source: string,
+  config: ComponentsConfig,
+): string {
+  const libAlias = normalizeImportAlias(config.aliases.lib)
+
+  return source.replace(/@\/lib\/utils/g, `${libAlias}/utils`)
+}
+
 function parsePackageManagerValue(value: string): PackageManager {
   if (
     value === 'pnpm' ||
@@ -305,6 +322,7 @@ async function copyRegistryFile(params: {
   registryRoot: string
   cwd: string
   file: RegistryFilePlan
+  config: ComponentsConfig
   dryRun: boolean
   overwrite: boolean
 }): Promise<CopyResult> {
@@ -329,7 +347,9 @@ async function copyRegistryFile(params: {
   await mkdir(dirname(targetPath), { recursive: true })
 
   const source = await readFile(sourcePath, 'utf-8')
-  await writeFile(targetPath, source, 'utf-8')
+  const nextSource = rewriteRegistrySource(source, params.config)
+
+  await writeFile(targetPath, nextSource, 'utf-8')
 
   return 'written'
 }
@@ -362,6 +382,7 @@ export async function executeAddPlan(
         registryRoot,
         cwd: options.cwd,
         file,
+        config,
         dryRun: options.dryRun,
         overwrite: options.overwrite,
       })
@@ -419,7 +440,7 @@ function printPlan(plans: AddPlan[], options: AddOptions): void {
   }
 }
 
-function printResult(result: AddExecutionResult): void {
+function printResult(result: AddExecutionResult, options: AddOptions): void {
   if (result.planned.length > 0) {
     console.log(pc.cyan('Planned files:'))
 
@@ -444,16 +465,22 @@ function printResult(result: AddExecutionResult): void {
     }
   }
 
-  if (result.dependencies.length > 0) {
-    console.log('')
-    console.log(pc.bold('Install dependencies:'))
-    console.log(`  pnpm add ${result.dependencies.join(' ')}`)
-  }
+  if (!options.install || options.dryRun) {
+    const commands = createInstallCommands({
+      cwd: options.cwd,
+      packageManager: options.packageManager,
+      dependencies: result.dependencies,
+      devDependencies: result.devDependencies,
+    })
 
-  if (result.devDependencies.length > 0) {
-    console.log('')
-    console.log(pc.bold('Install dev dependencies:'))
-    console.log(`  pnpm add -D ${result.devDependencies.join(' ')}`)
+    if (commands.length > 0) {
+      console.log('')
+      console.log(pc.bold('Install dependencies:'))
+
+      for (const command of formatInstallCommands(commands)) {
+        console.log(`  ${command}`)
+      }
+    }
   }
 }
 
@@ -473,7 +500,7 @@ export async function add(args: string[]) {
 
     const result = await executeAddPlan(plans, options)
 
-    printResult(result)
+    printResult(result, options)
 
     if (options.install && !options.dryRun) {
       await installDependencies({

@@ -1,17 +1,22 @@
 import type { ThemeName } from '@zeus-web/themes'
-
 import type { PackageManager } from '../package-manager'
 
 import { isAbsolute, resolve } from 'node:path'
+
 import { themeNames } from '@zeus-web/themes'
 import pc from 'picocolors'
 
 import {
   createDefaultComponentsConfig,
   ensureThemeCss,
+  readComponentsConfig,
   writeComponentsConfig,
 } from '../config'
-import { installDependencies } from '../package-manager'
+import {
+  createInstallCommands,
+  formatInstallCommands,
+  installDependencies,
+} from '../package-manager'
 
 interface InitOptions {
   cwd: string
@@ -110,7 +115,13 @@ export function parseInitArgs(
     }
 
     if (arg.startsWith('--style=')) {
-      options.style = parseThemeName(arg.slice('--style='.length))
+      const value = arg.slice('--style='.length)
+
+      if (!value) {
+        throw new Error('--style requires a theme name')
+      }
+
+      options.style = parseThemeName(value)
       continue
     }
 
@@ -127,7 +138,13 @@ export function parseInitArgs(
     }
 
     if (arg.startsWith('--css=')) {
-      options.css = arg.slice('--css='.length)
+      const value = arg.slice('--css='.length)
+
+      if (!value) {
+        throw new Error('--css requires a file path')
+      }
+
+      options.css = value
       continue
     }
 
@@ -144,9 +161,13 @@ export function parseInitArgs(
     }
 
     if (arg.startsWith('--package-manager=')) {
-      options.packageManager = parsePackageManager(
-        arg.slice('--package-manager='.length),
-      )
+      const value = arg.slice('--package-manager='.length)
+
+      if (!value) {
+        throw new Error('--package-manager requires a value')
+      }
+
+      options.packageManager = parsePackageManager(value)
       continue
     }
 
@@ -160,43 +181,63 @@ export function parseInitArgs(
   }
 }
 
+function printInstallHint(options: InitOptions): void {
+  const commands = createInstallCommands({
+    cwd: options.cwd,
+    packageManager: options.packageManager,
+    dependencies: ['@zeus-web/themes'],
+  })
+
+  console.log(pc.bold('Install dependencies:'))
+
+  for (const command of formatInstallCommands(commands)) {
+    console.log(`  ${command}`)
+  }
+}
+
 export async function init(args: string[]) {
   try {
     const { options } = parseInitArgs(args)
-    const config = createDefaultComponentsConfig({
+
+    const nextConfig = createDefaultComponentsConfig({
       style: options.style,
       css: options.css,
     })
 
     const configResult = await writeComponentsConfig({
       cwd: options.cwd,
-      config,
+      config: nextConfig,
       overwrite: options.overwrite,
     })
+
+    const activeConfig =
+      configResult === 'created'
+        ? nextConfig
+        : readComponentsConfig(options.cwd)
 
     if (configResult === 'created') {
       console.log(pc.green('Created components.json'))
     } else {
       console.log(
         pc.yellow(
-          'components.json already exists. Use --overwrite to replace it.',
+          'components.json already exists. Using existing config. Use --overwrite to replace it.',
         ),
       )
     }
 
     const cssResult = await ensureThemeCss({
       cwd: options.cwd,
-      config,
+      config: activeConfig,
       overwrite: false,
     })
 
     if (cssResult === 'created') {
-      console.log(pc.green(`Created ${config.tailwind.css}`))
+      console.log(pc.green(`Created ${activeConfig.tailwind.css}`))
     } else if (cssResult === 'updated') {
-      console.log(pc.green(`Updated ${config.tailwind.css}`))
+      console.log(pc.green(`Updated ${activeConfig.tailwind.css}`))
     } else {
       console.log(
-        pc.gray(`${config.tailwind.css} already includes theme import.`),
+        pc.gray(`${activeConfig.tailwind.css} already includes theme import.`),
       )
     }
 
@@ -207,8 +248,7 @@ export async function init(args: string[]) {
         dependencies: ['@zeus-web/themes'],
       })
     } else {
-      console.log(pc.bold('Install dependencies:'))
-      console.log('  pnpm add @zeus-web/themes')
+      printInstallHint(options)
     }
   } catch (error) {
     console.error(pc.red((error as Error).message))

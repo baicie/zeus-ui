@@ -110,4 +110,28 @@ describe('@zeus-web/cli config', () => {
       await rm(cwd, { recursive: true, force: true })
     }
   })
+
+  it('appends theme import using existing config style', async () => {
+    const cwd = await createTempDir()
+
+    try {
+      const config = createDefaultComponentsConfig({
+        style: 'slate',
+        css: 'src/styles/globals.css',
+      })
+
+      const result = await ensureThemeCss({
+        cwd,
+        config,
+        overwrite: false,
+      })
+
+      expect(result).toBe('created')
+      expect(
+        readFileSync(resolve(cwd, 'src/styles/globals.css'), 'utf-8'),
+      ).toBe("@import '@zeus-web/themes/slate.css';\n")
+    } finally {
+      await rm(cwd, { recursive: true, force: true })
+    }
+  })
 })

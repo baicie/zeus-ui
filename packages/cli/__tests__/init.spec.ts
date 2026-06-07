@@ -35,4 +35,16 @@ describe('@zeus-web/cli init', () => {
       'Unsupported style: bad',
     )
   })
+
+  it('rejects empty css option', () => {
+    expect(() => parseInitArgs(['--css='])).toThrow(
+      '--css requires a file path',
+    )
+  })
+
+  it('rejects empty style option', () => {
+    expect(() => parseInitArgs(['--style='])).toThrow(
+      '--style requires a theme name',
+    )
+  })
 })
