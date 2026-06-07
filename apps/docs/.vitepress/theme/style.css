@@ -1,0 +1,119 @@
+:root {
+  --vp-c-brand-1: #111827;
+  --vp-c-brand-2: #1f2937;
+  --vp-c-brand-3: #374151;
+  --vp-c-brand-soft: rgb(17 24 39 / 12%);
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(
+    120deg,
+    #111827 20%,
+    #4f46e5 55%,
+    #0ea5e9 90%
+  );
+
+  --vp-home-hero-image-background-image: linear-gradient(
+    -45deg,
+    #4f46e5 50%,
+    #0ea5e9 50%
+  );
+  --vp-home-hero-image-filter: blur(72px);
+}
+
+.dark {
+  --vp-c-brand-1: #f9fafb;
+  --vp-c-brand-2: #e5e7eb;
+  --vp-c-brand-3: #d1d5db;
+  --vp-c-brand-soft: rgb(249 250 251 / 12%);
+}
+
+.VPHomeHero .text {
+  max-width: 820px;
+}
+
+.VPHomeHero .tagline {
+  max-width: 700px;
+}
+
+.vp-doc h2 {
+  border-top: 1px solid var(--vp-c-divider);
+  padding-top: 28px;
+}
+
+.vp-doc table {
+  width: 100%;
+  display: table;
+}
+
+.vp-doc th,
+.vp-doc td {
+  white-space: nowrap;
+}
+
+.vp-doc tr td:last-child,
+.vp-doc tr th:last-child {
+  white-space: normal;
+}
+
+.custom-block.tip {
+  border-color: var(--vp-c-brand-3);
+}
+
+.zw-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.zw-card {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 14px;
+  padding: 18px;
+  background: var(--vp-c-bg-soft);
+}
+
+.zw-card h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.zw-card p {
+  margin: 0;
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.zw-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.zw-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.zw-command {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: var(--vp-code-block-bg);
+  font-family: var(--vp-font-family-mono);
+  font-size: 13px;
+  overflow-x: auto;
+}
+
+.zw-muted {
+  color: var(--vp-c-text-2);
+}

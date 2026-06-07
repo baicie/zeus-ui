@@ -1,95 +1,39 @@
 import { defineConfig } from 'vitepress'
+import { sidebar, topNav } from './data/site'
 
 export default defineConfig({
   title: 'Zeus Web',
   description:
     'Headless Web Components, shadcn-like registry and AI metadata built on Zeus.',
   cleanUrls: true,
+  lastUpdated: true,
+  markdown: {
+    lineNumbers: true,
+  },
+  head: [
+    ['meta', { name: 'theme-color', content: '#111827' }],
+    ['meta', { property: 'og:title', content: 'Zeus Web' }],
+    [
+      'meta',
+      {
+        property: 'og:description',
+        content:
+          'Headless Web Components, shadcn-like registry and AI metadata built on Zeus.',
+      },
+    ],
+  ],
   themeConfig: {
     logo: '/logo.svg',
-    nav: [
-      {
-        text: 'Guide',
-        link: '/guide/getting-started',
-      },
-      {
-        text: 'Components',
-        link: '/components/button',
-      },
-      {
-        text: 'Examples',
-        link: '/examples/react-vite',
-      },
-    ],
-    sidebar: [
-      {
-        text: 'Guide',
-        items: [
-          {
-            text: 'Getting Started',
-            link: '/guide/getting-started',
-          },
-          {
-            text: 'CLI',
-            link: '/guide/cli',
-          },
-          {
-            text: 'Theming',
-            link: '/guide/theming',
-          },
-          {
-            text: 'Registry',
-            link: '/guide/registry',
-          },
-          {
-            text: 'AI',
-            link: '/guide/ai',
-          },
-        ],
-      },
-      {
-        text: 'Components',
-        items: [
-          {
-            text: 'Button',
-            link: '/components/button',
-          },
-          {
-            text: 'Input',
-            link: '/components/input',
-          },
-          {
-            text: 'Checkbox',
-            link: '/components/checkbox',
-          },
-          {
-            text: 'Switch',
-            link: '/components/switch',
-          },
-          {
-            text: 'Tabs',
-            link: '/components/tabs',
-          },
-          {
-            text: 'Dialog',
-            link: '/components/dialog',
-          },
-        ],
-      },
-      {
-        text: 'Examples',
-        items: [
-          {
-            text: 'React Vite',
-            link: '/examples/react-vite',
-          },
-          {
-            text: 'Native Web Components',
-            link: '/examples/native-wc',
-          },
-        ],
-      },
-    ],
+    nav: topNav,
+    sidebar,
+    outline: {
+      level: [2, 3],
+      label: 'On this page',
+    },
+    footer: {
+      message: 'Released under the MIT License.',
+      copyright: 'Copyright © Zeus Web contributors.',
+    },
     socialLinks: [
       {
         icon: 'github',

@@ -2,7 +2,7 @@
   "extends": "../../scripts/config/tsconfig.base.json",
   "compilerOptions": {
     "composite": false,
-    "types": ["node"],
+    "types": ["node", "vite/client"],
     "noEmit": true,
     "isolatedDeclarations": false
   },
