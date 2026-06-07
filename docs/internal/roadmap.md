@@ -20,7 +20,6 @@ Phase 5  Registry Styled UI MVP
 Phase 6  CLI add Copy MVP
 Phase 7  CLI init + components.json + install MVP
 Phase 8  AI Metadata + zweb ai MVP
-Phase 8.1 当前问题修复与稳定化
 Phase 9  Docs / Examples / Playground
 Phase 10 Accessibility & Interaction 完整化
 Phase 11 组件扩展第一批
@@ -255,9 +254,9 @@ aliases.lib
 
 ---
 
-# Phase 8：AI Metadata + zweb ai MVP，基本完成
+# Phase 8：AI Metadata + zweb ai MVP，已完成
 
-当前已经有：
+已有能力：
 
 ```txt
 @zeus-web/ai
@@ -267,75 +266,17 @@ zweb ai --cursor
 zweb ai --output docs/ai.md
 ```
 
-CLI 入口已经接入 `ai` 命令。
-`@zeus-web/ai` metadata 覆盖了组件说明、安装方式、React import、WC import、styled import、props、events、slots、examples、AI rules。
+CLI 入口已接入 `ai` 命令。`@zeus-web/ai` metadata 覆盖了组件说明、安装方式、React import、WC import、styled import、props、events、slots、examples、AI rules。
 
-状态：**基本完成，但需要 Phase 8.1 修复**
-
----
-
-# Phase 8.1：当前稳定化修复，下一步优先做
-
-这是当前最优先阶段，不建议继续堆新功能前跳过。
-
-## P0：修复 `zweb ai --output xxx --json` 覆盖 output 的问题
-
-当前 `--json` 会直接重置 output。
-
-目标：
-
-```bash
-zweb ai --output docs/ai.json --json
-```
-
-应该输出：
+实现细节：
 
 ```txt
-docs/ai.json
+- metadata 通过 validateAiMetadata 校验（包含 installCommand/sourceTarget 检查）
+- zweb ai --output xxx --json 保留用户指定的 output
+- zweb ai 读取 components.json 按 alias 重写 guide 中的 import 路径
 ```
 
-而不是：
-
-```txt
-zeus-web.ai.json
-```
-
-## P0：`zweb ai` 根据 components.json alias 重写 import
-
-当前 AI metadata 里 styled import 默认是 `@/components/ui/*`。
-但 `zweb add` 已经支持用户自定义 alias。
-
-目标：
-
-```json
-{
-  "aliases": {
-    "ui": "~/components/ui",
-    "lib": "~/shared/lib"
-  }
-}
-```
-
-生成的 AI guide 应该使用：
-
-```ts
-import { Button } from '~/components/ui/button'
-import { cn } from '~/shared/lib/utils'
-```
-
-## P1：加强 AI metadata 校验
-
-当前校验已经覆盖 primitivePackage、registryCommand、reactImport、webComponentImport、styledImport、dependencies、examples、aiRules。
-
-建议增加：
-
-```txt
-installCommand 必须包含 @zeus-web/<name>
-sourceTarget 必须是 components/ui/<name>.tsx
-themes 必须包含 default/slate/zinc/neutral/stone
-```
-
-状态：**待做，建议下一个 commit 完成**
+状态：**已完成**
 
 ---
 
@@ -734,11 +675,10 @@ pnpm check:build-output
 不要马上进入新组件扩展。建议顺序是：
 
 ```txt
-1. Phase 8.1：修 zweb ai output precedence + alias rewrite。
-2. Phase 9.1：写 Getting Started / CLI / Theming / AI docs。
-3. Phase 9.2：补 examples/react-vite。
-4. Phase 10：开始补 Dialog/Tabs a11y。
-5. Phase 11：再扩 label/textarea/radio/select。
+1. Phase 9.1：写 Getting Started / CLI / Theming / AI docs。
+2. Phase 9.2：补 examples/react-vite。
+3. Phase 10：开始补 Dialog/Tabs a11y。
+4. Phase 11：再扩 label/textarea/radio/select。
 ```
 
 最优下一个 PR title：
