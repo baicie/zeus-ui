@@ -1,13 +1,11 @@
 {
   "name": "@zeus-web/docs",
   "type": "module",
-  "version": "0.0.0",
   "private": true,
-  "description": "Documentation site for Zeus Web.",
-  "license": "MIT",
   "scripts": {
-    "dev": "vitepress dev",
-    "build": "vitepress build",
-    "preview": "vitepress preview"
+    "dev": "vitepress dev .",
+    "build": "vitepress build .",
+    "preview": "vitepress preview .",
+    "check": "tsc -p tsconfig.json --noEmit"
   }
 }
