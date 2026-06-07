@@ -15,12 +15,13 @@ describe('@zeus-js/zeus canary contract', () => {
     expect(ZEUS_CAPABILITIES.packageName).toBe('@zeus-js/zeus')
     expect(typeof ZEUS_CAPABILITIES.version).toBe('string')
     // Only verify canary version format when running against an installed canary
-    // package (CI sets ZEUS_VERSION=canary after `pnpm add @zeus-js/zeus@canary`).
-    // In workspace dev mode, @zeus-js/zeus resolves to the beta workspace link.
+    // package. In workspace dev mode, @zeus-js/zeus can resolve to a beta package.
     const isCanaryRun = ZEUS_CAPABILITIES.version.includes('canary')
 
     if (isCanaryRun) {
-      expect(ZEUS_CAPABILITIES.version).toMatch(/^0\.1\.0-canary/)
+      expect(ZEUS_CAPABILITIES.version).toMatch(
+        /^\d+\.\d+\.\d+-canary(?:[.-]|$)/,
+      )
     } else {
       expect(ZEUS_CAPABILITIES).toMatchObject({
         packageName: '@zeus-js/zeus',
