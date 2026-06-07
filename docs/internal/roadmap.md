@@ -401,6 +401,57 @@ scripts/checks/check-examples.ts    examples contract 检查脚本
 
 ---
 
+## Phase 9.3：Auto Docs from aiMetadata / Registry MVP
+
+在 Phase 9.2 基础上实现文档自动生成，消除 metadata / registry / docs 之间的数据漂移。
+
+已完成：
+
+```txt
+scripts/docs/component-docs.ts      文档生成器核心
+  createComponentDocsContext()      从 aiMetadata + registry.json 构建上下文
+  renderComponentDoc()              生成单组件完整文档（Props/Events/Slots/Styling/Registry/AI rules/Examples）
+  renderComponentsIndex()           生成 components/index.md
+  generateComponentDocs()           生成所有文档文件列表
+
+scripts/commands/generate-docs.ts  CLI 命令：pnpm docs:generate
+
+scripts/checks/check-generated-docs.ts
+  docs:check-generated             检查生成文档是否最新（out-of-date 检测）
+
+scripts/checks/check-docs.ts      新增：
+  requiredDocs 追加 generated header 检查
+  checkGeneratedComponentDocs()     验证 6 个组件页都是生成的
+  sidebar route 追加 /components/
+
+apps/docs/components/index.md      生成：组件总览表格 + recommended workflow
+apps/docs/components/button.md    生成：完整 API 表 + import 示例 + registry info
+apps/docs/components/input.md     同上
+apps/docs/components/checkbox.md   同上
+apps/docs/components/switch.md    同上
+apps/docs/components/tabs.md      同上
+apps/docs/components/dialog.md  同上
+
+apps/docs/.vitepress/data/site.ts
+  componentIndexItem               Components > Overview 入口
+  sidebar Components 组追加 Overview
+  topNav Components 指向 /components/
+
+scripts/docs/__tests__/component-docs.spec.ts
+  3 个测试用例覆盖 generator 核心
+
+根 scripts:
+  pnpm docs:generate               生成所有组件文档
+  pnpm docs:check-generated        校验文档是否最新
+  pnpm docs:check                  docs:check-generated + check-docs + typecheck
+```
+
+不做：guide/exAMPLES/Playground 文档、Vue/WC 独立 API 页、AST props 解析、aiMetadata 结构修改。
+
+状态：**已完成**
+
+---
+
 # Phase 10：Accessibility & Interaction 完整化
 
 这阶段补“组件库质量”，不是继续扩组件数量。

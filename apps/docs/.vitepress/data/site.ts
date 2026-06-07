@@ -108,6 +108,11 @@ export const exampleItems: DocsNavItem[] = [
   },
 ]
 
+export const componentIndexItem: DocsNavItem = {
+  text: 'Overview',
+  link: '/components/',
+}
+
 export const sidebar: DocsSidebarGroup[] = [
   {
     text: 'Guide',
@@ -115,10 +120,13 @@ export const sidebar: DocsSidebarGroup[] = [
   },
   {
     text: 'Components',
-    items: componentDocs.map(component => ({
-      text: component.title,
-      link: component.route,
-    })),
+    items: [
+      componentIndexItem,
+      ...componentDocs.map(component => ({
+        text: component.title,
+        link: component.route,
+      })),
+    ],
   },
   {
     text: 'Examples',
@@ -133,7 +141,7 @@ export const topNav: DocsNavItem[] = [
   },
   {
     text: 'Components',
-    link: '/components/button',
+    link: '/components/',
   },
   {
     text: 'Examples',
