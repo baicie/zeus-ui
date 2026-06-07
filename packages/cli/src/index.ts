@@ -2,6 +2,7 @@
 
 import pc from 'picocolors'
 import { add } from './commands/add'
+import { ai } from './commands/ai'
 import { init } from './commands/init'
 
 const [, , command, ...args] = process.argv
@@ -14,6 +15,10 @@ async function main() {
 
     case 'add':
       await add(args)
+      break
+
+    case 'ai':
+      await ai(args)
       break
 
     case undefined:
@@ -36,6 +41,9 @@ function printHelp() {
   console.log('  zweb init --style slate --css src/styles/globals.css')
   console.log('  zweb add button')
   console.log('  zweb add button input dialog')
+  console.log('  zweb ai')
+  console.log('  zweb ai --cursor')
+  console.log('  zweb ai --json')
   console.log('')
   console.log('Options:')
   console.log('  --cwd <dir>                 Use a specific project directory')
@@ -47,6 +55,9 @@ function printHelp() {
   console.log('  --overwrite                 Replace existing files')
   console.log('  --no-install                Do not install dependencies')
   console.log('  --package-manager <name>    pnpm | npm | yarn | bun')
+  console.log('  --format <name>             markdown | json')
+  console.log('  --output <file>             Output file path')
+  console.log('  --cursor                    Write .cursor/rules/zeus-web.mdc')
 }
 
 main().catch(error => {

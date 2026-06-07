@@ -7,5 +7,10 @@
     "outDir": "dist",
     "isolatedDeclarations": false
   },
-  "include": ["src", "../../packages/registry/src", "../../packages/themes/src"]
+  "include": [
+    "src",
+    "../../packages/ai/src",
+    "../../packages/registry/src",
+    "../../packages/themes/src"
+  ]
 }

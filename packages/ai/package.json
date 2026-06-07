@@ -1,0 +1,23 @@
+{
+  "name": "@zeus-web/ai",
+  "type": "module",
+  "version": "0.0.0",
+  "description": "AI metadata and LLM usage guide for Zeus Web.",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsup src/index.ts --format esm --dts --clean --watch",
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest --root ../.. --project unit packages/ai/__tests__/ai.spec.ts"
+  }
+}
