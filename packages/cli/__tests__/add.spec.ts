@@ -1,6 +1,17 @@
 import type { Registry } from '@zeus-web/registry'
 
-import { createAddPlan, listAvailableComponents } from '../src/commands/add'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
+
+import {
+  createAddPlan,
+  createCombinedInstallPlan,
+  executeAddPlan,
+  listAvailableComponents,
+  parseAddArgs,
+} from '../src/commands/add'
 
 const registry: Registry = {
   $schema: 'https://zeus-web.dev/schema/registry.json',
@@ -79,7 +90,21 @@ const registry: Registry = {
   ],
 }
 
-describe('@zeus-web/cli add plan', () => {
+async function createTempDir(): Promise<string> {
+  return mkdtemp(join(tmpdir(), 'zeus-web-cli-'))
+}
+
+function writeRegistrySource(
+  root: string,
+  file: string,
+  content: string,
+): void {
+  const path = resolve(root, file)
+  mkdirSync(resolve(path, '..'), { recursive: true })
+  writeFileSync(path, content, 'utf-8')
+}
+
+describe('@zeus-web/cli add', () => {
   it('lists registry ui components', () => {
     expect(listAvailableComponents(registry)).toEqual([
       'input',
@@ -123,6 +148,19 @@ describe('@zeus-web/cli add plan', () => {
     expect(plans[1].dependencies).toContain('@zeus-web/dialog')
   })
 
+  it('dedupes install dependencies across plans', () => {
+    const plans = createAddPlan(['input', 'button'], registry)
+    const installPlan = createCombinedInstallPlan(plans)
+
+    expect(installPlan.dependencies).toEqual([
+      '@zeus-web/button',
+      '@zeus-web/input',
+      'class-variance-authority',
+      'clsx',
+      'tailwind-merge',
+    ])
+  })
+
   it('throws on unknown component', () => {
     expect(() => createAddPlan(['unknown'], registry)).toThrow(
       'Unknown component: unknown',
@@ -138,5 +176,238 @@ describe('@zeus-web/cli add plan', () => {
     expect(() => listAvailableComponents(invalidRegistry)).toThrow(
       'Invalid @zeus-web/registry/registry.json',
     )
+  })
+
+  it('parses add options', () => {
+    const parsed = parseAddArgs(
+      ['button', 'input', '--dry-run', '--overwrite', '--cwd', 'demo'],
+      '/repo',
+    )
+
+    expect(parsed.components).toEqual(['button', 'input'])
+    expect(parsed.options).toEqual({
+      cwd: resolve('/repo', 'demo'),
+      dryRun: true,
+      overwrite: true,
+    })
+  })
+
+  it('throws on unknown options', () => {
+    expect(() => parseAddArgs(['button', '--bad'])).toThrow(
+      'Unknown option: --bad',
+    )
+  })
+
+  it('dry-runs without writing files', async () => {
+    const registryRoot = await createTempDir()
+    const targetRoot = await createTempDir()
+
+    try {
+      writeRegistrySource(registryRoot, 'default/lib/utils.ts', 'export {}\n')
+      writeRegistrySource(registryRoot, 'default/button.tsx', 'export {}\n')
+
+      const plans = createAddPlan(['button'], registry)
+      const result = await executeAddPlan(
+        plans,
+        {
+          cwd: targetRoot,
+          dryRun: true,
+          overwrite: false,
+        },
+        registryRoot,
+      )
+
+      expect(result.written).toEqual([
+        'lib/utils.ts',
+        'components/ui/button.tsx',
+      ])
+      expect(existsSync(resolve(targetRoot, 'lib/utils.ts'))).toBe(false)
+      expect(existsSync(resolve(targetRoot, 'components/ui/button.tsx'))).toBe(
+        false,
+      )
+    } finally {
+      await rm(registryRoot, { recursive: true, force: true })
+      await rm(targetRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('copies registry files into cwd', async () => {
+    const registryRoot = await createTempDir()
+    const targetRoot = await createTempDir()
+
+    try {
+      writeRegistrySource(
+        registryRoot,
+        'default/lib/utils.ts',
+        'export function cn() {}\n',
+      )
+      writeRegistrySource(
+        registryRoot,
+        'default/button.tsx',
+        'export const Button = null\n',
+      )
+
+      const plans = createAddPlan(['button'], registry)
+      const result = await executeAddPlan(
+        plans,
+        {
+          cwd: targetRoot,
+          dryRun: false,
+          overwrite: false,
+        },
+        registryRoot,
+      )
+
+      expect(result.written).toEqual([
+        'lib/utils.ts',
+        'components/ui/button.tsx',
+      ])
+      expect(result.skipped).toEqual([])
+      expect(readFileSync(resolve(targetRoot, 'lib/utils.ts'), 'utf-8')).toBe(
+        'export function cn() {}\n',
+      )
+      expect(
+        readFileSync(resolve(targetRoot, 'components/ui/button.tsx'), 'utf-8'),
+      ).toBe('export const Button = null\n')
+    } finally {
+      await rm(registryRoot, { recursive: true, force: true })
+      await rm(targetRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('skips existing files by default', async () => {
+    const registryRoot = await createTempDir()
+    const targetRoot = await createTempDir()
+
+    try {
+      writeRegistrySource(registryRoot, 'default/lib/utils.ts', 'new\n')
+      writeRegistrySource(registryRoot, 'default/button.tsx', 'button\n')
+
+      mkdirSync(resolve(targetRoot, 'lib'), { recursive: true })
+      writeFileSync(resolve(targetRoot, 'lib/utils.ts'), 'existing\n', 'utf-8')
+
+      const plans = createAddPlan(['button'], registry)
+      const result = await executeAddPlan(
+        plans,
+        {
+          cwd: targetRoot,
+          dryRun: false,
+          overwrite: false,
+        },
+        registryRoot,
+      )
+
+      expect(result.skipped).toEqual(['lib/utils.ts'])
+      expect(readFileSync(resolve(targetRoot, 'lib/utils.ts'), 'utf-8')).toBe(
+        'existing\n',
+      )
+      expect(existsSync(resolve(targetRoot, 'components/ui/button.tsx'))).toBe(
+        true,
+      )
+    } finally {
+      await rm(registryRoot, { recursive: true, force: true })
+      await rm(targetRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('overwrites existing files when requested', async () => {
+    const registryRoot = await createTempDir()
+    const targetRoot = await createTempDir()
+
+    try {
+      writeRegistrySource(registryRoot, 'default/lib/utils.ts', 'new\n')
+      writeRegistrySource(registryRoot, 'default/button.tsx', 'button\n')
+
+      mkdirSync(resolve(targetRoot, 'lib'), { recursive: true })
+      writeFileSync(resolve(targetRoot, 'lib/utils.ts'), 'existing\n', 'utf-8')
+
+      const plans = createAddPlan(['button'], registry)
+      const result = await executeAddPlan(
+        plans,
+        {
+          cwd: targetRoot,
+          dryRun: false,
+          overwrite: true,
+        },
+        registryRoot,
+      )
+
+      expect(result.skipped).toEqual([])
+      expect(result.written).toContain('lib/utils.ts')
+      expect(readFileSync(resolve(targetRoot, 'lib/utils.ts'), 'utf-8')).toBe(
+        'new\n',
+      )
+    } finally {
+      await rm(registryRoot, { recursive: true, force: true })
+      await rm(targetRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('dedupes files by target when adding multiple components', async () => {
+    const registryRoot = await createTempDir()
+    const targetRoot = await createTempDir()
+
+    try {
+      writeRegistrySource(registryRoot, 'default/lib/utils.ts', 'utils\n')
+      writeRegistrySource(registryRoot, 'default/input.tsx', 'input\n')
+      writeRegistrySource(registryRoot, 'default/button.tsx', 'button\n')
+
+      const plans = createAddPlan(['input', 'button'], registry)
+      const result = await executeAddPlan(
+        plans,
+        {
+          cwd: targetRoot,
+          dryRun: false,
+          overwrite: false,
+        },
+        registryRoot,
+      )
+
+      expect(result.written).toEqual([
+        'lib/utils.ts',
+        'components/ui/input.tsx',
+        'components/ui/button.tsx',
+      ])
+    } finally {
+      await rm(registryRoot, { recursive: true, force: true })
+      await rm(targetRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('refuses to write outside cwd', async () => {
+    const registryRoot = await createTempDir()
+    const targetRoot = await createTempDir()
+
+    try {
+      writeRegistrySource(registryRoot, 'default/button.tsx', 'button\n')
+
+      await expect(
+        executeAddPlan(
+          [
+            {
+              component: 'button',
+              dependencies: [],
+              devDependencies: [],
+              files: [
+                {
+                  source: 'default/button.tsx',
+                  target: '../button.tsx',
+                  type: 'registry:ui',
+                },
+              ],
+            },
+          ],
+          {
+            cwd: targetRoot,
+            dryRun: false,
+            overwrite: false,
+          },
+          registryRoot,
+        ),
+      ).rejects.toThrow('Refusing to write outside cwd')
+    } finally {
+      await rm(registryRoot, { recursive: true, force: true })
+      await rm(targetRoot, { recursive: true, force: true })
+    }
   })
 })

@@ -4,7 +4,11 @@ import type {
   RegistryItemFile,
 } from '@zeus-web/registry'
 
+import { existsSync } from 'node:fs'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
+import { dirname, isAbsolute, relative, resolve } from 'node:path'
+
 import { validateRegistry } from '@zeus-web/registry'
 import pc from 'picocolors'
 
@@ -21,9 +25,35 @@ export interface AddPlan {
   files: RegistryFilePlan[]
 }
 
+export interface AddOptions {
+  cwd: string
+  dryRun: boolean
+  overwrite: boolean
+}
+
+export interface AddExecutionResult {
+  written: string[]
+  skipped: string[]
+  dependencies: string[]
+  devDependencies: string[]
+}
+
+interface ParsedAddArgs {
+  components: string[]
+  options: AddOptions
+}
+
 const require = createRequire(import.meta.url)
 
-function loadRegistry(): Registry {
+function resolveRegistryJsonPath(): string {
+  return require.resolve('@zeus-web/registry/registry.json')
+}
+
+function resolveRegistryRoot(): string {
+  return dirname(resolveRegistryJsonPath())
+}
+
+export function loadRegistry(): Registry {
   const registry = require('@zeus-web/registry/registry.json') as Registry
   const result = validateRegistry(registry)
 
@@ -66,6 +96,27 @@ function findRegistryItem(registry: Registry, component: string): RegistryItem {
   return item
 }
 
+function uniqueSorted(values: string[]): string[] {
+  return Array.from(new Set(values)).sort()
+}
+
+function dedupePlans(plans: AddPlan[]): AddPlan[] {
+  return plans.map(plan => {
+    const files = new Map<string, RegistryFilePlan>()
+
+    for (const file of plan.files) {
+      files.set(file.target, file)
+    }
+
+    return {
+      ...plan,
+      dependencies: uniqueSorted(plan.dependencies),
+      devDependencies: uniqueSorted(plan.devDependencies),
+      files: Array.from(files.values()),
+    }
+  })
+}
+
 export function listAvailableComponents(registry = loadRegistry()): string[] {
   const result = validateRegistry(registry)
 
@@ -98,47 +149,253 @@ export function createAddPlan(
     )
   }
 
-  return components.map(component => {
+  const plans = components.map(component => {
     const item = findRegistryItem(registry, component)
     return toAddPlan(item)
   })
+
+  return dedupePlans(plans)
+}
+
+export function createCombinedInstallPlan(plans: AddPlan[]): {
+  dependencies: string[]
+  devDependencies: string[]
+} {
+  return {
+    dependencies: uniqueSorted(plans.flatMap(plan => plan.dependencies)),
+    devDependencies: uniqueSorted(plans.flatMap(plan => plan.devDependencies)),
+  }
+}
+
+export function parseAddArgs(
+  args: string[],
+  cwd = process.cwd(),
+): ParsedAddArgs {
+  const components: string[] = []
+  const options: AddOptions = {
+    cwd,
+    dryRun: false,
+    overwrite: false,
+  }
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]
+
+    if (arg === '--dry-run') {
+      options.dryRun = true
+      continue
+    }
+
+    if (arg === '--overwrite') {
+      options.overwrite = true
+      continue
+    }
+
+    if (arg === '--cwd') {
+      const value = args[index + 1]
+
+      if (!value) {
+        throw new Error('--cwd requires a directory path')
+      }
+
+      options.cwd = isAbsolute(value) ? value : resolve(cwd, value)
+      index += 1
+      continue
+    }
+
+    if (arg.startsWith('--cwd=')) {
+      const value = arg.slice('--cwd='.length)
+
+      if (!value) {
+        throw new Error('--cwd requires a directory path')
+      }
+
+      options.cwd = isAbsolute(value) ? value : resolve(cwd, value)
+      continue
+    }
+
+    if (arg.startsWith('-')) {
+      throw new Error(`Unknown option: ${arg}`)
+    }
+
+    components.push(arg)
+  }
+
+  return {
+    components,
+    options,
+  }
+}
+
+function assertSafeTarget(cwd: string, target: string): string {
+  const absoluteTarget = resolve(cwd, target)
+  const relativeTarget = relative(cwd, absoluteTarget).replace(/\\/g, '/')
+
+  if (
+    relativeTarget === '..' ||
+    relativeTarget.startsWith('../') ||
+    isAbsolute(relativeTarget)
+  ) {
+    throw new Error(`Refusing to write outside cwd: ${target}`)
+  }
+
+  return absoluteTarget
+}
+
+async function copyRegistryFile(params: {
+  registryRoot: string
+  cwd: string
+  file: RegistryFilePlan
+  dryRun: boolean
+  overwrite: boolean
+}): Promise<'written' | 'skipped'> {
+  const sourcePath = resolve(params.registryRoot, params.file.source)
+  const targetPath = assertSafeTarget(params.cwd, params.file.target)
+
+  if (!existsSync(sourcePath)) {
+    throw new Error(
+      `Registry source file does not exist: ${params.file.source}`,
+    )
+  }
+
+  if (existsSync(targetPath) && !params.overwrite) {
+    return 'skipped'
+  }
+
+  if (params.dryRun) {
+    return 'written'
+  }
+
+  await mkdir(dirname(targetPath), { recursive: true })
+
+  const source = await readFile(sourcePath, 'utf-8')
+  await writeFile(targetPath, source, 'utf-8')
+
+  return 'written'
+}
+
+export async function executeAddPlan(
+  plans: AddPlan[],
+  options: AddOptions,
+  registryRoot = resolveRegistryRoot(),
+): Promise<AddExecutionResult> {
+  const written: string[] = []
+  const skipped: string[] = []
+  const seenTargets = new Set<string>()
+
+  for (const plan of plans) {
+    for (const file of plan.files) {
+      if (seenTargets.has(file.target)) {
+        continue
+      }
+
+      seenTargets.add(file.target)
+
+      const result = await copyRegistryFile({
+        registryRoot,
+        cwd: options.cwd,
+        file,
+        dryRun: options.dryRun,
+        overwrite: options.overwrite,
+      })
+
+      if (result === 'written') {
+        written.push(file.target)
+      } else {
+        skipped.push(file.target)
+      }
+    }
+  }
+
+  const installPlan = createCombinedInstallPlan(plans)
+
+  return {
+    written,
+    skipped,
+    dependencies: installPlan.dependencies,
+    devDependencies: installPlan.devDependencies,
+  }
+}
+
+function printPlan(plans: AddPlan[], options: AddOptions): void {
+  for (const plan of plans) {
+    console.log(pc.green(`Add ${plan.component}`))
+
+    if (plan.dependencies.length > 0) {
+      console.log(`Dependencies: ${plan.dependencies.join(', ')}`)
+    }
+
+    if (plan.devDependencies.length > 0) {
+      console.log(`Dev dependencies: ${plan.devDependencies.join(', ')}`)
+    }
+
+    console.log('Files:')
+
+    for (const file of plan.files) {
+      console.log(`  ${file.source} -> ${file.target}`)
+    }
+  }
+
+  if (options.dryRun) {
+    console.log(pc.gray('Dry run enabled. No files will be written.'))
+  }
+
+  if (!options.overwrite) {
+    console.log(
+      pc.gray(
+        'Existing files will be skipped. Use --overwrite to replace them.',
+      ),
+    )
+  }
+}
+
+function printResult(result: AddExecutionResult): void {
+  if (result.written.length > 0) {
+    console.log(pc.green('Written files:'))
+
+    for (const file of result.written) {
+      console.log(`  ${file}`)
+    }
+  }
+
+  if (result.skipped.length > 0) {
+    console.log(pc.yellow('Skipped existing files:'))
+
+    for (const file of result.skipped) {
+      console.log(`  ${file}`)
+    }
+  }
+
+  if (result.dependencies.length > 0) {
+    console.log('')
+    console.log(pc.bold('Install dependencies:'))
+    console.log(`  pnpm add ${result.dependencies.join(' ')}`)
+  }
+
+  if (result.devDependencies.length > 0) {
+    console.log('')
+    console.log(pc.bold('Install dev dependencies:'))
+    console.log(`  pnpm add -D ${result.devDependencies.join(' ')}`)
+  }
 }
 
 export async function add(args: string[]) {
-  const components = args.filter(Boolean)
-
-  if (components.length === 0) {
-    console.error(pc.red('Please provide at least one component.'))
-    console.log(`Example: zweb add ${listAvailableComponents().join(' ')}`)
-    process.exit(1)
-  }
-
   try {
-    const plans = createAddPlan(components)
+    const { components, options } = parseAddArgs(args)
 
-    for (const plan of plans) {
-      console.log(pc.green(`Add ${plan.component}`))
-
-      if (plan.dependencies.length > 0) {
-        console.log(`Dependencies: ${plan.dependencies.join(', ')}`)
-      }
-
-      if (plan.devDependencies.length > 0) {
-        console.log(`Dev dependencies: ${plan.devDependencies.join(', ')}`)
-      }
-
-      console.log('Files:')
-
-      for (const file of plan.files) {
-        console.log(`  ${file.source} -> ${file.target}`)
-      }
+    if (components.length === 0) {
+      console.error(pc.red('Please provide at least one component.'))
+      console.log(`Example: zweb add ${listAvailableComponents().join(' ')}`)
+      process.exit(1)
     }
 
-    console.log(
-      pc.gray(
-        'Phase 5 only prints add plan. Phase 6 will copy files and install dependencies.',
-      ),
-    )
+    const plans = createAddPlan(components)
+
+    printPlan(plans, options)
+
+    const result = await executeAddPlan(plans, options)
+
+    printResult(result)
   } catch (error) {
     console.error(pc.red((error as Error).message))
     process.exitCode = 1
