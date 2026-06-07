@@ -73,19 +73,19 @@ const requiredDocs: RequiredDoc[] = [
     mustContain: ['# React Vite Example', '@zeus-web/example-react-vite'],
   },
   {
-    path: 'examples/native-wc.md',
-    mustContain: [
-      '# Native Web Components Example',
-      '@zeus-web/example-native-wc',
-    ],
-  },
-  {
     path: 'examples/next-app.md',
     mustContain: [
       '# Next.js App Router Example',
       '@zeus-web/example-next-app',
       '@zeus-web/button/react',
       "'use client'",
+    ],
+  },
+  {
+    path: 'examples/native-wc.md',
+    mustContain: [
+      '# Native Web Components Example',
+      '@zeus-web/example-native-wc',
     ],
   },
 ]
@@ -105,10 +105,6 @@ function filePath(relativePath: string): string {
   return resolve(docsRoot, relativePath)
 }
 
-function readDoc(relativePath: string): string {
-  return readFileSync(filePath(relativePath), 'utf-8')
-}
-
 function checkFileExists(relativePath: string): string[] {
   const file = filePath(relativePath)
 
@@ -121,7 +117,7 @@ function checkFileExists(relativePath: string): string[] {
 
 function checkRequiredContent(doc: RequiredDoc): string[] {
   const errors: string[] = []
-  const source = readDoc(doc.path)
+  const source = readFileSync(filePath(doc.path), 'utf-8')
 
   for (const text of doc.mustContain) {
     if (!source.includes(text)) {
@@ -148,29 +144,33 @@ function checkVitePressConfig(): string[] {
     return ['Missing apps/docs/.vitepress/config.ts']
   }
 
+  if (!existsSync(siteDataPath)) {
+    return ['Missing apps/docs/.vitepress/data/site.ts']
+  }
+
   const configSource = readFileSync(configPath, 'utf-8')
+  const siteSource = readFileSync(siteDataPath, 'utf-8')
 
   for (const text of [
     "import { defineConfig } from 'vitepress'",
     "import { sidebar, topNav } from './data/site'",
     'nav: topNav',
+    'sidebar',
   ]) {
     if (!configSource.includes(text)) {
       errors.push(`VitePress config must contain "${text}"`)
     }
   }
 
-  if (existsSync(siteDataPath)) {
-    const siteSource = readFileSync(siteDataPath, 'utf-8')
-
-    for (const route of [
-      '/guide/getting-started',
-      '/components/button',
-      '/examples/react-vite',
-    ]) {
-      if (!siteSource.includes(route)) {
-        errors.push(`data/site.ts must contain route "${route}"`)
-      }
+  for (const route of [
+    '/guide/getting-started',
+    '/components/button',
+    '/examples/react-vite',
+    '/examples/next-app',
+    '/examples/native-wc',
+  ]) {
+    if (!siteSource.includes(route)) {
+      errors.push(`data/site.ts must contain route "${route}"`)
     }
   }
 

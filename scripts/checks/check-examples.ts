@@ -14,39 +14,83 @@ const root = process.cwd()
 const requiredFiles: RequiredFile[] = [
   {
     path: 'examples/next-app/package.json',
-    mustContain: ['@zeus-web/example-next-app', 'next', '@zeus-web/button'],
+    mustContain: ['@zeus-web/example-next-app', '"next"', '@zeus-web/button'],
   },
   {
     path: 'examples/next-app/components.json',
     mustContain: ['"ui": "@/components/ui"', '"lib": "@/lib"'],
   },
   {
+    path: 'examples/next-app/next.config.ts',
+    mustContain: [
+      'transpilePackages',
+      '@zeus-web/button',
+      '@zeus-web/checkbox',
+      '@zeus-web/dialog',
+      '@zeus-web/input',
+      '@zeus-web/switch',
+      '@zeus-web/tabs',
+      '@zeus-web/themes',
+    ],
+  },
+  {
     path: 'examples/next-app/src/app/layout.tsx',
     mustContain: ["import '@zeus-web/themes/default.css'"],
   },
   {
+    path: 'examples/next-app/src/app/page.tsx',
+    mustContain: ["import { Demo } from '@/components/demo'"],
+  },
+  {
     path: 'examples/next-app/src/components/demo.tsx',
-    mustContain: ["'use client'", "from '@/components/ui/button'"],
+    mustContain: [
+      "'use client'",
+      "from '@/components/ui/button'",
+      "from '@/components/ui/checkbox'",
+      "from '@/components/ui/dialog'",
+      "from '@/components/ui/input'",
+      "from '@/components/ui/switch'",
+      "from '@/components/ui/tabs'",
+    ],
   },
   {
     path: 'examples/next-app/src/components/ui/button.tsx',
     mustContain: ["'use client'", '@zeus-web/button/react'],
-    mustNotContain: ['customElements.define'],
+    mustNotContain: ['customElements.define', '@zeus-web/react'],
   },
   {
     path: 'examples/next-app/src/components/ui/input.tsx',
     mustContain: ["'use client'", '@zeus-web/input/react'],
-    mustNotContain: ['customElements.define'],
+    mustNotContain: ['customElements.define', '@zeus-web/react'],
+  },
+  {
+    path: 'examples/next-app/src/components/ui/checkbox.tsx',
+    mustContain: ["'use client'", '@zeus-web/checkbox/react'],
+    mustNotContain: ['customElements.define', '@zeus-web/react'],
+  },
+  {
+    path: 'examples/next-app/src/components/ui/switch.tsx',
+    mustContain: ["'use client'", '@zeus-web/switch/react'],
+    mustNotContain: ['customElements.define', '@zeus-web/react'],
   },
   {
     path: 'examples/next-app/src/components/ui/tabs.tsx',
     mustContain: ["'use client'", '@zeus-web/tabs/react'],
-    mustNotContain: ['customElements.define'],
+    mustNotContain: ['customElements.define', '@zeus-web/react'],
   },
   {
     path: 'examples/next-app/src/components/ui/dialog.tsx',
     mustContain: ["'use client'", '@zeus-web/dialog/react'],
-    mustNotContain: ['customElements.define'],
+    mustNotContain: ['customElements.define', '@zeus-web/react'],
+  },
+  {
+    path: 'apps/docs/examples/next-app.md',
+    mustContain: [
+      '# Next.js App Router Example',
+      '@zeus-web/example-next-app',
+      '@zeus-web/button/react',
+      "'use client'",
+    ],
   },
 ]
 
