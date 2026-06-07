@@ -35,7 +35,7 @@ interface TabsEmits extends Record<string, EventDefinition<unknown>> {
 interface TabsContextValue {
   getValue: () => string | undefined
   setValue: (value: string, nativeEvent?: Event) => void
-  getOrientation: () => TabsOrientation
+  getOrientation: () => TabsOrientation | undefined
   isDisabled: () => boolean
 }
 

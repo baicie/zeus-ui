@@ -13,6 +13,7 @@
 5. [Web Component 输出包](#5-web-component-输出包)
 6. [脚手架 / CLI 包](#6-脚手架--cli-包)
 7. [安装方式](#7-安装方式)
+8. [Headless Primitive 包](#8-headless-primitive-包)
 
 ---
 
@@ -97,6 +98,26 @@
 
 @zeus-js/component-dts
 └── @zeus-js/component-analyzer
+
+@zeus-web/headless
+├── @zeus-web/button (peer)
+├── @zeus-web/checkbox (peer)
+├── @zeus-web/dialog (peer)
+├── @zeus-web/input (peer)
+├── @zeus-web/switch (peer)
+└── @zeus-web/tabs (peer)
+
+@zeus-web/react
+└── @zeus-web/{button,checkbox,dialog,input,switch,tabs} (workspace:*)
+
+@zeus-web/vue
+└── @zeus-web/{button,checkbox,dialog,input,switch,tabs} (workspace:*)
+
+各 @zeus-web/primitive (button / checkbox / dialog / input / switch / tabs)
+├── @zeus-js/zeus (peer)
+├── @zeus-js/runtime-dom
+├── @zeus-js/web-c-runtime
+└── @zeus-web/zeus-compat (workspace:*)
 ```
 
 ---
@@ -886,6 +907,523 @@ pnpm add @zeus-js/output-wc @zeus-js/output-react-wrapper @zeus-js/output-vue-wr
 pnpm add -D @zeus-js/vite-plugin create-zeus
 pnpm add @zeus-ui/registry
 pnpm add @zeus-ui/cli
+```
+
+---
+
+## 8. Headless Primitive 包
+
+Phase 3 MVP 产出的 headless 原语包，源码使用 `@zeus-js/zeus` 的 `defineElement / Host / Slot / prop / event`，通过 `@zeus-js/bundler-plugin/rolldown` 输出 WC / React / Vue 三端产物。
+
+### 8.1 `@zeus-web/button`
+
+**源码路径**：`packages/primitives/button/src/button.tsx`
+
+#### 导出
+
+```ts
+export {
+  Button,
+  type ButtonElement,
+  type ButtonPressDetail,
+  type ButtonProps,
+  type ButtonSize,
+  type ButtonType,
+  type ButtonVariant,
+} from './button'
+```
+
+#### 类型定义
+
+```ts
+export type ButtonVariant =
+  | 'default'
+  | 'primary'
+  | 'secondary'
+  | 'outline'
+  | 'ghost'
+  | 'danger'
+
+export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon'
+
+export type ButtonType = 'button' | 'submit' | 'reset'
+
+export interface ButtonProps {
+  variant?: ButtonVariant
+  size?: ButtonSize
+  type?: ButtonType
+  disabled?: boolean
+  loading?: boolean
+  pressed?: boolean
+  name?: string
+  value?: string
+}
+
+export interface ButtonPressDetail {
+  nativeEvent: MouseEvent
+}
+
+export interface ButtonElement extends HTMLElement {
+  focus: () => void
+  blur: () => void
+  click: () => void
+}
+```
+
+#### props
+
+| prop       | type                                                                        | default     | reflect |
+| ---------- | --------------------------------------------------------------------------- | ----------- | ------- |
+| `variant`  | `'default' \| 'primary' \| 'secondary' \| 'outline' \| 'ghost' \| 'danger'` | `'default'` | yes     |
+| `size`     | `'sm' \| 'md' \| 'lg' \| 'icon'`                                            | `'md'`      | yes     |
+| `type`     | `'button' \| 'submit' \| 'reset'`                                           | `'button'`  | no      |
+| `disabled` | `boolean`                                                                   | `false`     | no      |
+| `loading`  | `boolean`                                                                   | `false`     | no      |
+| `pressed`  | `boolean`                                                                   | —           | yes     |
+
+#### emits
+
+| event   | detail                        |
+| ------- | ----------------------------- |
+| `press` | `{ nativeEvent: MouseEvent }` |
+
+#### CSS parts
+
+`button` / `label` / `prefix` / `suffix`
+
+#### 使用示例
+
+```html
+<zw-button variant="primary" size="md">Click me</zw-button>
+<zw-button loading disabled>Loading</zw-button>
+```
+
+---
+
+### 8.2 `@zeus-web/checkbox`
+
+**源码路径**：`packages/primitives/checkbox/src/checkbox.tsx`
+
+#### 导出
+
+```ts
+export {
+  Checkbox,
+  type CheckboxCheckedChangeDetail,
+  type CheckboxElement,
+  type CheckboxFocusChangeDetail,
+  type CheckboxProps,
+  type CheckboxSize,
+} from './checkbox'
+```
+
+#### 类型定义
+
+```ts
+export type CheckboxSize = 'sm' | 'md' | 'lg'
+
+export interface CheckboxProps {
+  checked?: boolean
+  defaultChecked?: boolean
+  indeterminate?: boolean
+  size?: CheckboxSize
+  disabled?: boolean
+  required?: boolean
+  invalid?: boolean
+  name?: string
+  value?: string
+}
+
+export interface CheckboxCheckedChangeDetail {
+  checked: boolean
+  nativeEvent: Event
+}
+
+export interface CheckboxFocusChangeDetail {
+  focused: boolean
+  nativeEvent: FocusEvent
+}
+
+export interface CheckboxElement extends HTMLElement {
+  checked?: boolean
+  indeterminate?: boolean
+  focus: () => void
+  blur: () => void
+}
+```
+
+#### props
+
+| prop            | type                   | default | reflect |
+| --------------- | ---------------------- | ------- | ------- |
+| `checked`       | `boolean`              | `false` | yes     |
+| `indeterminate` | `boolean`              | `false` | yes     |
+| `size`          | `'sm' \| 'md' \| 'lg'` | `'md'`  | yes     |
+
+#### emits
+
+| event           | detail                                          |
+| --------------- | ----------------------------------------------- |
+| `checkedChange` | `{ checked: boolean, nativeEvent: Event }`      |
+| `focusChange`   | `{ focused: boolean, nativeEvent: FocusEvent }` |
+
+#### CSS parts
+
+`root` / `control` / `indicator` / `label`
+
+#### 使用示例
+
+```html
+<zw-checkbox checked>Accept terms</zw-checkbox>
+<zw-checkbox indeterminate>Select all</zw-checkbox>
+```
+
+---
+
+### 8.3 `@zeus-web/switch`
+
+**源码路径**：`packages/primitives/switch/src/switch.tsx`
+
+#### 导出
+
+```ts
+export {
+  Switch,
+  type SwitchCheckedChangeDetail,
+  type SwitchElement,
+  type SwitchFocusChangeDetail,
+  type SwitchProps,
+  type SwitchSize,
+} from './switch'
+```
+
+#### 类型定义
+
+```ts
+export type SwitchSize = 'sm' | 'md' | 'lg'
+
+export interface SwitchProps {
+  checked?: boolean
+  defaultChecked?: boolean
+  size?: SwitchSize
+  disabled?: boolean
+  required?: boolean
+  invalid?: boolean
+  name?: string
+  value?: string
+}
+
+export interface SwitchCheckedChangeDetail {
+  checked: boolean
+  nativeEvent: Event
+}
+
+export interface SwitchFocusChangeDetail {
+  focused: boolean
+  nativeEvent: FocusEvent
+}
+
+export interface SwitchElement extends HTMLElement {
+  checked?: boolean
+  focus: () => void
+  blur: () => void
+}
+```
+
+#### props
+
+| prop      | type                   | default | reflect |
+| --------- | ---------------------- | ------- | ------- |
+| `checked` | `boolean`              | `false` | yes     |
+| `size`    | `'sm' \| 'md' \| 'lg'` | `'md'`  | yes     |
+
+#### emits
+
+| event           | detail                                          |
+| --------------- | ----------------------------------------------- |
+| `checkedChange` | `{ checked: boolean, nativeEvent: Event }`      |
+| `focusChange`   | `{ focused: boolean, nativeEvent: FocusEvent }` |
+
+#### CSS parts
+
+`root` / `control` / `track` / `thumb` / `label`
+
+#### 使用示例
+
+```html
+<zw-switch checked>Enable notifications</zw-switch>
+```
+
+---
+
+### 8.4 `@zeus-web/tabs`
+
+**源码路径**：`packages/primitives/tabs/src/tabs.tsx`
+
+#### 导出
+
+```ts
+export {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  type TabsContentElement,
+  type TabsContentProps,
+  type TabsElement,
+  type TabsListElement,
+  type TabsOrientation,
+  type TabsProps,
+  type TabsTriggerElement,
+  type TabsTriggerProps,
+  type TabsValueChangeDetail,
+} from './tabs'
+```
+
+#### 类型定义
+
+```ts
+export type TabsOrientation = 'horizontal' | 'vertical'
+
+export interface TabsProps {
+  value?: string
+  defaultValue?: string
+  orientation?: TabsOrientation
+  disabled?: boolean
+}
+
+export interface TabsValueChangeDetail {
+  value: string
+  nativeEvent?: Event
+}
+
+export interface TabsElement extends HTMLElement {
+  value?: string
+}
+
+export interface TabsTriggerProps {
+  value?: string
+  disabled?: boolean
+}
+
+export interface TabsTriggerElement extends HTMLElement {
+  focus: () => void
+}
+
+export interface TabsContentProps {
+  value?: string
+}
+
+export interface TabsContentElement extends HTMLElement {}
+```
+
+#### Tabs root props
+
+| prop          | type                         | default        | reflect |
+| ------------- | ---------------------------- | -------------- | ------- |
+| `value`       | `string`                     | —              | yes     |
+| `orientation` | `'horizontal' \| 'vertical'` | `'horizontal'` | yes     |
+| `disabled`    | `boolean`                    | `false`        | no      |
+
+#### Tabs root emits
+
+| event         | detail                                   |
+| ------------- | ---------------------------------------- |
+| `valueChange` | `{ value: string, nativeEvent?: Event }` |
+
+#### CSS parts
+
+- `Tabs` root: 无额外 part
+- `TabsList`: `list`
+- `TabsTrigger`: `trigger`
+- `TabsContent`: `content`
+
+#### 使用示例
+
+```html
+<zw-tabs value="tab1">
+  <zw-tabs-list>
+    <zw-tabs-trigger value="tab1">Tab 1</zw-tabs-trigger>
+    <zw-tabs-trigger value="tab2">Tab 2</zw-tabs-trigger>
+  </zw-tabs-list>
+  <zw-tabs-content value="tab1">Content 1</zw-tabs-content>
+  <zw-tabs-content value="tab2">Content 2</zw-tabs-content>
+</zw-tabs>
+```
+
+---
+
+### 8.5 `@zeus-web/dialog`
+
+**源码路径**：`packages/primitives/dialog/src/dialog.tsx`
+
+#### 导出
+
+```ts
+export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+  type DialogCloseElement,
+  type DialogCloseProps,
+  type DialogContentElement,
+  type DialogContentProps,
+  type DialogDescriptionElement,
+  type DialogElement,
+  type DialogOpenChangeDetail,
+  type DialogProps,
+  type DialogTitleElement,
+  type DialogTriggerElement,
+  type DialogTriggerProps,
+} from './dialog'
+```
+
+#### 类型定义
+
+```ts
+export interface DialogProps {
+  open?: boolean
+  defaultOpen?: boolean
+  modal?: boolean
+}
+
+export interface DialogOpenChangeDetail {
+  open: boolean
+  nativeEvent?: Event
+}
+
+export interface DialogElement extends HTMLElement {
+  open?: boolean
+  show: () => void
+  close: () => void
+}
+
+export interface DialogTriggerProps {
+  disabled?: boolean
+}
+
+export interface DialogTriggerElement extends HTMLElement {
+  focus: () => void
+}
+
+export interface DialogContentProps {
+  forceMount?: boolean
+}
+
+export interface DialogContentElement extends HTMLElement {
+  focus: () => void
+}
+
+export interface DialogCloseProps {
+  disabled?: boolean
+}
+
+export interface DialogCloseElement extends HTMLElement {
+  focus: () => void
+}
+
+export interface DialogTitleElement extends HTMLElement {}
+export interface DialogDescriptionElement extends HTMLElement {}
+```
+
+#### Dialog root props
+
+| prop    | type      | default | reflect |
+| ------- | --------- | ------- | ------- |
+| `open`  | `boolean` | `false` | yes     |
+| `modal` | `boolean` | `true`  | yes     |
+
+#### Dialog root emits
+
+| event        | detail                                   |
+| ------------ | ---------------------------------------- |
+| `openChange` | `{ open: boolean, nativeEvent?: Event }` |
+
+#### Dialog root methods
+
+| method  | 说明       |
+| ------- | ---------- |
+| `show`  | 打开对话框 |
+| `close` | 关闭对话框 |
+
+#### CSS parts
+
+- `DialogTrigger`: `trigger`
+- `DialogContent`: `content`
+- `DialogClose`: `close`
+- `DialogTitle`: `title`
+- `DialogDescription`: `description`
+
+#### 使用示例
+
+```html
+<zw-dialog>
+  <zw-dialog-trigger>Open</zw-dialog-trigger>
+  <zw-dialog-content>
+    <zw-dialog-title>Title</zw-dialog-title>
+    <zw-dialog-description>Description text</zw-dialog-description>
+    <zw-dialog-close>Close</zw-dialog-close>
+  </zw-dialog-content>
+</zw-dialog>
+```
+
+---
+
+### 8.6 聚合包
+
+#### `@zeus-web/headless`
+
+聚合所有 primitive WC 的 side-effect 导入，引入即注册全部 MVP 原语。
+
+```ts
+import '@zeus-web/headless'
+// 等价于分别引入:
+// import '@zeus-web/button/wc'
+// import '@zeus-web/checkbox/wc'
+// import '@zeus-web/dialog/wc'
+// import '@zeus-web/input/wc'
+// import '@zeus-web/switch/wc'
+// import '@zeus-web/tabs/wc'
+```
+
+同时 re-export 所有 primitive 的类型：
+
+```ts
+export type { ButtonElement } from '@zeus-web/button'
+export type { CheckboxElement } from '@zeus-web/checkbox'
+export type { DialogElement, DialogContentElement, ... } from '@zeus-web/dialog'
+export type { InputElement } from '@zeus-web/input'
+export type { SwitchElement } from '@zeus-web/switch'
+export type { TabsElement, TabsContentElement, ... } from '@zeus-web/tabs'
+```
+
+#### `@zeus-web/react`
+
+Re-export 所有 primitive 的 React wrapper 输出：
+
+```ts
+export * from '@zeus-web/button/react'
+export * from '@zeus-web/checkbox/react'
+export * from '@zeus-web/dialog/react'
+export * from '@zeus-web/input/react'
+export * from '@zeus-web/switch/react'
+export * from '@zeus-web/tabs/react'
+```
+
+#### `@zeus-web/vue`
+
+Re-export 所有 primitive 的 Vue wrapper 输出：
+
+```ts
+export * from '@zeus-web/button/vue'
+export * from '@zeus-web/checkbox/vue'
+export * from '@zeus-web/dialog/vue'
+export * from '@zeus-web/input/vue'
+export * from '@zeus-web/switch/vue'
+export * from '@zeus-web/tabs/vue'
 ```
 
 ---

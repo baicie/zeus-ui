@@ -42,8 +42,8 @@ describe('switch primitive protocol', () => {
           name: 'checked-change',
           reactName: 'onCheckedChange',
           detail: {
-            checked: 'unknown',
-            nativeEvent: 'unknown',
+            checked: 'boolean',
+            nativeEvent: 'Event',
           },
         },
         focusChange: {
@@ -51,7 +51,7 @@ describe('switch primitive protocol', () => {
           reactName: 'onFocusChange',
           detail: {
             focused: 'boolean',
-            nativeEvent: 'unknown',
+            nativeEvent: 'FocusEvent',
           },
         },
       },

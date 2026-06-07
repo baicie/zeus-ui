@@ -60,7 +60,7 @@ describe('button primitive protocol', () => {
           name: 'press',
           reactName: 'onPress',
           detail: {
-            nativeEvent: 'unknown',
+            nativeEvent: 'MouseEvent',
           },
         },
       },

@@ -97,7 +97,10 @@ export const Dialog = defineElement<DialogProps, DialogElement, DialogEmits>(
       }),
     },
     emits: {
-      openChange: event<DialogOpenChangeDetail>(),
+      openChange: event<{
+        open: boolean
+        nativeEvent?: Event
+      }>(),
     },
     meta: {
       description: 'Headless dialog root primitive.',

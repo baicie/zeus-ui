@@ -130,8 +130,14 @@ export const Switch = defineElement<SwitchProps, SwitchElement, SwitchEmits>(
       value: String,
     },
     emits: {
-      checkedChange: event<SwitchCheckedChangeDetail>(),
-      focusChange: event<SwitchFocusChangeDetail>(),
+      checkedChange: event<{
+        checked: boolean
+        nativeEvent: Event
+      }>(),
+      focusChange: event<{
+        focused: boolean
+        nativeEvent: FocusEvent
+      }>(),
     },
     meta: {
       description: 'Headless switch primitive.',

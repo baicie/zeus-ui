@@ -20,7 +20,7 @@
     "check": "tsc -p tsconfig.json --noEmit"
   },
   "peerDependencies": {
-    "vue": "^3.4 || ^3.5"
+    "vue": ">=3"
   },
   "peerDependenciesMeta": {
     "vue": {

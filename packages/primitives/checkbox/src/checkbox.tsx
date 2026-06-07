@@ -147,8 +147,14 @@ export const Checkbox = defineElement<
       value: String,
     },
     emits: {
-      checkedChange: event<CheckboxCheckedChangeDetail>(),
-      focusChange: event<CheckboxFocusChangeDetail>(),
+      checkedChange: event<{
+        checked: boolean
+        nativeEvent: Event
+      }>(),
+      focusChange: event<{
+        focused: boolean
+        nativeEvent: FocusEvent
+      }>(),
     },
     meta: {
       description: 'Headless checkbox primitive.',

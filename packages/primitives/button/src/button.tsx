@@ -139,7 +139,9 @@ export const Button = defineElement<ButtonProps, ButtonElement, ButtonEmits>(
       value: String,
     },
     emits: {
-      press: event<ButtonPressDetail>(),
+      press: event<{
+        nativeEvent: MouseEvent
+      }>(),
     },
     meta: {
       description: 'Headless button primitive.',

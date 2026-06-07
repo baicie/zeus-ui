@@ -49,7 +49,8 @@ describe('dialog primitive protocol', () => {
           name: 'open-change',
           reactName: 'onOpenChange',
           detail: {
-            open: 'unknown',
+            open: 'boolean',
+            nativeEvent: 'Event',
           },
         },
       },
