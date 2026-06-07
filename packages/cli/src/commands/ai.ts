@@ -1,3 +1,5 @@
+import type { ComponentsConfig } from '../config'
+
 import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
@@ -9,6 +11,8 @@ import {
   validateAiMetadata,
 } from '@zeus-web/ai'
 import pc from 'picocolors'
+
+import { getComponentsConfigPath, readComponentsConfig } from '../config'
 
 export type AiOutputFormat = 'markdown' | 'json'
 
@@ -57,6 +61,10 @@ function parseFormat(value: string): AiOutputFormat {
   throw new Error(`Unsupported AI output format: ${value}`)
 }
 
+function isDefaultOutput(output: string): boolean {
+  return output === 'zeus-web.ai.md' || output === 'zeus-web.ai.json'
+}
+
 export function parseAiArgs(args: string[], cwd = process.cwd()): ParsedAiArgs {
   const options: AiOptions = {
     cwd,
@@ -65,6 +73,8 @@ export function parseAiArgs(args: string[], cwd = process.cwd()): ParsedAiArgs {
     overwrite: false,
     dryRun: false,
   }
+
+  let outputExplicit = false
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index]
@@ -81,19 +91,31 @@ export function parseAiArgs(args: string[], cwd = process.cwd()): ParsedAiArgs {
 
     if (arg === '--json') {
       options.format = 'json'
-      options.output = defaultOutputForFormat('json')
+
+      if (!outputExplicit && isDefaultOutput(options.output)) {
+        options.output = defaultOutputForFormat('json')
+      }
+
       continue
     }
 
     if (arg === '--markdown' || arg === '--md') {
       options.format = 'markdown'
-      options.output = defaultOutputForFormat('markdown')
+
+      if (!outputExplicit && isDefaultOutput(options.output)) {
+        options.output = defaultOutputForFormat('markdown')
+      }
+
       continue
     }
 
     if (arg === '--cursor') {
       options.format = 'markdown'
-      options.output = '.cursor/rules/zeus-web.mdc'
+
+      if (!outputExplicit) {
+        options.output = '.cursor/rules/zeus-web.mdc'
+      }
+
       continue
     }
 
@@ -129,10 +151,7 @@ export function parseAiArgs(args: string[], cwd = process.cwd()): ParsedAiArgs {
 
       options.format = parseFormat(value)
 
-      if (
-        options.output === 'zeus-web.ai.md' ||
-        options.output === 'zeus-web.ai.json'
-      ) {
+      if (!outputExplicit && isDefaultOutput(options.output)) {
         options.output = defaultOutputForFormat(options.format)
       }
 
@@ -149,10 +168,7 @@ export function parseAiArgs(args: string[], cwd = process.cwd()): ParsedAiArgs {
 
       options.format = parseFormat(value)
 
-      if (
-        options.output === 'zeus-web.ai.md' ||
-        options.output === 'zeus-web.ai.json'
-      ) {
+      if (!outputExplicit && isDefaultOutput(options.output)) {
         options.output = defaultOutputForFormat(options.format)
       }
 
@@ -167,6 +183,7 @@ export function parseAiArgs(args: string[], cwd = process.cwd()): ParsedAiArgs {
       }
 
       options.output = value
+      outputExplicit = true
       index += 1
       continue
     }
@@ -179,6 +196,7 @@ export function parseAiArgs(args: string[], cwd = process.cwd()): ParsedAiArgs {
       }
 
       options.output = value
+      outputExplicit = true
       continue
     }
 
@@ -192,25 +210,59 @@ export function parseAiArgs(args: string[], cwd = process.cwd()): ParsedAiArgs {
   }
 }
 
-export function createAiGuideContent(format: AiOutputFormat): string {
+function loadOptionalComponentsConfig(
+  cwd: string,
+): ComponentsConfig | undefined {
+  if (!existsSync(getComponentsConfigPath(cwd))) {
+    return undefined
+  }
+
+  return readComponentsConfig(cwd)
+}
+
+function normalizeAlias(alias: string): string {
+  return alias.replace(/\/$/, '')
+}
+
+export function rewriteAiGuideContent(
+  content: string,
+  config?: ComponentsConfig,
+): string {
+  if (!config) return content
+
+  const uiAlias = normalizeAlias(config.aliases.ui)
+  const libAlias = normalizeAlias(config.aliases.lib)
+
+  return content
+    .replace(/@\/components\/ui/g, uiAlias)
+    .replace(/@\/lib/g, libAlias)
+}
+
+export function createAiGuideContent(
+  format: AiOutputFormat,
+  config?: ComponentsConfig,
+): string {
   const result = validateAiMetadata(aiMetadata)
 
   if (!result.valid) {
     throw new Error(
       [
         'Invalid @zeus-web/ai metadata:',
-        ...result.errors.map(e => `- ${e}`),
+        ...result.errors.map(error => `- ${error}`),
       ].join('\n'),
     )
   }
 
-  return format === 'json'
-    ? renderAiJson(aiMetadata)
-    : renderAiMarkdown(aiMetadata)
+  const content =
+    format === 'json' ? renderAiJson(aiMetadata) : renderAiMarkdown(aiMetadata)
+
+  return rewriteAiGuideContent(content, config)
 }
 
 export async function writeAiGuide(options: AiOptions): Promise<AiWriteResult> {
   const outputPath = assertSafeTarget(options.cwd, options.output)
+  const config = loadOptionalComponentsConfig(options.cwd)
+  const content = createAiGuideContent(options.format, config)
 
   if (existsSync(outputPath) && !options.overwrite) {
     return {
@@ -231,7 +283,7 @@ export async function writeAiGuide(options: AiOptions): Promise<AiWriteResult> {
   }
 
   await mkdir(dirname(outputPath), { recursive: true })
-  await writeFile(outputPath, createAiGuideContent(options.format), 'utf-8')
+  await writeFile(outputPath, content, 'utf-8')
 
   return {
     output: options.output,

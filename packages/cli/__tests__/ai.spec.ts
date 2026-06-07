@@ -1,16 +1,30 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 import {
   createAiGuideContent,
   parseAiArgs,
+  rewriteAiGuideContent,
   writeAiGuide,
 } from '../src/commands/ai'
+import { createDefaultComponentsConfig } from '../src/config'
 
 async function createTempDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), 'zeus-web-ai-'))
+}
+
+async function writeComponentsJson(
+  cwd: string,
+  config = createDefaultComponentsConfig(),
+) {
+  await mkdir(cwd, { recursive: true })
+  writeFileSync(
+    resolve(cwd, 'components.json'),
+    `${JSON.stringify(config, null, 2)}\n`,
+    'utf-8',
+  )
 }
 
 describe('@zeus-web/cli ai', () => {
@@ -31,6 +45,23 @@ describe('@zeus-web/cli ai', () => {
 
     expect(parsed.options.format).toBe('json')
     expect(parsed.options.output).toBe('zeus-web.ai.json')
+  })
+
+  it('preserves explicit output when format appears later', () => {
+    const parsed = parseAiArgs(['--output', 'docs/ai.json', '--json'], '/repo')
+
+    expect(parsed.options.format).toBe('json')
+    expect(parsed.options.output).toBe('docs/ai.json')
+  })
+
+  it('preserves explicit output when cursor appears later', () => {
+    const parsed = parseAiArgs(
+      ['--output', 'docs/zeus.md', '--cursor'],
+      '/repo',
+    )
+
+    expect(parsed.options.format).toBe('markdown')
+    expect(parsed.options.output).toBe('docs/zeus.md')
   })
 
   it('parses cursor output', () => {
@@ -65,6 +96,24 @@ describe('@zeus-web/cli ai', () => {
 
     expect(parsed.packageName).toBe('@zeus-web/ai')
     expect(parsed.components).toHaveLength(6)
+  })
+
+  it('rewrites aliases from components config', () => {
+    const config = createDefaultComponentsConfig()
+    config.aliases.ui = '~/components/ui'
+    config.aliases.lib = '~/shared/lib'
+
+    const source = [
+      "import { Button } from '@/components/ui/button'",
+      "import { cn } from '@/lib/utils'",
+    ].join('\n')
+
+    expect(rewriteAiGuideContent(source, config)).toBe(
+      [
+        "import { Button } from '~/components/ui/button'",
+        "import { cn } from '~/shared/lib/utils'",
+      ].join('\n'),
+    )
   })
 
   it('dry-runs without writing files', async () => {
@@ -107,6 +156,31 @@ describe('@zeus-web/cli ai', () => {
       expect(readFileSync(resolve(cwd, 'zeus-web.ai.md'), 'utf-8')).toContain(
         '# Zeus Web AI Guide',
       )
+    } finally {
+      await rm(cwd, { recursive: true, force: true })
+    }
+  })
+
+  it('writes guide using components config aliases when available', async () => {
+    const cwd = await createTempDir()
+    const config = createDefaultComponentsConfig()
+    config.aliases.ui = '~/components/ui'
+
+    try {
+      await writeComponentsJson(cwd, config)
+
+      await writeAiGuide({
+        cwd,
+        format: 'markdown',
+        output: 'zeus-web.ai.md',
+        overwrite: false,
+        dryRun: false,
+      })
+
+      const content = readFileSync(resolve(cwd, 'zeus-web.ai.md'), 'utf-8')
+
+      expect(content).toContain('~/components/ui/button')
+      expect(content).not.toContain('@/components/ui/button')
     } finally {
       await rm(cwd, { recursive: true, force: true })
     }

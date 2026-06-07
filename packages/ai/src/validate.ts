@@ -46,6 +46,18 @@ export function validateAiMetadata(
       )
     }
 
+    if (!component.installCommand.includes(`@zeus-web/${component.name}`)) {
+      errors.push(
+        `${component.name}: installCommand must include @zeus-web/${component.name}`,
+      )
+    }
+
+    if (component.sourceTarget !== `components/ui/${component.name}.tsx`) {
+      errors.push(
+        `${component.name}: sourceTarget must be components/ui/${component.name}.tsx`,
+      )
+    }
+
     if (!component.reactImport.includes(`@zeus-web/${component.name}/react`)) {
       errors.push(`${component.name}: reactImport must use per-component entry`)
     }
