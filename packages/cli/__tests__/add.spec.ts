@@ -12,6 +12,7 @@ import {
   listAvailableComponents,
   parseAddArgs,
 } from '../src/commands/add'
+import { createDefaultComponentsConfig } from '../src/config'
 
 const registry: Registry = {
   $schema: 'https://zeus-web.dev/schema/registry.json',
@@ -104,6 +105,15 @@ function writeRegistrySource(
   writeFileSync(path, content, 'utf-8')
 }
 
+function writeComponentsJson(root: string): void {
+  mkdirSync(resolve(root, 'src'), { recursive: true })
+  writeFileSync(
+    resolve(root, 'components.json'),
+    `${JSON.stringify(createDefaultComponentsConfig(), null, 2)}\n`,
+    'utf-8',
+  )
+}
+
 describe('@zeus-web/cli add', () => {
   it('lists registry ui components', () => {
     expect(listAvailableComponents(registry)).toEqual([
@@ -180,7 +190,15 @@ describe('@zeus-web/cli add', () => {
 
   it('parses add options', () => {
     const parsed = parseAddArgs(
-      ['button', 'input', '--dry-run', '--overwrite', '--cwd', 'demo'],
+      [
+        'button',
+        'input',
+        '--dry-run',
+        '--overwrite',
+        '--cwd',
+        'demo',
+        '--no-install',
+      ],
       '/repo',
     )
 
@@ -189,6 +207,7 @@ describe('@zeus-web/cli add', () => {
       cwd: resolve('/repo', 'demo'),
       dryRun: true,
       overwrite: true,
+      install: false,
     })
   })
 
@@ -205,6 +224,7 @@ describe('@zeus-web/cli add', () => {
     try {
       writeRegistrySource(registryRoot, 'default/lib/utils.ts', 'export {}\n')
       writeRegistrySource(registryRoot, 'default/button.tsx', 'export {}\n')
+      writeComponentsJson(targetRoot)
 
       const plans = createAddPlan(['button'], registry)
       const result = await executeAddPlan(
@@ -213,26 +233,27 @@ describe('@zeus-web/cli add', () => {
           cwd: targetRoot,
           dryRun: true,
           overwrite: false,
+          install: true,
         },
         registryRoot,
       )
 
       expect(result.planned).toEqual([
-        'lib/utils.ts',
-        'components/ui/button.tsx',
+        'src/lib/utils.ts',
+        'src/components/ui/button.tsx',
       ])
       expect(result.written).toEqual([])
-      expect(existsSync(resolve(targetRoot, 'lib/utils.ts'))).toBe(false)
-      expect(existsSync(resolve(targetRoot, 'components/ui/button.tsx'))).toBe(
-        false,
-      )
+      expect(existsSync(resolve(targetRoot, 'src/lib/utils.ts'))).toBe(false)
+      expect(
+        existsSync(resolve(targetRoot, 'src/components/ui/button.tsx')),
+      ).toBe(false)
     } finally {
       await rm(registryRoot, { recursive: true, force: true })
       await rm(targetRoot, { recursive: true, force: true })
     }
   })
 
-  it('copies registry files into cwd', async () => {
+  it('copies registry files into cwd with alias resolution', async () => {
     const registryRoot = await createTempDir()
     const targetRoot = await createTempDir()
 
@@ -247,6 +268,7 @@ describe('@zeus-web/cli add', () => {
         'default/button.tsx',
         'export const Button = null\n',
       )
+      writeComponentsJson(targetRoot)
 
       const plans = createAddPlan(['button'], registry)
       const result = await executeAddPlan(
@@ -255,20 +277,24 @@ describe('@zeus-web/cli add', () => {
           cwd: targetRoot,
           dryRun: false,
           overwrite: false,
+          install: true,
         },
         registryRoot,
       )
 
       expect(result.written).toEqual([
-        'lib/utils.ts',
-        'components/ui/button.tsx',
+        'src/lib/utils.ts',
+        'src/components/ui/button.tsx',
       ])
       expect(result.skipped).toEqual([])
-      expect(readFileSync(resolve(targetRoot, 'lib/utils.ts'), 'utf-8')).toBe(
-        'export function cn() {}\n',
-      )
       expect(
-        readFileSync(resolve(targetRoot, 'components/ui/button.tsx'), 'utf-8'),
+        readFileSync(resolve(targetRoot, 'src/lib/utils.ts'), 'utf-8'),
+      ).toBe('export function cn() {}\n')
+      expect(
+        readFileSync(
+          resolve(targetRoot, 'src/components/ui/button.tsx'),
+          'utf-8',
+        ),
       ).toBe('export const Button = null\n')
     } finally {
       await rm(registryRoot, { recursive: true, force: true })
@@ -283,9 +309,14 @@ describe('@zeus-web/cli add', () => {
     try {
       writeRegistrySource(registryRoot, 'default/lib/utils.ts', 'new\n')
       writeRegistrySource(registryRoot, 'default/button.tsx', 'button\n')
+      writeComponentsJson(targetRoot)
 
-      mkdirSync(resolve(targetRoot, 'lib'), { recursive: true })
-      writeFileSync(resolve(targetRoot, 'lib/utils.ts'), 'existing\n', 'utf-8')
+      mkdirSync(resolve(targetRoot, 'src/lib'), { recursive: true })
+      writeFileSync(
+        resolve(targetRoot, 'src/lib/utils.ts'),
+        'existing\n',
+        'utf-8',
+      )
 
       const plans = createAddPlan(['button'], registry)
       const result = await executeAddPlan(
@@ -294,17 +325,18 @@ describe('@zeus-web/cli add', () => {
           cwd: targetRoot,
           dryRun: false,
           overwrite: false,
+          install: true,
         },
         registryRoot,
       )
 
-      expect(result.skipped).toEqual(['lib/utils.ts'])
-      expect(readFileSync(resolve(targetRoot, 'lib/utils.ts'), 'utf-8')).toBe(
-        'existing\n',
-      )
-      expect(existsSync(resolve(targetRoot, 'components/ui/button.tsx'))).toBe(
-        true,
-      )
+      expect(result.skipped).toEqual(['src/lib/utils.ts'])
+      expect(
+        readFileSync(resolve(targetRoot, 'src/lib/utils.ts'), 'utf-8'),
+      ).toBe('existing\n')
+      expect(
+        existsSync(resolve(targetRoot, 'src/components/ui/button.tsx')),
+      ).toBe(true)
     } finally {
       await rm(registryRoot, { recursive: true, force: true })
       await rm(targetRoot, { recursive: true, force: true })
@@ -318,9 +350,14 @@ describe('@zeus-web/cli add', () => {
     try {
       writeRegistrySource(registryRoot, 'default/lib/utils.ts', 'new\n')
       writeRegistrySource(registryRoot, 'default/button.tsx', 'button\n')
+      writeComponentsJson(targetRoot)
 
-      mkdirSync(resolve(targetRoot, 'lib'), { recursive: true })
-      writeFileSync(resolve(targetRoot, 'lib/utils.ts'), 'existing\n', 'utf-8')
+      mkdirSync(resolve(targetRoot, 'src/lib'), { recursive: true })
+      writeFileSync(
+        resolve(targetRoot, 'src/lib/utils.ts'),
+        'existing\n',
+        'utf-8',
+      )
 
       const plans = createAddPlan(['button'], registry)
       const result = await executeAddPlan(
@@ -329,15 +366,16 @@ describe('@zeus-web/cli add', () => {
           cwd: targetRoot,
           dryRun: false,
           overwrite: true,
+          install: true,
         },
         registryRoot,
       )
 
       expect(result.skipped).toEqual([])
-      expect(result.written).toContain('lib/utils.ts')
-      expect(readFileSync(resolve(targetRoot, 'lib/utils.ts'), 'utf-8')).toBe(
-        'new\n',
-      )
+      expect(result.written).toContain('src/lib/utils.ts')
+      expect(
+        readFileSync(resolve(targetRoot, 'src/lib/utils.ts'), 'utf-8'),
+      ).toBe('new\n')
     } finally {
       await rm(registryRoot, { recursive: true, force: true })
       await rm(targetRoot, { recursive: true, force: true })
@@ -352,6 +390,7 @@ describe('@zeus-web/cli add', () => {
       writeRegistrySource(registryRoot, 'default/lib/utils.ts', 'utils\n')
       writeRegistrySource(registryRoot, 'default/input.tsx', 'input\n')
       writeRegistrySource(registryRoot, 'default/button.tsx', 'button\n')
+      writeComponentsJson(targetRoot)
 
       const plans = createAddPlan(['input', 'button'], registry)
       const result = await executeAddPlan(
@@ -360,14 +399,15 @@ describe('@zeus-web/cli add', () => {
           cwd: targetRoot,
           dryRun: false,
           overwrite: false,
+          install: true,
         },
         registryRoot,
       )
 
       expect(result.written).toEqual([
-        'lib/utils.ts',
-        'components/ui/input.tsx',
-        'components/ui/button.tsx',
+        'src/lib/utils.ts',
+        'src/components/ui/input.tsx',
+        'src/components/ui/button.tsx',
       ])
     } finally {
       await rm(registryRoot, { recursive: true, force: true })
@@ -381,6 +421,7 @@ describe('@zeus-web/cli add', () => {
 
     try {
       writeRegistrySource(registryRoot, 'default/button.tsx', 'button\n')
+      writeComponentsJson(targetRoot)
 
       await expect(
         executeAddPlan(
@@ -402,6 +443,7 @@ describe('@zeus-web/cli add', () => {
             cwd: targetRoot,
             dryRun: false,
             overwrite: false,
+            install: true,
           },
           registryRoot,
         ),

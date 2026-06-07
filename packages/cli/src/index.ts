@@ -33,13 +33,20 @@ function printHelp() {
   console.log(`\n${pc.bold('zweb')} - Zeus Web CLI\n`)
   console.log('Usage:')
   console.log('  zweb init')
+  console.log('  zweb init --style slate --css src/styles/globals.css')
   console.log('  zweb add button')
   console.log('  zweb add button input dialog')
   console.log('')
   console.log('Options:')
-  console.log('  --cwd <dir>     Write files into a specific project directory')
-  console.log('  --dry-run       Print the plan without writing files')
-  console.log('  --overwrite     Replace existing files')
+  console.log('  --cwd <dir>                 Use a specific project directory')
+  console.log('  --style <name>              Theme style for init')
+  console.log('  --css <file>                Tailwind css file for init')
+  console.log(
+    '  --dry-run                   Print the plan without writing files',
+  )
+  console.log('  --overwrite                 Replace existing files')
+  console.log('  --no-install                Do not install dependencies')
+  console.log('  --package-manager <name>    pnpm | npm | yarn | bun')
 }
 
 main().catch(error => {

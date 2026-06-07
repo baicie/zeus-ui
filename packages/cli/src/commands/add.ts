@@ -3,6 +3,8 @@ import type {
   RegistryItem,
   RegistryItemFile,
 } from '@zeus-web/registry'
+import type { ComponentsConfig } from '../config'
+import type { PackageManager } from '../package-manager'
 
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
@@ -12,9 +14,17 @@ import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { validateRegistry } from '@zeus-web/registry'
 import pc from 'picocolors'
 
+import {
+  readComponentsConfig,
+  resolveRegistryTarget,
+  toRelativeProjectPath,
+} from '../config'
+import { installDependencies } from '../package-manager'
+
 export interface RegistryFilePlan {
   source: string
   target: string
+  resolvedTarget?: string
   type: 'registry:ui' | 'registry:lib' | 'registry:style'
 }
 
@@ -29,6 +39,8 @@ export interface AddOptions {
   cwd: string
   dryRun: boolean
   overwrite: boolean
+  install: boolean
+  packageManager?: PackageManager
 }
 
 export interface AddExecutionResult {
@@ -152,6 +164,20 @@ export function createAddPlan(
   return dedupePlans(plans)
 }
 
+export function resolveAddPlanTargets(
+  plans: AddPlan[],
+  cwd: string,
+  config: ComponentsConfig,
+): AddPlan[] {
+  return plans.map(plan => ({
+    ...plan,
+    files: plan.files.map(file => ({
+      ...file,
+      resolvedTarget: resolveRegistryTarget(cwd, config, file.target),
+    })),
+  }))
+}
+
 export function createCombinedInstallPlan(plans: AddPlan[]): {
   dependencies: string[]
   devDependencies: string[]
@@ -160,6 +186,19 @@ export function createCombinedInstallPlan(plans: AddPlan[]): {
     dependencies: uniqueSorted(plans.flatMap(plan => plan.dependencies)),
     devDependencies: uniqueSorted(plans.flatMap(plan => plan.devDependencies)),
   }
+}
+
+function parsePackageManagerValue(value: string): PackageManager {
+  if (
+    value === 'pnpm' ||
+    value === 'npm' ||
+    value === 'yarn' ||
+    value === 'bun'
+  ) {
+    return value
+  }
+
+  throw new Error(`Unsupported package manager: ${value}`)
 }
 
 export function parseAddArgs(
@@ -171,6 +210,7 @@ export function parseAddArgs(
     cwd,
     dryRun: false,
     overwrite: false,
+    install: true,
   }
 
   for (let index = 0; index < args.length; index += 1) {
@@ -183,6 +223,11 @@ export function parseAddArgs(
 
     if (arg === '--overwrite') {
       options.overwrite = true
+      continue
+    }
+
+    if (arg === '--no-install') {
+      options.install = false
       continue
     }
 
@@ -206,6 +251,25 @@ export function parseAddArgs(
       }
 
       options.cwd = isAbsolute(value) ? value : resolve(cwd, value)
+      continue
+    }
+
+    if (arg === '--package-manager') {
+      const value = args[index + 1]
+
+      if (!value) {
+        throw new Error('--package-manager requires a value')
+      }
+
+      options.packageManager = parsePackageManagerValue(value)
+      index += 1
+      continue
+    }
+
+    if (arg.startsWith('--package-manager=')) {
+      options.packageManager = parsePackageManagerValue(
+        arg.slice('--package-manager='.length),
+      )
       continue
     }
 
@@ -245,7 +309,8 @@ async function copyRegistryFile(params: {
   overwrite: boolean
 }): Promise<CopyResult> {
   const sourcePath = resolve(params.registryRoot, params.file.source)
-  const targetPath = assertSafeTarget(params.cwd, params.file.target)
+  const rawTarget = params.file.resolvedTarget ?? params.file.target
+  const targetPath = assertSafeTarget(params.cwd, rawTarget)
 
   if (!existsSync(sourcePath)) {
     throw new Error(
@@ -274,18 +339,24 @@ export async function executeAddPlan(
   options: AddOptions,
   registryRoot = resolveRegistryRoot(),
 ): Promise<AddExecutionResult> {
+  const config = readComponentsConfig(options.cwd)
+  const resolvedPlans = resolveAddPlanTargets(plans, options.cwd, config)
+
   const planned: string[] = []
   const written: string[] = []
   const skipped: string[] = []
   const seenTargets = new Set<string>()
 
-  for (const plan of plans) {
+  for (const plan of resolvedPlans) {
     for (const file of plan.files) {
-      if (seenTargets.has(file.target)) {
+      const targetPath = file.resolvedTarget ?? file.target
+      const displayTarget = toRelativeProjectPath(options.cwd, targetPath)
+
+      if (seenTargets.has(targetPath)) {
         continue
       }
 
-      seenTargets.add(file.target)
+      seenTargets.add(targetPath)
 
       const result = await copyRegistryFile({
         registryRoot,
@@ -296,11 +367,11 @@ export async function executeAddPlan(
       })
 
       if (result === 'planned') {
-        planned.push(file.target)
+        planned.push(displayTarget)
       } else if (result === 'written') {
-        written.push(file.target)
+        written.push(displayTarget)
       } else {
-        skipped.push(file.target)
+        skipped.push(displayTarget)
       }
     }
   }
@@ -403,6 +474,15 @@ export async function add(args: string[]) {
     const result = await executeAddPlan(plans, options)
 
     printResult(result)
+
+    if (options.install && !options.dryRun) {
+      await installDependencies({
+        cwd: options.cwd,
+        packageManager: options.packageManager,
+        dependencies: result.dependencies,
+        devDependencies: result.devDependencies,
+      })
+    }
   } catch (error) {
     console.error(pc.red((error as Error).message))
     process.exitCode = 1
