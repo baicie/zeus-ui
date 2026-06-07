@@ -133,10 +133,18 @@ export default defineConfig({
               find: /^@zeus-js\/zeus$/,
               replacement: zeusEsmPath,
             },
+            {
+              find: /^@zeus-js\/runtime-dom$/,
+              replacement: runtimeDomEsmPath,
+            },
+            ...Object.entries(entries).map(([find, replacement]) => ({
+              find,
+              replacement,
+            })),
           ],
         },
         ssr: {
-          noExternal: ['@zeus-js/zeus'],
+          noExternal: ['@zeus-js/zeus', '@zeus-js/runtime-dom'],
           resolve: {
             externalConditions: ['import', 'module', 'browser', 'default'],
           },

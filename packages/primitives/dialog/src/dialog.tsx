@@ -207,7 +207,7 @@ function setupDialogContent(
         }}
         part="content"
         role="dialog"
-        aria-modal={() => String(Boolean(dialog?.isModal()))}
+        aria-modal={() => (dialog?.isModal() ? 'true' : undefined)}
         tabIndex={() => -1}
         onKeyDown={event => {
           if (event.key === 'Escape') {

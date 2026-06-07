@@ -48,8 +48,8 @@ describe('tabs primitive protocol', () => {
           name: 'value-change',
           reactName: 'onValueChange',
           detail: {
-            value: 'unknown',
-            nativeEvent: 'unknown',
+            value: 'string',
+            nativeEvent: 'Event',
           },
         },
       },

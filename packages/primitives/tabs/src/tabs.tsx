@@ -94,7 +94,10 @@ export const Tabs = defineElement<TabsProps, TabsElement, TabsEmits>(
       disabled: prop(Boolean),
     },
     emits: {
-      valueChange: event<TabsValueChangeDetail>(),
+      valueChange: event<{
+        value: string
+        nativeEvent?: Event
+      }>(),
     },
     meta: {
       description: 'Headless tabs root primitive.',
