@@ -313,7 +313,7 @@ examples/native-wc/    原生 Web Component 使用路径
   pnpm site:build
 ```
 
-**不做的内容**（留到后续阶段）：Next.js example、Playground、docs 自动生成。
+**不做的内容**（留到后续阶段）：Playground、docs 自动生成。
 
 状态：**已完成**
 
@@ -350,6 +350,52 @@ scripts/checks/check-docs.ts      docs contract 检查脚本
 ```
 
 不做：Playground、API 自动生成、自定义 Vue 组件。
+
+状态：**已完成**
+
+---
+
+## Phase 9.2：Next.js App Router Example MVP
+
+在 Phase 9.1 基础上新增 Next.js 示例，完善 examples 体系。
+
+已完成：
+
+```txt
+examples/next-app/                  Next.js App Router 示例
+  package.json                      依赖 @zeus-web/<component>/react + workspace:*
+  tsconfig.json                     Next 类型 + path alias @/*
+  next.config.ts                    transpilePackages 配置
+  components.json                   aliases.ui / aliases.lib 与 CLI 约定一致
+  src/app/layout.tsx                导入 @zeus-web/themes/default.css
+  src/app/page.tsx                  渲染 Demo 组件
+  src/app/globals.css               CSS fallback 样式（含所有组件的 .zw-* 类）
+  src/components/demo.tsx            6 个组件演示，'use client'
+  src/components/ui/
+    button.tsx                      'use client' + @zeus-web/button/react
+    input.tsx                       'use client' + @zeus-web/input/react
+    checkbox.tsx                    'use client' + @zeus-web/checkbox/react
+    switch.tsx                      'use client' + @zeus-web/switch/react
+    tabs.tsx                        'use client' + @zeus-web/tabs/react
+    dialog.tsx                      'use client' + @zeus-web/dialog/react
+  src/lib/utils.ts                  cn() helper
+
+apps/docs/examples/next-app.md       Next.js 示例文档页
+
+apps/docs/.vitepress/data/site.ts  exampleItems 新增 Next.js App Router
+
+scripts/checks/check-examples.ts    examples contract 检查脚本
+  8 个必需文件 mustContain / mustNotContain 检查
+  防止手写 customElements.define
+
+根 scripts:
+  examples:contract                tsx scripts/checks/check-examples.ts
+  examples:check                   pnpm -F "@zeus-web/example-*" check
+  examples:build                   pnpm -F "@zeus-web/example-*" build
+  site:check                       docs:check && docs:build && examples:check
+```
+
+不做：Next SSR 组件模式、Server Component registry、Tailwind v4 完整编译链、部署配置。
 
 状态：**已完成**
 

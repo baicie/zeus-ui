@@ -99,6 +99,10 @@ export const exampleItems: DocsNavItem[] = [
     link: '/examples/react-vite',
   },
   {
+    text: 'Next.js App Router',
+    link: '/examples/next-app',
+  },
+  {
     text: 'Native Web Components',
     link: '/examples/native-wc',
   },

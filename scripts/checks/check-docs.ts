@@ -79,6 +79,15 @@ const requiredDocs: RequiredDoc[] = [
       '@zeus-web/example-native-wc',
     ],
   },
+  {
+    path: 'examples/next-app.md',
+    mustContain: [
+      '# Next.js App Router Example',
+      '@zeus-web/example-next-app',
+      '@zeus-web/button/react',
+      "'use client'",
+    ],
+  },
 ]
 
 const forbiddenPatterns = [

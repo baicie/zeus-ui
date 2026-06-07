@@ -1,0 +1,14 @@
+{
+  "$schema": "https://zeus-web.dev/schema/components.json",
+  "framework": "react",
+  "style": "default",
+  "tailwind": {
+    "css": "src/app/globals.css",
+    "cssVariables": true
+  },
+  "aliases": {
+    "components": "@/components",
+    "ui": "@/components/ui",
+    "lib": "@/lib"
+  }
+}

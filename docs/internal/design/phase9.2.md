@@ -1,67 +1,56 @@
-下面给 **Phase 9.1：Docs Polish + Docs Contract Check MVP** 的详细设计与完整代码。
+下面给 **Phase 9.2：Next.js App Router Example MVP** 的详细设计与完整代码。
 
-Phase 9 已经规划了 `apps/docs` 和 `examples/*`，而当前根 `package.json` 已经有 `docs:dev / docs:build / docs:preview`，目标目录就是 `apps/docs`。
-workspace 也已经包含 `apps/*` 和 `examples/*`，所以 9.1 不需要改 workspace。
+当前根工程已经有 `docs:dev / docs:build / docs:preview`，但还没有 examples 相关脚本。
+workspace 已经包含 `examples/*`，所以新增 `examples/next-app` 会自动进入 workspace。
+根工程当前 React 类型已经是 19.x，Vite 是 8.x，说明示例可以按当前较新的 React 生态组织。
 
-# Phase 9.1 目标
+# Phase 9.2 目标
 
 ```txt
-Phase 9.1：Docs Polish + Docs Contract Check MVP
+Phase 9.2：Next.js App Router Example MVP
 
 目标：
-1. 给 VitePress docs 增加统一主题样式。
-2. 增加 docs 元数据，统一 nav/sidebar/component 信息。
-3. docs 首页更像产品官网，而不是纯 markdown。
-4. 增加 docs contract check，防止文档路由、组件页、示例页缺失。
-5. 根脚本增加 docs:check。
-6. 不引入自动 API 文档生成，先保证文档结构稳定。
+1. 新增 examples/next-app。
+2. 使用 Next App Router。
+3. 验证 @zeus-web/<component>/react 在 Next Client Component 中可用。
+4. 示例使用本地 src/components/ui/*，模拟 zweb add 后的 registry 使用路径。
+5. 使用 src/app/globals.css 引入 @zeus-web/themes/default.css。
+6. 使用 components.json，验证 aliases.ui / aliases.lib 与 CLI 约定一致。
+7. 增加 docs 示例页。
+8. 增加 examples:check / examples:build 根脚本。
+9. 暂不引入完整 Tailwind 编译链，先用 CSS fallback 保证示例可运行。
 ```
 
-Phase 9.1 不做：
+Phase 9.2 不做：
 
 ```txt
-不做在线 Playground。
-不做 API 自动从 aiMetadata 生成。
-不做 VitePress 自定义 Vue 组件复杂交互。
-不做截图/视觉回归。
+不做 Next SSR 组件模式。
+不做 Server Component 版本 registry。
+不做 Tailwind v4 完整示例。
+不做 next/image、route handler、metadata 高级能力。
 不做部署配置。
 ```
 
----
-
-# 1. 文件变更总览
-
-```txt
-新增：
-  apps/docs/.vitepress/data/site.ts
-  apps/docs/.vitepress/theme/index.ts
-  apps/docs/.vitepress/theme/style.css
-  scripts/checks/check-docs.ts
-
-修改：
-  package.json
-  apps/docs/.vitepress/config.ts
-  apps/docs/index.md
-  apps/docs/guide/getting-started.md
-  apps/docs/guide/cli.md
-  apps/docs/guide/theming.md
-  apps/docs/guide/registry.md
-  apps/docs/guide/ai.md
-```
+原因：Zeus Web 的 React wrapper 和 Web Component 运行时本质是浏览器侧能力，所以 Next 示例应先明确放在 Client Component 边界内。
 
 ---
 
-# 2. 修改根 `package.json`
+# 1. 修改根 `package.json`
 
-在 scripts 增加：
+增加 examples 脚本：
 
 ```json
 {
-  "docs:check": "tsx scripts/checks/check-docs.ts && pnpm --filter @zeus-web/docs check"
+  "scripts": {
+    "examples:check": "pnpm -r --filter './examples/**' check",
+    "examples:build": "pnpm -r --filter './examples/**' build",
+    "site:check": "pnpm docs:build && pnpm examples:check",
+    "site:build": "pnpm docs:build && pnpm examples:build"
+  }
 }
 ```
 
-建议关键 scripts 变成：
+建议合并后 scripts 保持：
 
 ```json
 {
@@ -69,13 +58,15 @@ Phase 9.1 不做：
     "dev": "pnpm -r --parallel --filter './packages/**' dev",
     "build": "tsx scripts/commands/build.ts",
     "build:packages": "tsx scripts/commands/build.ts",
-    "clean": "rimraf --glob 'packages/**/dist' --glob 'apps/**/.vitepress/dist' --glob 'examples/**/dist' temp node_modules/.cache",
+    "clean": "rimraf --glob 'packages/**/dist' --glob 'apps/**/.vitepress/dist' --glob 'examples/**/dist' --glob 'examples/**/.next' temp node_modules/.cache",
     "check": "tsc -p tsconfig.json --incremental --noEmit",
     "check:exports": "tsx scripts/checks/check-package-exports.ts",
     "check:zeus-baseline": "tsx scripts/checks/check-zeus-baseline.ts",
     "check:zeus-imports": "tsx scripts/checks/check-zeus-imports.ts",
     "check:build-output": "tsx scripts/checks/check-build-output.ts",
     "check:workspace-overrides": "tsx scripts/checks/check-workspace-overrides.ts",
+    "zeus:relax-peer-ranges": "tsx scripts/commands/relax-zeus-peer-ranges.ts",
+    "zeus:update-canary": "tsx scripts/commands/update-zeus-canary.ts",
     "lint": "eslint --cache --cache-location node_modules/.cache/.eslintcache .",
     "lint-fix": "eslint --fix --cache --cache-location node_modules/.cache/.eslintcache .",
     "format": "prettier --write --cache --cache-location node_modules/.cache/.prettiercache .",
@@ -83,834 +74,1101 @@ Phase 9.1 不做：
     "test": "vitest",
     "test-unit": "vitest --project unit*",
     "test-coverage": "vitest run --project unit* --coverage",
+    "release": "tsx scripts/commands/release.ts",
+    "release:dry": "tsx scripts/commands/release.ts --dry",
+    "ci-publish": "tsx scripts/commands/publish.ts",
+    "preinstall": "npx only-allow pnpm",
+    "postinstall": "simple-git-hooks",
     "docs:dev": "vitepress dev apps/docs",
     "docs:build": "vitepress build apps/docs",
     "docs:preview": "vitepress preview apps/docs",
-    "docs:check": "tsx scripts/checks/check-docs.ts && pnpm --filter @zeus-web/docs check",
     "examples:check": "pnpm -r --filter './examples/**' check",
     "examples:build": "pnpm -r --filter './examples/**' build",
-    "site:check": "pnpm docs:check && pnpm docs:build && pnpm examples:check",
-    "site:build": "pnpm docs:build && pnpm examples:build"
+    "site:check": "pnpm docs:build && pnpm examples:check",
+    "site:build": "pnpm docs:build && pnpm examples:build",
+    "link:zeus-js": "tsx scripts/commands/link-local-zeus.ts",
+    "unlink:zeus-js": "tsx scripts/commands/unlink-local-zeus.ts && pnpm install"
   }
 }
 ```
 
 ---
 
-# 3. 新增 docs 元数据
+# 2. 新增 Next 示例
 
-## `apps/docs/.vitepress/data/site.ts`
+目录：
+
+```txt
+examples/next-app
+  package.json
+  tsconfig.json
+  next-env.d.ts
+  next.config.ts
+  components.json
+  src/app/layout.tsx
+  src/app/page.tsx
+  src/app/globals.css
+  src/components/demo.tsx
+  src/components/ui/button.tsx
+  src/components/ui/input.tsx
+  src/components/ui/checkbox.tsx
+  src/components/ui/switch.tsx
+  src/components/ui/tabs.tsx
+  src/components/ui/dialog.tsx
+  src/lib/utils.ts
+```
+
+---
+
+## `examples/next-app/package.json`
+
+```json
+{
+  "name": "@zeus-web/example-next-app",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@zeus-web/button": "workspace:*",
+    "@zeus-web/checkbox": "workspace:*",
+    "@zeus-web/dialog": "workspace:*",
+    "@zeus-web/input": "workspace:*",
+    "@zeus-web/switch": "workspace:*",
+    "@zeus-web/tabs": "workspace:*",
+    "@zeus-web/themes": "workspace:*",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "next": "^16.2.1",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "tailwind-merge": "^3.4.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^6.0.3"
+  }
+}
+```
+
+---
+
+## `examples/next-app/tsconfig.json`
+
+```json
+{
+  "extends": "../../scripts/config/tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "jsx": "preserve",
+    "types": ["node", "react", "react-dom"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "isolatedDeclarations": false,
+    "noEmit": true
+  },
+  "include": [
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "next.config.ts"
+  ],
+  "exclude": ["node_modules"]
+}
+```
+
+---
+
+## `examples/next-app/next-env.d.ts`
 
 ```ts
-export interface DocsNavItem {
-  text: string
-  link: string
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+
+// This file should not be edited manually.
+// See https://nextjs.org/docs/app/api-reference/config/typescript for more information.
+```
+
+---
+
+## `examples/next-app/next.config.ts`
+
+```ts
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  transpilePackages: [
+    '@zeus-web/button',
+    '@zeus-web/checkbox',
+    '@zeus-web/dialog',
+    '@zeus-web/input',
+    '@zeus-web/switch',
+    '@zeus-web/tabs',
+    '@zeus-web/themes',
+  ],
 }
 
-export interface DocsSidebarGroup {
-  text: string
-  items: DocsNavItem[]
+export default nextConfig
+```
+
+---
+
+## `examples/next-app/components.json`
+
+```json
+{
+  "$schema": "https://zeus-web.dev/schema/components.json",
+  "framework": "react",
+  "style": "default",
+  "tailwind": {
+    "css": "src/app/globals.css",
+    "cssVariables": true
+  },
+  "aliases": {
+    "components": "@/components",
+    "ui": "@/components/ui",
+    "lib": "@/lib"
+  }
+}
+```
+
+---
+
+# 3. App Router 文件
+
+## `examples/next-app/src/app/layout.tsx`
+
+```tsx
+import type { Metadata } from 'next'
+
+import '@zeus-web/themes/default.css'
+import './globals.css'
+
+export const metadata: Metadata = {
+  title: 'Zeus Web Next App Example',
+  description:
+    'Next.js App Router example for Zeus Web registry-style components.',
 }
 
-export interface ComponentDoc {
-  name: string
-  title: string
-  packageName: string
-  addCommand: string
-  route: string
-  description: string
+export default function RootLayout(
+  props: Readonly<{ children: React.ReactNode }>,
+) {
+  return (
+    <html lang="en">
+      <body>{props.children}</body>
+    </html>
+  )
+}
+```
+
+---
+
+## `examples/next-app/src/app/page.tsx`
+
+```tsx
+import { Demo } from '@/components/demo'
+
+export default function Page() {
+  return <Demo />
+}
+```
+
+---
+
+## `examples/next-app/src/components/demo.tsx`
+
+```tsx
+'use client'
+
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
+export function Demo() {
+  return (
+    <main className="page">
+      <section className="hero">
+        <p className="eyebrow">Zeus Web</p>
+        <h1>Next.js App Router Example</h1>
+        <p>
+          This example validates local registry-style components powered by Zeus
+          Web React wrappers inside a Next Client Component.
+        </p>
+      </section>
+
+      <section className="panel">
+        <h2>Button</h2>
+        <div className="row">
+          <Button>Default</Button>
+          <Button variant="outline">Outline</Button>
+          <Button variant="danger">Danger</Button>
+        </div>
+      </section>
+
+      <section className="panel">
+        <h2>Input</h2>
+        <Input placeholder="Email" type="email" />
+      </section>
+
+      <section className="panel">
+        <h2>Selection</h2>
+        <div className="stack">
+          <Checkbox>Accept terms</Checkbox>
+          <Switch>Enable notifications</Switch>
+        </div>
+      </section>
+
+      <section className="panel">
+        <h2>Tabs</h2>
+        <Tabs defaultValue="account">
+          <TabsList>
+            <TabsTrigger value="account">Account</TabsTrigger>
+            <TabsTrigger value="password">Password</TabsTrigger>
+          </TabsList>
+          <TabsContent value="account">Account panel</TabsContent>
+          <TabsContent value="password">Password panel</TabsContent>
+        </Tabs>
+      </section>
+
+      <section className="panel">
+        <h2>Dialog</h2>
+        <Dialog>
+          <DialogTrigger>
+            <Button>Open dialog</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogTitle>Dialog title</DialogTitle>
+            <DialogDescription>
+              This dialog is powered by the Zeus Web dialog primitive.
+            </DialogDescription>
+          </DialogContent>
+        </Dialog>
+      </section>
+    </main>
+  )
+}
+```
+
+---
+
+## `examples/next-app/src/app/globals.css`
+
+```css
+* {
+  box-sizing: border-box;
 }
 
-export const guideItems: DocsNavItem[] = [
-  {
-    text: 'Getting Started',
-    link: '/guide/getting-started',
-  },
-  {
-    text: 'CLI',
-    link: '/guide/cli',
-  },
-  {
-    text: 'Theming',
-    link: '/guide/theming',
-  },
-  {
-    text: 'Registry',
-    link: '/guide/registry',
-  },
-  {
-    text: 'AI',
-    link: '/guide/ai',
-  },
-]
+html {
+  color-scheme: light;
+}
 
-export const componentDocs: ComponentDoc[] = [
-  {
-    name: 'button',
-    title: 'Button',
-    packageName: '@zeus-web/button',
-    addCommand: 'zweb add button',
-    route: '/components/button',
-    description: 'Action component built on the zw-button primitive.',
-  },
-  {
-    name: 'input',
-    title: 'Input',
-    packageName: '@zeus-web/input',
-    addCommand: 'zweb add input',
-    route: '/components/input',
-    description: 'Text field component built on the zw-input primitive.',
-  },
-  {
-    name: 'checkbox',
-    title: 'Checkbox',
-    packageName: '@zeus-web/checkbox',
-    addCommand: 'zweb add checkbox',
-    route: '/components/checkbox',
-    description:
-      'Boolean selection component built on the zw-checkbox primitive.',
-  },
-  {
-    name: 'switch',
-    title: 'Switch',
-    packageName: '@zeus-web/switch',
-    addCommand: 'zweb add switch',
-    route: '/components/switch',
-    description: 'On/off setting component built on the zw-switch primitive.',
-  },
-  {
-    name: 'tabs',
-    title: 'Tabs',
-    packageName: '@zeus-web/tabs',
-    addCommand: 'zweb add tabs',
-    route: '/components/tabs',
-    description:
-      'Tabbed interface component family built on zw-tabs primitives.',
-  },
-  {
-    name: 'dialog',
-    title: 'Dialog',
-    packageName: '@zeus-web/dialog',
-    addCommand: 'zweb add dialog',
-    route: '/components/dialog',
-    description: 'Dialog component family built on zw-dialog primitives.',
-  },
-]
+body {
+  margin: 0;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+}
 
+button,
+input {
+  font: inherit;
+}
+
+.page {
+  width: min(960px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 48px 0;
+}
+
+.hero {
+  margin-bottom: 32px;
+}
+
+.eyebrow {
+  color: hsl(var(--muted-foreground));
+  font-size: 14px;
+  margin: 0 0 8px;
+}
+
+h1,
+h2 {
+  margin: 0;
+}
+
+.hero h1 {
+  font-size: 42px;
+  letter-spacing: -0.04em;
+}
+
+.hero p:last-child {
+  color: hsl(var(--muted-foreground));
+  max-width: 680px;
+  line-height: 1.7;
+}
+
+.panel {
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 16px 0;
+  background: hsl(var(--card));
+}
+
+.panel h2 {
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.stack {
+  display: grid;
+  gap: 12px;
+}
+
+/* Button */
+
+.zw-button {
+  display: inline-flex;
+}
+
+.zw-button [data-slot='button'] {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius);
+  border: 0;
+  padding: 0 16px;
+  cursor: pointer;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  transition:
+    background-color 120ms ease,
+    opacity 120ms ease;
+}
+
+.zw-button [data-slot='button']:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.zw-button--outline [data-slot='button'] {
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.zw-button--danger [data-slot='button'] {
+  background: hsl(var(--destructive));
+  color: hsl(var(--destructive-foreground));
+}
+
+/* Input */
+
+.zw-input {
+  display: block;
+  width: min(420px, 100%);
+}
+
+.zw-input [part='root'] {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  border: 1px solid hsl(var(--input));
+  border-radius: var(--radius);
+  padding: 0 12px;
+  background: hsl(var(--background));
+}
+
+.zw-input [data-slot='input'] {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: hsl(var(--foreground));
+}
+
+/* Checkbox / Switch */
+
+.zw-checkbox,
+.zw-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zw-checkbox [data-slot='checkbox-control'] {
+  width: 16px;
+  height: 16px;
+}
+
+.zw-switch [data-slot='switch-track'] {
+  width: 36px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: hsl(var(--input));
+  padding: 2px;
+}
+
+.zw-switch [data-slot='switch-thumb'] {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: hsl(var(--background));
+  box-shadow: 0 1px 4px rgb(0 0 0 / 24%);
+}
+
+.zw-switch[data-state='checked'] [data-slot='switch-track'] {
+  background: hsl(var(--primary));
+}
+
+.zw-switch[data-state='checked'] [data-slot='switch-thumb'] {
+  transform: translateX(16px);
+}
+
+/* Tabs */
+
+.zw-tabs {
+  display: grid;
+  gap: 12px;
+}
+
+.zw-tabs-list {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius);
+  background: hsl(var(--muted));
+}
+
+.zw-tabs-trigger button {
+  border: 0;
+  border-radius: calc(var(--radius) - 2px);
+  padding: 6px 12px;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+}
+
+.zw-tabs-trigger[data-state='active'] button {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.zw-tabs-content {
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+/* Dialog */
+
+.zw-dialog-content [part='content'] {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: min(420px, calc(100vw - 32px));
+  transform: translate(-50%, -50%);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  background: hsl(var(--background));
+  padding: 24px;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 20%);
+  z-index: 50;
+}
+
+.zw-dialog-title {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.zw-dialog-description {
+  display: block;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.6;
+}
+```
+
+---
+
+# 4. 本地 UI 组件
+
+这些文件是 **registry-like local source**，特意加 `'use client'`，避免被 Next App Router 当成 Server Component 使用。
+
+## `examples/next-app/src/lib/utils.ts`
+
+```ts
+import { type ClassValue, clsx } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+
+export function cn(...inputs: ClassValue[]): string {
+  return twMerge(clsx(inputs))
+}
+```
+
+---
+
+## `examples/next-app/src/components/ui/button.tsx`
+
+```tsx
+'use client'
+
+import type { VariantProps } from 'class-variance-authority'
+
+import { Button as ButtonPrimitive } from '@zeus-web/button/react'
+import { cva } from 'class-variance-authority'
+import * as React from 'react'
+
+import { cn } from '@/lib/utils'
+
+const buttonVariants = cva('zw-button', {
+  variants: {
+    variant: {
+      default: 'zw-button--default',
+      primary: 'zw-button--default',
+      secondary: 'zw-button--secondary',
+      outline: 'zw-button--outline',
+      ghost: 'zw-button--ghost',
+      danger: 'zw-button--danger',
+    },
+    size: {
+      sm: 'zw-button--sm',
+      md: 'zw-button--md',
+      lg: 'zw-button--lg',
+      icon: 'zw-button--icon',
+    },
+  },
+  defaultVariants: {
+    variant: 'default',
+    size: 'md',
+  },
+})
+
+export interface ButtonProps
+  extends
+    React.ComponentPropsWithoutRef<typeof ButtonPrimitive>,
+    VariantProps<typeof buttonVariants> {}
+
+export const Button = React.forwardRef<HTMLElement, ButtonProps>(
+  ({ className, variant, size, ...props }, ref) => {
+    return (
+      <ButtonPrimitive
+        ref={ref}
+        variant={variant ?? undefined}
+        size={size ?? undefined}
+        className={cn(buttonVariants({ variant, size }), className)}
+        {...props}
+      />
+    )
+  },
+)
+
+Button.displayName = 'Button'
+
+export { buttonVariants }
+```
+
+---
+
+## `examples/next-app/src/components/ui/input.tsx`
+
+```tsx
+'use client'
+
+import { Input as InputPrimitive } from '@zeus-web/input/react'
+import * as React from 'react'
+
+import { cn } from '@/lib/utils'
+
+export interface InputProps extends React.ComponentPropsWithoutRef<
+  typeof InputPrimitive
+> {}
+
+export const Input = React.forwardRef<HTMLElement, InputProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <InputPrimitive
+        ref={ref}
+        className={cn('zw-input', className)}
+        {...props}
+      />
+    )
+  },
+)
+
+Input.displayName = 'Input'
+```
+
+---
+
+## `examples/next-app/src/components/ui/checkbox.tsx`
+
+```tsx
+'use client'
+
+import { Checkbox as CheckboxPrimitive } from '@zeus-web/checkbox/react'
+import * as React from 'react'
+
+import { cn } from '@/lib/utils'
+
+export interface CheckboxProps extends React.ComponentPropsWithoutRef<
+  typeof CheckboxPrimitive
+> {}
+
+export const Checkbox = React.forwardRef<HTMLElement, CheckboxProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <CheckboxPrimitive
+        ref={ref}
+        className={cn('zw-checkbox', className)}
+        {...props}
+      />
+    )
+  },
+)
+
+Checkbox.displayName = 'Checkbox'
+```
+
+---
+
+## `examples/next-app/src/components/ui/switch.tsx`
+
+```tsx
+'use client'
+
+import { Switch as SwitchPrimitive } from '@zeus-web/switch/react'
+import * as React from 'react'
+
+import { cn } from '@/lib/utils'
+
+export interface SwitchProps extends React.ComponentPropsWithoutRef<
+  typeof SwitchPrimitive
+> {}
+
+export const Switch = React.forwardRef<HTMLElement, SwitchProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <SwitchPrimitive
+        ref={ref}
+        className={cn('zw-switch', className)}
+        {...props}
+      />
+    )
+  },
+)
+
+Switch.displayName = 'Switch'
+```
+
+---
+
+## `examples/next-app/src/components/ui/tabs.tsx`
+
+```tsx
+'use client'
+
+import {
+  Tabs as TabsPrimitive,
+  TabsContent as TabsContentPrimitive,
+  TabsList as TabsListPrimitive,
+  TabsTrigger as TabsTriggerPrimitive,
+} from '@zeus-web/tabs/react'
+import * as React from 'react'
+
+import { cn } from '@/lib/utils'
+
+export interface TabsProps extends React.ComponentPropsWithoutRef<
+  typeof TabsPrimitive
+> {}
+
+export const Tabs = React.forwardRef<HTMLElement, TabsProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <TabsPrimitive
+        ref={ref}
+        className={cn('zw-tabs', className)}
+        {...props}
+      />
+    )
+  },
+)
+
+Tabs.displayName = 'Tabs'
+
+export interface TabsListProps extends React.ComponentPropsWithoutRef<
+  typeof TabsListPrimitive
+> {}
+
+export const TabsList = React.forwardRef<HTMLElement, TabsListProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <TabsListPrimitive
+        ref={ref}
+        className={cn('zw-tabs-list', className)}
+        {...props}
+      />
+    )
+  },
+)
+
+TabsList.displayName = 'TabsList'
+
+export interface TabsTriggerProps extends React.ComponentPropsWithoutRef<
+  typeof TabsTriggerPrimitive
+> {}
+
+export const TabsTrigger = React.forwardRef<HTMLElement, TabsTriggerProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <TabsTriggerPrimitive
+        ref={ref}
+        className={cn('zw-tabs-trigger', className)}
+        {...props}
+      />
+    )
+  },
+)
+
+TabsTrigger.displayName = 'TabsTrigger'
+
+export interface TabsContentProps extends React.ComponentPropsWithoutRef<
+  typeof TabsContentPrimitive
+> {}
+
+export const TabsContent = React.forwardRef<HTMLElement, TabsContentProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <TabsContentPrimitive
+        ref={ref}
+        className={cn('zw-tabs-content', className)}
+        {...props}
+      />
+    )
+  },
+)
+
+TabsContent.displayName = 'TabsContent'
+```
+
+---
+
+## `examples/next-app/src/components/ui/dialog.tsx`
+
+```tsx
+'use client'
+
+import {
+  Dialog as DialogPrimitive,
+  DialogClose as DialogClosePrimitive,
+  DialogContent as DialogContentPrimitive,
+  DialogDescription as DialogDescriptionPrimitive,
+  DialogTitle as DialogTitlePrimitive,
+  DialogTrigger as DialogTriggerPrimitive,
+} from '@zeus-web/dialog/react'
+import * as React from 'react'
+
+import { cn } from '@/lib/utils'
+
+export interface DialogProps extends React.ComponentPropsWithoutRef<
+  typeof DialogPrimitive
+> {}
+
+export const Dialog = React.forwardRef<HTMLElement, DialogProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <DialogPrimitive
+        ref={ref}
+        className={cn('zw-dialog', className)}
+        {...props}
+      />
+    )
+  },
+)
+
+Dialog.displayName = 'Dialog'
+
+export interface DialogTriggerProps extends React.ComponentPropsWithoutRef<
+  typeof DialogTriggerPrimitive
+> {}
+
+export const DialogTrigger = React.forwardRef<HTMLElement, DialogTriggerProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <DialogTriggerPrimitive
+        ref={ref}
+        className={cn('zw-dialog-trigger', className)}
+        {...props}
+      />
+    )
+  },
+)
+
+DialogTrigger.displayName = 'DialogTrigger'
+
+export interface DialogContentProps extends React.ComponentPropsWithoutRef<
+  typeof DialogContentPrimitive
+> {}
+
+export const DialogContent = React.forwardRef<HTMLElement, DialogContentProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <DialogContentPrimitive
+        ref={ref}
+        className={cn('zw-dialog-content', className)}
+        {...props}
+      />
+    )
+  },
+)
+
+DialogContent.displayName = 'DialogContent'
+
+export interface DialogTitleProps extends React.ComponentPropsWithoutRef<
+  typeof DialogTitlePrimitive
+> {}
+
+export const DialogTitle = React.forwardRef<HTMLElement, DialogTitleProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <DialogTitlePrimitive
+        ref={ref}
+        className={cn('zw-dialog-title', className)}
+        {...props}
+      />
+    )
+  },
+)
+
+DialogTitle.displayName = 'DialogTitle'
+
+export interface DialogDescriptionProps extends React.ComponentPropsWithoutRef<
+  typeof DialogDescriptionPrimitive
+> {}
+
+export const DialogDescription = React.forwardRef<
+  HTMLElement,
+  DialogDescriptionProps
+>(({ className, ...props }, ref) => {
+  return (
+    <DialogDescriptionPrimitive
+      ref={ref}
+      className={cn('zw-dialog-description', className)}
+      {...props}
+    />
+  )
+})
+
+DialogDescription.displayName = 'DialogDescription'
+
+export interface DialogCloseProps extends React.ComponentPropsWithoutRef<
+  typeof DialogClosePrimitive
+> {}
+
+export const DialogClose = React.forwardRef<HTMLElement, DialogCloseProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <DialogClosePrimitive
+        ref={ref}
+        className={cn('zw-dialog-close', className)}
+        {...props}
+      />
+    )
+  },
+)
+
+DialogClose.displayName = 'DialogClose'
+```
+
+---
+
+# 5. 更新 docs：新增 Next 示例页
+
+## `apps/docs/examples/next-app.md`
+
+````md
+# Next.js App Router Example
+
+The Next.js example validates the registry-style React usage path in an App Router project.
+
+Run:
+
+```bash
+pnpm --filter @zeus-web/example-next-app dev
+```
+````
+
+Build:
+
+```bash
+pnpm --filter @zeus-web/example-next-app build
+```
+
+Type check:
+
+```bash
+pnpm --filter @zeus-web/example-next-app check
+```
+
+## What this example validates
+
+```txt
+1. Local src/components/ui/* components.
+2. Per-component React wrapper imports such as @zeus-web/button/react.
+3. Client Component boundary with "use client".
+4. Theme import through @zeus-web/themes/default.css.
+5. components.json aliases.
+```
+
+## Client boundary
+
+Zeus Web React wrappers are used in Client Components.
+
+```tsx
+'use client'
+
+import { Button } from '@/components/ui/button'
+
+export function Demo() {
+  return <Button>Save</Button>
+}
+```
+
+## Theme import
+
+The example imports the default theme in `src/app/layout.tsx`.
+
+```tsx
+import '@zeus-web/themes/default.css'
+import './globals.css'
+```
+
+## Alias config
+
+The example includes `components.json`.
+
+```json
+{
+  "aliases": {
+    "components": "@/components",
+    "ui": "@/components/ui",
+    "lib": "@/lib"
+  }
+}
+```
+
+````
+
+---
+
+# 6. 更新 docs metadata
+
+如果你已经做了 9.1 的 `apps/docs/.vitepress/data/site.ts`，修改 `exampleItems`：
+
+```ts
 export const exampleItems: DocsNavItem[] = [
   {
     text: 'React Vite',
     link: '/examples/react-vite',
   },
   {
+    text: 'Next.js App Router',
+    link: '/examples/next-app',
+  },
+  {
     text: 'Native Web Components',
     link: '/examples/native-wc',
   },
 ]
+````
 
-export const sidebar: DocsSidebarGroup[] = [
-  {
-    text: 'Guide',
-    items: guideItems,
-  },
-  {
-    text: 'Components',
-    items: componentDocs.map(component => ({
-      text: component.title,
-      link: component.route,
-    })),
-  },
-  {
-    text: 'Examples',
-    items: exampleItems,
-  },
-]
-
-export const topNav: DocsNavItem[] = [
-  {
-    text: 'Guide',
-    link: '/guide/getting-started',
-  },
-  {
-    text: 'Components',
-    link: '/components/button',
-  },
-  {
-    text: 'Examples',
-    link: '/examples/react-vite',
-  },
-]
-```
-
----
-
-# 4. 修改 VitePress 配置
-
-## `apps/docs/.vitepress/config.ts`
+如果 9.1 还没落地，只修改 `apps/docs/.vitepress/config.ts` 的 sidebar：
 
 ```ts
-import { defineConfig } from 'vitepress'
-import { sidebar, topNav } from './data/site'
-
-export default defineConfig({
-  title: 'Zeus Web',
-  description:
-    'Headless Web Components, shadcn-like registry and AI metadata built on Zeus.',
-  cleanUrls: true,
-  lastUpdated: true,
-  markdown: {
-    lineNumbers: true,
-  },
-  head: [
-    ['meta', { name: 'theme-color', content: '#111827' }],
-    ['meta', { property: 'og:title', content: 'Zeus Web' }],
-    [
-      'meta',
-      {
-        property: 'og:description',
-        content:
-          'Headless Web Components, shadcn-like registry and AI metadata built on Zeus.',
-      },
-    ],
-  ],
-  themeConfig: {
-    logo: '/logo.svg',
-    nav: topNav,
-    sidebar,
-    outline: {
-      level: [2, 3],
-      label: 'On this page',
-    },
-    footer: {
-      message: 'Released under the MIT License.',
-      copyright: 'Copyright © Zeus Web contributors.',
-    },
-    socialLinks: [
-      {
-        icon: 'github',
-        link: 'https://github.com/baicie/zeus-ui',
-      },
-    ],
-    search: {
-      provider: 'local',
-    },
-  },
-})
-```
-
----
-
-# 5. 新增 VitePress 自定义主题
-
-## `apps/docs/.vitepress/theme/index.ts`
-
-```ts
-import DefaultTheme from 'vitepress/theme'
-import './style.css'
-
-export default DefaultTheme
-```
-
-## `apps/docs/.vitepress/theme/style.css`
-
-```css
-:root {
-  --vp-c-brand-1: #111827;
-  --vp-c-brand-2: #1f2937;
-  --vp-c-brand-3: #374151;
-  --vp-c-brand-soft: rgb(17 24 39 / 12%);
-
-  --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: linear-gradient(
-    120deg,
-    #111827 20%,
-    #4f46e5 55%,
-    #0ea5e9 90%
-  );
-
-  --vp-home-hero-image-background-image: linear-gradient(
-    -45deg,
-    #4f46e5 50%,
-    #0ea5e9 50%
-  );
-  --vp-home-hero-image-filter: blur(72px);
-}
-
-.dark {
-  --vp-c-brand-1: #f9fafb;
-  --vp-c-brand-2: #e5e7eb;
-  --vp-c-brand-3: #d1d5db;
-  --vp-c-brand-soft: rgb(249 250 251 / 12%);
-}
-
-.VPHomeHero .text {
-  max-width: 820px;
-}
-
-.VPHomeHero .tagline {
-  max-width: 700px;
-}
-
-.vp-doc h2 {
-  border-top: 1px solid var(--vp-c-divider);
-  padding-top: 28px;
-}
-
-.vp-doc table {
-  width: 100%;
-  display: table;
-}
-
-.vp-doc th,
-.vp-doc td {
-  white-space: nowrap;
-}
-
-.vp-doc tr td:last-child,
-.vp-doc tr th:last-child {
-  white-space: normal;
-}
-
-.custom-block.tip {
-  border-color: var(--vp-c-brand-3);
-}
-
-.zw-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-  margin: 24px 0;
-}
-
-.zw-card {
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 14px;
-  padding: 18px;
-  background: var(--vp-c-bg-soft);
-}
-
-.zw-card h3 {
-  margin: 0 0 8px;
-  font-size: 16px;
-}
-
-.zw-card p {
-  margin: 0;
-  color: var(--vp-c-text-2);
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-.zw-badge-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 16px 0;
-}
-
-.zw-badge {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 999px;
-  padding: 4px 10px;
-  background: var(--vp-c-bg-soft);
-  color: var(--vp-c-text-2);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.zw-command {
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 12px;
-  padding: 14px 16px;
-  background: var(--vp-code-block-bg);
-  font-family: var(--vp-font-family-mono);
-  font-size: 13px;
-  overflow-x: auto;
-}
-
-.zw-muted {
-  color: var(--vp-c-text-2);
-}
-```
-
----
-
-# 6. 改造首页
-
-## `apps/docs/index.md`
-
-```md
----
-layout: home
-
-hero:
-  name: Zeus Web
-  text: Headless components for modern apps
-  tagline: Build shadcn-like UI on top of Zeus Web Components, React wrappers, themes, registry source and AI metadata.
-  actions:
-    - theme: brand
-      text: Get Started
-      link: /guide/getting-started
-    - theme: alt
-      text: Browse Components
-      link: /components/button
-    - theme: alt
-      text: Generate AI Guide
-      link: /guide/ai
-
-features:
-  - title: Headless primitives
-    details: Input, Button, Checkbox, Switch, Tabs and Dialog are provided as reusable primitives.
-  - title: Zeus output pipeline
-    details: Web Component, React wrapper, Vue wrapper, manifest and dts output are generated by @zeus-js web-c packages.
-  - title: Registry workflow
-    details: Use zweb init and zweb add to copy shadcn-like styled source into your app.
-  - title: AI-ready metadata
-    details: Generate zeus-web.ai.md, JSON metadata or Cursor rules with zweb ai.
----
-
-<div class="zw-badge-row">
-  <span class="zw-badge">Web Components</span>
-  <span class="zw-badge">React</span>
-  <span class="zw-badge">Vue</span>
-  <span class="zw-badge">Tailwind</span>
-  <span class="zw-badge">AI Metadata</span>
-</div>
-
-<div class="zw-grid">
-  <div class="zw-card">
-    <h3>Install once</h3>
-    <p>Run <code>zweb init</code> to create <code>components.json</code> and wire theme CSS.</p>
-  </div>
-
-  <div class="zw-card">
-    <h3>Add source</h3>
-    <p>Run <code>zweb add button input</code> to copy editable component source into your app.</p>
-  </div>
-
-  <div class="zw-card">
-    <h3>Guide AI</h3>
-    <p>Run <code>zweb ai --cursor</code> to generate rules that help AI use the library correctly.</p>
-  </div>
-</div>
-
-## Quick command
-
-<div class="zw-command">
-
-pnpm dlx @zeus-web/cli init  
-pnpm dlx @zeus-web/cli add button input  
-pnpm dlx @zeus-web/cli ai --cursor
-
-</div>
-```
-
----
-
-# 7. 强化 guide 文档
-
-## `apps/docs/guide/getting-started.md`
-
-````md
-# Getting Started
-
-Zeus Web is a component library workflow built around three layers:
-
-<div class="zw-grid">
-  <div class="zw-card">
-    <h3>Headless primitives</h3>
-    <p>Install per-component packages such as <code>@zeus-web/button</code> or <code>@zeus-web/input</code>.</p>
-  </div>
-  <div class="zw-card">
-    <h3>Registry source</h3>
-    <p>Copy shadcn-like React source into your app with <code>zweb add</code>.</p>
-  </div>
-  <div class="zw-card">
-    <h3>AI metadata</h3>
-    <p>Generate AI-readable usage rules with <code>zweb ai</code>.</p>
-  </div>
-</div>
-
-## Initialize
-
-```bash
-pnpm dlx @zeus-web/cli init
-```
-````
-
-This creates:
-
-```txt
-components.json
-src/styles/globals.css
-```
-
-## Add components
-
-```bash
-pnpm dlx @zeus-web/cli add button input
-```
-
-This copies:
-
-```txt
-src/lib/utils.ts
-src/components/ui/button.tsx
-src/components/ui/input.tsx
-```
-
-## Use components
-
-```tsx
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-
-export function Example() {
-  return (
-    <form className="space-y-4">
-      <Input placeholder="Email" type="email" />
-      <Button>Submit</Button>
-    </form>
-  )
-}
-```
-
-## Generate AI guide
-
-```bash
-pnpm dlx @zeus-web/cli ai --cursor
-```
-
-This creates:
-
-```txt
-.cursor/rules/zeus-web.mdc
-```
-
-## Direct primitive usage
-
-You can also use primitive packages directly.
-
-```tsx
-import { Button } from '@zeus-web/button/react'
-
-export function Example() {
-  return <Button>Save</Button>
-}
-```
-
-For native Web Components:
-
-```ts
-import '@zeus-web/button/wc'
-```
-
-```html
-<zw-button>Save</zw-button>
-```
-
-````
-
-## `apps/docs/guide/cli.md`
-
-```md
-# CLI
-
-The Zeus Web CLI is published as `@zeus-web/cli`.
-
-## Commands
-
-| Command | Description |
-| --- | --- |
-| `zweb init` | Create `components.json` and set up theme CSS. |
-| `zweb add <components>` | Copy registry component source into your project. |
-| `zweb ai` | Generate AI-readable metadata and usage guide. |
-
-## init
-
-```bash
-zweb init
-````
-
-Options:
-
-| Option                     | Description                                        |
-| -------------------------- | -------------------------------------------------- |
-| `--cwd <dir>`              | Use a specific project directory.                  |
-| `--style <name>`           | `default`, `slate`, `zinc`, `neutral`, or `stone`. |
-| `--css <file>`             | CSS file to write theme import into.               |
-| `--overwrite`              | Replace existing `components.json`.                |
-| `--no-install`             | Do not install dependencies.                       |
-| `--package-manager <name>` | `pnpm`, `npm`, `yarn`, or `bun`.                   |
-
-Example:
-
-```bash
-zweb init --style slate --css src/styles/globals.css
-```
-
-## add
-
-```bash
-zweb add button input
-```
-
-Options:
-
-| Option                     | Description                           |
-| -------------------------- | ------------------------------------- |
-| `--cwd <dir>`              | Use a specific project directory.     |
-| `--dry-run`                | Print the plan without writing files. |
-| `--overwrite`              | Replace existing files.               |
-| `--no-install`             | Do not install dependencies.          |
-| `--package-manager <name>` | `pnpm`, `npm`, `yarn`, or `bun`.      |
-
-Examples:
-
-```bash
-zweb add dialog --dry-run
-zweb add button --overwrite
-```
-
-## ai
-
-```bash
-zweb ai
-```
-
-Options:
-
-| Option            | Description                            |
-| ----------------- | -------------------------------------- |
-| `--json`          | Generate `zeus-web.ai.json`.           |
-| `--cursor`        | Generate `.cursor/rules/zeus-web.mdc`. |
-| `--output <file>` | Write to a custom file.                |
-| `--overwrite`     | Replace existing file.                 |
-| `--dry-run`       | Print the plan without writing.        |
-
-````
-
-## `apps/docs/guide/theming.md`
-
-```md
-# Theming
-
-Zeus Web uses shadcn-like CSS variables and Tailwind semantic tokens.
-
-## Available themes
-
-<div class="zw-badge-row">
-  <span class="zw-badge">default</span>
-  <span class="zw-badge">slate</span>
-  <span class="zw-badge">zinc</span>
-  <span class="zw-badge">neutral</span>
-  <span class="zw-badge">stone</span>
-</div>
-
-Initialize a theme:
-
-```bash
-zweb init --style slate
-````
-
-This writes:
-
-```css
-@import '@zeus-web/themes/slate.css';
-```
-
-to the configured CSS file.
-
-## Semantic tokens
-
-Registry components use semantic Tailwind classes and CSS variables.
-
-| Token                     | Usage                       |
-| ------------------------- | --------------------------- |
-| `bg-background`           | Page or panel background.   |
-| `text-foreground`         | Main text.                  |
-| `border-input`            | Input and control borders.  |
-| `ring-ring`               | Focus ring.                 |
-| `bg-primary`              | Primary actions.            |
-| `text-primary-foreground` | Text on primary background. |
-| `bg-muted`                | Subtle surfaces.            |
-| `text-muted-foreground`   | Secondary text.             |
-
-## Dark mode
-
-Themes include `.dark` selectors.
-
-```html
-<html class="dark">
-  ...
-</html>
-```
-
-## Rule
-
-Prefer semantic tokens over hard-coded colors.
-
-````
-
-## `apps/docs/guide/registry.md`
-
-```md
-# Registry
-
-The registry package is `@zeus-web/registry`.
-
-It contains shadcn-like component source files under:
-
-```txt
-packages/registry/default
-````
-
-The CLI reads:
-
-```txt
-@zeus-web/registry/registry.json
-```
-
-and copies files into your project according to `components.json`.
-
-## Why copy source?
-
-Registry components are meant to be owned by your app. You can edit the generated files after running `zweb add`.
-
-## Per-component primitives
-
-Registry source imports per-component wrapper entries.
-
-```tsx
-import { Button as ButtonPrimitive } from '@zeus-web/button/react'
-```
-
-Do not import from `@zeus-web/react` in registry source unless you intentionally want the aggregate wrapper package.
-
-## Local imports
-
-Generated components import local utilities:
-
-```tsx
-import { cn } from '@/lib/utils'
-```
-
-The CLI rewrites this according to `components.json` aliases.
-
-## Registry item shape
-
-```json
 {
-  "name": "button",
-  "type": "registry:ui",
-  "dependencies": ["@zeus-web/button"],
-  "files": [
+  text: 'Examples',
+  items: [
     {
-      "path": "default/button.tsx",
-      "target": "components/ui/button.tsx",
-      "type": "registry:ui"
-    }
-  ]
+      text: 'React Vite',
+      link: '/examples/react-vite',
+    },
+    {
+      text: 'Next.js App Router',
+      link: '/examples/next-app',
+    },
+    {
+      text: 'Native Web Components',
+      link: '/examples/native-wc',
+    },
+  ],
 }
 ```
-
-````
-
-## `apps/docs/guide/ai.md`
-
-```md
-# AI
-
-Zeus Web provides AI metadata through `@zeus-web/ai`.
-
-## Generate markdown
-
-```bash
-zweb ai
-````
-
-This creates:
-
-```txt
-zeus-web.ai.md
-```
-
-## Generate JSON
-
-```bash
-zweb ai --json
-```
-
-This creates:
-
-```txt
-zeus-web.ai.json
-```
-
-## Generate Cursor rules
-
-```bash
-zweb ai --cursor
-```
-
-This creates:
-
-```txt
-.cursor/rules/zeus-web.mdc
-```
-
-## What the guide contains
-
-```txt
-recommended workflow
-theme names
-global usage rules
-component props
-component events
-component slots
-examples
-AI do / do-not rules
-```
-
-## Alias aware
-
-When `components.json` exists, `zweb ai` should use your configured aliases so AI-generated imports match your project.
-
-Example:
-
-```json
-{
-  "aliases": {
-    "ui": "~/components/ui",
-    "lib": "~/shared/lib"
-  }
-}
-```
-
-The AI guide should prefer:
-
-```tsx
-import { Button } from '~/components/ui/button'
-```
-
-## Recommended AI instruction
-
-```txt
-Use Zeus Web registry components from the local components/ui directory.
-Do not import registry components from package internals.
-Prefer zweb add when adding a new component.
-Use semantic theme tokens instead of hard-coded colors.
-```
-
-````
 
 ---
 
-# 8. 新增 docs contract check
+# 7. 更新 docs contract check
 
-## `scripts/checks/check-docs.ts`
+如果已存在 `scripts/checks/check-docs.ts`，在 `requiredDocs` 中追加：
+
+```ts
+{
+  path: 'examples/next-app.md',
+  mustContain: [
+    '# Next.js App Router Example',
+    '@zeus-web/example-next-app',
+    '@zeus-web/button/react',
+    '"use client"',
+  ],
+}
+```
+
+如果你的 docs check 还没落地，则 Phase 9.2 暂时不用加。
+
+---
+
+# 8. 可选：新增 examples contract check
+
+建议在 Phase 9.2 新增一个轻量检查，防止 example 又手写 wrapper 或遗漏 client boundary。
+
+## `scripts/checks/check-examples.ts`
 
 ```ts
 import { existsSync, readFileSync } from 'node:fs'
@@ -918,170 +1176,83 @@ import { resolve } from 'node:path'
 
 import pc from 'picocolors'
 
-interface RequiredDoc {
+interface RequiredFile {
   path: string
   mustContain: string[]
+  mustNotContain?: string[]
 }
 
 const root = process.cwd()
-const docsRoot = resolve(root, 'apps/docs')
 
-const requiredDocs: RequiredDoc[] = [
+const requiredFiles: RequiredFile[] = [
   {
-    path: 'index.md',
-    mustContain: ['Zeus Web', 'pnpm dlx @zeus-web/cli init'],
+    path: 'examples/next-app/package.json',
+    mustContain: ['@zeus-web/example-next-app', 'next', '@zeus-web/button'],
   },
   {
-    path: 'guide/getting-started.md',
-    mustContain: ['# Getting Started', 'zweb init', 'zweb add button input'],
+    path: 'examples/next-app/components.json',
+    mustContain: ['"ui": "@/components/ui"', '"lib": "@/lib"'],
   },
   {
-    path: 'guide/cli.md',
-    mustContain: ['# CLI', 'zweb init', 'zweb add', 'zweb ai'],
+    path: 'examples/next-app/src/app/layout.tsx',
+    mustContain: ["import '@zeus-web/themes/default.css'"],
   },
   {
-    path: 'guide/theming.md',
-    mustContain: ['# Theming', 'default', 'slate', 'zinc', 'neutral', 'stone'],
+    path: 'examples/next-app/src/components/demo.tsx',
+    mustContain: ["'use client'", "from '@/components/ui/button'"],
   },
   {
-    path: 'guide/registry.md',
-    mustContain: ['# Registry', '@zeus-web/registry', 'registry.json'],
+    path: 'examples/next-app/src/components/ui/button.tsx',
+    mustContain: ["'use client'", '@zeus-web/button/react'],
+    mustNotContain: ['customElements.define'],
   },
   {
-    path: 'guide/ai.md',
-    mustContain: ['# AI', '@zeus-web/ai', 'zweb ai --cursor'],
+    path: 'examples/next-app/src/components/ui/input.tsx',
+    mustContain: ["'use client'", '@zeus-web/input/react'],
+    mustNotContain: ['customElements.define'],
   },
   {
-    path: 'components/button.md',
-    mustContain: ['# Button', 'zweb add button', '@/components/ui/button'],
+    path: 'examples/next-app/src/components/ui/tabs.tsx',
+    mustContain: ["'use client'", '@zeus-web/tabs/react'],
+    mustNotContain: ['customElements.define'],
   },
   {
-    path: 'components/input.md',
-    mustContain: ['# Input', 'zweb add input', '@/components/ui/input'],
-  },
-  {
-    path: 'components/checkbox.md',
-    mustContain: [
-      '# Checkbox',
-      'zweb add checkbox',
-      '@/components/ui/checkbox',
-    ],
-  },
-  {
-    path: 'components/switch.md',
-    mustContain: ['# Switch', 'zweb add switch', '@/components/ui/switch'],
-  },
-  {
-    path: 'components/tabs.md',
-    mustContain: ['# Tabs', 'zweb add tabs', '@/components/ui/tabs'],
-  },
-  {
-    path: 'components/dialog.md',
-    mustContain: ['# Dialog', 'zweb add dialog', '@/components/ui/dialog'],
-  },
-  {
-    path: 'examples/react-vite.md',
-    mustContain: ['# React Vite Example', '@zeus-web/example-react-vite'],
-  },
-  {
-    path: 'examples/native-wc.md',
-    mustContain: ['# Native Web Components Example', '@zeus-web/example-native-wc'],
+    path: 'examples/next-app/src/components/ui/dialog.tsx',
+    mustContain: ["'use client'", '@zeus-web/dialog/react'],
+    mustNotContain: ['customElements.define'],
   },
 ]
 
-const forbiddenPatterns = [
-  {
-    pattern: '@zeus-ui',
-    message: 'old @zeus-ui package scope must not appear in docs',
-  },
-  {
-    pattern: 'zeus-ui',
-    message: 'old zeus-ui name must not appear in docs content',
-  },
-]
+function checkFile(file: RequiredFile): string[] {
+  const absolutePath = resolve(root, file.path)
 
-function readDoc(relativePath: string): string {
-  return readFileSync(resolve(docsRoot, relativePath), 'utf-8')
-}
-
-function checkFileExists(relativePath: string): string[] {
-  const file = resolve(docsRoot, relativePath)
-
-  if (!existsSync(file)) {
-    return [`Missing docs file: apps/docs/${relativePath}`]
+  if (!existsSync(absolutePath)) {
+    return [`Missing example file: ${file.path}`]
   }
 
-  return []
-}
-
-function checkRequiredContent(doc: RequiredDoc): string[] {
+  const source = readFileSync(absolutePath, 'utf-8')
   const errors: string[] = []
-  const source = readDoc(doc.path)
 
-  for (const text of doc.mustContain) {
+  for (const text of file.mustContain) {
     if (!source.includes(text)) {
-      errors.push(`apps/docs/${doc.path} must contain "${text}"`)
+      errors.push(`${file.path} must contain "${text}"`)
     }
   }
 
-  for (const item of forbiddenPatterns) {
-    if (source.includes(item.pattern)) {
-      errors.push(`apps/docs/${doc.path}: ${item.message}`)
-    }
-  }
-
-  return errors
-}
-
-function checkVitePressConfig(): string[] {
-  const configPath = resolve(docsRoot, '.vitepress/config.ts')
-
-  if (!existsSync(configPath)) {
-    return ['Missing apps/docs/.vitepress/config.ts']
-  }
-
-  const source = readFileSync(configPath, 'utf-8')
-  const errors: string[] = []
-
-  for (const route of [
-    '/guide/getting-started',
-    '/components/button',
-    '/examples/react-vite',
-  ]) {
-    if (!source.includes(route)) {
-      errors.push(`VitePress config must include route "${route}"`)
+  for (const text of file.mustNotContain ?? []) {
+    if (source.includes(text)) {
+      errors.push(`${file.path} must not contain "${text}"`)
     }
   }
 
   return errors
-}
-
-function checkDocsTheme(): string[] {
-  const files = [
-    '.vitepress/theme/index.ts',
-    '.vitepress/theme/style.css',
-    '.vitepress/data/site.ts',
-  ]
-
-  return files.flatMap(file => checkFileExists(file))
 }
 
 function main(): void {
-  const errors: string[] = []
-
-  for (const doc of requiredDocs) {
-    errors.push(...checkFileExists(doc.path))
-
-    if (errors.length === 0 || existsSync(resolve(docsRoot, doc.path))) {
-      errors.push(...checkRequiredContent(doc))
-    }
-  }
-
-  errors.push(...checkVitePressConfig())
-  errors.push(...checkDocsTheme())
+  const errors = requiredFiles.flatMap(checkFile)
 
   if (errors.length > 0) {
-    console.error(pc.red('Docs contract check failed:'))
+    console.error(pc.red('Examples contract check failed:'))
 
     for (const error of errors) {
       console.error(`- ${error}`)
@@ -1090,20 +1261,38 @@ function main(): void {
     process.exit(1)
   }
 
-  console.log(pc.green('Docs contract check passed.'))
+  console.log(pc.green('Examples contract check passed.'))
 }
 
 main()
-````
+```
+
+然后根 `package.json` 增加：
+
+```json
+{
+  "scripts": {
+    "examples:contract": "tsx scripts/checks/check-examples.ts",
+    "examples:check": "pnpm examples:contract && pnpm -r --filter './examples/**' check"
+  }
+}
+```
 
 ---
 
-# 9. Phase 9.1 验收命令
+# 9. Phase 9.2 验收命令
 
 ```bash
-pnpm docs:check
+pnpm examples:contract
+pnpm --filter @zeus-web/example-next-app check
+pnpm --filter @zeus-web/example-next-app build
+
+pnpm examples:check
+pnpm examples:build
+
 pnpm docs:build
 pnpm site:check
+pnpm site:build
 
 pnpm check
 pnpm test
@@ -1115,14 +1304,15 @@ pnpm check:build-output
 验收标准：
 
 ```txt
-1. VitePress docs 有统一主题样式。
-2. nav/sidebar 从统一 metadata 维护。
-3. 首页有产品介绍、快速命令、特性卡片。
-4. Guide 文档覆盖 Getting Started / CLI / Theming / Registry / AI。
-5. 组件文档覆盖 button/input/checkbox/switch/tabs/dialog。
-6. examples 文档覆盖 React Vite 和 Native WC。
-7. docs:check 能发现缺失文档、旧 @zeus-ui 命名和缺失关键内容。
-8. docs:build 能通过。
+1. examples/next-app 可以 typecheck。
+2. examples/next-app 可以 next build。
+3. examples/next-app 使用 App Router。
+4. examples/next-app 的 UI 文件都有 "use client"。
+5. examples/next-app 使用 @zeus-web/<name>/react 单组件入口。
+6. examples/next-app 不手写 customElements.define。
+7. examples/next-app 引入 @zeus-web/themes/default.css。
+8. docs 中出现 Next.js App Router example 页面。
+9. examples contract check 通过。
 ```
 
 ---
@@ -1130,15 +1320,15 @@ pnpm check:build-output
 # 10. 建议提交
 
 ```txt
-docs: polish vitepress site
-docs: add docs contract check
-chore: add docs check script
+example: add next app router example
+docs: document next app example
+test: add examples contract check
 ```
 
-Phase 9.1 做完后，后续建议进入：
+Phase 9.2 完成后，后续建议进入：
 
 ```txt
-Phase 9.2：Next.js example
 Phase 9.3：Auto docs from aiMetadata / registry
-Phase 9.4：Playground
+Phase 9.4：Interactive playground
+Phase 10：Accessibility & interaction hardening
 ```
