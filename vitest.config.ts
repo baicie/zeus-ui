@@ -128,6 +128,12 @@ export default defineConfig({
         },
         resolve: {
           conditions: ['import', 'module', 'browser', 'default'],
+          alias: [
+            {
+              find: /^@zeus-js\/zeus$/,
+              replacement: zeusEsmPath,
+            },
+          ],
         },
         ssr: {
           noExternal: ['@zeus-js/zeus'],
