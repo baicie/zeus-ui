@@ -38,12 +38,15 @@ import '@zeus-web/checkbox/wc'
 
 ## Props
 
-| Prop             | Type                                         | Default | Description               |
-| ---------------- | -------------------------------------------- | ------- | ------------------------- |
-| `checked`        | `boolean`                                    | -       | Controlled checked state. |
-| `defaultChecked` | `boolean`                                    | -       | Initial checked state.    |
-| `indeterminate`  | `boolean`                                    | -       | Mixed state.              |
-| `size`           | `CheckboxSize`<br />Values: `sm`, `md`, `lg` | `md`    | Checkbox size.            |
+| Prop              | Type                                         | Default | Description                                         |
+| ----------------- | -------------------------------------------- | ------- | --------------------------------------------------- |
+| `checked`         | `boolean`                                    | -       | Controlled checked state.                           |
+| `defaultChecked`  | `boolean`                                    | -       | Initial checked state.                              |
+| `indeterminate`   | `boolean`                                    | -       | Mixed state.                                        |
+| `size`            | `CheckboxSize`<br />Values: `sm`, `md`, `lg` | `md`    | Checkbox size.                                      |
+| `required`        | `boolean`                                    | -       | Marks the checkbox as required.                     |
+| `ariaLabel`       | `string`                                     | -       | Accessible label for unlabeled checkboxes.          |
+| `ariaDescribedby` | `string`                                     | -       | ID reference for additional accessible description. |
 
 ## Events
 

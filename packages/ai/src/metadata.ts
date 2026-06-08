@@ -656,10 +656,13 @@ export const aiMetadata: ZeusWebAiMetadata = {
         do: [
           'Use Dialog, DialogTrigger and DialogContent together.',
           'Use DialogTitle for accessible titles.',
+          'Use DialogDescription when extra accessible context is available.',
+          'Rely on the primitive for Escape close, focus return, and modal focus trapping.',
         ],
         dont: [
           'Do not create a second overlay unless the registry provides one.',
-          'Do not assume focus trap is complete in this MVP.',
+          'Do not remove DialogTitle when the dialog needs an accessible name.',
+          'Do not manually wire aria-labelledby or aria-describedby when using the provided title and description primitives.',
         ],
       },
     },

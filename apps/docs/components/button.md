@@ -38,12 +38,13 @@ import '@zeus-web/button/wc'
 
 ## Props
 
-| Prop       | Type                                                                                         | Default   | Description                                              |
-| ---------- | -------------------------------------------------------------------------------------------- | --------- | -------------------------------------------------------- |
-| `variant`  | `ButtonVariant`<br />Values: `default`, `primary`, `secondary`, `outline`, `ghost`, `danger` | `default` | Visual style variant.                                    |
-| `size`     | `ButtonSize`<br />Values: `sm`, `md`, `lg`, `icon`                                           | `md`      | Button size.                                             |
-| `disabled` | `boolean`                                                                                    | -         | Disables user interaction.                               |
-| `loading`  | `boolean`                                                                                    | -         | Marks the button as loading and prevents press handling. |
+| Prop        | Type                                                                                         | Default   | Description                                              |
+| ----------- | -------------------------------------------------------------------------------------------- | --------- | -------------------------------------------------------- |
+| `variant`   | `ButtonVariant`<br />Values: `default`, `primary`, `secondary`, `outline`, `ghost`, `danger` | `default` | Visual style variant.                                    |
+| `size`      | `ButtonSize`<br />Values: `sm`, `md`, `lg`, `icon`                                           | `md`      | Button size.                                             |
+| `disabled`  | `boolean`                                                                                    | -         | Disables user interaction.                               |
+| `loading`   | `boolean`                                                                                    | -         | Marks the button as loading and prevents press handling. |
+| `ariaLabel` | `string`                                                                                     | -         | Accessible label for icon-only buttons.                  |
 
 ## Events
 

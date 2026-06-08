@@ -38,11 +38,14 @@ import '@zeus-web/switch/wc'
 
 ## Props
 
-| Prop             | Type                                       | Default | Description               |
-| ---------------- | ------------------------------------------ | ------- | ------------------------- |
-| `checked`        | `boolean`                                  | -       | Controlled checked state. |
-| `defaultChecked` | `boolean`                                  | -       | Initial checked state.    |
-| `size`           | `SwitchSize`<br />Values: `sm`, `md`, `lg` | `md`    | Switch size.              |
+| Prop              | Type                                       | Default | Description                                         |
+| ----------------- | ------------------------------------------ | ------- | --------------------------------------------------- |
+| `checked`         | `boolean`                                  | -       | Controlled checked state.                           |
+| `defaultChecked`  | `boolean`                                  | -       | Initial checked state.                              |
+| `size`            | `SwitchSize`<br />Values: `sm`, `md`, `lg` | `md`    | Switch size.                                        |
+| `required`        | `boolean`                                  | -       | Marks the switch as required.                       |
+| `ariaLabel`       | `string`                                   | -       | Accessible label for unlabeled switches.            |
+| `ariaDescribedby` | `string`                                   | -       | ID reference for additional accessible description. |
 
 ## Events
 

@@ -38,13 +38,18 @@ import '@zeus-web/input/wc'
 
 ## Props
 
-| Prop           | Type                                                                                   | Default | Description                 |
-| -------------- | -------------------------------------------------------------------------------------- | ------- | --------------------------- |
-| `value`        | `string`                                                                               | -       | Controlled input value.     |
-| `defaultValue` | `string`                                                                               | -       | Initial uncontrolled value. |
-| `type`         | `InputType`<br />Values: `text`, `email`, `password`, `search`, `tel`, `url`, `number` | `text`  | Native input type.          |
-| `placeholder`  | `string`                                                                               | -       | Placeholder text.           |
-| `disabled`     | `boolean`                                                                              | -       | Disables input interaction. |
+| Prop               | Type                                                                                   | Default | Description                                         |
+| ------------------ | -------------------------------------------------------------------------------------- | ------- | --------------------------------------------------- |
+| `value`            | `string`                                                                               | -       | Controlled input value.                             |
+| `defaultValue`     | `string`                                                                               | -       | Initial uncontrolled value.                         |
+| `type`             | `InputType`<br />Values: `text`, `email`, `password`, `search`, `tel`, `url`, `number` | `text`  | Native input type.                                  |
+| `placeholder`      | `string`                                                                               | -       | Placeholder text.                                   |
+| `disabled`         | `boolean`                                                                              | -       | Disables input interaction.                         |
+| `id`               | `string`                                                                               | -       | Native input id attribute.                          |
+| `autocomplete`     | `string`                                                                               | -       | Native input autocomplete attribute.                |
+| `ariaLabel`        | `string`                                                                               | -       | Accessible label for unlabeled inputs.              |
+| `ariaDescribedby`  | `string`                                                                               | -       | ID reference for additional accessible description. |
+| `ariaErrormessage` | `string`                                                                               | -       | ID reference for accessible error message.          |
 
 ## Events
 

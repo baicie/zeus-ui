@@ -49,7 +49,8 @@ function stringifyDetail(detail: unknown): string {
 
   try {
     return JSON.stringify(detail)
-  } catch {
+  }
+  catch {
     return '[unserializable detail]'
   }
 }
@@ -103,7 +104,9 @@ function clearLogs(): void {
   <section :class="playgroundClass">
     <div class="zeus-playground__toolbar">
       <div>
-        <p class="zeus-playground__eyebrow">Live preview</p>
+        <p class="zeus-playground__eyebrow">
+          Live preview
+        </p>
         <h2>Zeus Web Playground</h2>
       </div>
 
@@ -141,7 +144,9 @@ function clearLogs(): void {
           <zw-button variant="outline" @press="handlePress">
             Outline
           </zw-button>
-          <zw-button variant="danger" @press="handlePress">Danger</zw-button>
+          <zw-button variant="danger" @press="handlePress">
+            Danger
+          </zw-button>
         </div>
       </article>
 
@@ -177,11 +182,19 @@ function clearLogs(): void {
         <h3>Tabs</h3>
         <zw-tabs default-value="account">
           <zw-tabs-list>
-            <zw-tabs-trigger value="account">Account</zw-tabs-trigger>
-            <zw-tabs-trigger value="password">Password</zw-tabs-trigger>
+            <zw-tabs-trigger value="account">
+              Account
+            </zw-tabs-trigger>
+            <zw-tabs-trigger value="password">
+              Password
+            </zw-tabs-trigger>
           </zw-tabs-list>
-          <zw-tabs-content value="account">Account panel</zw-tabs-content>
-          <zw-tabs-content value="password">Password panel</zw-tabs-content>
+          <zw-tabs-content value="account">
+            Account panel
+          </zw-tabs-content>
+          <zw-tabs-content value="password">
+            Password panel
+          </zw-tabs-content>
         </zw-tabs>
       </article>
 
@@ -197,7 +210,9 @@ function clearLogs(): void {
               This dialog is rendered inside the docs playground.
             </zw-dialog-description>
             <zw-dialog-close>
-              <zw-button variant="outline">Close</zw-button>
+              <zw-button variant="outline">
+                Close
+              </zw-button>
             </zw-dialog-close>
           </zw-dialog-content>
         </zw-dialog>
@@ -209,7 +224,9 @@ function clearLogs(): void {
       <article class="zeus-playground__card zeus-playground__card--logs">
         <div class="zeus-playground__logs-title">
           <h3>Event log</h3>
-          <button type="button" @click="clearLogs">Clear</button>
+          <button type="button" @click="clearLogs">
+            Clear
+          </button>
         </div>
 
         <ul v-if="logs.length > 0" class="zeus-playground__logs">
