@@ -289,12 +289,17 @@ export function generateComponentDocs(
   ]
 
   for (const component of context.metadata.components) {
+    const registryItem = findRegistryItem(context.registry, component)
+
+    if (!registryItem) {
+      throw new Error(
+        `Missing registry item for component metadata: ${component.name}`,
+      )
+    }
+
     docs.push({
       path: `apps/docs/components/${component.name}.md`,
-      content: renderComponentDoc(
-        component,
-        findRegistryItem(context.registry, component),
-      ),
+      content: renderComponentDoc(component, registryItem),
     })
   }
 

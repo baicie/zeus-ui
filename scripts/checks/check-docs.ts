@@ -206,10 +206,29 @@ function checkVitePressConfig(): string[] {
     }
   }
 
+  const componentRouteDocs = [
+    'button',
+    'input',
+    'checkbox',
+    'switch',
+    'tabs',
+    'dialog',
+    'label',
+    'textarea',
+    'radio-group',
+    'select',
+    'card',
+    'badge',
+    'separator',
+    'skeleton',
+    'alert',
+  ]
+
   for (const route of [
     '/guide/getting-started',
     '/components/',
     '/components/button',
+    ...componentRouteDocs.map(c => `/components/${c}`),
     '/playground/',
     '/examples/react-vite',
     '/examples/next-app',
@@ -233,8 +252,7 @@ function checkDocsTheme(): string[] {
   return files.flatMap(file => checkFileExists(file))
 }
 
-function checkGeneratedComponentDocs(): string[] {
-  const components = ['button', 'input', 'checkbox', 'switch', 'tabs', 'dialog']
+function checkComponentDocsErrors(components: string[]): string[] {
   const errors: string[] = []
 
   for (const component of components) {
@@ -254,9 +272,43 @@ function checkGeneratedComponentDocs(): string[] {
     ) {
       errors.push(`components/${component}.md must be generated`)
     }
+
+    if (!source.includes(`zweb add ${component}`)) {
+      errors.push(
+        `components/${component}.md must document zweb add ${component}`,
+      )
+    }
+
+    if (!source.includes(`@zeus-web/${component}/react`)) {
+      errors.push(
+        `components/${component}.md must document @zeus-web/${component}/react`,
+      )
+    }
   }
 
   return errors
+}
+
+function checkGeneratedComponentDocs(): string[] {
+  const componentDocs = [
+    'button',
+    'input',
+    'checkbox',
+    'switch',
+    'tabs',
+    'dialog',
+    'label',
+    'textarea',
+    'radio-group',
+    'select',
+    'card',
+    'badge',
+    'separator',
+    'skeleton',
+    'alert',
+  ]
+
+  return checkComponentDocsErrors(componentDocs)
 }
 
 function main(): void {
