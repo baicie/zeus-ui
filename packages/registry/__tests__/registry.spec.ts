@@ -23,14 +23,24 @@ describe('@zeus-web/registry registry.json', () => {
   it('contains MVP primitive registry items', () => {
     const registry = readRegistry()
 
-    expect(registry.items.map(item => item.name)).toEqual([
+    const expected = [
       'input',
       'button',
       'checkbox',
       'switch',
       'tabs',
       'dialog',
-    ])
+      'label',
+      'textarea',
+      'radio-group',
+      'select',
+      'card',
+      'badge',
+      'separator',
+      'skeleton',
+      'alert',
+    ]
+    expect(registry.items.map(item => item.name)).toEqual(expected)
   })
 
   it('passes registry validation', () => {

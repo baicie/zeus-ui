@@ -17,6 +17,15 @@ describe('component docs generator', () => {
       'apps/docs/components/switch.md',
       'apps/docs/components/tabs.md',
       'apps/docs/components/dialog.md',
+      'apps/docs/components/label.md',
+      'apps/docs/components/textarea.md',
+      'apps/docs/components/radio-group.md',
+      'apps/docs/components/select.md',
+      'apps/docs/components/card.md',
+      'apps/docs/components/badge.md',
+      'apps/docs/components/separator.md',
+      'apps/docs/components/skeleton.md',
+      'apps/docs/components/alert.md',
     ])
   })
 

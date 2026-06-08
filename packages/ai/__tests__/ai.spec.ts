@@ -7,14 +7,26 @@ import {
 
 describe('@zeus-web/ai metadata', () => {
   it('contains required MVP components', () => {
-    expect(aiMetadata.components.map(component => component.name)).toEqual([
+    const expected = [
       'button',
       'input',
       'checkbox',
       'switch',
       'tabs',
       'dialog',
-    ])
+      'label',
+      'textarea',
+      'radio-group',
+      'select',
+      'card',
+      'badge',
+      'separator',
+      'skeleton',
+      'alert',
+    ]
+    expect(aiMetadata.components.map(component => component.name)).toEqual(
+      expected,
+    )
   })
 
   it('passes metadata validation', () => {
@@ -51,6 +63,6 @@ describe('@zeus-web/ai metadata', () => {
     const parsed = JSON.parse(json)
 
     expect(parsed.packageName).toBe('@zeus-web/ai')
-    expect(parsed.components).toHaveLength(6)
+    expect(parsed.components).toHaveLength(15)
   })
 })

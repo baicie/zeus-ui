@@ -5,6 +5,15 @@ export type ZeusWebAiComponentName =
   | 'switch'
   | 'tabs'
   | 'dialog'
+  | 'label'
+  | 'textarea'
+  | 'radio-group'
+  | 'select'
+  | 'card'
+  | 'badge'
+  | 'separator'
+  | 'skeleton'
+  | 'alert'
 
 export type ZeusWebAiThemeName =
   | 'default'

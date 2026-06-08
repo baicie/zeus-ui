@@ -140,6 +140,213 @@
           "type": "registry:ui"
         }
       ]
+    },
+    {
+      "name": "label",
+      "type": "registry:ui",
+      "description": "Label styled component.",
+      "dependencies": [
+        "@zeus-web/label",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "files": [
+        {
+          "path": "default/lib/utils.ts",
+          "target": "lib/utils.ts",
+          "type": "registry:lib"
+        },
+        {
+          "path": "default/label.tsx",
+          "target": "components/ui/label.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "textarea",
+      "type": "registry:ui",
+      "description": "Textarea styled component.",
+      "dependencies": [
+        "@zeus-web/textarea",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "files": [
+        {
+          "path": "default/lib/utils.ts",
+          "target": "lib/utils.ts",
+          "type": "registry:lib"
+        },
+        {
+          "path": "default/textarea.tsx",
+          "target": "components/ui/textarea.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "radio-group",
+      "type": "registry:ui",
+      "description": "Radio group styled component.",
+      "dependencies": [
+        "@zeus-web/radio-group",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "files": [
+        {
+          "path": "default/lib/utils.ts",
+          "target": "lib/utils.ts",
+          "type": "registry:lib"
+        },
+        {
+          "path": "default/radio-group.tsx",
+          "target": "components/ui/radio-group.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "select",
+      "type": "registry:ui",
+      "description": "Native select styled component.",
+      "dependencies": [
+        "@zeus-web/select",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "files": [
+        {
+          "path": "default/lib/utils.ts",
+          "target": "lib/utils.ts",
+          "type": "registry:lib"
+        },
+        {
+          "path": "default/select.tsx",
+          "target": "components/ui/select.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "card",
+      "type": "registry:ui",
+      "description": "Card styled component.",
+      "dependencies": [
+        "@zeus-web/card",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "files": [
+        {
+          "path": "default/lib/utils.ts",
+          "target": "lib/utils.ts",
+          "type": "registry:lib"
+        },
+        {
+          "path": "default/card.tsx",
+          "target": "components/ui/card.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "badge",
+      "type": "registry:ui",
+      "description": "Badge styled component.",
+      "dependencies": [
+        "@zeus-web/badge",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "files": [
+        {
+          "path": "default/lib/utils.ts",
+          "target": "lib/utils.ts",
+          "type": "registry:lib"
+        },
+        {
+          "path": "default/badge.tsx",
+          "target": "components/ui/badge.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "separator",
+      "type": "registry:ui",
+      "description": "Separator styled component.",
+      "dependencies": [
+        "@zeus-web/separator",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "files": [
+        {
+          "path": "default/lib/utils.ts",
+          "target": "lib/utils.ts",
+          "type": "registry:lib"
+        },
+        {
+          "path": "default/separator.tsx",
+          "target": "components/ui/separator.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "skeleton",
+      "type": "registry:ui",
+      "description": "Skeleton styled component.",
+      "dependencies": [
+        "@zeus-web/skeleton",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "files": [
+        {
+          "path": "default/lib/utils.ts",
+          "target": "lib/utils.ts",
+          "type": "registry:lib"
+        },
+        {
+          "path": "default/skeleton.tsx",
+          "target": "components/ui/skeleton.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "alert",
+      "type": "registry:ui",
+      "description": "Alert styled component.",
+      "dependencies": [
+        "@zeus-web/alert",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "files": [
+        {
+          "path": "default/lib/utils.ts",
+          "target": "lib/utils.ts",
+          "type": "registry:lib"
+        },
+        {
+          "path": "default/alert.tsx",
+          "target": "components/ui/alert.tsx",
+          "type": "registry:ui"
+        }
+      ]
     }
   ]
 }

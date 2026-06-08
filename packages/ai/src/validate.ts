@@ -11,6 +11,15 @@ const requiredComponents: ZeusWebAiComponentName[] = [
   'switch',
   'tabs',
   'dialog',
+  'label',
+  'textarea',
+  'radio-group',
+  'select',
+  'card',
+  'badge',
+  'separator',
+  'skeleton',
+  'alert',
 ]
 
 export function validateAiMetadata(
