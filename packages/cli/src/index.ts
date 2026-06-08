@@ -16,37 +16,29 @@ async function main() {
     case 'init':
       await init(args)
       break
-
     case 'add':
       await add(args)
       break
-
     case 'list':
       await list(args)
       break
-
     case 'diff':
       await diff(args)
       break
-
     case 'update':
       await update(args)
       break
-
     case 'doctor':
       await doctor(args)
       break
-
     case 'ai':
       await ai(args)
       break
-
     case undefined:
     case '-h':
     case '--help':
       printHelp()
       break
-
     default:
       console.error(pc.red(`Unknown command: ${command}`))
       printHelp()
@@ -61,6 +53,18 @@ function printHelp() {
   console.log('  zweb init --style slate --css src/styles/globals.css')
   console.log('  zweb add button')
   console.log('  zweb add button input dialog')
+  console.log('  zweb add --all')
+  console.log('  zweb list')
+  console.log('  zweb list --json')
+  console.log('  zweb diff button')
+  console.log('  zweb diff --all')
+  console.log('  zweb diff --all --json')
+  console.log('  zweb update button')
+  console.log('  zweb update --all')
+  console.log('  zweb update button --dry-run')
+  console.log('  zweb update button --overwrite')
+  console.log('  zweb doctor')
+  console.log('  zweb doctor --json')
   console.log('  zweb ai')
   console.log('  zweb ai --cursor')
   console.log('  zweb ai --json')
@@ -69,12 +73,15 @@ function printHelp() {
   console.log('  --cwd <dir>                 Use a specific project directory')
   console.log('  --style <name>              Theme style for init')
   console.log('  --css <file>                Tailwind css file for init')
+  console.log('  --all                       Select all registry components')
   console.log(
     '  --dry-run                   Print the plan without writing files',
   )
-  console.log('  --overwrite                 Replace existing files')
-  console.log('  --no-install                Do not install dependencies')
+  console.log('  --overwrite, --force        Replace existing files')
+  console.log('  --no-install, --skip-deps   Do not install dependencies')
+  console.log('  --yes, -y                   Skip confirmations when supported')
   console.log('  --package-manager <name>    pnpm | npm | yarn | bun')
+  console.log('  --json                      Print JSON output')
   console.log('  --format <name>             markdown | json')
   console.log('  --output <file>             Output file path')
   console.log('  --cursor                    Write .cursor/rules/zeus-web.mdc')

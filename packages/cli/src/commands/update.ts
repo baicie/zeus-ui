@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from 'node:fs/promises'
-import { dirname, resolve } from 'node:path'
+import { dirname, isAbsolute, resolve } from 'node:path'
 
 import pc from 'picocolors'
 
@@ -28,7 +28,11 @@ interface ParsedUpdateArgs {
   options: UpdateOptions
 }
 
-function parseUpdateArgs(
+function resolveCwdValue(base: string, value: string): string {
+  return isAbsolute(value) ? value : resolve(base, value)
+}
+
+export function parseUpdateArgs(
   args: string[],
   cwd = process.cwd(),
 ): ParsedUpdateArgs {
@@ -39,8 +43,8 @@ function parseUpdateArgs(
     dryRun: false,
     overwrite: false,
   }
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i]
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]
     if (arg === '--all') {
       options.all = true
       continue
@@ -54,13 +58,15 @@ function parseUpdateArgs(
       continue
     }
     if (arg === '--cwd') {
-      const v = args[++i]
+      const v = args[++index]
       if (!v) throw new Error('--cwd requires a directory path')
-      options.cwd = resolve(cwd, v)
+      options.cwd = resolveCwdValue(cwd, v)
       continue
     }
     if (arg.startsWith('--cwd=')) {
-      options.cwd = resolve(cwd, arg.slice('--cwd='.length))
+      const v = arg.slice('--cwd='.length)
+      if (!v) throw new Error('--cwd requires a directory path')
+      options.cwd = resolveCwdValue(cwd, v)
       continue
     }
     if (arg.startsWith('-')) throw new Error(`Unknown option: ${arg}`)

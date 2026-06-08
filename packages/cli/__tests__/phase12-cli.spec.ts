@@ -11,9 +11,14 @@ import {
   createAddPlan,
   executeAddPlan,
   parseAddArgs,
+  resolveAddPlanTargets,
 } from '../src/commands/add'
 import { createDiffEntries } from '../src/commands/diff'
-import { createDefaultComponentsConfig } from '../src/config'
+import {
+  createDefaultComponentsConfig,
+  readComponentsConfig,
+} from '../src/config'
+import { readComponentsLock, updateComponentsLockFromPlans } from '../src/lock'
 
 const registry: Registry = {
   $schema: 'https://zeus-web.dev/schema/registry.json',
@@ -60,11 +65,14 @@ function writeRegistrySource(
   writeFileSync(path, content, 'utf-8')
 }
 
-function writeComponentsJson(root: string): void {
+function writeComponentsJson(
+  root: string,
+  config?: ReturnType<typeof createDefaultComponentsConfig>,
+): void {
   mkdirSync(resolve(root, 'src'), { recursive: true })
   writeFileSync(
     resolve(root, 'components.json'),
-    `${JSON.stringify(createDefaultComponentsConfig(), null, 2)}\n`,
+    `${JSON.stringify(config ?? createDefaultComponentsConfig(), null, 2)}\n`,
     'utf-8',
   )
 }
@@ -99,14 +107,75 @@ describe('@zeus-web/cli phase 12', () => {
         plans,
         registryRoot,
       })
-      expect(entries.map(entry => entry.status)).toEqual(['missing', 'missing'])
+      expect(entries.map(e => e.status)).toEqual(['missing', 'missing'])
     } finally {
       await rm(registryRoot, { recursive: true, force: true })
       await rm(targetRoot, { recursive: true, force: true })
     }
   })
 
-  it('writes components.lock.json after add execution and lock update', async () => {
+  it('rewrites registry source in diff entries', async () => {
+    const registryRoot = await createTempDir()
+    const targetRoot = await createTempDir()
+    try {
+      writeRegistrySource(registryRoot, 'default/lib/utils.ts', 'export {}\n')
+      writeRegistrySource(
+        registryRoot,
+        'default/button.tsx',
+        "import { cn } from '@/lib/utils'\n",
+      )
+      const config = createDefaultComponentsConfig()
+      config.aliases.lib = '~/shared/lib'
+      writeComponentsJson(targetRoot, config)
+      const plans = createAddPlan(['button'], registry)
+      const entries = await createDiffEntries({
+        cwd: targetRoot,
+        plans,
+        registryRoot,
+      })
+      const e = entries.find(entry => entry.source === 'default/button.tsx')
+      expect(e?.registrySource).toBe(
+        "import { cn } from '~/shared/lib/utils'\n",
+      )
+    } finally {
+      await rm(registryRoot, { recursive: true, force: true })
+      await rm(targetRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('refuses diff access outside cwd', async () => {
+    const registryRoot = await createTempDir()
+    const targetRoot = await createTempDir()
+    try {
+      writeRegistrySource(registryRoot, 'default/button.tsx', 'export {}\n')
+      writeComponentsJson(targetRoot)
+      await expect(
+        createDiffEntries({
+          cwd: targetRoot,
+          registryRoot,
+          plans: [
+            {
+              component: 'button',
+              dependencies: [],
+              devDependencies: [],
+              files: [
+                {
+                  source: 'default/button.tsx',
+                  target: '../button.tsx',
+                  type: 'registry:ui',
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrow('Refusing to access outside cwd')
+    } finally {
+      await rm(registryRoot, { recursive: true, force: true })
+      await rm(targetRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('writes components.lock.json after lock update', async () => {
     const registryRoot = await createTempDir()
     const targetRoot = await createTempDir()
     try {
@@ -126,10 +195,24 @@ describe('@zeus-web/cli phase 12', () => {
         },
         registryRoot,
       )
+      const config = readComponentsConfig(targetRoot)
+      const resolvedPlans = resolveAddPlanTargets(plans, targetRoot, config)
+      await updateComponentsLockFromPlans({
+        cwd: targetRoot,
+        plans: resolvedPlans,
+        writtenTargets: result.written,
+      })
+      const lock = readComponentsLock(targetRoot)
       expect(result.written).toEqual([
         'src/lib/utils.ts',
         'src/components/ui/button.tsx',
       ])
+      expect(lock.components.button).toBeDefined()
+      expect(lock.components.button.files.map(f => f.target)).toEqual([
+        'src/components/ui/button.tsx',
+        'src/lib/utils.ts',
+      ])
+      expect(existsSync(resolve(targetRoot, 'components.lock.json'))).toBe(true)
       expect(existsSync(resolve(targetRoot, 'src/lib/utils.ts'))).toBe(true)
       expect(
         existsSync(resolve(targetRoot, 'src/components/ui/button.tsx')),

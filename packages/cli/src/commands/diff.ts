@@ -1,8 +1,8 @@
-import type { RegistryFilePlan } from './add'
+import type { AddPlan, RegistryFilePlan } from './add'
 
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { isAbsolute, relative, resolve } from 'node:path'
 
 import pc from 'picocolors'
 
@@ -42,7 +42,27 @@ interface ParsedDiffArgs {
   options: DiffOptions
 }
 
-function parseDiffArgs(args: string[], cwd = process.cwd()): ParsedDiffArgs {
+function resolveCwdValue(base: string, value: string): string {
+  return isAbsolute(value) ? value : resolve(base, value)
+}
+
+function assertSafeTarget(cwd: string, target: string): string {
+  const absoluteTarget = resolve(cwd, target)
+  const relativeTarget = relative(cwd, absoluteTarget).replace(/\\/g, '/')
+  if (
+    relativeTarget === '..' ||
+    relativeTarget.startsWith('../') ||
+    isAbsolute(relativeTarget)
+  ) {
+    throw new Error(`Refusing to access outside cwd: ${target}`)
+  }
+  return absoluteTarget
+}
+
+export function parseDiffArgs(
+  args: string[],
+  cwd = process.cwd(),
+): ParsedDiffArgs {
   const components: string[] = []
   const options: DiffOptions = { cwd, all: false, json: false }
   for (let index = 0; index < args.length; index += 1) {
@@ -56,13 +76,16 @@ function parseDiffArgs(args: string[], cwd = process.cwd()): ParsedDiffArgs {
       continue
     }
     if (arg === '--cwd') {
-      const v = args[++index]
-      if (!v) throw new Error('--cwd requires a directory path')
-      options.cwd = resolve(cwd, v)
+      const value = args[index + 1]
+      if (!value) throw new Error('--cwd requires a directory path')
+      options.cwd = resolveCwdValue(cwd, value)
+      index += 1
       continue
     }
     if (arg.startsWith('--cwd=')) {
-      options.cwd = resolve(cwd, arg.slice('--cwd='.length))
+      const value = arg.slice('--cwd='.length)
+      if (!value) throw new Error('--cwd requires a directory path')
+      options.cwd = resolveCwdValue(cwd, value)
       continue
     }
     if (arg.startsWith('-')) throw new Error(`Unknown option: ${arg}`)
@@ -71,9 +94,19 @@ function parseDiffArgs(args: string[], cwd = process.cwd()): ParsedDiffArgs {
   return { components, options }
 }
 
+async function readRegistrySource(params: {
+  registryRoot: string
+  source: string
+  config: ReturnType<typeof readComponentsConfig>
+}): Promise<string> {
+  const file = resolve(params.registryRoot, params.source)
+  const source = await readFile(file, 'utf-8')
+  return rewriteRegistrySource(source, params.config)
+}
+
 export async function createDiffEntries(params: {
   cwd: string
-  plans: ReturnType<typeof createAddPlan>
+  plans: AddPlan[]
   registryRoot?: string
 }): Promise<DiffEntry[]> {
   const config = readComponentsConfig(params.cwd)
@@ -83,13 +116,15 @@ export async function createDiffEntries(params: {
 
   for (const plan of plans) {
     for (const file of plan.files) {
-      const resolvedTarget = file.resolvedTarget ?? file.target
+      const rawResolvedTarget = file.resolvedTarget ?? file.target
+      const resolvedTarget = assertSafeTarget(params.cwd, rawResolvedTarget)
       const target = toRelativeProjectPath(params.cwd, resolvedTarget)
-      const regFile = resolve(registryRoot, file.source)
-      const registrySource = await readFile(regFile, 'utf-8')
-      const registryHash = hashString(
-        rewriteRegistrySource(registrySource, config),
-      )
+      const registrySource = await readRegistrySource({
+        registryRoot,
+        source: file.source,
+        config,
+      })
+      const registryHash = hashString(registrySource)
 
       if (!existsSync(resolvedTarget)) {
         entries.push({
@@ -123,6 +158,21 @@ export async function createDiffEntries(params: {
   return entries
 }
 
+function printDiff(entries: DiffEntry[]): void {
+  const changed = entries.filter(e => e.status !== 'unchanged')
+  if (changed.length === 0) {
+    console.log(pc.green('All registry files are up to date.'))
+    return
+  }
+  console.log(pc.bold('Registry diff:'))
+  for (const entry of changed) {
+    const color = entry.status === 'missing' ? pc.yellow : pc.cyan
+    console.log(
+      `  ${color(entry.status.padEnd(8))} ${entry.component} ${entry.target}`,
+    )
+  }
+}
+
 export async function diff(args: string[]): Promise<void> {
   try {
     const { components, options } = parseDiffArgs(args)
@@ -154,18 +204,7 @@ export async function diff(args: string[]): Promise<void> {
       )
       return
     }
-    const changed = entries.filter(e => e.status !== 'unchanged')
-    if (changed.length === 0) {
-      console.log(pc.green('All registry files are up to date.'))
-      return
-    }
-    console.log(pc.bold('Registry diff:'))
-    for (const entry of changed) {
-      const color = entry.status === 'missing' ? pc.yellow : pc.cyan
-      console.log(
-        `  ${color(entry.status.padEnd(8))} ${entry.component} ${entry.target}`,
-      )
-    }
+    printDiff(entries)
   } catch (error) {
     console.error(pc.red((error as Error).message))
     process.exitCode = 1
