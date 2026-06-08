@@ -83,9 +83,11 @@ export function readComponentsConfig(cwd: string): ComponentsConfig {
   const file = getComponentsConfigPath(cwd)
   if (!existsSync(file))
     throw new Error('components.json not found. Run `zweb init` first.')
-  return normalizeComponentsConfig(
+  const config = normalizeComponentsConfig(
     JSON.parse(readFileSync(file, 'utf-8')) as ComponentsConfig,
   )
+  validateComponentsConfig(config)
+  return config
 }
 
 export function normalizeComponentsConfig(
@@ -120,12 +122,10 @@ export async function writeComponentsConfig(params: {
 }): Promise<'created' | 'skipped'> {
   const file = getComponentsConfigPath(params.cwd)
   if (existsSync(file) && !params.overwrite) return 'skipped'
+  const config = normalizeComponentsConfig(params.config)
+  validateComponentsConfig(config)
   await mkdir(dirname(file), { recursive: true })
-  await writeFile(
-    file,
-    `${JSON.stringify(normalizeComponentsConfig(params.config), null, 2)}\n`,
-    'utf-8',
-  )
+  await writeFile(file, `${JSON.stringify(config, null, 2)}\n`, 'utf-8')
   return 'created'
 }
 
@@ -215,29 +215,21 @@ function createThemeOverrideCss(config: ComponentsConfig): string {
 }
 
 function replaceThemeImport(source: string, style: ThemeName): string {
+  const importPattern = /@import ['"]@zeus-web\/themes\/[a-z-]+\.css['"];\n?/g
   const nextImport = `${createThemeImport(style)}\n`
-  const hasImport = /@import ['"]@zeus-web\/themes\/[a-z-]+\.css['"];\n?/.test(
-    source,
-  )
-  return hasImport
-    ? source.replace(
-        /@import ['"]@zeus-web\/themes\/[a-z-]+\.css['"];\n?/g,
-        nextImport,
-      )
-    : source + (source.endsWith('\n') ? '' : '\n') + nextImport
+  if (importPattern.test(source))
+    return source.replace(importPattern, nextImport)
+  return source.endsWith('\n')
+    ? `${source}${nextImport}`
+    : `${source}\n${nextImport}`
 }
 
 function upsertThemeOverride(source: string, config: ComponentsConfig): string {
   const block = createThemeOverrideCss(config)
   const start = source.indexOf(themeOverrideStart)
   const end = source.indexOf(themeOverrideEnd)
-  if (start >= 0 && end >= start) {
-    return (
-      source.slice(0, start) +
-      block +
-      source.slice(end + themeOverrideEnd.length).replace(/^\n/, '')
-    )
-  }
+  if (start >= 0 && end >= start)
+    return `${source.slice(0, start)}${block}${source.slice(end + themeOverrideEnd.length).replace(/^\n/, '')}`
   return source.endsWith('\n') ? `${source}${block}` : `${source}\n${block}`
 }
 
@@ -247,23 +239,24 @@ export async function ensureThemeCss(params: {
   overwrite: boolean
 }): Promise<'created' | 'updated' | 'skipped'> {
   const config = normalizeComponentsConfig(params.config)
+  validateComponentsConfig(config)
   const cssPath = resolve(params.cwd, config.tailwind.css)
+
   if (existsSync(cssPath)) {
     const current = readFileSync(cssPath, 'utf-8')
+    if (params.overwrite) {
+      const next = `${createThemeImport(config.style)}\n${createThemeOverrideCss(config)}`
+      if (current === next) return 'skipped'
+      await writeFile(cssPath, next, 'utf-8')
+      return 'updated'
+    }
     const withImport = replaceThemeImport(current, config.style)
     const next = upsertThemeOverride(withImport, config)
     if (current === next) return 'skipped'
-    if (params.overwrite) {
-      await writeFile(
-        cssPath,
-        `${createThemeImport(config.style)}\n${next}`,
-        'utf-8',
-      )
-      return 'updated'
-    }
     await writeFile(cssPath, next, 'utf-8')
-    return withImport !== current ? 'updated' : 'skipped'
+    return 'updated'
   }
+
   await mkdir(dirname(cssPath), { recursive: true })
   await writeFile(
     cssPath,

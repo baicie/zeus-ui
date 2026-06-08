@@ -70,7 +70,7 @@ function parseMotion(value: string): MotionPresetName {
 function parseDarkMode(value: string): DarkModeStrategyName {
   if (isDarkModeStrategyName(value)) return value
   throw new Error(
-    `Unsupported dark mode: ${value}. Available: class, data, media`,
+    `Unsupported dark mode: ${value}. Available: ${darkModeStrategyNames.join(', ')}`,
   )
 }
 

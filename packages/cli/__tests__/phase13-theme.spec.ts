@@ -157,4 +157,100 @@ describe('@zeus-web/cli phase 13 theme workflow', () => {
       await rm(root, { recursive: true, force: true })
     }
   })
+
+  it('validates config when reading components.json', async () => {
+    const root = await createTempDir()
+    try {
+      mkdirSync(resolve(root, 'src/styles'), { recursive: true })
+      writeFileSync(
+        resolve(root, 'components.json'),
+        JSON.stringify(
+          {
+            ...createDefaultComponentsConfig(),
+            theme: {
+              radius: 'bad-radius',
+              motion: 'normal',
+              darkMode: 'class',
+            },
+          },
+          null,
+          2,
+        ),
+        'utf-8',
+      )
+      expect(() => readComponentsConfig(root)).toThrow(
+        'Unsupported radius preset',
+      )
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('returns updated when only managed override block changes', async () => {
+    const root = await createTempDir()
+    try {
+      mkdirSync(resolve(root, 'src/styles'), { recursive: true })
+      writeFileSync(
+        resolve(root, 'src/styles/globals.css'),
+        [
+          "@import '@zeus-web/themes/default.css';",
+          'body { margin: 0; }',
+          '/* zeus-web theme overrides:start */',
+          ':root {',
+          '  --radius: 0.5rem;',
+          '  --zw-duration-normal: 180ms;',
+          '}',
+          '/* zeus-web theme overrides:end */',
+          '',
+        ].join('\n'),
+        'utf-8',
+      )
+      const config = createDefaultComponentsConfig({
+        style: 'default',
+        theme: { radius: 'lg', motion: 'normal', darkMode: 'class' },
+      })
+      const result = await ensureThemeCss({
+        cwd: root,
+        config,
+        overwrite: false,
+      })
+      const css = readFileSync(resolve(root, 'src/styles/globals.css'), 'utf-8')
+      expect(result).toBe('updated')
+      expect(css).toContain('--radius: 0.75rem;')
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('does not duplicate theme import when overwrite is true', async () => {
+    const root = await createTempDir()
+    try {
+      mkdirSync(resolve(root, 'src/styles'), { recursive: true })
+      writeFileSync(
+        resolve(root, 'src/styles/globals.css'),
+        [
+          "@import '@zeus-web/themes/default.css';",
+          'body { margin: 0; }',
+          '',
+        ].join('\n'),
+        'utf-8',
+      )
+      const config = createDefaultComponentsConfig({
+        style: 'zinc',
+        theme: { radius: 'md', motion: 'normal', darkMode: 'class' },
+      })
+      const result = await ensureThemeCss({
+        cwd: root,
+        config,
+        overwrite: true,
+      })
+      const css = readFileSync(resolve(root, 'src/styles/globals.css'), 'utf-8')
+      const imports = css.match(/@import '@zeus-web\/themes\/zinc\.css';/g)
+      expect(result).toBe('updated')
+      expect(imports).toHaveLength(1)
+      expect(css).not.toContain("@import '@zeus-web/themes/default.css';")
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
 })
