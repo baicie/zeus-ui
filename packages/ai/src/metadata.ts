@@ -1269,5 +1269,399 @@ export const aiMetadata: ZeusWebAiMetadata = {
         ],
       },
     },
+    {
+      name: 'collapsible',
+      description:
+        'Styled collapsible component family built on zw-collapsible primitives.',
+      primitivePackage: '@zeus-web/collapsible',
+      registryCommand: 'zweb add collapsible',
+      installCommand:
+        'pnpm add @zeus-web/collapsible class-variance-authority clsx tailwind-merge',
+      reactImport:
+        "import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@zeus-web/collapsible/react'",
+      webComponentImport: "import '@zeus-web/collapsible/wc'",
+      styledImport:
+        "import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'",
+      sourceTarget: 'components/ui/collapsible.tsx',
+      dependencies: ['@zeus-web/collapsible', ...sharedDependencies],
+      props: [
+        {
+          name: 'open',
+          type: 'boolean',
+          description: 'Controlled open state.',
+        },
+        {
+          name: 'defaultOpen',
+          type: 'boolean',
+          description: 'Initial open state.',
+        },
+        {
+          name: 'disabled',
+          type: 'boolean',
+          description: 'Disables trigger interaction.',
+        },
+      ],
+      events: [
+        {
+          name: 'open-change',
+          reactName: 'onOpenChange',
+          description: 'Emitted when open state changes.',
+          detail: { open: 'boolean', nativeEvent: 'Event' },
+        },
+      ],
+      slots: [
+        { name: 'default', description: 'Trigger and content children.' },
+      ],
+      examples: [
+        {
+          title: 'React styled usage',
+          code: [
+            "import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'",
+            '',
+            'export function Example() {',
+            '  return (',
+            '    <Collapsible>',
+            '      <CollapsibleTrigger>Toggle</CollapsibleTrigger>',
+            '      <CollapsibleContent>Content</CollapsibleContent>',
+            '    </Collapsible>',
+            '  )',
+            '}',
+          ].join('\\n'),
+        },
+      ],
+      styling: {
+        usesTailwind: true,
+        themeTokens: ['ring-ring'],
+        internalSelectors: [
+          '[data-slot=collapsible-trigger-button]',
+          '[data-slot=collapsible-content]',
+        ],
+      },
+      aiRules: {
+        do: [
+          'Use Collapsible for simple show/hide content.',
+          'Use CollapsibleTrigger and CollapsibleContent together.',
+        ],
+        dont: [
+          'Do not use Collapsible when multiple related sections should coordinate; use Accordion instead.',
+        ],
+      },
+    },
+    {
+      name: 'accordion',
+      description:
+        'Styled accordion component family built on zw-accordion primitives.',
+      primitivePackage: '@zeus-web/accordion',
+      registryCommand: 'zweb add accordion',
+      installCommand:
+        'pnpm add @zeus-web/accordion class-variance-authority clsx tailwind-merge',
+      reactImport:
+        "import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@zeus-web/accordion/react'",
+      webComponentImport: "import '@zeus-web/accordion/wc'",
+      styledImport:
+        "import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'",
+      sourceTarget: 'components/ui/accordion.tsx',
+      dependencies: ['@zeus-web/accordion', ...sharedDependencies],
+      props: [
+        {
+          name: 'type',
+          type: 'AccordionType',
+          description: 'Accordion selection mode.',
+          values: ['single', 'multiple'],
+          default: 'single',
+        },
+        {
+          name: 'value',
+          type: 'string',
+          description: 'Controlled selected value.',
+        },
+        {
+          name: 'defaultValue',
+          type: 'string',
+          description: 'Initial selected value.',
+        },
+        {
+          name: 'collapsible',
+          type: 'boolean',
+          description: 'Allows closing the active item in single mode.',
+        },
+      ],
+      events: [
+        {
+          name: 'value-change',
+          reactName: 'onValueChange',
+          description: 'Emitted when open item values change.',
+          detail: { value: 'string', values: 'string[]', nativeEvent: 'Event' },
+        },
+      ],
+      slots: [{ name: 'default', description: 'AccordionItem children.' }],
+      examples: [
+        {
+          title: 'React styled usage',
+          code: [
+            "import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'",
+            '',
+            'export function Example() {',
+            '  return (',
+            '    <Accordion defaultValue="item-1" collapsible>',
+            '      <AccordionItem value="item-1">',
+            '        <AccordionTrigger>Question</AccordionTrigger>',
+            '        <AccordionContent>Answer</AccordionContent>',
+            '      </AccordionItem>',
+            '    </Accordion>',
+            '  )',
+            '}',
+          ].join('\\n'),
+        },
+      ],
+      styling: {
+        usesTailwind: true,
+        themeTokens: ['border', 'ring-ring'],
+        internalSelectors: [
+          '[data-slot=accordion-item]',
+          '[data-slot=accordion-trigger-button]',
+          '[data-slot=accordion-content]',
+        ],
+      },
+      aiRules: {
+        do: [
+          'Use Accordion for grouped expandable sections.',
+          'Keep AccordionItem values unique.',
+        ],
+        dont: [
+          'Do not use Accordion as a tab replacement.',
+          'Do not omit AccordionItem value.',
+        ],
+      },
+    },
+    {
+      name: 'tooltip',
+      description:
+        'Styled tooltip component family built on zw-tooltip primitives.',
+      primitivePackage: '@zeus-web/tooltip',
+      registryCommand: 'zweb add tooltip',
+      installCommand:
+        'pnpm add @zeus-web/tooltip class-variance-authority clsx tailwind-merge',
+      reactImport:
+        "import { Tooltip, TooltipContent, TooltipTrigger } from '@zeus-web/tooltip/react'",
+      webComponentImport: "import '@zeus-web/tooltip/wc'",
+      styledImport:
+        "import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'",
+      sourceTarget: 'components/ui/tooltip.tsx',
+      dependencies: ['@zeus-web/tooltip', ...sharedDependencies],
+      props: [
+        {
+          name: 'open',
+          type: 'boolean',
+          description: 'Controlled open state.',
+        },
+        {
+          name: 'defaultOpen',
+          type: 'boolean',
+          description: 'Initial open state.',
+        },
+        {
+          name: 'delayDuration',
+          type: 'number',
+          description: 'Delay in milliseconds before opening.',
+          default: '300',
+        },
+      ],
+      events: [
+        {
+          name: 'open-change',
+          reactName: 'onOpenChange',
+          description: 'Emitted when open state changes.',
+          detail: { open: 'boolean', nativeEvent: 'Event' },
+        },
+      ],
+      slots: [{ name: 'default', description: 'Tooltip trigger and content.' }],
+      examples: [
+        {
+          title: 'React styled usage',
+          code: [
+            "import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'",
+            '',
+            'export function Example() {',
+            '  return (',
+            '    <Tooltip>',
+            '      <TooltipTrigger>Hover me</TooltipTrigger>',
+            '      <TooltipContent>Tooltip content</TooltipContent>',
+            '    </Tooltip>',
+            '  )',
+            '}',
+          ].join('\\n'),
+        },
+      ],
+      styling: {
+        usesTailwind: true,
+        themeTokens: ['bg-primary', 'text-primary-foreground'],
+        internalSelectors: [
+          '[data-slot=tooltip-trigger-control]',
+          '[data-slot=tooltip-content]',
+        ],
+      },
+      aiRules: {
+        do: [
+          'Use Tooltip for short supplemental information.',
+          'Keep tooltip content concise.',
+        ],
+        dont: [
+          'Do not put interactive controls inside TooltipContent.',
+          'Do not rely on Tooltip for essential information.',
+        ],
+      },
+    },
+    {
+      name: 'progress',
+      description:
+        'Styled progress component built on the zw-progress primitive.',
+      primitivePackage: '@zeus-web/progress',
+      registryCommand: 'zweb add progress',
+      installCommand:
+        'pnpm add @zeus-web/progress class-variance-authority clsx tailwind-merge',
+      reactImport: "import { Progress } from '@zeus-web/progress/react'",
+      webComponentImport: "import '@zeus-web/progress/wc'",
+      styledImport: "import { Progress } from '@/components/ui/progress'",
+      sourceTarget: 'components/ui/progress.tsx',
+      dependencies: ['@zeus-web/progress', ...sharedDependencies],
+      props: [
+        {
+          name: 'value',
+          type: 'number',
+          description: 'Current progress value.',
+        },
+        {
+          name: 'max',
+          type: 'number',
+          description: 'Maximum progress value.',
+          default: '100',
+        },
+        {
+          name: 'indeterminate',
+          type: 'boolean',
+          description: 'Whether progress is indeterminate.',
+        },
+        {
+          name: 'label',
+          type: 'string',
+          description: 'Accessible progress label.',
+        },
+      ],
+      events: [],
+      slots: [{ name: 'default', description: 'Optional content.' }],
+      examples: [
+        {
+          title: 'React styled usage',
+          code: [
+            "import { Progress } from '@/components/ui/progress'",
+            '',
+            'export function Example() {',
+            '  return <Progress value={60} label="Upload progress" />',
+            '}',
+          ].join('\\n'),
+        },
+      ],
+      styling: {
+        usesTailwind: true,
+        themeTokens: ['bg-primary', 'bg-primary/20'],
+        internalSelectors: [
+          '[data-slot=progress-root]',
+          '[data-slot=progress-indicator]',
+        ],
+      },
+      aiRules: {
+        do: ['Use Progress to represent task completion.'],
+        dont: ['Do not use Progress as a generic loading spinner.'],
+      },
+    },
+    {
+      name: 'avatar',
+      description:
+        'Styled avatar component family built on zw-avatar primitives.',
+      primitivePackage: '@zeus-web/avatar',
+      registryCommand: 'zweb add avatar',
+      installCommand:
+        'pnpm add @zeus-web/avatar class-variance-authority clsx tailwind-merge',
+      reactImport:
+        "import { Avatar, AvatarFallback, AvatarImage } from '@zeus-web/avatar/react'",
+      webComponentImport: "import '@zeus-web/avatar/wc'",
+      styledImport:
+        "import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'",
+      sourceTarget: 'components/ui/avatar.tsx',
+      dependencies: ['@zeus-web/avatar', ...sharedDependencies],
+      props: [
+        {
+          name: 'size',
+          type: 'AvatarSize',
+          description: 'Avatar size.',
+          values: ['sm', 'md', 'lg'],
+          default: 'md',
+        },
+        {
+          name: 'shape',
+          type: 'AvatarShape',
+          description: 'Avatar shape.',
+          values: ['circle', 'square'],
+          default: 'circle',
+        },
+      ],
+      events: [
+        {
+          name: 'image-load',
+          reactName: 'onImageLoad',
+          description: 'Emitted when avatar image loads.',
+          detail: { nativeEvent: 'Event' },
+        },
+        {
+          name: 'image-error',
+          reactName: 'onImageError',
+          description: 'Emitted when avatar image fails to load.',
+          detail: { nativeEvent: 'Event' },
+        },
+      ],
+      slots: [
+        {
+          name: 'default',
+          description: 'AvatarImage and AvatarFallback children.',
+        },
+      ],
+      examples: [
+        {
+          title: 'React styled usage',
+          code: [
+            "import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'",
+            '',
+            'export function Example() {',
+            '  return (',
+            '    <Avatar>',
+            '      <AvatarImage src="/avatar.png" alt="User" />',
+            '      <AvatarFallback>ZW</AvatarFallback>',
+            '    </Avatar>',
+            '  )',
+            '}',
+          ].join('\\n'),
+        },
+      ],
+      styling: {
+        usesTailwind: true,
+        themeTokens: ['bg-muted'],
+        internalSelectors: [
+          '[data-slot=avatar-root]',
+          '[data-slot=avatar-image]',
+          '[data-slot=avatar-fallback]',
+        ],
+      },
+      aiRules: {
+        do: [
+          'Use AvatarImage with meaningful alt text.',
+          'Always provide AvatarFallback.',
+        ],
+        dont: [
+          'Do not use Avatar for decorative icons.',
+          'Do not omit fallback content.',
+        ],
+      },
+    },
   ],
 }

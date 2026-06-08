@@ -23,6 +23,11 @@ describe('@zeus-web/ai metadata', () => {
       'separator',
       'skeleton',
       'alert',
+      'collapsible',
+      'accordion',
+      'tooltip',
+      'progress',
+      'avatar',
     ]
     expect(aiMetadata.components.map(component => component.name)).toEqual(
       expected,
@@ -63,6 +68,6 @@ describe('@zeus-web/ai metadata', () => {
     const parsed = JSON.parse(json)
 
     expect(parsed.packageName).toBe('@zeus-web/ai')
-    expect(parsed.components).toHaveLength(15)
+    expect(parsed.components).toHaveLength(20)
   })
 })

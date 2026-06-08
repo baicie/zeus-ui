@@ -14,6 +14,11 @@ export type ZeusWebAiComponentName =
   | 'separator'
   | 'skeleton'
   | 'alert'
+  | 'collapsible'
+  | 'accordion'
+  | 'tooltip'
+  | 'progress'
+  | 'avatar'
 
 export type ZeusWebAiThemeName =
   | 'default'

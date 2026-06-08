@@ -26,6 +26,11 @@ describe('component docs generator', () => {
       'apps/docs/components/separator.md',
       'apps/docs/components/skeleton.md',
       'apps/docs/components/alert.md',
+      'apps/docs/components/collapsible.md',
+      'apps/docs/components/accordion.md',
+      'apps/docs/components/tooltip.md',
+      'apps/docs/components/progress.md',
+      'apps/docs/components/avatar.md',
     ])
   })
 

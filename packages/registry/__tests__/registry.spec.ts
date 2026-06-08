@@ -39,6 +39,11 @@ describe('@zeus-web/registry registry.json', () => {
       'separator',
       'skeleton',
       'alert',
+      'collapsible',
+      'accordion',
+      'tooltip',
+      'progress',
+      'avatar',
     ]
     expect(registry.items.map(item => item.name)).toEqual(expected)
   })

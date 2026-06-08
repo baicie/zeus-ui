@@ -95,7 +95,7 @@ describe('@zeus-web/cli ai', () => {
     const parsed = JSON.parse(content)
 
     expect(parsed.packageName).toBe('@zeus-web/ai')
-    expect(parsed.components).toHaveLength(15)
+    expect(parsed.components).toHaveLength(20)
   })
 
   it('rewrites aliases from components config', () => {

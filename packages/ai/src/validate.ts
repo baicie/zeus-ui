@@ -20,6 +20,11 @@ const requiredComponents: ZeusWebAiComponentName[] = [
   'separator',
   'skeleton',
   'alert',
+  'collapsible',
+  'accordion',
+  'tooltip',
+  'progress',
+  'avatar',
 ]
 
 export function validateAiMetadata(
