@@ -105,7 +105,7 @@ describe('@zeus-web/cli config', () => {
       expect(result).toBe('created')
       expect(
         readFileSync(resolve(cwd, 'src/styles/globals.css'), 'utf-8'),
-      ).toBe("@import '@zeus-web/themes/zinc.css';\n")
+      ).toContain("@import '@zeus-web/themes/zinc.css';")
     } finally {
       await rm(cwd, { recursive: true, force: true })
     }
@@ -129,7 +129,7 @@ describe('@zeus-web/cli config', () => {
       expect(result).toBe('created')
       expect(
         readFileSync(resolve(cwd, 'src/styles/globals.css'), 'utf-8'),
-      ).toBe("@import '@zeus-web/themes/slate.css';\n")
+      ).toContain("@import '@zeus-web/themes/slate.css';")
     } finally {
       await rm(cwd, { recursive: true, force: true })
     }

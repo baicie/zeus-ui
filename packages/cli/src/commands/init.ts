@@ -1,9 +1,21 @@
-import type { ThemeName } from '@zeus-web/themes'
+import type {
+  DarkModeStrategyName,
+  MotionPresetName,
+  RadiusPresetName,
+  ThemeName,
+} from '@zeus-web/themes'
 import type { PackageManager } from '../package-manager'
 
 import { isAbsolute, resolve } from 'node:path'
 
-import { themeNames } from '@zeus-web/themes'
+import {
+  isDarkModeStrategyName,
+  isMotionPresetName,
+  isRadiusPresetName,
+  motionPresetNames,
+  radiusPresetNames,
+  themeNames,
+} from '@zeus-web/themes'
 import pc from 'picocolors'
 
 import {
@@ -24,6 +36,10 @@ interface InitOptions {
   css: string
   overwrite: boolean
   install: boolean
+  radius?: RadiusPresetName
+  motion?: MotionPresetName
+  darkMode?: DarkModeStrategyName
+  accentColor?: string
   packageManager?: PackageManager
 }
 
@@ -54,6 +70,27 @@ function parseThemeName(value: string): ThemeName {
   )
 }
 
+function parseRadius(value: string): RadiusPresetName {
+  if (isRadiusPresetName(value)) return value
+  throw new Error(
+    `Unsupported radius: ${value}. Available: ${radiusPresetNames.join(', ')}`,
+  )
+}
+
+function parseMotion(value: string): MotionPresetName {
+  if (isMotionPresetName(value)) return value
+  throw new Error(
+    `Unsupported motion: ${value}. Available: ${motionPresetNames.join(', ')}`,
+  )
+}
+
+function parseDarkMode(value: string): DarkModeStrategyName {
+  if (isDarkModeStrategyName(value)) return value
+  throw new Error(
+    `Unsupported dark mode: ${value}. Available: class, data, media`,
+  )
+}
+
 export function parseInitArgs(
   args: string[],
   cwd = process.cwd(),
@@ -76,6 +113,66 @@ export function parseInitArgs(
 
     if (arg === '--no-install') {
       options.install = false
+      continue
+    }
+
+    if (arg === '--radius') {
+      const value = args[index + 1]
+      if (!value) throw new Error('--radius requires a preset name')
+      options.radius = parseRadius(value)
+      index += 1
+      continue
+    }
+
+    if (arg.startsWith('--radius=')) {
+      const value = arg.slice('--radius='.length)
+      if (!value) throw new Error('--radius requires a preset name')
+      options.radius = parseRadius(value)
+      continue
+    }
+
+    if (arg === '--motion') {
+      const value = args[index + 1]
+      if (!value) throw new Error('--motion requires a preset name')
+      options.motion = parseMotion(value)
+      index += 1
+      continue
+    }
+
+    if (arg.startsWith('--motion=')) {
+      const value = arg.slice('--motion='.length)
+      if (!value) throw new Error('--motion requires a preset name')
+      options.motion = parseMotion(value)
+      continue
+    }
+
+    if (arg === '--dark-mode') {
+      const value = args[index + 1]
+      if (!value) throw new Error('--dark-mode requires a strategy name')
+      options.darkMode = parseDarkMode(value)
+      index += 1
+      continue
+    }
+
+    if (arg.startsWith('--dark-mode=')) {
+      const value = arg.slice('--dark-mode='.length)
+      if (!value) throw new Error('--dark-mode requires a strategy name')
+      options.darkMode = parseDarkMode(value)
+      continue
+    }
+
+    if (arg === '--accent') {
+      const value = args[index + 1]
+      if (!value) throw new Error('--accent requires a HSL value')
+      options.accentColor = value
+      index += 1
+      continue
+    }
+
+    if (arg.startsWith('--accent=')) {
+      const value = arg.slice('--accent='.length)
+      if (!value) throw new Error('--accent requires a HSL value')
+      options.accentColor = value
       continue
     }
 
@@ -202,6 +299,12 @@ export async function init(args: string[]) {
     const nextConfig = createDefaultComponentsConfig({
       style: options.style,
       css: options.css,
+      theme: {
+        radius: options.radius,
+        motion: options.motion,
+        darkMode: options.darkMode,
+        accentColor: options.accentColor,
+      },
     })
 
     const configResult = await writeComponentsConfig({
