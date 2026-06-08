@@ -4,6 +4,15 @@
   "version": "0.0.0",
   "description": "Compatibility layer between Zeus Web and @zeus-js public APIs.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baicie/zeus-ui.git",
+    "directory": "packages/zeus-compat"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "sideEffects": false,
   "exports": {
     ".": {

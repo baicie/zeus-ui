@@ -4,6 +4,15 @@
   "version": "0.0.0",
   "description": "Aggregated headless Web Components for Zeus Web.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baicie/zeus-ui.git",
+    "directory": "packages/headless"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "sideEffects": [
     "./dist/index.js"
   ],

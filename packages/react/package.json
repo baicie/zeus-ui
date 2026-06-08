@@ -4,6 +4,15 @@
   "version": "0.0.0",
   "description": "React wrappers for Zeus Web primitives.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baicie/zeus-ui.git",
+    "directory": "packages/react"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "sideEffects": false,
   "exports": {
     ".": {

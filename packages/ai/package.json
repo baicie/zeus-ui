@@ -4,6 +4,15 @@
   "version": "0.0.0",
   "description": "AI metadata and LLM usage guide for Zeus Web.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baicie/zeus-ui.git",
+    "directory": "packages/ai"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "sideEffects": false,
   "exports": {
     ".": {

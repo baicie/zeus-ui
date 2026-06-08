@@ -97,6 +97,7 @@ export default defineConfig(
       'style/arrow-parens': ['error', 'as-needed'],
       'antfu/if-newline': 'off',
       'style/brace-style': ['error', '1tbs', { allowSingleLine: true }],
+      'style/quote-props': 'off',
       'perfectionist/sort-named-exports': 'off',
       // Disable in favour of Prettier's formatting.
       'style/member-delimiter-style': 'off',

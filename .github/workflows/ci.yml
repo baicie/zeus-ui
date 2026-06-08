@@ -22,6 +22,8 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -29,6 +31,7 @@ jobs:
         with:
           node-version-file: .node-version
           cache: pnpm
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm check:zeus-baseline
       - run: pnpm check:workspace-overrides
@@ -37,3 +40,5 @@ jobs:
       - run: pnpm build
       - run: pnpm check:exports
       - run: pnpm check:build-output
+      - run: pnpm site:check
+      - run: pnpm release:verify --allow-zero

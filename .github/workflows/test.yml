@@ -40,6 +40,8 @@ jobs:
 
   e2e-test:
     runs-on: ubuntu-latest
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -49,6 +51,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      - run: pnpm site:check
+      - run: pnpm check:build-output
 
   lint-and-test-dts:
     runs-on: ubuntu-latest

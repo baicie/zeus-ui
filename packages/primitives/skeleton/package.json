@@ -4,6 +4,15 @@
   "version": "0.0.0",
   "description": "Headless skeleton primitive for Zeus Web.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baicie/zeus-ui.git",
+    "directory": "packages/primitives/skeleton"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "sideEffects": [
     "./dist/wc/index.js",
     "./dist/wc/*.js",
