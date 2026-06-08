@@ -315,6 +315,9 @@ examples/native-wc/    原生 Web Component 使用路径
 
 **不做的内容**（留到后续阶段）：Playground、docs 自动生成。
 
+~~Playground~~ (Phase 9.4)
+~~docs 自动生成~~ (Phase 9.3)
+
 状态：**已完成**
 
 ---
@@ -447,6 +450,61 @@ scripts/docs/__tests__/component-docs.spec.ts
 ```
 
 不做：guide/exAMPLES/Playground 文档、Vue/WC 独立 API 页、AST props 解析、aiMetadata 结构修改。
+
+状态：**已完成**
+
+---
+
+## Phase 9.4：Interactive Playground MVP
+
+在 Phase 9.3 基础上新增 docs 内置交互式 Playground，验证真实 Web Component 在文档站内能跑。
+
+已完成：
+
+```txt
+apps/docs/playground/index.md                    Playground 文档页（引用 ZeusPlayground）
+
+apps/docs/.vitepress/theme/components/
+  ZeusPlayground.vue                            全局注册的 Vue 组件
+  导入 @zeus-web/<name>/wc（6 个组件）
+  监听 press / value-change / checked-change / open-change 事件
+  支持 light/dark theme 切换
+  支持 default/compact/large density 切换
+  实时事件日志（最近 8 条）
+
+apps/docs/.vitepress/theme/style.css
+  .zeus-playground 开头的所有样式
+  6 个 Web Component 的 shadow/style 样式
+
+apps/docs/.vitepress/theme/index.ts
+  ZeusPlayground 注册为全局组件
+
+apps/docs/.vitepress/data/site.ts
+  playgroundItems         Playground sidebar 入口
+  Playground sidebar 组  在 Components 之后、Examples 之前
+  topNav 追加 Playground
+
+apps/docs/tsconfig.json + .vitepress/env.d.ts
+  支持 .vue 文件类型
+
+apps/docs/package.json
+  devDependencies 引用 @zeus-web/{button,checkbox,dialog,input,switch,tabs}
+  保证 workspace 解析 @zeus-web/*/wc
+
+scripts/checks/check-playground.ts              playground contract 检查
+  5 个文件：index.md / theme/index.ts / ZeusPlayground.vue / site.ts / style.css
+  禁止 @zeus-web/react 导入
+
+scripts/checks/check-docs.ts
+  requiredDocs 追加 playground/index.md
+  sidebar routes 追加 /playground/
+
+根 scripts:
+  pnpm docs:check-playground    tsx scripts/checks/check-playground.ts
+  pnpm docs:check             docs:check-generated + check-docs + check-playground + typecheck
+```
+
+不做：Monaco 编辑器、iframe sandbox、React live playground、Vue playground、动态 registry 加载、截图测试。
 
 状态：**已完成**
 

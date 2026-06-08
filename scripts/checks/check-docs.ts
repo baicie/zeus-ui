@@ -124,6 +124,14 @@ const requiredDocs: RequiredDoc[] = [
       '@zeus-web/example-native-wc',
     ],
   },
+  {
+    path: 'playground/index.md',
+    mustContain: [
+      '# Interactive Playground',
+      '<ZeusPlayground />',
+      '@zeus-web/<component>/wc imports',
+    ],
+  },
 ]
 
 const forbiddenPatterns = [
@@ -202,6 +210,7 @@ function checkVitePressConfig(): string[] {
     '/guide/getting-started',
     '/components/',
     '/components/button',
+    '/playground/',
     '/examples/react-vite',
     '/examples/next-app',
     '/examples/native-wc',

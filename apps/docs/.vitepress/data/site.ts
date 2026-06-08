@@ -113,6 +113,13 @@ export const componentIndexItem: DocsNavItem = {
   link: '/components/',
 }
 
+export const playgroundItems: DocsNavItem[] = [
+  {
+    text: 'Interactive Playground',
+    link: '/playground/',
+  },
+]
+
 export const sidebar: DocsSidebarGroup[] = [
   {
     text: 'Guide',
@@ -129,6 +136,10 @@ export const sidebar: DocsSidebarGroup[] = [
     ],
   },
   {
+    text: 'Playground',
+    items: playgroundItems,
+  },
+  {
     text: 'Examples',
     items: exampleItems,
   },
@@ -142,6 +153,10 @@ export const topNav: DocsNavItem[] = [
   {
     text: 'Components',
     link: '/components/',
+  },
+  {
+    text: 'Playground',
+    link: '/playground/',
   },
   {
     text: 'Examples',

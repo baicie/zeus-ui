@@ -123,7 +123,26 @@ importers:
         specifier: ^3.5.35
         version: 3.5.35(typescript@6.0.3)
 
-  apps/docs: {}
+  apps/docs:
+    devDependencies:
+      '@zeus-web/button':
+        specifier: workspace:*
+        version: link:../../packages/primitives/button
+      '@zeus-web/checkbox':
+        specifier: workspace:*
+        version: link:../../packages/primitives/checkbox
+      '@zeus-web/dialog':
+        specifier: workspace:*
+        version: link:../../packages/primitives/dialog
+      '@zeus-web/input':
+        specifier: workspace:*
+        version: link:../../packages/primitives/input
+      '@zeus-web/switch':
+        specifier: workspace:*
+        version: link:../../packages/primitives/switch
+      '@zeus-web/tabs':
+        specifier: workspace:*
+        version: link:../../packages/primitives/tabs
 
   examples/native-wc:
     dependencies:

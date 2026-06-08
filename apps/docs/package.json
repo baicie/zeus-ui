@@ -7,5 +7,13 @@
     "build": "vitepress build .",
     "preview": "vitepress preview .",
     "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@zeus-web/button": "workspace:*",
+    "@zeus-web/checkbox": "workspace:*",
+    "@zeus-web/dialog": "workspace:*",
+    "@zeus-web/input": "workspace:*",
+    "@zeus-web/switch": "workspace:*",
+    "@zeus-web/tabs": "workspace:*"
   }
 }

@@ -6,5 +6,9 @@
     "noEmit": true,
     "isolatedDeclarations": false
   },
-  "include": [".vitepress/**/*.ts"]
+  "include": [
+    ".vitepress/**/*.ts",
+    ".vitepress/**/*.vue",
+    ".vitepress/**/*.d.ts"
+  ]
 }
