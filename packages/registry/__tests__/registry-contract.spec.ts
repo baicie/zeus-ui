@@ -9,7 +9,7 @@ import { validateRegistry } from '../src'
 const testDir = dirname(fileURLToPath(import.meta.url))
 const registryPath = resolve(testDir, '../registry.json')
 
-const phase11Items = [
+const group11Items = [
   'label',
   'textarea',
   'radio-group',
@@ -21,15 +21,34 @@ const phase11Items = [
   'alert',
 ]
 
-describe('phase 11 registry contract', () => {
+const group12Items = [
+  'collapsible',
+  'accordion',
+  'tooltip',
+  'progress',
+  'avatar',
+]
+
+describe('registry contract', () => {
   const registry = JSON.parse(readFileSync(registryPath, 'utf-8')) as Registry
 
   it('keeps registry valid', () => {
     expect(validateRegistry(registry)).toEqual({ valid: true, errors: [] })
   })
 
-  it('registers all phase 11 items', () => {
-    for (const name of phase11Items) {
+  it('registers all group 1 items (label/textarea/radio-group/select/card/badge/separator/skeleton/alert)', () => {
+    for (const name of group11Items) {
+      const item = registry.items.find(candidate => candidate.name === name)
+      expect(item).toBeDefined()
+      expect(item?.dependencies).toContain(`@zeus-web/${name}`)
+      expect(
+        item?.files.some(file => file.target === `components/ui/${name}.tsx`),
+      ).toBe(true)
+    }
+  })
+
+  it('registers all group 2 items (collapsible/accordion/tooltip/progress/avatar)', () => {
+    for (const name of group12Items) {
       const item = registry.items.find(candidate => candidate.name === name)
       expect(item).toBeDefined()
       expect(item?.dependencies).toContain(`@zeus-web/${name}`)

@@ -7,7 +7,19 @@ const workspaceRoot = existsSync(resolve(process.cwd(), 'pnpm-workspace.yaml'))
   ? process.cwd()
   : resolve(process.cwd(), '../../..')
 
-const phase12Primitives = [
+const group11Primitives = [
+  'label',
+  'textarea',
+  'radio-group',
+  'select',
+  'card',
+  'badge',
+  'separator',
+  'skeleton',
+  'alert',
+]
+
+const group12Primitives = [
   'collapsible',
   'accordion',
   'tooltip',
@@ -19,9 +31,25 @@ function readFile(path: string): string {
   return readFileSync(resolve(workspaceRoot, path), 'utf-8')
 }
 
-describe('phase 12 primitive contract', () => {
-  it('adds all phase 12 primitive packages', () => {
-    for (const name of phase12Primitives) {
+describe('primitives contract', () => {
+  it('adds all group 1 primitive packages (label/textarea/radio-group/select/card/badge/separator/skeleton/alert)', () => {
+    for (const name of group11Primitives) {
+      expect(
+        existsSync(
+          resolve(workspaceRoot, `packages/primitives/${name}/package.json`),
+        ),
+      ).toBe(true)
+
+      expect(
+        existsSync(
+          resolve(workspaceRoot, `packages/primitives/${name}/src/index.ts`),
+        ),
+      ).toBe(true)
+    }
+  })
+
+  it('adds all group 2 primitive packages (collapsible/accordion/tooltip/progress/avatar)', () => {
+    for (const name of group12Primitives) {
       expect(
         existsSync(
           resolve(workspaceRoot, `packages/primitives/${name}/package.json`),
@@ -35,11 +63,29 @@ describe('phase 12 primitive contract', () => {
     }
   })
 
-  it('uses zeus defineElement for all phase 12 primitives', () => {
-    for (const name of phase12Primitives) {
+  it('uses zeus defineElement for all primitives', () => {
+    for (const name of [...group11Primitives, ...group12Primitives]) {
       const source = readFile(`packages/primitives/${name}/src/${name}.tsx`)
       expect(source).toContain('defineElement')
       expect(source).toContain('shadow: false')
+    }
+  })
+
+  it('adds a11y props to form primitives', () => {
+    for (const name of ['textarea', 'radio-group', 'select']) {
+      const source = readFile(`packages/primitives/${name}/src/${name}.tsx`)
+      expect(source).toContain('ariaLabel')
+      expect(source).toContain('ariaDescribedby')
+      expect(source).toContain("attr: 'aria-label'")
+      expect(source).toContain("attr: 'aria-describedby'")
+    }
+  })
+
+  it('keeps display primitives low-interaction', () => {
+    for (const name of ['card', 'badge', 'separator', 'skeleton', 'alert']) {
+      const source = readFile(`packages/primitives/${name}/src/${name}.tsx`)
+      expect(source).not.toContain('createContext')
+      expect(source).not.toContain('document.addEventListener')
     }
   })
 

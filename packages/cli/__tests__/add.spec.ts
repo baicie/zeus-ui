@@ -11,9 +11,15 @@ import {
   executeAddPlan,
   listAvailableComponents,
   parseAddArgs,
+  resolveAddPlanTargets,
   rewriteRegistrySource,
 } from '../src/commands/add'
-import { createDefaultComponentsConfig } from '../src/config'
+import { createDiffEntries } from '../src/commands/diff'
+import {
+  createDefaultComponentsConfig,
+  readComponentsConfig,
+} from '../src/config'
+import { readComponentsLock, updateComponentsLockFromPlans } from '../src/lock'
 
 const registry: Registry = {
   $schema: 'https://zeus-web.dev/schema/registry.json',
@@ -111,6 +117,18 @@ function writeComponentsJson(root: string): void {
   writeFileSync(
     resolve(root, 'components.json'),
     `${JSON.stringify(createDefaultComponentsConfig(), null, 2)}\n`,
+    'utf-8',
+  )
+}
+
+function writeComponentsJsonWithConfig(
+  root: string,
+  config?: ReturnType<typeof createDefaultComponentsConfig>,
+): void {
+  mkdirSync(resolve(root, 'src'), { recursive: true })
+  writeFileSync(
+    resolve(root, 'components.json'),
+    `${JSON.stringify(config ?? createDefaultComponentsConfig(), null, 2)}\n`,
     'utf-8',
   )
 }
@@ -478,5 +496,150 @@ describe('@zeus-web/cli add', () => {
     expect(rewriteRegistrySource(source, config)).toBe(
       "import { cn } from '~/shared/lib/utils'\n",
     )
+  })
+
+  it('parses production add options', () => {
+    const parsed = parseAddArgs([
+      '--all',
+      '--yes',
+      '--skip-deps',
+      '--force',
+      '--dry-run',
+    ])
+    expect(parsed.components).toEqual([])
+    expect(parsed.options.all).toBe(true)
+    expect(parsed.options.yes).toBe(true)
+    expect(parsed.options.install).toBe(false)
+    expect(parsed.options.overwrite).toBe(true)
+    expect(parsed.options.dryRun).toBe(true)
+  })
+
+  it('creates diff entries for missing files', async () => {
+    const registryRoot = await createTempDir()
+    const targetRoot = await createTempDir()
+    try {
+      writeRegistrySource(registryRoot, 'default/lib/utils.ts', 'export {}\n')
+      writeRegistrySource(registryRoot, 'default/button.tsx', 'export {}\n')
+      writeComponentsJsonWithConfig(targetRoot)
+      const plans = createAddPlan(['button'], registry)
+      const entries = await createDiffEntries({
+        cwd: targetRoot,
+        plans,
+        registryRoot,
+      })
+      expect(entries.map(e => e.status)).toEqual(['missing', 'missing'])
+    } finally {
+      await rm(registryRoot, { recursive: true, force: true })
+      await rm(targetRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('rewrites registry source in diff entries', async () => {
+    const registryRoot = await createTempDir()
+    const targetRoot = await createTempDir()
+    try {
+      writeRegistrySource(registryRoot, 'default/lib/utils.ts', 'export {}\n')
+      writeRegistrySource(
+        registryRoot,
+        'default/button.tsx',
+        "import { cn } from '@/lib/utils'\n",
+      )
+      const config = createDefaultComponentsConfig()
+      config.aliases.lib = '~/shared/lib'
+      writeComponentsJsonWithConfig(targetRoot, config)
+      const plans = createAddPlan(['button'], registry)
+      const entries = await createDiffEntries({
+        cwd: targetRoot,
+        plans,
+        registryRoot,
+      })
+      const e = entries.find(entry => entry.source === 'default/button.tsx')
+      expect(e?.registrySource).toBe(
+        "import { cn } from '~/shared/lib/utils'\n",
+      )
+    } finally {
+      await rm(registryRoot, { recursive: true, force: true })
+      await rm(targetRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('refuses diff access outside cwd', async () => {
+    const registryRoot = await createTempDir()
+    const targetRoot = await createTempDir()
+    try {
+      writeRegistrySource(registryRoot, 'default/button.tsx', 'export {}\n')
+      writeComponentsJsonWithConfig(targetRoot)
+      await expect(
+        createDiffEntries({
+          cwd: targetRoot,
+          registryRoot,
+          plans: [
+            {
+              component: 'button',
+              dependencies: [],
+              devDependencies: [],
+              files: [
+                {
+                  source: 'default/button.tsx',
+                  target: '../button.tsx',
+                  type: 'registry:ui',
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrow('Refusing to access outside cwd')
+    } finally {
+      await rm(registryRoot, { recursive: true, force: true })
+      await rm(targetRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('writes components.lock.json after lock update', async () => {
+    const registryRoot = await createTempDir()
+    const targetRoot = await createTempDir()
+    try {
+      writeRegistrySource(registryRoot, 'default/lib/utils.ts', 'export {}\n')
+      writeRegistrySource(registryRoot, 'default/button.tsx', 'export {}\n')
+      writeComponentsJsonWithConfig(targetRoot)
+      const plans = createAddPlan(['button'], registry)
+      const result = await executeAddPlan(
+        plans,
+        {
+          cwd: targetRoot,
+          dryRun: false,
+          overwrite: false,
+          install: false,
+          all: false,
+          yes: false,
+        },
+        registryRoot,
+      )
+      const config = readComponentsConfig(targetRoot)
+      const resolvedPlans = resolveAddPlanTargets(plans, targetRoot, config)
+      await updateComponentsLockFromPlans({
+        cwd: targetRoot,
+        plans: resolvedPlans,
+        writtenTargets: result.written,
+      })
+      const lock = readComponentsLock(targetRoot)
+      expect(result.written).toEqual([
+        'src/lib/utils.ts',
+        'src/components/ui/button.tsx',
+      ])
+      expect(lock.components.button).toBeDefined()
+      expect(lock.components.button.files.map(f => f.target)).toEqual([
+        'src/components/ui/button.tsx',
+        'src/lib/utils.ts',
+      ])
+      expect(existsSync(resolve(targetRoot, 'components.lock.json'))).toBe(true)
+      expect(existsSync(resolve(targetRoot, 'src/lib/utils.ts'))).toBe(true)
+      expect(
+        existsSync(resolve(targetRoot, 'src/components/ui/button.tsx')),
+      ).toBe(true)
+    } finally {
+      await rm(registryRoot, { recursive: true, force: true })
+      await rm(targetRoot, { recursive: true, force: true })
+    }
   })
 })

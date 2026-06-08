@@ -4,12 +4,14 @@ import pc from 'picocolors'
 interface Options {
   dryRun: boolean
   tag: string
+  strict: boolean
 }
 
 function parseOptions(args: string[]): Options {
   const options: Options = {
     dryRun: false,
     tag: 'latest',
+    strict: true,
   }
 
   for (let index = 0; index < args.length; index += 1) {
@@ -20,9 +22,18 @@ function parseOptions(args: string[]): Options {
       continue
     }
 
+    if (arg === '--no-strict') {
+      options.strict = false
+      continue
+    }
+
     if (arg === '--tag') {
       const value = args[index + 1]
-      if (!value) throw new Error('--tag requires a value')
+
+      if (!value) {
+        throw new Error('--tag requires a value')
+      }
+
       options.tag = value
       index += 1
       continue
@@ -30,7 +41,11 @@ function parseOptions(args: string[]): Options {
 
     if (arg.startsWith('--tag=')) {
       const value = arg.slice('--tag='.length)
-      if (!value) throw new Error('--tag requires a value')
+
+      if (!value) {
+        throw new Error('--tag requires a value')
+      }
+
       options.tag = value
       continue
     }
@@ -61,7 +76,10 @@ async function main(): Promise<void> {
   await run('pnpm', ['check:build-output'])
   await run('pnpm', ['site:check'])
 
-  await run('pnpm', ['release:verify', '--strict'])
+  await run('pnpm', [
+    'release:verify',
+    ...(options.strict ? ['--strict'] : ['--allow-zero']),
+  ])
 
   await run('pnpm', [
     'release:plan',

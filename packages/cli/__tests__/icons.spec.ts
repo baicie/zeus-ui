@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { icon } from '../src/commands/icon'
 
-describe('@zeus-web/cli phase 14 icon workflow', () => {
+describe('@zeus-web/cli icon workflow', () => {
   afterEach(() => {
     vi.restoreAllMocks()
     process.exitCode = undefined
