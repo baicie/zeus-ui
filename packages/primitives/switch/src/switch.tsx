@@ -4,6 +4,7 @@ import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
 export type SwitchSize = 'sm' | 'md' | 'lg'
 
 export interface SwitchProps {
+  ariaLabel?: string
   checked?: boolean
   defaultChecked?: boolean
   size?: SwitchSize
@@ -12,7 +13,6 @@ export interface SwitchProps {
   invalid?: boolean
   name?: string
   value?: string
-  ariaLabel?: string
   ariaDescribedby?: string
 }
 

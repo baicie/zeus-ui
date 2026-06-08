@@ -4,6 +4,7 @@ import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
 export type CheckboxSize = 'sm' | 'md' | 'lg'
 
 export interface CheckboxProps {
+  ariaLabel?: string
   checked?: boolean
   defaultChecked?: boolean
   indeterminate?: boolean
@@ -13,7 +14,6 @@ export interface CheckboxProps {
   invalid?: boolean
   name?: string
   value?: string
-  ariaLabel?: string
   ariaDescribedby?: string
 }
 

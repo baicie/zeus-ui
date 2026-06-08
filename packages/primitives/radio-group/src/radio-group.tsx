@@ -14,6 +14,8 @@ export type RadioGroupOrientation = 'horizontal' | 'vertical'
 export type RadioGroupSize = 'sm' | 'md' | 'lg'
 
 export interface RadioGroupProps {
+  ariaLabel?: string
+  ariaDescribedby?: string
   value?: string
   defaultValue?: string
   name?: string
@@ -22,8 +24,6 @@ export interface RadioGroupProps {
   disabled?: boolean
   required?: boolean
   invalid?: boolean
-  ariaLabel?: string
-  ariaDescribedby?: string
 }
 
 export interface RadioGroupValueChangeDetail {

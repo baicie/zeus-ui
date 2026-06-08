@@ -14,6 +14,7 @@ export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon'
 export type ButtonType = 'button' | 'submit' | 'reset'
 
 export interface ButtonProps {
+  ariaLabel?: string
   variant?: ButtonVariant
   size?: ButtonSize
   type?: ButtonType
@@ -22,7 +23,6 @@ export interface ButtonProps {
   pressed?: boolean
   name?: string
   value?: string
-  ariaLabel?: string
 }
 
 export interface ButtonPressDetail {

@@ -1,10 +1,13 @@
 import type { Registry } from '../src'
-
 import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { validateRegistry } from '../src'
+
+const testDir = dirname(fileURLToPath(import.meta.url))
+const registryPath = resolve(testDir, '../registry.json')
 
 const phase12Items = [
   'collapsible',
@@ -15,12 +18,7 @@ const phase12Items = [
 ]
 
 describe('phase 12 registry contract', () => {
-  const registry = JSON.parse(
-    readFileSync(
-      resolve(process.cwd(), 'packages/registry/registry.json'),
-      'utf-8',
-    ),
-  ) as Registry
+  const registry = JSON.parse(readFileSync(registryPath, 'utf-8')) as Registry
 
   it('keeps registry valid', () => {
     expect(validateRegistry(registry)).toEqual({ valid: true, errors: [] })

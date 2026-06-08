@@ -138,6 +138,7 @@ async function main(): Promise<void> {
         'preserve',
         '--types',
         'node',
+        '--skipLibCheck',
       ],
       {
         cwd: root,
