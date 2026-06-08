@@ -32,14 +32,36 @@ interface TabsEmits extends Record<string, EventDefinition<unknown>> {
   valueChange: EventDefinition<TabsValueChangeDetail>
 }
 
-interface TabsContextValue {
-  getValue: () => string | undefined
-  setValue: (value: string, nativeEvent?: Event) => void
-  getOrientation: () => TabsOrientation | undefined
+interface TabsTriggerRecord {
+  value: string
+  control: HTMLButtonElement
   isDisabled: () => boolean
 }
 
+interface TabsContextValue {
+  getValue: () => string | undefined
+  setValue: (value: string, nativeEvent?: Event) => void
+  getOrientation: () => TabsOrientation
+  isDisabled: () => boolean
+  getTriggerId: (value: string) => string
+  getContentId: (value: string) => string
+  registerTrigger: (record: TabsTriggerRecord) => void
+  moveFocus: (
+    currentValue: string | undefined,
+    control: HTMLButtonElement,
+    key: string,
+    nativeEvent: KeyboardEvent,
+  ) => void
+}
+
 const TabsContext = createContext<TabsContextValue>()
+
+let tabsId = 0
+
+function createTabsId(): string {
+  tabsId += 1
+  return `zw-tabs-${tabsId}`
+}
 
 function resolveValue(props: TabsProps): string | undefined {
   if (props.value !== undefined) return props.value
@@ -47,10 +69,23 @@ function resolveValue(props: TabsProps): string | undefined {
   return undefined
 }
 
+function sortByDomOrder(records: TabsTriggerRecord[]): TabsTriggerRecord[] {
+  return [...records].sort((a, b) => {
+    if (a.control === b.control) return 0
+
+    const position = a.control.compareDocumentPosition(b.control)
+
+    return position & Node.DOCUMENT_POSITION_PRECEDING ? 1 : -1
+  })
+}
+
 function setupTabs(
   props: TabsProps,
   ctx: DefineElementContext<TabsElement, TabsEmits>,
 ) {
+  const baseId = createTabsId()
+  const triggers: TabsTriggerRecord[] = []
+
   const context: TabsContextValue = {
     getValue: () => resolveValue(props),
     setValue: (value: string, nativeEvent?: Event) => {
@@ -59,6 +94,68 @@ function setupTabs(
     },
     getOrientation: () => props.orientation || 'horizontal',
     isDisabled: () => Boolean(props.disabled),
+    getTriggerId: value => `${baseId}-trigger-${value}`,
+    getContentId: value => `${baseId}-content-${value}`,
+    registerTrigger: record => {
+      const index = triggers.findIndex(item => item.control === record.control)
+
+      if (index >= 0) {
+        triggers[index] = record
+        return
+      }
+
+      triggers.push(record)
+    },
+    moveFocus: (currentValue, control, key, nativeEvent) => {
+      const orientation = context.getOrientation()
+      const enabledTriggers = sortByDomOrder(
+        triggers.filter(item => !item.isDisabled()),
+      )
+
+      if (enabledTriggers.length === 0) return
+
+      const currentIndex = Math.max(
+        0,
+        enabledTriggers.findIndex(item => {
+          if (currentValue !== undefined) return item.value === currentValue
+          return item.control === control
+        }),
+      )
+
+      let nextIndex = currentIndex
+
+      if (key === 'Home') {
+        nextIndex = 0
+      } else if (key === 'End') {
+        nextIndex = enabledTriggers.length - 1
+      } else if (
+        orientation === 'horizontal' &&
+        (key === 'ArrowRight' || key === 'ArrowLeft')
+      ) {
+        nextIndex =
+          key === 'ArrowRight'
+            ? (currentIndex + 1) % enabledTriggers.length
+            : (currentIndex - 1 + enabledTriggers.length) %
+              enabledTriggers.length
+      } else if (
+        orientation === 'vertical' &&
+        (key === 'ArrowDown' || key === 'ArrowUp')
+      ) {
+        nextIndex =
+          key === 'ArrowDown'
+            ? (currentIndex + 1) % enabledTriggers.length
+            : (currentIndex - 1 + enabledTriggers.length) %
+              enabledTriggers.length
+      } else {
+        return
+      }
+
+      nativeEvent.preventDefault()
+
+      const next = enabledTriggers[nextIndex]
+      next.control.focus()
+      context.setValue(next.value, nativeEvent)
+    },
   }
 
   provide(TabsContext, context)
@@ -66,7 +163,7 @@ function setupTabs(
   return (
     <Host
       data-slot="tabs-root"
-      data-orientation={() => props.orientation || 'horizontal'}
+      data-orientation={() => context.getOrientation()}
       data-disabled={() => (props.disabled ? '' : undefined)}
     >
       <Slot />
@@ -177,12 +274,26 @@ function setupTabsTrigger(
     >
       <button
         ref={(element: HTMLButtonElement | null) => {
-          if (element) control = element
+          if (element) {
+            control = element
+
+            if (props.value) {
+              tabs?.registerTrigger({
+                value: props.value,
+                control: element,
+                isDisabled,
+              })
+            }
+          }
         }}
+        id={() => (props.value ? tabs?.getTriggerId(props.value) : undefined)}
         part="trigger"
         role="tab"
         prop:type={() => 'button'}
         aria-selected={() => String(isSelected())}
+        aria-controls={() =>
+          props.value ? tabs?.getContentId(props.value) : undefined
+        }
         tabIndex={() => (isSelected() ? 0 : -1)}
         disabled={() => isDisabled()}
         onClick={event => {
@@ -192,7 +303,10 @@ function setupTabsTrigger(
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault()
             activate(event)
+            return
           }
+
+          tabs?.moveFocus(props.value, control, event.key, event)
         }}
       >
         <Slot />
@@ -229,11 +343,16 @@ function setupTabsContent(props: TabsContentProps) {
 
   return (
     <Host
+      id={() => (props.value ? tabs?.getContentId(props.value) : undefined)}
       part="content"
       role="tabpanel"
       data-slot="tabs-content"
       data-state={() => (isActive() ? 'active' : 'inactive')}
       data-value={() => props.value}
+      aria-labelledby={() =>
+        props.value ? tabs?.getTriggerId(props.value) : undefined
+      }
+      tabIndex={() => 0}
       hidden={() => !isActive()}
     >
       <Slot />

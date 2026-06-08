@@ -12,6 +12,8 @@ export interface SwitchProps {
   invalid?: boolean
   name?: string
   value?: string
+  ariaLabel?: string
+  ariaDescribedby?: string
 }
 
 export interface SwitchCheckedChangeDetail {
@@ -85,6 +87,9 @@ function setup(
           required={() => Boolean(props.required)}
           name={() => props.name}
           value={() => props.value}
+          aria-label={() => props.ariaLabel}
+          aria-describedby={() => props.ariaDescribedby}
+          aria-required={() => (props.required ? 'true' : undefined)}
           aria-checked={() => String(resolveChecked(props))}
           aria-invalid={() => (props.invalid ? 'true' : undefined)}
           onChange={handleChange}
@@ -128,6 +133,12 @@ export const Switch = defineElement<SwitchProps, SwitchElement, SwitchEmits>(
       invalid: prop(Boolean),
       name: String,
       value: String,
+      ariaLabel: prop(String, {
+        attr: 'aria-label',
+      }),
+      ariaDescribedby: prop(String, {
+        attr: 'aria-describedby',
+      }),
     },
     emits: {
       checkedChange: event<{

@@ -13,6 +13,7 @@ export type InputType =
 export type InputSize = 'sm' | 'md' | 'lg'
 
 export interface InputProps {
+  id?: string
   value?: string
   defaultValue?: string
   type?: InputType
@@ -23,6 +24,10 @@ export interface InputProps {
   required?: boolean
   invalid?: boolean
   name?: string
+  autocomplete?: string
+  ariaLabel?: string
+  ariaDescribedby?: string
+  ariaErrormessage?: string
   formatter?: (value: string) => string
 }
 
@@ -90,7 +95,7 @@ function setup(
       data-disabled={() => (props.disabled ? '' : undefined)}
       data-invalid={() => (props.invalid ? '' : undefined)}
     >
-      <label part="root">
+      <label part="root" for={() => props.id}>
         <span part="prefix" data-slot="input-prefix">
           <Slot name="prefix" />
         </span>
@@ -99,6 +104,7 @@ function setup(
           ref={(element: HTMLInputElement | null) => {
             if (element) control = element
           }}
+          id={() => props.id}
           part="control"
           data-slot="input"
           prop:type={() => props.type || 'text'}
@@ -108,6 +114,10 @@ function setup(
           readOnly={() => Boolean(props.readonly)}
           required={() => Boolean(props.required)}
           name={() => props.name}
+          autoComplete={() => props.autocomplete}
+          aria-label={() => props.ariaLabel}
+          aria-describedby={() => props.ariaDescribedby}
+          aria-errormessage={() => props.ariaErrormessage}
           aria-invalid={() => (props.invalid ? 'true' : undefined)}
           onInput={handleInput}
           onFocus={nativeEvent => {
@@ -135,6 +145,7 @@ export const Input = defineElement<InputProps, InputElement, InputEmits>(
   {
     shadow: false,
     props: {
+      id: String,
       value: {
         type: String,
         reflect: true,
@@ -162,6 +173,18 @@ export const Input = defineElement<InputProps, InputElement, InputEmits>(
       required: prop(Boolean),
       invalid: prop(Boolean),
       name: String,
+      autocomplete: prop(String, {
+        attr: 'autocomplete',
+      }),
+      ariaLabel: prop(String, {
+        attr: 'aria-label',
+      }),
+      ariaDescribedby: prop(String, {
+        attr: 'aria-describedby',
+      }),
+      ariaErrormessage: prop(String, {
+        attr: 'aria-errormessage',
+      }),
       formatter: Function,
     },
     emits: {

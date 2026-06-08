@@ -82,6 +82,11 @@ export const aiMetadata: ZeusWebAiMetadata = {
           description:
             'Marks the button as loading and prevents press handling.',
         },
+        {
+          name: 'ariaLabel',
+          type: 'string',
+          description: 'Accessible label for icon-only buttons.',
+        },
       ],
       events: [
         {
@@ -194,6 +199,31 @@ export const aiMetadata: ZeusWebAiMetadata = {
           type: 'boolean',
           description: 'Disables input interaction.',
         },
+        {
+          name: 'id',
+          type: 'string',
+          description: 'Native input id attribute.',
+        },
+        {
+          name: 'autocomplete',
+          type: 'string',
+          description: 'Native input autocomplete attribute.',
+        },
+        {
+          name: 'ariaLabel',
+          type: 'string',
+          description: 'Accessible label for unlabeled inputs.',
+        },
+        {
+          name: 'ariaDescribedby',
+          type: 'string',
+          description: 'ID reference for additional accessible description.',
+        },
+        {
+          name: 'ariaErrormessage',
+          type: 'string',
+          description: 'ID reference for accessible error message.',
+        },
       ],
       events: [
         {
@@ -279,6 +309,21 @@ export const aiMetadata: ZeusWebAiMetadata = {
           description: 'Checkbox size.',
           values: ['sm', 'md', 'lg'],
           default: 'md',
+        },
+        {
+          name: 'required',
+          type: 'boolean',
+          description: 'Marks the checkbox as required.',
+        },
+        {
+          name: 'ariaLabel',
+          type: 'string',
+          description: 'Accessible label for unlabeled checkboxes.',
+        },
+        {
+          name: 'ariaDescribedby',
+          type: 'string',
+          description: 'ID reference for additional accessible description.',
         },
       ],
       events: [
@@ -371,6 +416,21 @@ export const aiMetadata: ZeusWebAiMetadata = {
           description: 'Switch size.',
           values: ['sm', 'md', 'lg'],
           default: 'md',
+        },
+        {
+          name: 'required',
+          type: 'boolean',
+          description: 'Marks the switch as required.',
+        },
+        {
+          name: 'ariaLabel',
+          type: 'string',
+          description: 'Accessible label for unlabeled switches.',
+        },
+        {
+          name: 'ariaDescribedby',
+          type: 'string',
+          description: 'ID reference for additional accessible description.',
         },
       ],
       events: [

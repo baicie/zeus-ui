@@ -13,6 +13,8 @@ export interface CheckboxProps {
   invalid?: boolean
   name?: string
   value?: string
+  ariaLabel?: string
+  ariaDescribedby?: string
 }
 
 export interface CheckboxCheckedChangeDetail {
@@ -93,6 +95,9 @@ function setup(
           required={() => Boolean(props.required)}
           name={() => props.name}
           value={() => props.value}
+          aria-label={() => props.ariaLabel}
+          aria-describedby={() => props.ariaDescribedby}
+          aria-required={() => (props.required ? 'true' : undefined)}
           aria-checked={() =>
             props.indeterminate ? 'mixed' : String(resolveChecked(props))
           }
@@ -145,6 +150,12 @@ export const Checkbox = defineElement<
       invalid: prop(Boolean),
       name: String,
       value: String,
+      ariaLabel: prop(String, {
+        attr: 'aria-label',
+      }),
+      ariaDescribedby: prop(String, {
+        attr: 'aria-describedby',
+      }),
     },
     emits: {
       checkedChange: event<{

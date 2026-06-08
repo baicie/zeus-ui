@@ -22,6 +22,7 @@ export interface ButtonProps {
   pressed?: boolean
   name?: string
   value?: string
+  ariaLabel?: string
 }
 
 export interface ButtonPressDetail {
@@ -85,7 +86,9 @@ function setup(
         data-slot="button"
         prop:type={() => props.type || 'button'}
         disabled={() => isDisabled()}
+        aria-label={() => props.ariaLabel}
         aria-disabled={() => (isDisabled() ? 'true' : undefined)}
+        aria-busy={() => (props.loading ? 'true' : undefined)}
         aria-pressed={() =>
           props.pressed === undefined
             ? undefined
@@ -137,6 +140,9 @@ export const Button = defineElement<ButtonProps, ButtonElement, ButtonEmits>(
       }),
       name: String,
       value: String,
+      ariaLabel: prop(String, {
+        attr: 'aria-label',
+      }),
     },
     emits: {
       press: event<{
