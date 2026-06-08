@@ -11,6 +11,29 @@ interface RequiredDoc {
 const root = process.cwd()
 const docsRoot = resolve(root, 'apps/docs')
 
+const componentDocs = [
+  'button',
+  'input',
+  'checkbox',
+  'switch',
+  'tabs',
+  'dialog',
+  'label',
+  'textarea',
+  'radio-group',
+  'select',
+  'card',
+  'badge',
+  'separator',
+  'skeleton',
+  'alert',
+  'collapsible',
+  'accordion',
+  'tooltip',
+  'progress',
+  'avatar',
+]
+
 const requiredDocs: RequiredDoc[] = [
   {
     path: 'index.md',
@@ -206,29 +229,11 @@ function checkVitePressConfig(): string[] {
     }
   }
 
-  const componentRouteDocs = [
-    'button',
-    'input',
-    'checkbox',
-    'switch',
-    'tabs',
-    'dialog',
-    'label',
-    'textarea',
-    'radio-group',
-    'select',
-    'card',
-    'badge',
-    'separator',
-    'skeleton',
-    'alert',
-  ]
-
   for (const route of [
     '/guide/getting-started',
     '/components/',
     '/components/button',
-    ...componentRouteDocs.map(c => `/components/${c}`),
+    ...componentDocs.map(component => `/components/${component}`),
     '/playground/',
     '/examples/react-vite',
     '/examples/next-app',
@@ -290,24 +295,6 @@ function checkComponentDocsErrors(components: string[]): string[] {
 }
 
 function checkGeneratedComponentDocs(): string[] {
-  const componentDocs = [
-    'button',
-    'input',
-    'checkbox',
-    'switch',
-    'tabs',
-    'dialog',
-    'label',
-    'textarea',
-    'radio-group',
-    'select',
-    'card',
-    'badge',
-    'separator',
-    'skeleton',
-    'alert',
-  ]
-
   return checkComponentDocsErrors(componentDocs)
 }
 

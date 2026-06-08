@@ -12,14 +12,17 @@ import {
 
 export type AvatarSize = 'sm' | 'md' | 'lg'
 export type AvatarShape = 'circle' | 'square'
+export type AvatarImageStatus = 'idle' | 'loading' | 'loaded' | 'error'
 
 export interface AvatarProps {
   size?: AvatarSize
   shape?: AvatarShape
+  imageStatus?: AvatarImageStatus
 }
-export interface AvatarElement extends HTMLElement {}
 
-type AvatarImageStatus = 'idle' | 'loading' | 'loaded' | 'error'
+export interface AvatarElement extends HTMLElement {
+  imageStatus?: AvatarImageStatus
+}
 
 interface AvatarContextValue {
   getImageStatus: () => AvatarImageStatus
@@ -28,22 +31,26 @@ interface AvatarContextValue {
 
 const AvatarContext = createContext<AvatarContextValue>()
 
-function setupAvatar(props: AvatarProps) {
-  let imageStatus: AvatarImageStatus = 'idle'
+function setupAvatar(
+  props: AvatarProps,
+  ctx: DefineElementContext<AvatarElement>,
+) {
   const context: AvatarContextValue = {
-    getImageStatus: () => imageStatus,
+    getImageStatus: () => ctx.host.imageStatus || props.imageStatus || 'idle',
     setImageStatus: status => {
-      imageStatus = status
+      ctx.host.imageStatus = status
     },
   }
+
   provide(AvatarContext, context)
+
   return (
     <Host
       part="root"
       data-slot="avatar-root"
       data-size={() => props.size}
       data-shape={() => props.shape}
-      data-image-status={() => imageStatus}
+      data-image-status={() => context.getImageStatus()}
     >
       <Slot />
     </Host>
@@ -57,6 +64,11 @@ export const Avatar = defineElement<AvatarProps, AvatarElement>(
     props: {
       size: prop(['sm', 'md', 'lg'], { default: 'md', reflect: true }),
       shape: prop(['circle', 'square'], { default: 'circle', reflect: true }),
+      imageStatus: prop(['idle', 'loading', 'loaded', 'error'], {
+        attr: 'image-status',
+        default: 'idle',
+        reflect: true,
+      }),
     },
     meta: { description: 'Headless avatar root primitive.' },
   },
@@ -69,6 +81,7 @@ export interface AvatarImageProps {
   loading?: 'eager' | 'lazy'
   referrerPolicy?: string
 }
+
 export interface AvatarImageLoadDetail {
   nativeEvent: Event
 }
@@ -76,6 +89,7 @@ export interface AvatarImageErrorDetail {
   nativeEvent: Event
 }
 export interface AvatarImageElement extends HTMLElement {}
+
 interface AvatarImageEmits extends Record<string, EventDefinition<unknown>> {
   imageLoad: EventDefinition<AvatarImageLoadDetail>
   imageError: EventDefinition<AvatarImageErrorDetail>
