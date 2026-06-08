@@ -20,6 +20,7 @@ export default defineConfig(
       'no-restricted-syntax': ['error', banConstEnum],
       'style/operator-linebreak': 'off',
       'antfu/if-newline': 'off',
+      'style/arrow-parens': 'off',
     },
   },
 
@@ -99,6 +100,19 @@ export default defineConfig(
       'perfectionist/sort-named-exports': 'off',
       // Disable in favour of Prettier's formatting.
       'style/member-delimiter-style': 'off',
+      'style/quotes': 'off',
+      'style/jsx-curly-newline': 'off',
+      'style/indent': 'off',
+      'style/indent-binary-ops': 'off',
+    },
+  },
+  // Vue files - disable rules that conflict with Prettier
+  {
+    files: ['**/*.vue'],
+    rules: {
+      'style/brace-style': 'off',
+      'vue/singleline-html-element-content-newline': 'off',
+      'vue/multiline-html-element-content-newline': 'off',
     },
   },
 

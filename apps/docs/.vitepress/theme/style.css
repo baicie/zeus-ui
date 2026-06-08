@@ -335,7 +335,8 @@
   background: var(--playground-background);
 }
 
-.zeus-playground zw-checkbox[data-state='checked']
+.zeus-playground
+  zw-checkbox[data-state='checked']
   [data-slot='checkbox-control'] {
   background: var(--playground-primary);
   color: var(--playground-primary-foreground);

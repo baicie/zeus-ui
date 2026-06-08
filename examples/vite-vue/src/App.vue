@@ -8,13 +8,9 @@ const value = ref('')
 
 <template>
   <div class="page">
-    <h1 class="title">
-      Zeus Web - Vue 3 Demo
-    </h1>
+    <h1 class="title">Zeus Web - Vue 3 Demo</h1>
     <div class="card">
-      <h2 class="subtitle">
-        Input 组件（Vue 3）
-      </h2>
+      <h2 class="subtitle">Input 组件（Vue 3）</h2>
       <Input v-model:value="value" placeholder="请输入内容..." />
       <p class="value-text">
         当前值:
