@@ -21,6 +21,10 @@ const requiredFiles: RequiredFile[] = [
     ],
   },
   {
+    path: 'apps/docs/.vitepress/config.ts',
+    mustContain: ['isCustomElement', "tag.startsWith('zw-')"],
+  },
+  {
     path: 'apps/docs/.vitepress/theme/index.ts',
     mustContain: [
       "import ZeusPlayground from './components/ZeusPlayground.vue'",
@@ -30,12 +34,13 @@ const requiredFiles: RequiredFile[] = [
   {
     path: 'apps/docs/.vitepress/theme/components/ZeusPlayground.vue',
     mustContain: [
-      "import '@zeus-web/button/wc'",
-      "import '@zeus-web/checkbox/wc'",
-      "import '@zeus-web/dialog/wc'",
-      "import '@zeus-web/input/wc'",
-      "import '@zeus-web/switch/wc'",
-      "import '@zeus-web/tabs/wc'",
+      'onMounted',
+      "import('@zeus-web/button/wc')",
+      "import('@zeus-web/checkbox/wc')",
+      "import('@zeus-web/dialog/wc')",
+      "import('@zeus-web/input/wc')",
+      "import('@zeus-web/switch/wc')",
+      "import('@zeus-web/tabs/wc')",
       '<zw-button',
       '<zw-input',
       '<zw-checkbox',
@@ -48,6 +53,12 @@ const requiredFiles: RequiredFile[] = [
       '@open-change="handleOpenChange"',
     ],
     mustNotContain: [
+      "import '@zeus-web/button/wc'",
+      "import '@zeus-web/checkbox/wc'",
+      "import '@zeus-web/dialog/wc'",
+      "import '@zeus-web/input/wc'",
+      "import '@zeus-web/switch/wc'",
+      "import '@zeus-web/tabs/wc'",
       '@zeus-web/react',
       '@zeus-web/button/react',
       '@zeus-web/input/react',
@@ -69,6 +80,7 @@ const requiredFiles: RequiredFile[] = [
       '.zeus-playground--dark',
       '.zeus-playground__grid',
       '.zeus-playground__logs',
+      '.zeus-playground__loading',
     ],
   },
 ]

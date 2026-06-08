@@ -1,12 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-
-import '@zeus-web/button/wc'
-import '@zeus-web/checkbox/wc'
-import '@zeus-web/dialog/wc'
-import '@zeus-web/input/wc'
-import '@zeus-web/switch/wc'
-import '@zeus-web/tabs/wc'
+import { computed, onMounted, ref } from 'vue'
 
 type PlaygroundTheme = 'light' | 'dark'
 type PlaygroundDensity = 'default' | 'compact' | 'large'
@@ -24,6 +17,7 @@ const checked = ref(false)
 const switched = ref(false)
 const dialogOpen = ref(false)
 const logs = ref<EventLog[]>([])
+const ready = ref(false)
 
 let logId = 0
 
@@ -33,6 +27,19 @@ const playgroundClass = computed(() => {
     `zeus-playground--${theme.value}`,
     `zeus-playground--${density.value}`,
   ]
+})
+
+onMounted(async () => {
+  await Promise.all([
+    import('@zeus-web/button/wc'),
+    import('@zeus-web/checkbox/wc'),
+    import('@zeus-web/dialog/wc'),
+    import('@zeus-web/input/wc'),
+    import('@zeus-web/switch/wc'),
+    import('@zeus-web/tabs/wc'),
+  ])
+
+  ready.value = true
 })
 
 function stringifyDetail(detail: unknown): string {
@@ -120,7 +127,11 @@ function clearLogs(): void {
       </div>
     </div>
 
-    <div class="zeus-playground__grid">
+    <p v-if="!ready" class="zeus-playground__loading">
+      Loading Zeus Web Components...
+    </p>
+
+    <div v-else class="zeus-playground__grid">
       <article class="zeus-playground__card">
         <h3>Button</h3>
         <div class="zeus-playground__row">
@@ -130,9 +141,7 @@ function clearLogs(): void {
           <zw-button variant="outline" @press="handlePress">
             Outline
           </zw-button>
-          <zw-button variant="danger" @press="handlePress">
-            Danger
-          </zw-button>
+          <zw-button variant="danger" @press="handlePress">Danger</zw-button>
         </div>
       </article>
 
@@ -171,12 +180,8 @@ function clearLogs(): void {
             <zw-tabs-trigger value="account">Account</zw-tabs-trigger>
             <zw-tabs-trigger value="password">Password</zw-tabs-trigger>
           </zw-tabs-list>
-          <zw-tabs-content value="account">
-            Account panel
-          </zw-tabs-content>
-          <zw-tabs-content value="password">
-            Password panel
-          </zw-tabs-content>
+          <zw-tabs-content value="account">Account panel</zw-tabs-content>
+          <zw-tabs-content value="password">Password panel</zw-tabs-content>
         </zw-tabs>
       </article>
 

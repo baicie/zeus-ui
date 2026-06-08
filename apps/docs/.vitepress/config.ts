@@ -10,6 +10,13 @@ export default defineConfig({
   markdown: {
     lineNumbers: true,
   },
+  vue: {
+    template: {
+      compilerOptions: {
+        isCustomElement: tag => tag.startsWith('zw-'),
+      },
+    },
+  },
   head: [
     ['meta', { name: 'theme-color', content: '#111827' }],
     ['meta', { property: 'og:title', content: 'Zeus Web' }],

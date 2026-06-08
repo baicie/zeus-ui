@@ -502,3 +502,13 @@
     flex: 1;
   }
 }
+
+.zeus-playground__loading {
+  border: 1px dashed var(--playground-border);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 0;
+  color: var(--playground-muted-foreground);
+  background: var(--playground-muted);
+  font-size: 14px;
+}
