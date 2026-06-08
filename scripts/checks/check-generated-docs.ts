@@ -4,10 +4,11 @@ import { resolve } from 'node:path'
 import pc from 'picocolors'
 
 import { generateComponentDocs } from '../docs/component-docs'
+import { formatGeneratedDocs } from '../docs/format-generated-docs'
 
-function main(): void {
+async function main(): Promise<void> {
   const errors: string[] = []
-  const docs = generateComponentDocs()
+  const docs = await formatGeneratedDocs(generateComponentDocs())
 
   for (const doc of docs) {
     const file = resolve(process.cwd(), doc.path)
@@ -40,4 +41,7 @@ function main(): void {
   console.log(pc.green('Generated docs check passed.'))
 }
 
-main()
+main().catch(error => {
+  console.error(pc.red((error as Error).message))
+  process.exit(1)
+})

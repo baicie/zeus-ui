@@ -4,9 +4,10 @@ import { dirname, resolve } from 'node:path'
 import pc from 'picocolors'
 
 import { generateComponentDocs } from '../docs/component-docs'
+import { formatGeneratedDocs } from '../docs/format-generated-docs'
 
 async function main(): Promise<void> {
-  const docs = generateComponentDocs()
+  const docs = await formatGeneratedDocs(generateComponentDocs())
 
   for (const doc of docs) {
     const file = resolve(process.cwd(), doc.path)
