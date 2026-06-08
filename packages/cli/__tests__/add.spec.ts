@@ -209,6 +209,8 @@ describe('@zeus-web/cli add', () => {
       dryRun: true,
       overwrite: true,
       install: false,
+      all: false,
+      yes: false,
     })
   })
 
@@ -235,6 +237,8 @@ describe('@zeus-web/cli add', () => {
           dryRun: true,
           overwrite: false,
           install: true,
+          all: false,
+          yes: false,
         },
         registryRoot,
       )
@@ -279,6 +283,8 @@ describe('@zeus-web/cli add', () => {
           dryRun: false,
           overwrite: false,
           install: true,
+          all: false,
+          yes: false,
         },
         registryRoot,
       )
@@ -327,6 +333,8 @@ describe('@zeus-web/cli add', () => {
           dryRun: false,
           overwrite: false,
           install: true,
+          all: false,
+          yes: false,
         },
         registryRoot,
       )
@@ -368,6 +376,8 @@ describe('@zeus-web/cli add', () => {
           dryRun: false,
           overwrite: true,
           install: true,
+          all: false,
+          yes: false,
         },
         registryRoot,
       )
@@ -401,6 +411,8 @@ describe('@zeus-web/cli add', () => {
           dryRun: false,
           overwrite: false,
           install: true,
+          all: false,
+          yes: false,
         },
         registryRoot,
       )
@@ -445,6 +457,8 @@ describe('@zeus-web/cli add', () => {
             dryRun: false,
             overwrite: false,
             install: true,
+            all: false,
+            yes: false,
           },
           registryRoot,
         ),

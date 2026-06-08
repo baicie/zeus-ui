@@ -19,6 +19,7 @@ import {
   resolveRegistryTarget,
   toRelativeProjectPath,
 } from '../config'
+import { updateComponentsLockFromPlans } from '../lock'
 import {
   createInstallCommands,
   formatInstallCommands,
@@ -44,6 +45,8 @@ export interface AddOptions {
   dryRun: boolean
   overwrite: boolean
   install: boolean
+  all: boolean
+  yes: boolean
   packageManager?: PackageManager
 }
 
@@ -64,11 +67,11 @@ type CopyResult = 'planned' | 'written' | 'skipped'
 
 const require = createRequire(import.meta.url)
 
-function resolveRegistryJsonPath(): string {
+export function resolveRegistryJsonPath(): string {
   return require.resolve('@zeus-web/registry/registry.json')
 }
 
-function resolveRegistryRoot(): string {
+export function resolveRegistryRoot(): string {
   return dirname(resolveRegistryJsonPath())
 }
 
@@ -228,22 +231,34 @@ export function parseAddArgs(
     dryRun: false,
     overwrite: false,
     install: true,
+    all: false,
+    yes: false,
   }
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index]
+
+    if (arg === '--all') {
+      options.all = true
+      continue
+    }
+
+    if (arg === '--yes' || arg === '-y') {
+      options.yes = true
+      continue
+    }
 
     if (arg === '--dry-run') {
       options.dryRun = true
       continue
     }
 
-    if (arg === '--overwrite') {
+    if (arg === '--overwrite' || arg === '--force') {
       options.overwrite = true
       continue
     }
 
-    if (arg === '--no-install') {
+    if (arg === '--no-install' || arg === '--skip-deps') {
       options.install = false
       continue
     }
@@ -487,20 +502,37 @@ function printResult(result: AddExecutionResult, options: AddOptions): void {
 export async function add(args: string[]) {
   try {
     const { components, options } = parseAddArgs(args)
+    const registry = loadRegistry()
+    const finalComponents = options.all
+      ? listAvailableComponents(registry)
+      : components
 
-    if (components.length === 0) {
+    if (finalComponents.length === 0) {
       console.error(pc.red('Please provide at least one component.'))
-      console.log(`Example: zweb add ${listAvailableComponents().join(' ')}`)
+      console.log(
+        `Example: zweb add ${listAvailableComponents(registry).join(' ')}`,
+      )
       process.exit(1)
     }
 
-    const plans = createAddPlan(components)
+    const plans = createAddPlan(finalComponents, registry)
 
     printPlan(plans, options)
 
     const result = await executeAddPlan(plans, options)
 
     printResult(result, options)
+
+    if (!options.dryRun) {
+      const config = readComponentsConfig(options.cwd)
+      const resolvedPlans = resolveAddPlanTargets(plans, options.cwd, config)
+
+      await updateComponentsLockFromPlans({
+        cwd: options.cwd,
+        plans: resolvedPlans,
+        writtenTargets: result.written,
+      })
+    }
 
     if (options.install && !options.dryRun) {
       await installDependencies({

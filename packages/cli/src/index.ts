@@ -3,7 +3,11 @@
 import pc from 'picocolors'
 import { add } from './commands/add'
 import { ai } from './commands/ai'
+import { diff } from './commands/diff'
+import { doctor } from './commands/doctor'
 import { init } from './commands/init'
+import { list } from './commands/list'
+import { update } from './commands/update'
 
 const [, , command, ...args] = process.argv
 
@@ -15,6 +19,22 @@ async function main() {
 
     case 'add':
       await add(args)
+      break
+
+    case 'list':
+      await list(args)
+      break
+
+    case 'diff':
+      await diff(args)
+      break
+
+    case 'update':
+      await update(args)
+      break
+
+    case 'doctor':
+      await doctor(args)
       break
 
     case 'ai':
