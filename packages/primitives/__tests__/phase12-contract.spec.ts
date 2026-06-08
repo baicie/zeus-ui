@@ -68,10 +68,25 @@ describe('phase 12 primitive contract', () => {
     expect(source).toContain('aria-valuemax')
   })
 
+  it('maps progress value to styled indicator width', () => {
+    const source = readFile('packages/registry/default/progress.tsx')
+    expect(source).toContain('--zeus-progress-percent')
+    expect(source).toContain('w-[var(--zeus-progress-percent)]')
+    expect(source).toContain('resolvePercent')
+  })
+
   it('adds avatar image load/error events', () => {
     const source = readFile('packages/primitives/avatar/src/avatar.tsx')
     expect(source).toContain('imageLoad')
     expect(source).toContain('imageError')
     expect(source).toContain('AvatarFallback')
+  })
+
+  it('stores avatar image status on host state', () => {
+    const source = readFile('packages/primitives/avatar/src/avatar.tsx')
+    expect(source).toContain('imageStatus')
+    expect(source).toContain('ctx.host.imageStatus = status')
+    expect(source).toContain("attr: 'image-status'")
+    expect(source).toContain('data-image-status')
   })
 })

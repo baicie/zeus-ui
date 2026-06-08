@@ -31,12 +31,19 @@ interface AvatarContextValue {
 
 const AvatarContext = createContext<AvatarContextValue>()
 
+function resolveImageStatus(
+  props: AvatarProps,
+  host: AvatarElement,
+): AvatarImageStatus {
+  return host.imageStatus || props.imageStatus || 'idle'
+}
+
 function setupAvatar(
   props: AvatarProps,
   ctx: DefineElementContext<AvatarElement>,
 ) {
   const context: AvatarContextValue = {
-    getImageStatus: () => ctx.host.imageStatus || props.imageStatus || 'idle',
+    getImageStatus: () => resolveImageStatus(props, ctx.host),
     setImageStatus: status => {
       ctx.host.imageStatus = status
     },
@@ -89,7 +96,6 @@ export interface AvatarImageErrorDetail {
   nativeEvent: Event
 }
 export interface AvatarImageElement extends HTMLElement {}
-
 interface AvatarImageEmits extends Record<string, EventDefinition<unknown>> {
   imageLoad: EventDefinition<AvatarImageLoadDetail>
   imageError: EventDefinition<AvatarImageErrorDetail>

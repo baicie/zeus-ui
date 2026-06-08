@@ -1,24 +1,35 @@
 import { Progress as ProgressPrimitive } from '@zeus-web/progress/react'
 import * as React from 'react'
+
 import { cn } from '@/lib/utils'
 
 export interface ProgressProps extends React.ComponentPropsWithoutRef<
   typeof ProgressPrimitive
 > {}
 
+function toNumber(value: unknown, fallback: number): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return fallback
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max)
 }
 
-function resolvePercent(value?: number, max?: number): number {
-  const safeMax = Math.max(1, max ?? 100)
-  const safeValue = clamp(value ?? 0, 0, safeMax)
+function resolvePercent(value: unknown, max: unknown): number {
+  const safeMax = Math.max(1, toNumber(max, 100))
+  const safeValue = clamp(toNumber(value, 0), 0, safeMax)
   return Math.round((safeValue / safeMax) * 100)
 }
 
 export const Progress = React.forwardRef<HTMLElement, ProgressProps>(
   ({ className, style, value, max, indeterminate, ...props }, ref) => {
     const percent = resolvePercent(value, max)
+
     return (
       <ProgressPrimitive
         ref={ref}
@@ -27,8 +38,8 @@ export const Progress = React.forwardRef<HTMLElement, ProgressProps>(
         indeterminate={indeterminate}
         style={
           {
-            '--zeus-progress-percent': `${percent}%`,
             ...style,
+            '--zeus-progress-percent': `${percent}%`,
           } as React.CSSProperties
         }
         className={cn(
@@ -46,4 +57,5 @@ export const Progress = React.forwardRef<HTMLElement, ProgressProps>(
     )
   },
 )
+
 Progress.displayName = 'Progress'
