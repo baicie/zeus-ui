@@ -78,6 +78,8 @@ function validateZeusDependencyBoundary(
     '@zeus-js/web-c-runtime',
   ])
 
+  const allowedToolingDependencies = new Set(['@zeus-js/output-icons'])
+
   for (const field of [
     'dependencies',
     'optionalDependencies',
@@ -94,8 +96,16 @@ function validateZeusDependencyBoundary(
         options.allowPrimitiveRuntimeDependencies &&
         field === 'dependencies' &&
         allowedPrimitiveRuntimeDependencies.has(name)
+      const isAllowedToolingDependency =
+        field === 'dependencies' && allowedToolingDependencies.has(name)
 
-      if (isAllowedPeer || isAllowedPrimitiveRuntimeDependency) continue
+      if (
+        isAllowedPeer ||
+        isAllowedPrimitiveRuntimeDependency ||
+        isAllowedToolingDependency
+      ) {
+        continue
+      }
 
       errors.push(
         `${pkg.name}: must not declare ${field}.${name}; consume Zeus through peerDependencies.@zeus-js/zeus or generated primitive runtime dependencies`,

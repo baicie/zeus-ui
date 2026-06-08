@@ -44,7 +44,9 @@
     "site:check": "pnpm docs:check && pnpm docs:build && pnpm examples:check",
     "site:build": "pnpm docs:build && pnpm examples:build",
     "link:zeus-js": "tsx scripts/commands/link-local-zeus.ts",
-    "unlink:zeus-js": "tsx scripts/commands/unlink-local-zeus.ts && pnpm install"
+    "unlink:zeus-js": "tsx scripts/commands/unlink-local-zeus.ts && pnpm install",
+    "icons:build": "pnpm --filter @zeus-web/icons build",
+    "icons:test": "pnpm --filter @zeus-web/icons test"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.0.0",

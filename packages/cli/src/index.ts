@@ -5,6 +5,7 @@ import { add } from './commands/add'
 import { ai } from './commands/ai'
 import { diff } from './commands/diff'
 import { doctor } from './commands/doctor'
+import { icon } from './commands/icon'
 import { init } from './commands/init'
 import { list } from './commands/list'
 import { theme } from './commands/theme'
@@ -34,6 +35,9 @@ async function main() {
       break
     case 'theme':
       await theme(args)
+      break
+    case 'icon':
+      await icon(args)
       break
     case 'ai':
       await ai(args)
@@ -77,6 +81,10 @@ function printHelp() {
   console.log('  zweb theme set slate')
   console.log('  zweb theme set zinc --radius lg --motion reduced')
   console.log('  zweb theme set default --accent "240 5.9% 10%"')
+  console.log('  zweb icon list')
+  console.log('  zweb icon list --json')
+  console.log('  zweb icon search check')
+  console.log('  zweb icon show check')
   console.log('  zweb ai')
   console.log('  zweb ai --cursor')
   console.log('  zweb ai --json')

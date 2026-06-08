@@ -27,6 +27,44 @@ const requiredComponents: ZeusWebAiComponentName[] = [
   'avatar',
 ]
 
+function validateIcons(metadata: ZeusWebAiMetadata, errors: string[]): void {
+  if (metadata.icons.packageName !== '@zeus-web/icons') {
+    errors.push('icons.packageName must be @zeus-web/icons')
+  }
+
+  if (!metadata.icons.installCommand.includes('@zeus-web/icons')) {
+    errors.push('icons.installCommand must include @zeus-web/icons')
+  }
+
+  if (!metadata.icons.reactImport.includes('@zeus-web/icons/react')) {
+    errors.push('icons.reactImport must use @zeus-web/icons/react')
+  }
+
+  if (!metadata.icons.vueImport.includes('@zeus-web/icons/vue')) {
+    errors.push('icons.vueImport must use @zeus-web/icons/vue')
+  }
+
+  if (!metadata.icons.webComponentImport.includes('@zeus-web/icons/wc')) {
+    errors.push('icons.webComponentImport must use @zeus-web/icons/wc')
+  }
+
+  if (!metadata.icons.rawSvgImport.includes('@zeus-web/icons/svg/')) {
+    errors.push('icons.rawSvgImport must use @zeus-web/icons/svg/*')
+  }
+
+  if (metadata.icons.recommendedIcons.length === 0) {
+    errors.push('icons.recommendedIcons is required')
+  }
+
+  if (metadata.icons.aiRules.do.length === 0) {
+    errors.push('icons.aiRules.do is required')
+  }
+
+  if (metadata.icons.aiRules.dont.length === 0) {
+    errors.push('icons.aiRules.dont is required')
+  }
+}
+
 export function validateAiMetadata(
   metadata: ZeusWebAiMetadata,
 ): ZeusWebAiValidationResult {
@@ -110,6 +148,8 @@ export function validateAiMetadata(
       errors.push(`missing component metadata: ${name}`)
     }
   }
+
+  validateIcons(metadata, errors)
 
   return {
     valid: errors.length === 0,

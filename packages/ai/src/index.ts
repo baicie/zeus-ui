@@ -5,6 +5,7 @@ export type {
   ZeusWebAiComponentName,
   ZeusWebAiEvent,
   ZeusWebAiExample,
+  ZeusWebAiIcons,
   ZeusWebAiMetadata,
   ZeusWebAiProp,
   ZeusWebAiSlot,

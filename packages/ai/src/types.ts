@@ -78,6 +78,20 @@ export interface ZeusWebAiComponent {
   }
 }
 
+export interface ZeusWebAiIcons {
+  packageName: '@zeus-web/icons'
+  installCommand: string
+  reactImport: string
+  vueImport: string
+  webComponentImport: string
+  rawSvgImport: string
+  recommendedIcons: string[]
+  aiRules: {
+    do: string[]
+    dont: string[]
+  }
+}
+
 export interface ZeusWebAiMetadata {
   schemaVersion: 1
   packageName: '@zeus-web/ai'
@@ -86,6 +100,7 @@ export interface ZeusWebAiMetadata {
   cliPackage: '@zeus-web/cli'
   recommendedWorkflow: string[]
   themes: ZeusWebAiThemeName[]
+  icons: ZeusWebAiIcons
   globalRules: {
     do: string[]
     dont: string[]

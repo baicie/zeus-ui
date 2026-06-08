@@ -4,6 +4,30 @@ function renderList(items: string[]): string {
   return items.map(item => `- ${item}`).join('\n')
 }
 
+function renderIcons(metadata: ZeusWebAiMetadata): string {
+  const icons = metadata.icons
+
+  return [
+    '## Icons',
+    '',
+    `Package: \`${icons.packageName}\``,
+    `Install: \`${icons.installCommand}\``,
+    `React: \`${icons.reactImport}\``,
+    `Vue: \`${icons.vueImport}\``,
+    `Web Component: \`${icons.webComponentImport}\``,
+    `Raw SVG: \`${icons.rawSvgImport}\``,
+    '',
+    'Recommended icons:',
+    renderList(icons.recommendedIcons.map(icon => `\`${icon}\``)),
+    '',
+    'Icon AI do:',
+    renderList(icons.aiRules.do),
+    '',
+    'Icon AI do not:',
+    renderList(icons.aiRules.dont),
+  ].join('\n')
+}
+
 function renderComponent(component: ZeusWebAiComponent): string {
   const props = component.props.length
     ? component.props
@@ -102,6 +126,8 @@ export function renderAiMarkdown(metadata: ZeusWebAiMetadata): string {
     '## Themes',
     '',
     renderList(metadata.themes.map(theme => `\`${theme}\``)),
+    '',
+    renderIcons(metadata),
     '',
     '## Global AI rules: do',
     '',

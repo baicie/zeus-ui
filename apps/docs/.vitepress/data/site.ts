@@ -31,6 +31,10 @@ export const guideItems: DocsNavItem[] = [
     link: '/guide/theming',
   },
   {
+    text: 'Icons',
+    link: '/guide/icons',
+  },
+  {
     text: 'Registry',
     link: '/guide/registry',
   },

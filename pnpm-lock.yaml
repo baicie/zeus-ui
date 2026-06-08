@@ -46,7 +46,7 @@ importers:
         version: 0.1.0-beta.5
       '@zeus-js/output-icons':
         specifier: 0.1.0-beta.5
-        version: 0.1.0-beta.5(rolldown@1.1.0)(rollup@4.61.1)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
+        version: 0.1.0-beta.5(react@19.2.7)(rolldown@1.1.0)(rollup@4.61.1)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
       '@zeus-js/output-react-wrapper':
         specifier: 0.1.0-beta.5
         version: 0.1.0-beta.5(@types/react@19.2.17)(rolldown@1.1.0)(rollup@4.61.1)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
@@ -371,6 +371,9 @@ importers:
       '@zeus-web/ai':
         specifier: workspace:*
         version: link:../ai
+      '@zeus-web/icons':
+        specifier: workspace:*
+        version: link:../icons
       '@zeus-web/registry':
         specifier: workspace:*
         version: link:../registry
@@ -405,6 +408,102 @@ importers:
         specifier: workspace:*
         version: link:../primitives/tabs
 
+  packages/icons:
+    dependencies:
+      '@zeus-js/output-icons':
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5(react@19.2.7)(rolldown@1.1.0)(rollup@4.61.1)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
+
+  packages/primitives/accordion:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.5 <0.2.0'
+        version: 0.1.0-beta.5
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
+
+  packages/primitives/alert:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.5 <0.2.0'
+        version: 0.1.0-beta.5
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
+
+  packages/primitives/avatar:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.5 <0.2.0'
+        version: 0.1.0-beta.5
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
+
+  packages/primitives/badge:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.5 <0.2.0'
+        version: 0.1.0-beta.5
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
+
   packages/primitives/button:
     dependencies:
       '@zeus-js/runtime-dom':
@@ -426,7 +525,49 @@ importers:
         specifier: '>=3'
         version: 3.5.35(typescript@6.0.3)
 
+  packages/primitives/card:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.5 <0.2.0'
+        version: 0.1.0-beta.5
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
+
   packages/primitives/checkbox:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.5 <0.2.0'
+        version: 0.1.0-beta.5
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
+
+  packages/primitives/collapsible:
     dependencies:
       '@zeus-js/runtime-dom':
         specifier: 0.1.0-beta.5
@@ -489,6 +630,132 @@ importers:
         specifier: '>=3'
         version: 3.5.35(typescript@6.0.3)
 
+  packages/primitives/label:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.5 <0.2.0'
+        version: 0.1.0-beta.5
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
+
+  packages/primitives/progress:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.5 <0.2.0'
+        version: 0.1.0-beta.5
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
+
+  packages/primitives/radio-group:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.5 <0.2.0'
+        version: 0.1.0-beta.5
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
+
+  packages/primitives/select:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.5 <0.2.0'
+        version: 0.1.0-beta.5
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
+
+  packages/primitives/separator:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.5 <0.2.0'
+        version: 0.1.0-beta.5
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
+
+  packages/primitives/skeleton:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.5 <0.2.0'
+        version: 0.1.0-beta.5
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
+
   packages/primitives/switch:
     dependencies:
       '@zeus-js/runtime-dom':
@@ -511,6 +778,48 @@ importers:
         version: 3.5.35(typescript@6.0.3)
 
   packages/primitives/tabs:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.5 <0.2.0'
+        version: 0.1.0-beta.5
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
+
+  packages/primitives/textarea:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.5 <0.2.0'
+        version: 0.1.0-beta.5
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.35(typescript@6.0.3)
+
+  packages/primitives/tooltip:
     dependencies:
       '@zeus-js/runtime-dom':
         specifier: 0.1.0-beta.5
@@ -6305,10 +6614,11 @@ snapshots:
     dependencies:
       '@zeus-js/component-analyzer': 0.1.0-beta.5
 
-  '@zeus-js/output-icons@0.1.0-beta.5(rolldown@1.1.0)(rollup@4.61.1)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))':
+  '@zeus-js/output-icons@0.1.0-beta.5(react@19.2.7)(rolldown@1.1.0)(rollup@4.61.1)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))':
     dependencies:
       '@zeus-js/bundler-plugin': 0.1.0-beta.5(rolldown@1.1.0)(rollup@4.61.1)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))
     optionalDependencies:
+      react: 19.2.7
       vue: 3.5.35(typescript@6.0.3)
     transitivePeerDependencies:
       - rolldown

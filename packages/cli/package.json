@@ -18,12 +18,13 @@
   ],
   "scripts": {
     "dev": "tsup --watch",
-    "build": "tsup && node -e \"const fs=require('fs');const f='dist/index.js';const c=fs.readFileSync(f,'utf8');if(!c.startsWith('#!/'))fs.writeFileSync(f,'#!/usr/bin/env node\\n'+c,'utf8');\"",
+    "build": "tsup && node -e \"const fs=require('fs');const f='dist/index.js';const c=fs.readFileSync(f,'utf8');if(!c.startsWith('#!'))fs.writeFileSync(f,'#!/usr/bin/env node\\n'+c,'utf8');\"",
     "check": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest --root ../.. --project unit packages/cli/__tests__/add.spec.ts packages/cli/__tests__/ai.spec.ts packages/cli/__tests__/config.spec.ts packages/cli/__tests__/init.spec.ts packages/cli/__tests__/package-manager.spec.ts packages/cli/__tests__/phase12-cli.spec.ts packages/cli/__tests__/phase13-theme.spec.ts"
+    "test": "vitest --root ../.. --project unit packages/cli/__tests__/add.spec.ts packages/cli/__tests__/ai.spec.ts packages/cli/__tests__/config.spec.ts packages/cli/__tests__/init.spec.ts packages/cli/__tests__/package-manager.spec.ts packages/cli/__tests__/phase12-cli.spec.ts packages/cli/__tests__/phase13-theme.spec.ts packages/cli/__tests__/phase14-icons.spec.ts"
   },
   "dependencies": {
     "@zeus-web/ai": "workspace:*",
+    "@zeus-web/icons": "workspace:*",
     "@zeus-web/registry": "workspace:*",
     "@zeus-web/themes": "workspace:*",
     "execa": "^9.6.1",
