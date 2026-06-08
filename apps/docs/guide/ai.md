@@ -43,6 +43,8 @@ This creates:
 ```txt
 recommended workflow
 theme names
+icon package usage
+icon import rules
 global usage rules
 component props
 component events
@@ -50,6 +52,19 @@ component slots
 examples
 AI do / do-not rules
 ```
+
+## Icons
+
+The generated AI guide includes icon usage rules for:
+
+```txt
+@zeus-web/icons/react
+@zeus-web/icons/vue
+@zeus-web/icons/wc
+@zeus-web/icons/svg/*
+```
+
+Use these rules when generating examples with icons. For decorative icons, use `aria-hidden`. For icon-only buttons, put the accessible name on the parent control.
 
 ## Alias aware
 

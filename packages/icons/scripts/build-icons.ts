@@ -1,12 +1,21 @@
-import type { ZeusOutputFile, ZeusVirtualModule } from '@zeus-js/bundler-plugin'
-
 import { mkdir, writeFile } from 'node:fs/promises'
-import { dirname, resolve } from 'node:path'
+import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import process from 'node:process'
 
 import icons from '@zeus-js/output-icons'
 
 import { iconsManifest, iconSources } from '../src/icons'
+
+interface IconVirtualModule {
+  fileName: string
+  code: string
+}
+
+interface IconOutputAsset {
+  type: 'asset'
+  fileName: string
+  source: string | Uint8Array
+}
 
 const root = process.cwd()
 const outDir = resolve(root, 'dist')
@@ -15,20 +24,36 @@ function normalizeOutputPath(fileName: string): string {
   return fileName.replace(/^\.\//, '')
 }
 
+function resolveSafeOutputPath(fileName: string): string {
+  const normalized = normalizeOutputPath(fileName)
+  const target = resolve(outDir, normalized)
+  const relativeTarget = relative(outDir, target).replace(/\\/g, '/')
+
+  if (
+    relativeTarget === '..' ||
+    relativeTarget.startsWith('../') ||
+    isAbsolute(relativeTarget)
+  ) {
+    throw new Error(`Refusing to write icon output outside dist: ${fileName}`)
+  }
+
+  return target
+}
+
 async function writeOutput(fileName: string, source: string | Uint8Array) {
-  const target = resolve(outDir, normalizeOutputPath(fileName))
+  const target = resolveSafeOutputPath(fileName)
 
   await mkdir(dirname(target), { recursive: true })
   await writeFile(target, source)
 }
 
-async function writeVirtualModules(modules: ZeusVirtualModule[]) {
+async function writeVirtualModules(modules: IconVirtualModule[]) {
   for (const module of modules) {
     await writeOutput(module.fileName, module.code)
   }
 }
 
-async function writeOutputFiles(files: ZeusOutputFile[]) {
+async function writeOutputFiles(files: IconOutputAsset[]) {
   for (const file of files) {
     if (file.type !== 'asset') continue
 
@@ -54,8 +79,12 @@ async function main() {
     dts: true,
   })
 
-  const modules = plugin.virtualModules?.() ?? []
-  const files = plugin.generateBundle?.() ?? []
+  const getModules =
+    plugin.virtualModules as unknown as () => IconVirtualModule[]
+  const getFiles = plugin.generateBundle as unknown as () => IconOutputAsset[]
+
+  const modules = getModules()
+  const files = getFiles()
 
   await writeVirtualModules(modules)
   await writeOutputFiles(files)
@@ -67,6 +96,6 @@ async function main() {
 }
 
 main().catch(error => {
-  console.error(error)
+  console.error(String(error))
   process.exit(1)
 })
