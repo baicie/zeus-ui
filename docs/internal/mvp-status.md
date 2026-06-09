@@ -124,9 +124,34 @@ pnpm check:component-coverage
 The check enforces:
 
 ```
+primitives: no duplicate names
+registry: no duplicate names
 registry item -> primitive package
 registry item -> AI metadata
+registry item files[].path must exist
+AI metadata: no duplicate names
 AI metadata -> registry item
 AI metadata -> primitive package
-registry dependency -> @zeus-web/<component>
+AI metadata primitivePackage must be @zeus-web/<name>
+AI metadata sourceTarget must be components/ui/<name>.tsx
+AI metadata dependencies must include @zeus-web/<name>
+registry dependency must include @zeus-web/<component>
 ```
+
+## Follow-up phase
+
+Overlay primitives will be handled after `0.1.0-beta.0`.
+
+Planned follow-up packages:
+
+```
+@zeus-web/popover
+@zeus-web/dropdown
+@zeus-web/toast
+@zeus-web/portal
+@zeus-web/dismissable-layer
+@zeus-web/popper
+```
+
+The follow-up phase must update primitives, registry, AI metadata, docs, examples,
+and component coverage checks together.

@@ -6,7 +6,7 @@ import pc from 'picocolors'
 
 import { aiMetadata } from '../../packages/ai/src/metadata'
 
-interface RegistryItem {
+export interface RegistryItem {
   name: string
   type: string
   dependencies?: string[]
@@ -17,11 +17,18 @@ interface RegistryItem {
   }>
 }
 
-interface Registry {
+export interface Registry {
   items: RegistryItem[]
 }
 
-interface CoverageResult {
+export interface AiComponentLike {
+  name: string
+  primitivePackage?: string
+  sourceTarget?: string
+  dependencies?: string[]
+}
+
+export interface CoverageResult {
   valid: boolean
   errors: string[]
   warnings: string[]
@@ -33,17 +40,24 @@ interface CoverageResult {
 
 const deferredOverlayComponents = ['popover', 'dropdown', 'toast'] as const
 
-const knownNonPrimitivePackages = new Set([
-  'ai',
-  'cli',
-  'icons',
-  'registry',
-  'themes',
-  'zeus-compat',
-])
-
 function readJson<T>(file: string): T {
   return JSON.parse(readFileSync(file, 'utf-8')) as T
+}
+
+function findDuplicates(values: string[]): string[] {
+  const seen = new Set<string>()
+  const duplicates = new Set<string>()
+
+  for (const value of values) {
+    if (seen.has(value)) {
+      duplicates.add(value)
+      continue
+    }
+
+    seen.add(value)
+  }
+
+  return Array.from(duplicates).sort()
 }
 
 function readPrimitiveNames(root: string): string[] {
@@ -89,8 +103,14 @@ function getRegistryNames(registry: Registry): string[] {
     .sort()
 }
 
+function getAiComponents(): AiComponentLike[] {
+  return aiMetadata.components as AiComponentLike[]
+}
+
 function getAiNames(): string[] {
-  return aiMetadata.components.map(component => component.name).sort()
+  return getAiComponents()
+    .map(component => component.name)
+    .sort()
 }
 
 function includesPackageDependency(item: RegistryItem): boolean {
@@ -105,8 +125,64 @@ function includesUiTarget(item: RegistryItem): boolean {
   return item.files?.some(file => file.target === expected) ?? false
 }
 
+function registryFileExists(root: string, filePath: string): boolean {
+  return existsSync(resolve(root, 'packages/registry', filePath))
+}
+
 function unique(values: string[]): string[] {
   return Array.from(new Set(values)).sort()
+}
+
+function pushDuplicateErrors(
+  errors: string[],
+  label: string,
+  names: string[],
+): void {
+  for (const name of findDuplicates(names)) {
+    errors.push(`${label} has duplicate component name "${name}"`)
+  }
+}
+
+function checkRegistryFiles(
+  root: string,
+  item: RegistryItem,
+  errors: string[],
+): void {
+  if (!item.files || item.files.length === 0) {
+    errors.push(`registry item "${item.name}" must declare files`)
+    return
+  }
+
+  for (const file of item.files) {
+    if (!registryFileExists(root, file.path)) {
+      errors.push(
+        `registry item "${item.name}" references missing file "${file.path}"`,
+      )
+    }
+  }
+}
+
+function checkAiComponent(component: AiComponentLike, errors: string[]): void {
+  const expectedPackage = `@zeus-web/${component.name}`
+  const expectedSourceTarget = `components/ui/${component.name}.tsx`
+
+  if (component.primitivePackage !== expectedPackage) {
+    errors.push(
+      `AI metadata component "${component.name}" must use primitivePackage "${expectedPackage}"`,
+    )
+  }
+
+  if (component.sourceTarget !== expectedSourceTarget) {
+    errors.push(
+      `AI metadata component "${component.name}" must use sourceTarget "${expectedSourceTarget}"`,
+    )
+  }
+
+  if (!component.dependencies?.includes(expectedPackage)) {
+    errors.push(
+      `AI metadata component "${component.name}" must depend on "${expectedPackage}"`,
+    )
+  }
 }
 
 export function checkComponentCoverage(root = process.cwd()): CoverageResult {
@@ -114,6 +190,7 @@ export function checkComponentCoverage(root = process.cwd()): CoverageResult {
   const registry = readRegistry(root)
   const registryItems = getRegistryUiItems(registry)
   const registryNames = getRegistryNames(registry)
+  const aiComponents = getAiComponents()
   const aiNames = getAiNames()
 
   const primitiveNameSet = new Set(primitiveNames)
@@ -122,6 +199,10 @@ export function checkComponentCoverage(root = process.cwd()): CoverageResult {
 
   const errors: string[] = []
   const warnings: string[] = []
+
+  pushDuplicateErrors(errors, 'primitives', primitiveNames)
+  pushDuplicateErrors(errors, 'registry', registryNames)
+  pushDuplicateErrors(errors, 'AI metadata', aiNames)
 
   for (const item of registryItems) {
     if (!primitiveNameSet.has(item.name)) {
@@ -145,9 +226,13 @@ export function checkComponentCoverage(root = process.cwd()): CoverageResult {
         `registry item "${item.name}" must target components/ui/${item.name}.tsx`,
       )
     }
+
+    checkRegistryFiles(root, item, errors)
   }
 
-  for (const name of aiNames) {
+  for (const component of aiComponents) {
+    const name = component.name
+
     if (!registryNameSet.has(name)) {
       errors.push(
         `AI metadata component "${name}" has no matching registry item`,
@@ -159,11 +244,11 @@ export function checkComponentCoverage(root = process.cwd()): CoverageResult {
         `AI metadata component "${name}" has no matching primitive package`,
       )
     }
+
+    checkAiComponent(component, errors)
   }
 
   for (const name of primitiveNames) {
-    if (knownNonPrimitivePackages.has(name)) continue
-
     if (!registryNameSet.has(name)) {
       warnings.push(
         `primitive "${name}" has no registry item; keep it only if it is intentionally headless-only`,

@@ -35,6 +35,16 @@ describe('component coverage contract', () => {
     expect(result.aiNames).toEqual(expect.arrayContaining(result.registryNames))
   })
 
+  it('keeps component names unique', () => {
+    const result = checkComponentCoverage()
+
+    expect(new Set(result.primitiveNames).size).toBe(
+      result.primitiveNames.length,
+    )
+    expect(new Set(result.registryNames).size).toBe(result.registryNames.length)
+    expect(new Set(result.aiNames).size).toBe(result.aiNames.length)
+  })
+
   it('keeps overlay components explicitly deferred for beta', () => {
     const result = checkComponentCoverage()
 
