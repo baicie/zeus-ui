@@ -265,15 +265,19 @@ export function checkComponentCoverage(root = process.cwd()): CoverageResult {
   const deferredNames = unique([...deferredOverlayComponents])
 
   for (const name of deferredNames) {
-    if (
-      registryNameSet.has(name) ||
-      primitiveNameSet.has(name) ||
-      aiNameSet.has(name)
-    ) {
-      warnings.push(
-        `deferred overlay component "${name}" already exists partially; finish primitive + registry + AI metadata before enabling it`,
-      )
-    }
+    const existsIn = [
+      primitiveNameSet.has(name) ? 'primitive' : '',
+      registryNameSet.has(name) ? 'registry' : '',
+      aiNameSet.has(name) ? 'AI metadata' : '',
+    ].filter(Boolean)
+
+    if (existsIn.length === 0) continue
+
+    errors.push(
+      `deferred overlay component "${name}" exists in ${existsIn.join(
+        ', ',
+      )}; either remove it from beta scope or complete primitive + registry + AI metadata + docs + examples and remove it from deferredOverlayComponents`,
+    )
   }
 
   return {

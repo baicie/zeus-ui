@@ -49,8 +49,11 @@ describe('component coverage contract', () => {
     const result = checkComponentCoverage()
 
     expect(result.deferredNames).toEqual(['dropdown', 'popover', 'toast'])
-    expect(result.registryNames).not.toContain('dropdown')
-    expect(result.registryNames).not.toContain('popover')
-    expect(result.registryNames).not.toContain('toast')
+
+    for (const name of result.deferredNames) {
+      expect(result.primitiveNames).not.toContain(name)
+      expect(result.registryNames).not.toContain(name)
+      expect(result.aiNames).not.toContain(name)
+    }
   })
 })
