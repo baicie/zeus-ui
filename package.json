@@ -1,6 +1,7 @@
 {
   "name": "zeus-ui-workspace",
   "type": "module",
+  "version": "0.0.0",
   "private": true,
   "packageManager": "pnpm@10.33.4",
   "engines": {
@@ -24,7 +25,7 @@
     "format": "prettier --write --cache --cache-location node_modules/.cache/.prettiercache .",
     "format-check": "prettier --check --cache --cache-location node_modules/.cache/.prettiercache .",
     "test": "vitest",
-    "test-unit": "vitest --project unit*",
+    "test-unit": "vitest --project unit* --run",
     "test-coverage": "vitest run --project unit* --coverage",
     "release": "tsx scripts/commands/release.ts",
     "release:dry": "tsx scripts/commands/release.ts --dry-run",
