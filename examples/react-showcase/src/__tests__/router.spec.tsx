@@ -32,11 +32,9 @@ describe('react showcase router', () => {
     renderRoute('/components/button')
 
     expect(
-      await screen.findByRole('heading', { name: 'Button' }),
+      await screen.findByRole('heading', { name: /Button capability page/i }),
     ).toBeInTheDocument()
-    expect(screen.getAllByText('Button')[0]).toBeInTheDocument()
-    expect(screen.getAllByText('@zeus-web/button')).toHaveLength(2)
-    expect(screen.getByText('zweb add button')).toBeInTheDocument()
+    expect(screen.getByText('@zeus-web/button/react')).toBeInTheDocument()
   })
 
   it('renders icons and themes routes', async () => {
@@ -58,7 +56,9 @@ describe('react showcase router', () => {
 
     await user.click(await screen.findByRole('link', { name: /Button/i }))
 
-    expect(screen.getAllByText('@zeus-web/button')).toHaveLength(2)
+    expect(
+      await screen.findByRole('heading', { name: /Button capability page/i }),
+    ).toBeInTheDocument()
   })
 
   it('searches component from topbar using enter', async () => {
@@ -71,6 +71,8 @@ describe('react showcase router', () => {
     await user.clear(input)
     await user.type(input, 'input{Enter}')
 
-    expect(screen.getAllByText('@zeus-web/input')).toHaveLength(2)
+    expect(
+      await screen.findByRole('heading', { name: /Input capability page/i }),
+    ).toBeInTheDocument()
   })
 })

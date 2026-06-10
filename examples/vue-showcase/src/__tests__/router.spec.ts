@@ -36,7 +36,7 @@ describe('vue showcase router', () => {
 
     expect(wrapper.text()).toContain('Button')
     expect(wrapper.text()).toContain('@zeus-web/button')
-    expect(wrapper.text()).toContain('zweb add button')
+    expect(wrapper.text()).toContain('@zeus-web/button/vue')
   })
 
   it('renders icons and themes routes', async () => {

@@ -238,12 +238,30 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.170.15
         version: 1.170.15(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@zeus-web/button':
+        specifier: workspace:*
+        version: link:../../packages/primitives/button
+      '@zeus-web/checkbox':
+        specifier: workspace:*
+        version: link:../../packages/primitives/checkbox
+      '@zeus-web/dialog':
+        specifier: workspace:*
+        version: link:../../packages/primitives/dialog
       '@zeus-web/example-showcase-shared':
         specifier: workspace:*
         version: link:../showcase-shared
       '@zeus-web/icons':
         specifier: workspace:*
         version: link:../../packages/icons
+      '@zeus-web/input':
+        specifier: workspace:*
+        version: link:../../packages/primitives/input
+      '@zeus-web/switch':
+        specifier: workspace:*
+        version: link:../../packages/primitives/switch
+      '@zeus-web/tabs':
+        specifier: workspace:*
+        version: link:../../packages/primitives/tabs
       '@zeus-web/themes':
         specifier: workspace:*
         version: link:../../packages/themes
@@ -420,9 +438,27 @@ importers:
 
   examples/vue-showcase:
     dependencies:
+      '@zeus-web/button':
+        specifier: workspace:*
+        version: link:../../packages/primitives/button
+      '@zeus-web/checkbox':
+        specifier: workspace:*
+        version: link:../../packages/primitives/checkbox
+      '@zeus-web/dialog':
+        specifier: workspace:*
+        version: link:../../packages/primitives/dialog
       '@zeus-web/example-showcase-shared':
         specifier: workspace:*
         version: link:../showcase-shared
+      '@zeus-web/input':
+        specifier: workspace:*
+        version: link:../../packages/primitives/input
+      '@zeus-web/switch':
+        specifier: workspace:*
+        version: link:../../packages/primitives/switch
+      '@zeus-web/tabs':
+        specifier: workspace:*
+        version: link:../../packages/primitives/tabs
       '@zeus-web/themes':
         specifier: workspace:*
         version: link:../../packages/themes

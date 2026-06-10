@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 import ComponentPageScaffold from '../app/demo/ComponentPageScaffold.vue'
+import { p0VueDemoPages } from '../demos/p0'
 
 const route = useRoute()
 
@@ -15,6 +16,10 @@ const componentName = computed(() => {
 const component = computed(() => {
   return showcaseComponents.find(item => item.name === componentName.value)
 })
+
+const P0DemoPage = computed(() => {
+  return component.value ? p0VueDemoPages[component.value.name] : undefined
+})
 </script>
 
 <template>
@@ -24,6 +29,8 @@ const component = computed(() => {
       showcase metadata.
     </div>
   </div>
+
+  <component :is="P0DemoPage" v-else-if="P0DemoPage" />
 
   <ComponentPageScaffold v-else :component="component" />
 </template>

@@ -2,6 +2,7 @@ import { useParams } from '@tanstack/react-router'
 import { showcaseComponents } from '@zeus-web/example-showcase-shared'
 
 import { ComponentPageScaffold } from '../app/demo/ComponentPageScaffold'
+import { p0ReactDemoPages } from '../demos/p0'
 
 export function ComponentDetailPage() {
   const { componentName } = useParams({
@@ -14,12 +15,18 @@ export function ComponentDetailPage() {
     return (
       <div className="showcase-page">
         <div className="showcase-empty">
-          {/* eslint-disable-next-line style/jsx-one-expression-per-line */}
-          Component &quot;{componentName}&quot; is not part of the current
-          showcase metadata.
+          Component &quot;
+          {componentName}
+          &quot; is not part of the current showcase metadata.
         </div>
       </div>
     )
+  }
+
+  const P0DemoPage = p0ReactDemoPages[component.name]
+
+  if (P0DemoPage) {
+    return <P0DemoPage />
   }
 
   return <ComponentPageScaffold component={component} />
