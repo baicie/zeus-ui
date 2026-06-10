@@ -2,7 +2,7 @@ import { useParams } from '@tanstack/react-router'
 import { showcaseComponents } from '@zeus-web/example-showcase-shared'
 
 import { ComponentPageScaffold } from '../app/demo/ComponentPageScaffold'
-import { p0ReactDemoPages } from '../demos/p0'
+import { reactShowcaseDemoPages } from '../demos'
 
 export function ComponentDetailPage() {
   const { componentName } = useParams({
@@ -23,10 +23,10 @@ export function ComponentDetailPage() {
     )
   }
 
-  const P0DemoPage = p0ReactDemoPages[component.name]
+  const DemoPage = reactShowcaseDemoPages[component.name]
 
-  if (P0DemoPage) {
-    return <P0DemoPage />
+  if (DemoPage) {
+    return <DemoPage />
   }
 
   return <ComponentPageScaffold component={component} />

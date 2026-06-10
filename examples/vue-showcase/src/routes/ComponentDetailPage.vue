@@ -4,7 +4,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 import ComponentPageScaffold from '../app/demo/ComponentPageScaffold.vue'
-import { p0VueDemoPages } from '../demos/p0'
+import { vueShowcaseDemoPages } from '../demos'
 
 const route = useRoute()
 
@@ -17,8 +17,10 @@ const component = computed(() => {
   return showcaseComponents.find(item => item.name === componentName.value)
 })
 
-const P0DemoPage = computed(() => {
-  return component.value ? p0VueDemoPages[component.value.name] : undefined
+const DemoPage = computed(() => {
+  return component.value
+    ? vueShowcaseDemoPages[component.value.name]
+    : undefined
 })
 </script>
 
@@ -30,7 +32,7 @@ const P0DemoPage = computed(() => {
     </div>
   </div>
 
-  <component :is="P0DemoPage" v-else-if="P0DemoPage" />
+  <component :is="DemoPage" v-else-if="DemoPage" />
 
   <ComponentPageScaffold v-else :component="component" />
 </template>

@@ -474,3 +474,21 @@ a {
 .showcase-event-record span {
   color: hsl(var(--muted-foreground));
 }
+
+.showcase-form-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.showcase-form-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.showcase-form-note {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
