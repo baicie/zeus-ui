@@ -1,4 +1,4 @@
-import { useNavigate, useRouterState } from '@tanstack/react-router'
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { showcaseComponents } from '@zeus-web/example-showcase-shared'
 import { CheckIcon, SearchIcon } from '@zeus-web/icons/react'
 import { useMemo } from 'react'
@@ -27,20 +27,25 @@ export function Topbar() {
       )
     })
 
-    if (component) {
-      void navigate({ to: component.routePath as string })
-    }
+    if (!component) return
+
+    void navigate({
+      to: '/components/$componentName',
+      params: {
+        componentName: component.name,
+      },
+    })
   }
 
   return (
     <header className="showcase-topbar">
       <div className="showcase-topbar-inner">
-        <a className="showcase-brand" href="/">
+        <Link className="showcase-brand" to="/">
           <span className="showcase-brand-mark">
             <CheckIcon aria-hidden="true" width="16" height="16" />
           </span>
           <span>Zeus Web React Showcase</span>
-        </a>
+        </Link>
 
         <input
           aria-label="Search components"

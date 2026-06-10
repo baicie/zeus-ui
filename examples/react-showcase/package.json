@@ -4,10 +4,11 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "vite build",
+    "build:deps": "pnpm -w --filter @zeus-web/icons build",
+    "dev": "pnpm build:deps && vite --host 0.0.0.0",
+    "build": "pnpm build:deps && vite build",
     "check": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest --run"
+    "test": "pnpm build:deps && vitest --run"
   },
   "dependencies": {
     "@tanstack/react-router": "^1.114.0",

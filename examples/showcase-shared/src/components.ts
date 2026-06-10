@@ -635,7 +635,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
     states: ['closed', 'open', 'delay', 'disabled'],
     events: [],
     themeTokens: ['popover', 'popover-foreground', 'ring'],
-    iconExamples: ['info', 'help-circle'],
+    iconExamples: ['info'],
     productionPatterns: ['Icon help', 'Truncated text help', 'Form hint'],
   },
   {

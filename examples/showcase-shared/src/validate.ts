@@ -4,6 +4,10 @@ import { showcaseIcons } from './icons'
 import { showcaseRoutes } from './routes'
 import { semanticTokens, showcaseThemes } from './themes'
 
+export interface ShowcaseValidationOptions {
+  registryComponentNames?: string[]
+}
+
 const requiredSections = [
   'basic',
   'states',
@@ -42,6 +46,10 @@ function validateComponent(
   component: ShowcaseComponent,
   errors: string[],
   warnings: string[],
+  context: {
+    iconNames: Set<string>
+    tokenNames: Set<string>
+  },
 ): void {
   const expectedPackageName = `@zeus-web/${component.name}`
   const expectedRoutePath = `/components/${component.name}` as const
@@ -89,8 +97,24 @@ function validateComponent(
     errors.push(`${component.name}: states must not be empty`)
   }
 
+  if (component.events.length > 0 && !component.sections.includes('events')) {
+    errors.push(`${component.name}: has events but missing "events" section`)
+  }
+
   if (component.themeTokens.length === 0) {
     warnings.push(`${component.name}: themeTokens is empty`)
+  }
+
+  for (const token of component.themeTokens) {
+    if (!context.tokenNames.has(token)) {
+      errors.push(`${component.name}: unknown theme token "${token}"`)
+    }
+  }
+
+  for (const icon of component.iconExamples) {
+    if (!context.iconNames.has(icon)) {
+      errors.push(`${component.name}: unknown icon example "${icon}"`)
+    }
   }
 
   if (component.productionPatterns.length === 0) {
@@ -98,7 +122,38 @@ function validateComponent(
   }
 }
 
-export function validateShowcaseMetadata(): ShowcaseValidationResult {
+function validateRegistryCoverage(
+  options: ShowcaseValidationOptions,
+  componentNames: string[],
+  errors: string[],
+): void {
+  const registryComponentNames = options.registryComponentNames?.slice().sort()
+
+  if (!registryComponentNames) return
+
+  assertNoDuplicates(errors, 'registryComponentNames', registryComponentNames)
+
+  const componentNameSet = new Set(componentNames)
+  const registryNameSet = new Set(registryComponentNames)
+
+  for (const name of registryComponentNames) {
+    if (!componentNameSet.has(name)) {
+      errors.push(
+        `registry component "${name}" is missing from showcaseComponents`,
+      )
+    }
+  }
+
+  for (const name of componentNames) {
+    if (!registryNameSet.has(name)) {
+      errors.push(`showcase component "${name}" is missing from registry`)
+    }
+  }
+}
+
+export function validateShowcaseMetadata(
+  options: ShowcaseValidationOptions = {},
+): ShowcaseValidationResult {
   const errors: string[] = []
   const warnings: string[] = []
 
@@ -109,16 +164,25 @@ export function validateShowcaseMetadata(): ShowcaseValidationResult {
   const routePaths = showcaseRoutes.map(route => route.path)
   const iconNames = showcaseIcons.map(icon => icon.name)
   const themeNames = showcaseThemes.map(theme => theme.name)
+  const tokenNames = semanticTokens.map(token => String(token))
 
   assertNoDuplicates(errors, 'showcaseComponents', componentNames)
   assertNoDuplicates(errors, 'component route paths', componentRoutePaths)
   assertNoDuplicates(errors, 'showcaseRoutes', routePaths)
   assertNoDuplicates(errors, 'showcaseIcons', iconNames)
   assertNoDuplicates(errors, 'showcaseThemes', themeNames)
+  assertNoDuplicates(errors, 'semanticTokens', tokenNames)
+
+  const context = {
+    iconNames: new Set(iconNames),
+    tokenNames: new Set(tokenNames),
+  }
 
   for (const component of showcaseComponents) {
-    validateComponent(component, errors, warnings)
+    validateComponent(component, errors, warnings, context)
   }
+
+  validateRegistryCoverage(options, componentNames, errors)
 
   for (const deferred of deferredComponents) {
     if (componentNames.includes(deferred)) {

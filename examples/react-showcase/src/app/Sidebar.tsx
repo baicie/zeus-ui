@@ -13,6 +13,23 @@ const groupedComponents = showcaseComponents.reduce<
   return groups
 }, {})
 
+type FoundationRouteTo =
+  | '/'
+  | '/components'
+  | '/icons'
+  | '/themes'
+  | '/playground'
+
+function isFoundationRoute(path: string): path is FoundationRouteTo {
+  return (
+    path === '/' ||
+    path === '/components' ||
+    path === '/icons' ||
+    path === '/themes' ||
+    path === '/playground'
+  )
+}
+
 export function Sidebar() {
   const pathname = useRouterState({
     select: state => state.location.pathname,
@@ -23,16 +40,19 @@ export function Sidebar() {
       <section className="showcase-sidebar-section">
         <h2 className="showcase-sidebar-title">Overview</h2>
         <nav className="showcase-nav">
-          {foundationRoutes.map(route => (
-            <Link
-              key={route.path}
-              className="showcase-nav-link"
-              data-active={pathname === route.path}
-              to={route.path}
-            >
-              {route.label}
-            </Link>
-          ))}
+          {foundationRoutes.map(
+            route =>
+              isFoundationRoute(route.path) && (
+                <Link
+                  key={route.path}
+                  className="showcase-nav-link"
+                  data-active={pathname === route.path}
+                  to={route.path}
+                >
+                  {route.label}
+                </Link>
+              ),
+          )}
         </nav>
       </section>
 
@@ -48,7 +68,8 @@ export function Sidebar() {
                   key={component.name}
                   className="showcase-nav-link"
                   data-active={pathname === component.routePath}
-                  to={component.routePath as string}
+                  to="/components/$componentName"
+                  params={{ componentName: component.name }}
                 >
                   <span>{component.title}</span>
                   <span className="showcase-badge">{component.name}</span>
