@@ -1,0 +1,16 @@
+{
+  "name": "@zeus-web/example-showcase-shared",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "cd ../.. && pnpm vitest --project unit --run scripts/checks/__tests__/showcase-metadata/metadata.spec.ts"
+  }
+}

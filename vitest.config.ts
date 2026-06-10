@@ -61,6 +61,8 @@ export default defineConfig({
             'scripts/checks/__tests__/**/*.spec.ts',
             'scripts/docs/__tests__/**/*.test.ts',
             'scripts/docs/__tests__/**/*.spec.ts',
+            'scripts/checks/__tests__/showcase-metadata/**/*.test.ts',
+            'scripts/checks/__tests__/showcase-metadata/**/*.spec.ts',
           ],
           exclude: [
             ...configDefaults.exclude,

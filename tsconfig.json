@@ -13,10 +13,8 @@
     "packages/*/__tests__",
     "packages/primitives/*/__tests__",
     "scripts/**/*",
-    "apps/**/*"
+    "apps/**/*",
+    "examples/showcase-shared/src/**/*"
   ],
-  "exclude": [
-    "examples/**/*",
-    "packages/zeus-compat/__tests__/canary-capabilities.spec.ts"
-  ]
+  "exclude": ["packages/zeus-compat/__tests__/canary-capabilities.spec.ts"]
 }
