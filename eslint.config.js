@@ -131,6 +131,7 @@ export default defineConfig(
       '**/.vitepress/cache/',
       '**/.vitepress/dist/',
       'packages/napi',
+      '**/next-env.d.ts',
     ],
   },
 )
