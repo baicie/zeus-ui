@@ -35,7 +35,7 @@ describe('react showcase router', () => {
       await screen.findByRole('heading', { name: 'Button' }),
     ).toBeInTheDocument()
     expect(screen.getAllByText('Button')[0]).toBeInTheDocument()
-    expect(screen.getByText('@zeus-web/button')).toBeInTheDocument()
+    expect(screen.getAllByText('@zeus-web/button')).toHaveLength(2)
     expect(screen.getByText('zweb add button')).toBeInTheDocument()
   })
 
@@ -58,7 +58,7 @@ describe('react showcase router', () => {
 
     await user.click(await screen.findByRole('link', { name: /Button/i }))
 
-    expect(await screen.findByText('@zeus-web/button')).toBeInTheDocument()
+    expect(screen.getAllByText('@zeus-web/button')).toHaveLength(2)
   })
 
   it('searches component from topbar using enter', async () => {
@@ -71,6 +71,6 @@ describe('react showcase router', () => {
     await user.clear(input)
     await user.type(input, 'input{Enter}')
 
-    expect(await screen.findByText('@zeus-web/input')).toBeInTheDocument()
+    expect(screen.getAllByText('@zeus-web/input')).toHaveLength(2)
   })
 })

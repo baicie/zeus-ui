@@ -283,3 +283,139 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+.showcase-page-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.showcase-demo-stack {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.showcase-demo-section {
+  border: 1px solid hsl(var(--border));
+  border-radius: 1.15rem;
+  background: hsl(var(--background) / 0.5);
+  padding: 1rem;
+}
+
+.showcase-demo-section-header {
+  margin-bottom: 1rem;
+}
+
+.showcase-demo-section-body {
+  min-width: 0;
+}
+
+.showcase-demo-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.showcase-demo-grid-1 {
+  grid-template-columns: 1fr;
+}
+
+.showcase-demo-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.showcase-demo-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.showcase-table-wrap {
+  overflow-x: auto;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.85rem;
+}
+
+.showcase-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.showcase-table th,
+.showcase-table td {
+  border-bottom: 1px solid hsl(var(--border));
+  padding: 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.showcase-table th {
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  font-weight: 700;
+}
+
+.showcase-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.showcase-table code {
+  border-radius: 0.35rem;
+  background: hsl(var(--muted));
+  padding: 0.15rem 0.35rem;
+  font-size: 0.8125rem;
+}
+
+.showcase-state-matrix {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.showcase-state-cell {
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.85rem;
+  background: hsl(var(--card));
+  padding: 0.85rem;
+}
+
+.showcase-state-preview {
+  display: grid;
+  min-height: 4rem;
+  place-items: center;
+  border-radius: 0.65rem;
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+}
+
+.showcase-token-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.showcase-token-card {
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.85rem;
+  background: hsl(var(--card));
+  padding: 0.85rem;
+}
+
+.showcase-token-swatch {
+  height: 3.5rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.65rem;
+}
+
+@media (max-width: 900px) {
+  .showcase-demo-grid-2,
+  .showcase-demo-grid-3,
+  .showcase-state-matrix,
+  .showcase-token-grid {
+    grid-template-columns: 1fr;
+  }
+}

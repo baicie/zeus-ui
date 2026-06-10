@@ -1,4 +1,5 @@
 export * from './components'
+export * from './demo'
 export * from './icons'
 export * from './routes'
 export * from './themes'

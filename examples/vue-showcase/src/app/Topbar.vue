@@ -47,7 +47,7 @@ function handleSearch() {
         class="showcase-search"
         :placeholder="currentComponent || 'Search components...'"
         @keydown.enter="handleSearch"
-      />
+      >
 
       <span aria-hidden="true" class="showcase-badge">Vue</span>
     </div>
