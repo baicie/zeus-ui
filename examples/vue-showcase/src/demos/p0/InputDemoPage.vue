@@ -17,6 +17,16 @@ function handleValueChange(event: unknown) {
   value.value = next
   events.log('value-change', { value: next })
 }
+
+function uppercaseFormatter(input: string) {
+  return input.toUpperCase()
+}
+
+function handleFormattedValueChange(event: unknown) {
+  events.log('formatted-value-change', {
+    value: readDetailValue(event),
+  })
+}
 </script>
 
 <template>
@@ -94,12 +104,8 @@ function handleValueChange(event: unknown) {
     <DemoSection title="Formatter">
       <Input
         placeholder="Uppercase formatter"
-        :formatter="(input: string) => input.toUpperCase()"
-        @value-change="
-          events.log('formatted-value-change', {
-            value: readDetailValue($event),
-          })
-        "
+        :formatter="uppercaseFormatter"
+        @value-change="handleFormattedValueChange"
       />
     </DemoSection>
 
