@@ -414,6 +414,11 @@ a {
 .showcase-demo-grid-4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
+
+@media (max-width: 900px) {
+  .showcase-demo-grid-2,
+  .showcase-demo-grid-3,
+  .showcase-demo-grid-4,
   .showcase-state-matrix,
   .showcase-token-grid {
     grid-template-columns: 1fr;
