@@ -7,7 +7,7 @@
     "build:deps": "pnpm -w --filter @zeus-web/icons build",
     "dev": "pnpm build:deps && vite --host 0.0.0.0",
     "build": "pnpm build:deps && vite build",
-    "check": "tsc -p tsconfig.json --noEmit",
+    "check": "pnpm build:deps && tsc -p tsconfig.json --noEmit",
     "test": "pnpm build:deps && vitest --run"
   },
   "dependencies": {
