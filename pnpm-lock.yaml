@@ -238,9 +238,21 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.170.15
         version: 1.170.15(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@zeus-web/alert':
+        specifier: workspace:*
+        version: link:../../packages/primitives/alert
+      '@zeus-web/avatar':
+        specifier: workspace:*
+        version: link:../../packages/primitives/avatar
+      '@zeus-web/badge':
+        specifier: workspace:*
+        version: link:../../packages/primitives/badge
       '@zeus-web/button':
         specifier: workspace:*
         version: link:../../packages/primitives/button
+      '@zeus-web/card':
+        specifier: workspace:*
+        version: link:../../packages/primitives/card
       '@zeus-web/checkbox':
         specifier: workspace:*
         version: link:../../packages/primitives/checkbox
@@ -259,12 +271,21 @@ importers:
       '@zeus-web/label':
         specifier: workspace:*
         version: link:../../packages/primitives/label
+      '@zeus-web/progress':
+        specifier: workspace:*
+        version: link:../../packages/primitives/progress
       '@zeus-web/radio-group':
         specifier: workspace:*
         version: link:../../packages/primitives/radio-group
       '@zeus-web/select':
         specifier: workspace:*
         version: link:../../packages/primitives/select
+      '@zeus-web/separator':
+        specifier: workspace:*
+        version: link:../../packages/primitives/separator
+      '@zeus-web/skeleton':
+        specifier: workspace:*
+        version: link:../../packages/primitives/skeleton
       '@zeus-web/switch':
         specifier: workspace:*
         version: link:../../packages/primitives/switch
@@ -450,9 +471,21 @@ importers:
 
   examples/vue-showcase:
     dependencies:
+      '@zeus-web/alert':
+        specifier: workspace:*
+        version: link:../../packages/primitives/alert
+      '@zeus-web/avatar':
+        specifier: workspace:*
+        version: link:../../packages/primitives/avatar
+      '@zeus-web/badge':
+        specifier: workspace:*
+        version: link:../../packages/primitives/badge
       '@zeus-web/button':
         specifier: workspace:*
         version: link:../../packages/primitives/button
+      '@zeus-web/card':
+        specifier: workspace:*
+        version: link:../../packages/primitives/card
       '@zeus-web/checkbox':
         specifier: workspace:*
         version: link:../../packages/primitives/checkbox
@@ -468,12 +501,21 @@ importers:
       '@zeus-web/label':
         specifier: workspace:*
         version: link:../../packages/primitives/label
+      '@zeus-web/progress':
+        specifier: workspace:*
+        version: link:../../packages/primitives/progress
       '@zeus-web/radio-group':
         specifier: workspace:*
         version: link:../../packages/primitives/radio-group
       '@zeus-web/select':
         specifier: workspace:*
         version: link:../../packages/primitives/select
+      '@zeus-web/separator':
+        specifier: workspace:*
+        version: link:../../packages/primitives/separator
+      '@zeus-web/skeleton':
+        specifier: workspace:*
+        version: link:../../packages/primitives/skeleton
       '@zeus-web/switch':
         specifier: workspace:*
         version: link:../../packages/primitives/switch
