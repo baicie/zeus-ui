@@ -2,9 +2,9 @@
 import type { ShowcaseComponent } from '@zeus-web/example-showcase-shared'
 import {
   getShowcaseSectionDefinition,
-
   sortShowcaseSections,
 } from '@zeus-web/example-showcase-shared'
+import { computed } from 'vue'
 
 import DemoGrid from './DemoGrid.vue'
 import DemoPage from './DemoPage.vue'
@@ -19,7 +19,11 @@ const props = defineProps<{
   component: ShowcaseComponent
 }>()
 
-const sortedSections = sortShowcaseSections(props.component.sections)
+const component = computed(() => props.component)
+
+const sortedSections = computed(() =>
+  sortShowcaseSections(component.value.sections),
+)
 </script>
 
 <template>

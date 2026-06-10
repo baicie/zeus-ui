@@ -1,5 +1,5 @@
 <script setup lang="ts">
-export interface PropTableRow {
+interface PropTableRow {
   name: string
   type: string
   defaultValue?: string

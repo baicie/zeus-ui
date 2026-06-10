@@ -28,6 +28,34 @@ describe('vue showcase demo components', () => {
     expect(wrapper.text()).toContain('Production patterns')
   })
 
+  it('updates component page scaffold when component prop changes', async () => {
+    const button = showcaseComponents.find(
+      component => component.name === 'button',
+    )
+    const input = showcaseComponents.find(
+      component => component.name === 'input',
+    )
+
+    expect(button).toBeTruthy()
+    expect(input).toBeTruthy()
+
+    const wrapper = mount(ComponentPageScaffold, {
+      props: {
+        component: button!,
+      },
+    })
+
+    expect(wrapper.text()).toContain('@zeus-web/button')
+
+    await wrapper.setProps({
+      component: input!,
+    })
+
+    expect(wrapper.text()).toContain('Input')
+    expect(wrapper.text()).toContain('@zeus-web/input')
+    expect(wrapper.text()).not.toContain('@zeus-web/button')
+  })
+
   it('renders event log empty state', () => {
     const wrapper = mount(EventLog, {
       props: {
