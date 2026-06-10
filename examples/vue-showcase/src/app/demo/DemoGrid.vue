@@ -1,7 +1,7 @@
 <script setup lang="ts">
 withDefaults(
   defineProps<{
-    columns?: 1 | 2 | 3
+    columns?: 1 | 2 | 3 | 4
   }>(),
   {
     columns: 2,

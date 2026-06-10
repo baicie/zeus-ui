@@ -238,6 +238,9 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.170.15
         version: 1.170.15(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@zeus-web/accordion':
+        specifier: workspace:*
+        version: link:../../packages/primitives/accordion
       '@zeus-web/alert':
         specifier: workspace:*
         version: link:../../packages/primitives/alert
@@ -256,6 +259,9 @@ importers:
       '@zeus-web/checkbox':
         specifier: workspace:*
         version: link:../../packages/primitives/checkbox
+      '@zeus-web/collapsible':
+        specifier: workspace:*
+        version: link:../../packages/primitives/collapsible
       '@zeus-web/dialog':
         specifier: workspace:*
         version: link:../../packages/primitives/dialog
@@ -298,6 +304,9 @@ importers:
       '@zeus-web/themes':
         specifier: workspace:*
         version: link:../../packages/themes
+      '@zeus-web/tooltip':
+        specifier: workspace:*
+        version: link:../../packages/primitives/tooltip
       react:
         specifier: ^19.2.7
         version: 19.2.7
@@ -471,6 +480,9 @@ importers:
 
   examples/vue-showcase:
     dependencies:
+      '@zeus-web/accordion':
+        specifier: workspace:*
+        version: link:../../packages/primitives/accordion
       '@zeus-web/alert':
         specifier: workspace:*
         version: link:../../packages/primitives/alert
@@ -489,6 +501,9 @@ importers:
       '@zeus-web/checkbox':
         specifier: workspace:*
         version: link:../../packages/primitives/checkbox
+      '@zeus-web/collapsible':
+        specifier: workspace:*
+        version: link:../../packages/primitives/collapsible
       '@zeus-web/dialog':
         specifier: workspace:*
         version: link:../../packages/primitives/dialog
@@ -528,6 +543,9 @@ importers:
       '@zeus-web/themes':
         specifier: workspace:*
         version: link:../../packages/themes
+      '@zeus-web/tooltip':
+        specifier: workspace:*
+        version: link:../../packages/primitives/tooltip
       vue:
         specifier: ^3.5.35
         version: 3.5.35(typescript@6.0.3)
