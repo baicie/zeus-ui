@@ -50,7 +50,7 @@ export function TextareaDemoPage() {
           <Textarea readonly value="Readonly" />
           <Textarea
             invalid
-            ariaErrormessage="textarea-error"
+            aria-errormessage="textarea-error"
             placeholder="Invalid"
           />
         </DemoGrid>

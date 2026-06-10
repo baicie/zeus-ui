@@ -27,13 +27,13 @@ export function SelectDemoPage() {
     >
       <DemoSection title="Basic">
         <DemoGrid columns={2}>
-          <Select defaultValue="staging" ariaLabel="Environment">
+          <Select defaultValue="staging" aria-label="Environment">
             <option value="development">Development</option>
             <option value="staging">Staging</option>
             <option value="production">Production</option>
           </Select>
 
-          <Select ariaLabel="Role" defaultValue="editor">
+          <Select aria-label="Role" defaultValue="editor">
             <option value="viewer">Viewer</option>
             <option value="editor">Editor</option>
             <option value="owner">Owner</option>
@@ -43,26 +43,26 @@ export function SelectDemoPage() {
 
       <DemoSection title="Sizes and states">
         <DemoGrid columns={3}>
-          <Select size="sm" defaultValue="sm" ariaLabel="Small select">
+          <Select size="sm" defaultValue="sm" aria-label="Small select">
             <option value="sm">Small</option>
           </Select>
 
-          <Select size="md" defaultValue="md" ariaLabel="Medium select">
+          <Select size="md" defaultValue="md" aria-label="Medium select">
             <option value="md">Medium</option>
           </Select>
 
-          <Select size="lg" defaultValue="lg" ariaLabel="Large select">
+          <Select size="lg" defaultValue="lg" aria-label="Large select">
             <option value="lg">Large</option>
           </Select>
 
-          <Select disabled defaultValue="disabled" ariaLabel="Disabled select">
+          <Select disabled defaultValue="disabled" aria-label="Disabled select">
             <option value="disabled">Disabled</option>
           </Select>
 
           <Select
             invalid
-            ariaErrormessage="select-error"
-            ariaLabel="Invalid select"
+            aria-errormessage="select-error"
+            aria-label="Invalid select"
           >
             <option value="">Choose one</option>
           </Select>
@@ -74,7 +74,7 @@ export function SelectDemoPage() {
           <Select
             value={value}
             name="react-controlled-select"
-            ariaLabel="Controlled environment"
+            aria-label="Controlled environment"
             onValueChange={(event: unknown) => {
               const next = readDetailValue(event, value)
               setValue(next)
@@ -97,7 +97,7 @@ export function SelectDemoPage() {
       </DemoSection>
 
       <DemoSection title="Multiple">
-        <Select multiple ariaLabel="Multiple select">
+        <Select multiple aria-label="Multiple select">
           <option value="rum">RUM</option>
           <option value="logs">Logs</option>
           <option value="traces">Traces</option>

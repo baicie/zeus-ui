@@ -26,7 +26,7 @@ export function RadioGroupDemoPage() {
       }
     >
       <DemoSection title="Basic">
-        <RadioGroup defaultValue="daily" ariaLabel="Notification frequency">
+        <RadioGroup defaultValue="daily" aria-label="Notification frequency">
           <RadioGroupItem value="daily">Daily</RadioGroupItem>
           <RadioGroupItem value="weekly">Weekly</RadioGroupItem>
           <RadioGroupItem value="monthly">Monthly</RadioGroupItem>
