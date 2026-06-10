@@ -16,8 +16,8 @@ const propTableRows = [
   },
   {
     name: 'size',
-    type: "'sm' | 'md' | 'lg'",
-    defaultValue: "'md'",
+    type: '\'sm\' | \'md\' | \'lg\'',
+    defaultValue: '\'md\'',
     description: 'Controls label size.',
   },
   {

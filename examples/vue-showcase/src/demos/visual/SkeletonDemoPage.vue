@@ -10,8 +10,8 @@ import ThemeTokenPreview from '../../app/demo/ThemeTokenPreview.vue'
 const propTableRows = [
   {
     name: 'variant',
-    type: "'text' | 'rect' | 'circle'",
-    defaultValue: "'rect'",
+    type: '\'text\' | \'rect\' | \'circle\'',
+    defaultValue: '\'rect\'',
     description: 'Skeleton shape variant.',
   },
   {

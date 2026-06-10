@@ -20,14 +20,14 @@ const sizes = ['sm', 'md', 'lg'] as const
 const propTableRows = [
   {
     name: 'variant',
-    type: "'default' | 'secondary' | 'outline' | 'danger' | 'success' | 'warning'",
-    defaultValue: "'default'",
+    type: '\'default\' | \'secondary\' | \'outline\' | \'danger\' | \'success\' | \'warning\'',
+    defaultValue: '\'default\'',
     description: 'Visual semantic variant.',
   },
   {
     name: 'size',
-    type: "'sm' | 'md' | 'lg'",
-    defaultValue: "'md'",
+    type: '\'sm\' | \'md\' | \'lg\'',
+    defaultValue: '\'md\'',
     description: 'Badge size.',
   },
 ]

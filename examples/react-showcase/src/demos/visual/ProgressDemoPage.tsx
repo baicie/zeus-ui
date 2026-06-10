@@ -1,12 +1,23 @@
+import type { CSSProperties } from 'react'
 import { Button } from '@zeus-web/button/react'
 import { Progress } from '@zeus-web/progress/react'
-
 import { useState } from 'react'
+
 import { DemoGrid } from '../../app/demo/DemoGrid'
 import { DemoPage } from '../../app/demo/DemoPage'
 import { DemoSection } from '../../app/demo/DemoSection'
 import { PropTable } from '../../app/demo/PropTable'
 import { ThemeTokenPreview } from '../../app/demo/ThemeTokenPreview'
+
+type ProgressStyle = CSSProperties & {
+  '--showcase-progress-value': number
+}
+
+function progressStyle(value: number): ProgressStyle {
+  return {
+    '--showcase-progress-value': value,
+  }
+}
 
 export function ProgressDemoPage() {
   const [value, setValue] = useState(64)
@@ -25,15 +36,32 @@ export function ProgressDemoPage() {
     >
       <DemoSection title="Determinate">
         <DemoGrid columns={3}>
-          <Progress value={24} label="Upload progress" />
-          <Progress value={64} label="Build progress" />
-          <Progress value={100} label="Complete progress" />
+          <Progress
+            value={24}
+            label="Upload progress"
+            style={progressStyle(24)}
+          />
+          <Progress
+            value={64}
+            label="Build progress"
+            style={progressStyle(64)}
+          />
+          <Progress
+            value={100}
+            label="Complete progress"
+            style={progressStyle(100)}
+          />
         </DemoGrid>
       </DemoSection>
 
       <DemoSection title="Controlled">
         <div className="showcase-demo-card">
-          <Progress value={value} max={100} label="Controlled progress">
+          <Progress
+            value={value}
+            max={100}
+            label="Controlled progress"
+            style={progressStyle(value)}
+          >
             <span className="showcase-progress-label">{value}%</span>
           </Progress>
 
@@ -63,7 +91,11 @@ export function ProgressDemoPage() {
       <DemoSection title="Production pattern">
         <div className="showcase-demo-card">
           <strong>Release rollout</strong>
-          <Progress value={72} label="Release rollout progress">
+          <Progress
+            value={72}
+            label="Release rollout progress"
+            style={progressStyle(72)}
+          >
             <span className="showcase-progress-label">72% traffic shifted</span>
           </Progress>
         </div>

@@ -10,8 +10,8 @@ import ThemeTokenPreview from '../../app/demo/ThemeTokenPreview.vue'
 const propTableRows = [
   {
     name: 'orientation',
-    type: "'horizontal' | 'vertical'",
-    defaultValue: "'horizontal'",
+    type: '\'horizontal\' | \'vertical\'',
+    defaultValue: '\'horizontal\'',
     description: 'Separator direction.',
   },
   {

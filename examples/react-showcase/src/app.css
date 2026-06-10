@@ -676,9 +676,15 @@ zw-alert[data-variant='danger'] {
 }
 
 zw-progress {
+  --showcase-progress-value: 0;
   display: grid;
   gap: 0.5rem;
   width: 100%;
+  position: relative;
+  min-height: 0.65rem;
+  border-radius: 999px;
+  background: hsl(var(--muted));
+  overflow: hidden;
 }
 
 zw-progress::part(root) {
@@ -690,40 +696,12 @@ zw-progress span[data-slot='progress-indicator'] {
   height: 0.65rem;
   border-radius: 999px;
   background: hsl(var(--primary));
-  width: calc(var(--showcase-progress-value, 1) * 1%);
+  width: calc(var(--showcase-progress-value, 0) * 1%);
 }
 
 zw-progress[data-state='indeterminate'] span[data-slot='progress-indicator'] {
   width: 45%;
   animation: showcase-progress-indeterminate 1.2s infinite ease-in-out;
-}
-
-zw-progress {
-  position: relative;
-  min-height: 0.65rem;
-  border-radius: 999px;
-  background: hsl(var(--muted));
-  overflow: hidden;
-}
-
-zw-progress[data-percent='0'] {
-  --showcase-progress-value: 0;
-}
-
-zw-progress[data-percent='24'] {
-  --showcase-progress-value: 24;
-}
-
-zw-progress[data-percent='64'] {
-  --showcase-progress-value: 64;
-}
-
-zw-progress[data-percent='72'] {
-  --showcase-progress-value: 72;
-}
-
-zw-progress[data-percent='100'] {
-  --showcase-progress-value: 100;
 }
 
 @keyframes showcase-progress-indeterminate {

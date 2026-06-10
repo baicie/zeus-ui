@@ -12,14 +12,14 @@ const variants = ['default', 'info', 'success', 'warning', 'danger'] as const
 const propTableRows = [
   {
     name: 'variant',
-    type: "'default' | 'info' | 'success' | 'warning' | 'danger'",
-    defaultValue: "'default'",
+    type: '\'default\' | \'info\' | \'success\' | \'warning\' | \'danger\'',
+    defaultValue: '\'default\'',
     description: 'Visual semantic alert variant.',
   },
   {
     name: 'live',
-    type: "'polite' | 'assertive' | 'off'",
-    defaultValue: "'polite'",
+    type: '\'polite\' | \'assertive\' | \'off\'',
+    defaultValue: '\'polite\'',
     description: 'ARIA live region politeness.',
   },
 ]
