@@ -63,11 +63,19 @@ function discoverPackages(): PkgInfo[] {
 
 async function buildFull(pkg: PkgInfo): Promise<void> {
   if (pkg.isPrimitive) {
+    const indexPath = join(pkg.dir, 'dist', 'index.js')
+    if (existsSync(indexPath)) {
+      return
+    }
     await execa('rolldown', ['-c', '../../../rolldown.config.ts'], {
       cwd: pkg.dir,
       stdio: 'inherit',
     })
   } else {
+    const indexPath = join(pkg.dir, 'dist', 'index.js')
+    if (existsSync(indexPath)) {
+      return
+    }
     await execa('pnpm', ['run', 'build'], {
       cwd: pkg.dir,
       stdio: 'inherit',
