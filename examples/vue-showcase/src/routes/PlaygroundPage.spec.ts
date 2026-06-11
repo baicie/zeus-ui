@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 
-import PlaygroundPage from '../routes/PlaygroundPage.vue'
+import PlaygroundPage from './PlaygroundPage.vue'
 
 describe('vue PlaygroundPage', () => {
   it('renders playground scenarios', () => {
@@ -11,6 +11,18 @@ describe('vue PlaygroundPage', () => {
     expect(wrapper.text()).toContain('Settings form')
     expect(wrapper.text()).toContain('Project creation')
     expect(wrapper.text()).toContain('@zeus-web/alert')
+  })
+
+  it('renders admin dashboard scenario with release controls and event log', async () => {
+    const wrapper = mount(PlaygroundPage)
+
+    expect(wrapper.text()).toContain('production rollout')
+    expect(wrapper.text()).toContain('68%')
+    expect(wrapper.text()).toContain('Promote')
+    expect(wrapper.text()).toContain('Roll back')
+    expect(wrapper.text()).toContain(
+      'No events yet. Interact with controls to record state changes.',
+    )
   })
 
   it('switches to settings form scenario', async () => {
@@ -27,6 +39,7 @@ describe('vue PlaygroundPage', () => {
     expect(wrapper.text()).toContain('Workspace configuration')
     expect(wrapper.text()).toContain('Organization name')
     expect(wrapper.text()).toContain('Feature flags')
+    expect(wrapper.text()).toContain('Settings ready')
   })
 
   it('switches to project creation scenario', async () => {

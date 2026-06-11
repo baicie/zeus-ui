@@ -17,7 +17,7 @@ This document tracks the implementation status of the React and Vue showcase app
 | Phase 8  | Done   | CI hardening, build dependency orchestration, route smoke tests and roadmap                           |
 | Phase 9  | Done   | Icons page with grid, search, category filters, copy snippets and previews                            |
 | Phase 10 | Done   | Themes page with theme switcher, light/dark mode, radius, motion, token palette and component preview |
-| Phase 11 | Done   | Playground page with admin dashboard, settings form and project creation flow                         |
+| Phase 11 | Done   | Playground page with admin dashboard, settings form, project creation flow and interaction tests      |
 
 ## Implemented component pages
 
@@ -80,10 +80,10 @@ This document tracks the implementation status of the React and Vue showcase app
 ### Playground
 
 - admin dashboard scenario
-- settings form scenario
-- project creation scenario
-- component composition badges
-- event log
+- release progress interaction
+- environment change event log
+- settings form validation
+- project creation template selection
 - React / Vue parity tests
 
 ## Engineering guarantees

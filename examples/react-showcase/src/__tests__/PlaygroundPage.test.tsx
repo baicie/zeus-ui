@@ -24,6 +24,19 @@ describe('react PlaygroundPage', () => {
     expect(screen.getByText('@zeus-web/alert')).toBeInTheDocument()
   })
 
+  it('renders admin dashboard scenario with release controls and event log', () => {
+    render(<PlaygroundPage />)
+
+    expect(screen.getByText('production rollout')).toBeInTheDocument()
+    expect(screen.getByText('Roll back')).toBeInTheDocument()
+    expect(screen.getByText('Promote')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'No events yet. Interact with controls to record state changes.',
+      ),
+    ).toBeInTheDocument()
+  })
+
   it('switches to settings form scenario', async () => {
     const user = userEvent.setup()
 
@@ -36,6 +49,7 @@ describe('react PlaygroundPage', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('Organization name')).toBeInTheDocument()
     expect(screen.getByText('Feature flags')).toBeInTheDocument()
+    expect(screen.getByText('Settings ready')).toBeInTheDocument()
   })
 
   it('switches to project creation scenario', async () => {

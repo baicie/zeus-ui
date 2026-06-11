@@ -1,5 +1,4 @@
 <script setup lang="ts">
-/* eslint-disable no-restricted-globals */
 import { Alert, AlertDescription, AlertTitle } from '@zeus-web/alert/vue'
 import { Badge } from '@zeus-web/badge/vue'
 import { Button } from '@zeus-web/button/vue'
@@ -17,6 +16,7 @@ import { Progress } from '@zeus-web/progress/vue'
 import { Select } from '@zeus-web/select/vue'
 import { Switch } from '@zeus-web/switch/vue'
 import {
+  getPlaygroundScenario,
   playgroundActivityItems,
   playgroundDashboardServices,
   playgroundProjectTemplates,
@@ -27,7 +27,7 @@ import {
 } from '@zeus-web/example-showcase-shared'
 import { computed, ref } from 'vue'
 
-interface playgroundEvent {
+interface PlaygroundEvent {
   id: number
   name: string
   detail: string
@@ -44,10 +44,11 @@ const projectName = ref('zeus-showcase')
 const projectTemplate = ref('component-library')
 const projectDialogOpen = ref(false)
 const createdProjects = ref(['zeus-ui', 'zeus-docs'])
-const events = ref<playgroundEvent[]>([])
+const events = ref<PlaygroundEvent[]>([])
+const eventId = ref(0)
 
 const scenario = computed(() => {
-  return playgroundScenarios.find(item => item.id === activeScenario.value)
+  return getPlaygroundScenario(activeScenario.value)
 })
 
 const degradedServices = computed(() => {
@@ -113,9 +114,11 @@ function activityVariant(tone: ShowcasePlaygroundActivity['tone']) {
 }
 
 function logEvent(name: string, detail: string) {
+  eventId.value += 1
+
   events.value = [
     {
-      id: Date.now(),
+      id: eventId.value,
       name,
       detail,
     },
@@ -233,7 +236,7 @@ function createProject() {
           <h3>Components used</h3>
           <div class="showcase-playground-badges">
             <span
-              v-for="component in scenario?.components"
+              v-for="component in scenario.components"
               :key="component"
               class="showcase-badge"
             >
@@ -326,13 +329,19 @@ function createProject() {
               <h3>Release progress</h3>
               <div class="showcase-playground-actions">
                 <Button
+                  aria-label="Roll back release"
                   size="sm"
                   variant="outline"
                   @press="promoteRelease(-10)"
                 >
                   Roll back
                 </Button>
-                <Button size="sm" variant="primary" @press="promoteRelease(10)">
+                <Button
+                  aria-label="Promote release"
+                  size="sm"
+                  variant="primary"
+                  @press="promoteRelease(10)"
+                >
                   Promote
                 </Button>
               </div>

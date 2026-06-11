@@ -19,6 +19,7 @@ import {
   DialogTrigger,
 } from '@zeus-web/dialog/react'
 import {
+  getPlaygroundScenario,
   playgroundActivityItems,
   playgroundDashboardServices,
   playgroundProjectTemplates,
@@ -29,7 +30,7 @@ import { Progress } from '@zeus-web/progress/react'
 import { Select } from '@zeus-web/select/react'
 import { Switch } from '@zeus-web/switch/react'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 
 type ProgressStyle = CSSProperties & {
   '--showcase-progress-value': number
@@ -106,9 +107,10 @@ export function PlaygroundPage() {
     'zeus-docs',
   ])
   const [events, setEvents] = useState<PlaygroundEvent[]>([])
+  const eventIdRef = useRef(0)
 
   const scenario = useMemo(() => {
-    return playgroundScenarios.find(item => item.id === activeScenario)
+    return getPlaygroundScenario(activeScenario)
   }, [activeScenario])
 
   const degradedServices = playgroundDashboardServices.filter(
@@ -118,10 +120,14 @@ export function PlaygroundPage() {
   const projectNameInvalid = projectName.trim().length < 3
 
   function logEvent(name: string, detail: string) {
+    eventIdRef.current += 1
+
+    const id = eventIdRef.current
+
     setEvents(current =>
       [
         {
-          id: Date.now(),
+          id,
           name,
           detail,
         },
@@ -192,7 +198,7 @@ export function PlaygroundPage() {
           <div className="showcase-playground-stack">
             <h3>Components used</h3>
             <div className="showcase-playground-badges">
-              {scenario?.components.map(component => (
+              {scenario.components.map(component => (
                 <span key={component} className="showcase-badge">
                   {component}
                 </span>
@@ -293,6 +299,7 @@ export function PlaygroundPage() {
                   <h3>Release progress</h3>
                   <div className="showcase-playground-actions">
                     <Button
+                      aria-label="Roll back release"
                       size="sm"
                       variant="outline"
                       onPress={() => {
@@ -303,6 +310,7 @@ export function PlaygroundPage() {
                       Roll back
                     </Button>
                     <Button
+                      aria-label="Promote release"
                       size="sm"
                       variant="primary"
                       onPress={() => {
