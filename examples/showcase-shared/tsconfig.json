@@ -1,8 +1,9 @@
 {
   "extends": "../../scripts/config/tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
-    "noEmit": true
+    "composite": false,
+    "noEmit": true,
+    "isolatedDeclarations": false
   },
   "include": ["src/**/*.ts"]
 }

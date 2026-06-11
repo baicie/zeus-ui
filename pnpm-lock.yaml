@@ -400,7 +400,11 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
-  examples/showcase-shared: {}
+  examples/showcase-shared:
+    dependencies:
+      '@zeus-web/themes':
+        specifier: workspace:*
+        version: link:../../packages/themes
 
   examples/vanilla:
     dependencies:

@@ -4,18 +4,19 @@ This document tracks the implementation status of the React and Vue showcase app
 
 ## Status
 
-| Phase   | Status | Scope                                                                                |
-| ------- | ------ | ------------------------------------------------------------------------------------ |
-| Phase 0 | Done   | Shared metadata, component inventory and validation baseline                         |
-| Phase 1 | Done   | React showcase router shell                                                          |
-| Phase 2 | Done   | Vue showcase router shell                                                            |
-| Phase 3 | Done   | Shared page templates and scaffold components                                        |
-| Phase 4 | Done   | P0 component pages: button, input, checkbox, switch, tabs, dialog                    |
-| Phase 5 | Done   | Form component pages: label, textarea, radio-group, select                           |
-| Phase 6 | Done   | Visual and feedback pages: card, badge, separator, skeleton, alert, progress, avatar |
-| Phase 7 | Done   | Disclosure and overlay pages: collapsible, accordion, tooltip                        |
-| Phase 8 | Done   | CI hardening, build dependency orchestration, route smoke tests and roadmap          |
-| Phase 9 | Done   | Icons page with grid, search, category filters, copy snippets and previews           |
+| Phase    | Status | Scope                                                                                                 |
+| -------- | ------ | ----------------------------------------------------------------------------------------------------- |
+| Phase 0  | Done   | Shared metadata, component inventory and validation baseline                                          |
+| Phase 1  | Done   | React showcase router shell                                                                           |
+| Phase 2  | Done   | Vue showcase router shell                                                                             |
+| Phase 3  | Done   | Shared page templates and scaffold components                                                         |
+| Phase 4  | Done   | P0 component pages: button, input, checkbox, switch, tabs, dialog                                     |
+| Phase 5  | Done   | Form component pages: label, textarea, radio-group, select                                            |
+| Phase 6  | Done   | Visual and feedback pages: card, badge, separator, skeleton, alert, progress, avatar                  |
+| Phase 7  | Done   | Disclosure and overlay pages: collapsible, accordion, tooltip                                         |
+| Phase 8  | Done   | CI hardening, build dependency orchestration, route smoke tests and roadmap                           |
+| Phase 9  | Done   | Icons page with grid, search, category filters, copy snippets and previews                            |
+| Phase 10 | Done   | Themes page with theme switcher, light/dark mode, radius, motion, token palette and component preview |
 
 ## Implemented component pages
 
@@ -65,6 +66,16 @@ This document tracks the implementation status of the React and Vue showcase app
 - preview size switch
 - currentColor tone preview
 
+### Themes
+
+- theme variant switcher
+- light / dark mode preview
+- radius preset switcher
+- motion preset switcher
+- semantic token palette
+- scoped component preview
+- CSS import / HTML usage / token usage snippets
+
 ## Engineering guarantees
 
 The showcase has four layers of checks:
@@ -89,7 +100,6 @@ pnpm site:build
 
 Future phases should continue with foundation quality and production-like examples:
 
-- Complete Phase 10 themes page with theme switching and semantic token previews.
 - Add Playwright smoke tests for React and Vue showcase.
 - Add visual snapshots for the most important component states.
 - Replace demo-only CSS with exported component theme styles where appropriate.

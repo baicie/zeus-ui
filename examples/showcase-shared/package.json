@@ -13,5 +13,8 @@
     "build": "pnpm check",
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "cd ../.. && pnpm vitest --project unit --run scripts/checks/__tests__/showcase-metadata/metadata.spec.ts"
+  },
+  "dependencies": {
+    "@zeus-web/themes": "workspace:*"
   }
 }

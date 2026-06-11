@@ -48,10 +48,11 @@ function discoverPackages(): { name: string; isPrimitive: boolean }[] {
 function createPnpmArgs(options: Options): string[] {
   const packages = getImplementedShowcasePackageNames()
 
-  const packageNames = options.includeIcons
-    ? ['@zeus-web/icons', ...packages]
-    : packages
+  const foundationPackages = options.includeIcons
+    ? ['@zeus-web/themes', '@zeus-web/icons']
+    : ['@zeus-web/themes']
 
+  const packageNames = [...foundationPackages, ...packages]
   const filters = packageNames.flatMap(packageName => ['--filter', packageName])
 
   return ['-w', ...filters, 'build']
@@ -101,9 +102,11 @@ async function main(): Promise<void> {
   const implementedPackages = getImplementedShowcasePackageNames()
   const allPackages = discoverPackages()
 
-  const targets = options.includeIcons
-    ? ['@zeus-web/icons', ...implementedPackages]
-    : implementedPackages
+  const foundationPackages = options.includeIcons
+    ? ['@zeus-web/themes', '@zeus-web/icons']
+    : ['@zeus-web/themes']
+
+  const targets = [...foundationPackages, ...implementedPackages]
 
   console.log(
     pc.cyan(`Building showcase dependencies (${targets.length} packages)...`),
