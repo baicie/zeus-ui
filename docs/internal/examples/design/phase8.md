@@ -752,7 +752,7 @@ pnpm site:build
 
 Future phases should focus on quality rather than expanding the number of pages:
 
-- Add Playwright smoke tests for React and Vue showcase.
+- Add Vitest-powered Playwright smoke tests for React and Vue showcase.
 - Add visual snapshots for the most important component states.
 - Replace demo-only CSS with exported component theme styles where appropriate.
 - Reduce route smoke runtime if it becomes slow.

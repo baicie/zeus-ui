@@ -259,6 +259,19 @@ export default defineConfig({
           exclude: ['packages/zeus-compat/**'],
         },
       },
+
+      {
+        extends: true,
+        test: {
+          name: 'showcase-e2e',
+          environment: 'node',
+          include: ['examples/showcase-e2e/*.spec.ts'],
+          globalSetup: ['examples/showcase-e2e/setup.ts'],
+          testTimeout: 30_000,
+          hookTimeout: 120_000,
+          pool: 'forks',
+        },
+      },
     ],
   },
 })

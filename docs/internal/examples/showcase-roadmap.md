@@ -19,6 +19,7 @@ This document tracks the implementation status of the React and Vue showcase app
 | Phase 10 | Done   | Themes page with theme switcher, light/dark mode, radius, motion, token palette and component preview            |
 | Phase 11 | Done   | Playground page with admin dashboard, settings form, project creation flow and interaction tests                 |
 | Phase 12 | Done   | Unit tests for shared metadata, route smoke, foundation pages, playground interactions and root test-unit wiring |
+| Phase 13 | Done   | Vitest-powered Playwright E2E smoke tests for React and Vue showcase routes and foundation interactions          |
 
 ## Implemented component pages
 
@@ -89,13 +90,14 @@ This document tracks the implementation status of the React and Vue showcase app
 
 ## Engineering guarantees
 
-The showcase has five layers of checks:
+The showcase has six layers of checks:
 
 1. Metadata checks validate component metadata coverage.
 2. Implementation checks validate that implemented demos have React and Vue files, dependencies and build dependency scripts.
 3. Route smoke tests validate that every implemented component route renders in React and Vue.
 4. Foundation page tests validate icons, themes and playground interaction behavior.
 5. Shared unit tests validate metadata helpers, icon snippets, theme helpers and playground fixtures.
+6. Vitest-powered Playwright E2E tests validate React and Vue showcase routes and critical browser interactions.
 
 ## Commands
 
@@ -104,15 +106,17 @@ pnpm check:showcase-metadata
 pnpm check:showcase-implementation
 pnpm showcase:test
 pnpm showcase:build
+pnpm showcase:e2e
+pnpm showcase:e2e:ui
+pnpm showcase:e2e:headed
 pnpm site:check
 pnpm site:build
 ```
 
 ## Next work
 
-Future phases should continue with browser-level and CI quality:
+Future phases should continue with CI and release quality:
 
-- Phase 13: Add Playwright smoke tests for React and Vue showcase.
 - Phase 14: Add CI workflow jobs for showcase unit tests, build and e2e.
 - Add visual snapshots for the most important component states.
 - Replace demo-only CSS with exported component theme styles where appropriate.

@@ -328,6 +328,7 @@ function createProject() {
                 <Button
                   size="sm"
                   variant="outline"
+                  aria-label="Roll back release"
                   @press="promoteRelease(-10)"
                 >
                   Roll back
@@ -335,6 +336,7 @@ function createProject() {
                 <Button
                   size="sm"
                   variant="primary"
+                  aria-label="Promote release"
                   @press="promoteRelease(10)"
                 >
                   Promote

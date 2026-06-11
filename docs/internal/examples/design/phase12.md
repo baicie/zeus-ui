@@ -1159,7 +1159,7 @@ Next work 改成：
 
 Future phases should continue with browser-level and CI quality:
 
-- Phase 13: Add Playwright smoke tests for React and Vue showcase.
+- Phase 13: Add Vitest-powered Playwright smoke tests for React and Vue showcase.
 - Phase 14: Add CI workflow jobs for showcase unit tests, build and e2e.
 - Add visual snapshots for the most important component states.
 - Replace demo-only CSS with exported component theme styles where appropriate.

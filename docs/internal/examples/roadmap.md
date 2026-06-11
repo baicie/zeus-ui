@@ -780,26 +780,37 @@ pnpm showcase:test
 
 ## Phase 13：E2E Test
 
-Playwright 覆盖：
+Vitest-powered Playwright 覆盖：
 
 ```txt
 React:
   首页可访问
-  sidebar route 跳转
-  button 页可访问
-  input 页可输入
-  dialog 可打开关闭
-  theme 可切换
-  icons 可搜索
+  /components /icons /themes /playground 可访问
+  component detail 路由可访问
+  icons 页面真实浏览器交互
+  themes 页面真实浏览器交互
+  playground 页面真实浏览器交互
 
 Vue:
   首页可访问
-  sidebar route 跳转
-  button 页可访问
-  input 页可输入
-  dialog 可打开关闭
-  theme 可切换
-  icons 可搜索
+  /components /icons /themes /playground 可访问
+  component detail 路由可访问
+  icons 页面真实浏览器交互
+  themes 页面真实浏览器交互
+  playground 页面真实浏览器交互
+```
+
+实现方式：
+
+```txt
+Vitest:
+  showcase-e2e project
+  globalSetup 启动 React/Vue Vite dev server
+
+Playwright:
+  在 Vitest 测试内作为浏览器自动化 API 使用
+  本地默认使用系统 Chrome
+  CI / 无系统 Chrome 环境使用 Playwright Chromium
 ```
 
 验收：
@@ -822,6 +833,7 @@ pnpm showcase:test
 E2E 可以单独 job：
 
 ```bash
+# CI / 无系统 Chrome 环境需要
 pnpm exec playwright install --with-deps chromium
 pnpm showcase:e2e
 ```
