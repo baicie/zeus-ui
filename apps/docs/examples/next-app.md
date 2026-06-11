@@ -50,6 +50,7 @@ The example imports the default theme in `src/app/layout.tsx`.
 
 ```tsx
 import '@zeus-web/themes/default.css'
+import '@zeus-web/themes/components.css'
 import './globals.css'
 ```
 

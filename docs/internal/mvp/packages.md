@@ -44,6 +44,7 @@
 | `@zeus-web/headless`                | `packages/headless`                       | 0.0.0        | primitives | 聚合所有 headless 原语            |
 | `@zeus-web/react`                   | `packages/react`                          | 0.0.0        | primitives | React wrapper 聚合包              |
 | `@zeus-web/vue`                     | `packages/vue`                            | 0.0.0        | primitives | Vue wrapper 聚合包                |
+| `@zeus-web/themes`                  | `packages/themes`                         | 0.0.0        | primitives | 主题 token 与默认组件样式         |
 | `@zeus-web/input`                   | `packages/primitives/input`               | 0.0.0        | primitives | 输入框原语                        |
 | `@zeus-web/button`                  | `packages/primitives/button`              | 0.0.0        | primitives | 按钮原语                          |
 | `@zeus-web/checkbox`                | `packages/primitives/checkbox`            | 0.0.0        | primitives | 复选框原语                        |
@@ -1425,6 +1426,20 @@ export * from '@zeus-web/input/vue'
 export * from '@zeus-web/switch/vue'
 export * from '@zeus-web/tabs/vue'
 ```
+
+#### `@zeus-web/themes`
+
+提供主题 token CSS 与默认组件 presentation CSS：
+
+```ts
+import '@zeus-web/themes/default.css'
+import '@zeus-web/themes/components.css'
+```
+
+`default/slate/zinc/neutral/stone.css` 只负责语义 token 和主题变量；
+`components.css` 负责为 headless primitive 提供开箱可见的默认外观。需要
+shadcn 风格源码 ownership 时，仍然使用 `zweb add <component>` 复制
+`components/ui/*` 到业务项目中修改。
 
 ---
 

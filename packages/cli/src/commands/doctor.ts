@@ -94,6 +94,7 @@ export async function doctor(args: string[]): Promise<void> {
         const config = readComponentsConfig(options.cwd)
         const cssPath = resolve(options.cwd, config.tailwind.css)
         const themeImport = `@import '@zeus-web/themes/${config.style}.css';`
+        const componentsImport = "@import '@zeus-web/themes/components.css';"
         checks.push({ level: 'pass', message: 'components.json is valid.' })
         for (const [name, alias] of Object.entries(config.aliases)) {
           const aliasPath = resolveAliasToPath(options.cwd, alias)
@@ -121,6 +122,12 @@ export async function doctor(args: string[]): Promise<void> {
             message: css.includes(themeImport)
               ? 'Theme css import is configured.'
               : `Theme css import is missing: ${themeImport}`,
+          })
+          checks.push({
+            level: css.includes(componentsImport) ? 'pass' : 'warn',
+            message: css.includes(componentsImport)
+              ? 'Component css import is configured.'
+              : `Component css import is missing: ${componentsImport}`,
           })
         }
       } catch (e) {

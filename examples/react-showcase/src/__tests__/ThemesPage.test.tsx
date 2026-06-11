@@ -35,7 +35,7 @@ describe('react ThemesPage', () => {
   it('switches theme, mode, radius and motion controls', async () => {
     const user = userEvent.setup()
 
-    render(<ThemesPage />)
+    const { container } = render(<ThemesPage />)
 
     await user.click(screen.getByRole('button', { name: /Slate/ }))
     await user.selectOptions(screen.getByLabelText('Theme mode'), 'dark')
@@ -48,9 +48,12 @@ describe('react ThemesPage', () => {
     expect(screen.getByLabelText('Theme mode')).toHaveValue('dark')
     expect(screen.getByLabelText('Radius preset')).toHaveValue('xl')
     expect(screen.getByLabelText('Motion preset')).toHaveValue('expressive')
-    expect(
-      screen.getByText("import '@zeus-web/themes/slate.css'"),
-    ).toBeInTheDocument()
+    expect(container.textContent).toContain(
+      "import '@zeus-web/themes/slate.css'",
+    )
+    expect(container.textContent).toContain(
+      "import '@zeus-web/themes/components.css'",
+    )
   })
 
   it('switches snippets and copies the selected snippet', async () => {

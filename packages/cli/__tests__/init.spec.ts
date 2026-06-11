@@ -133,6 +133,7 @@ describe('@zeus-web/cli init', () => {
       const css = readFileSync(resolve(root, 'src/styles/globals.css'), 'utf-8')
       expect(result).toBe('created')
       expect(css).toContain("@import '@zeus-web/themes/slate.css';")
+      expect(css).toContain("@import '@zeus-web/themes/components.css';")
       expect(css).toContain('/* zeus-web theme overrides:start */')
       expect(css).toContain('--radius: 0.75rem;')
       expect(css).toContain('--zw-duration-normal: 120ms;')
@@ -168,6 +169,7 @@ describe('@zeus-web/cli init', () => {
       await ensureThemeCss({ cwd: root, config, overwrite: false })
       const css = readFileSync(resolve(root, 'src/styles/globals.css'), 'utf-8')
       expect(css).toContain("@import '@zeus-web/themes/stone.css';")
+      expect(css).toContain("@import '@zeus-web/themes/components.css';")
       expect(css).toContain('body { margin: 0; }')
       expect(css).toContain('--radius: 1rem;')
       expect(css).toContain('--zw-duration-normal: 220ms;')
@@ -291,8 +293,12 @@ describe('@zeus-web/cli init', () => {
       })
       const css = readFileSync(resolve(root, 'src/styles/globals.css'), 'utf-8')
       const imports = css.match(/@import '@zeus-web\/themes\/zinc\.css';/g)
+      const componentImports = css.match(
+        /@import '@zeus-web\/themes\/components\.css';/g,
+      )
       expect(result).toBe('updated')
       expect(imports).toHaveLength(1)
+      expect(componentImports).toHaveLength(1)
       expect(css).not.toContain("@import '@zeus-web/themes/default.css';")
     } finally {
       await rm(root, { recursive: true, force: true })

@@ -62,7 +62,8 @@ describe('showcase themes', () => {
     } as const
 
     expect(createShowcaseThemeSnippet('css', options)).toBe(
-      "import '@zeus-web/themes/zinc.css'",
+      `import '@zeus-web/themes/zinc.css'
+import '@zeus-web/themes/components.css'`,
     )
     expect(createShowcaseThemeSnippet('html', options)).toContain(
       'data-theme="zinc"',

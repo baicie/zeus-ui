@@ -114,6 +114,8 @@ const showcaseSharedPath = resolve(
 
 说明：参考 Vite e2e 的组织方式，由 Vitest 负责测试编排和 Vite server 生命周期，Playwright 只作为浏览器自动化 API 使用。Phase 13 只跑 Chromium/Chrome 形态的稳定 smoke；多浏览器矩阵可以后续扩展。
 
+目录归属说明：Phase 13 初始实现把测试工程放在 `examples/showcase-e2e`，主要是为了贴近 React/Vue showcase 示例应用并降低落地成本。但它本质上是测试 harness，不是可运行 example app；后续更推荐迁到 `tests/showcase-e2e` 或 `e2e/showcase`，并同步修改 Vitest `include`、`globalSetup`、artifact 路径和文档引用。这样 `examples/*` 可以继续只表达“示例应用”，避免和 `examples:*` 脚本语义混在一起。
+
 ## `examples/showcase-e2e/setup.ts`
 
 在 `globalSetup` 里使用 Vite Node API 分别启动 React/Vue showcase dev server：

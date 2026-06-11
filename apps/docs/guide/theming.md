@@ -22,9 +22,14 @@ This writes:
 
 ```css
 @import '@zeus-web/themes/slate.css';
+@import '@zeus-web/themes/components.css';
 ```
 
 to the configured CSS file.
+
+Theme files provide design tokens. `components.css` provides the default
+presentation layer for Zeus Web primitives. Registry components can still be
+copied and customized with `zweb add`.
 
 ## Semantic tokens
 

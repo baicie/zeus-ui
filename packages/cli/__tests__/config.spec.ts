@@ -106,6 +106,9 @@ describe('@zeus-web/cli config', () => {
       expect(
         readFileSync(resolve(cwd, 'src/styles/globals.css'), 'utf-8'),
       ).toContain("@import '@zeus-web/themes/zinc.css';")
+      expect(
+        readFileSync(resolve(cwd, 'src/styles/globals.css'), 'utf-8'),
+      ).toContain("@import '@zeus-web/themes/components.css';")
     } finally {
       await rm(cwd, { recursive: true, force: true })
     }
@@ -130,6 +133,9 @@ describe('@zeus-web/cli config', () => {
       expect(
         readFileSync(resolve(cwd, 'src/styles/globals.css'), 'utf-8'),
       ).toContain("@import '@zeus-web/themes/slate.css';")
+      expect(
+        readFileSync(resolve(cwd, 'src/styles/globals.css'), 'utf-8'),
+      ).toContain("@import '@zeus-web/themes/components.css';")
     } finally {
       await rm(cwd, { recursive: true, force: true })
     }

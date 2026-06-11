@@ -190,6 +190,12 @@ function createThemeImport(style: ThemeName): string {
   return `@import '@zeus-web/themes/${style}.css';`
 }
 
+const componentsStyleImport = "@import '@zeus-web/themes/components.css';"
+
+function createThemeImports(style: ThemeName): string {
+  return `${createThemeImport(style)}\n${componentsStyleImport}`
+}
+
 function createThemeOverrideCss(config: ComponentsConfig): string {
   const theme = createDefaultThemeConfig(config.theme)
   const radius = radiusPresets[theme.radius]
@@ -215,13 +221,22 @@ function createThemeOverrideCss(config: ComponentsConfig): string {
 }
 
 function replaceThemeImport(source: string, style: ThemeName): string {
-  const importPattern = /@import ['"]@zeus-web\/themes\/[a-z-]+\.css['"];\n?/g
+  const importPattern =
+    /@import ['"]@zeus-web\/themes\/(?!components\.css)[a-z-]+\.css['"];\n?/g
   const nextImport = `${createThemeImport(style)}\n`
-  if (importPattern.test(source))
-    return source.replace(importPattern, nextImport)
-  return source.endsWith('\n')
-    ? `${source}${nextImport}`
-    : `${source}\n${nextImport}`
+  const withThemeImport = importPattern.test(source)
+    ? source.replace(importPattern, nextImport)
+    : source.endsWith('\n')
+      ? `${source}${nextImport}`
+      : `${source}\n${nextImport}`
+
+  if (withThemeImport.includes(componentsStyleImport)) {
+    return withThemeImport
+  }
+
+  return withThemeImport.endsWith('\n')
+    ? `${withThemeImport}${componentsStyleImport}\n`
+    : `${withThemeImport}\n${componentsStyleImport}\n`
 }
 
 function upsertThemeOverride(source: string, config: ComponentsConfig): string {
@@ -245,7 +260,7 @@ export async function ensureThemeCss(params: {
   if (existsSync(cssPath)) {
     const current = readFileSync(cssPath, 'utf-8')
     if (params.overwrite) {
-      const next = `${createThemeImport(config.style)}\n${createThemeOverrideCss(config)}`
+      const next = `${createThemeImports(config.style)}\n${createThemeOverrideCss(config)}`
       if (current === next) return 'skipped'
       await writeFile(cssPath, next, 'utf-8')
       return 'updated'
@@ -260,7 +275,7 @@ export async function ensureThemeCss(params: {
   await mkdir(dirname(cssPath), { recursive: true })
   await writeFile(
     cssPath,
-    `${createThemeImport(config.style)}\n${createThemeOverrideCss(config)}`,
+    `${createThemeImports(config.style)}\n${createThemeOverrideCss(config)}`,
     'utf-8',
   )
   return 'created'

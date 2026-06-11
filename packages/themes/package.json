@@ -26,7 +26,8 @@
     "./slate.css": "./src/slate.css",
     "./zinc.css": "./src/zinc.css",
     "./neutral.css": "./src/neutral.css",
-    "./stone.css": "./src/stone.css"
+    "./stone.css": "./src/stone.css",
+    "./components.css": "./src/components.css"
   },
   "files": [
     "dist",
