@@ -2,15 +2,20 @@
 import type {
   ShowcaseIcon,
   ShowcaseIconCategory,
+  ShowcaseIconCopyKind,
 } from '@zeus-web/example-showcase-shared'
-import { showcaseIcons } from '@zeus-web/example-showcase-shared'
+import {
+  createShowcaseIconSnippet,
+  showcaseIcons,
+} from '@zeus-web/example-showcase-shared'
 import { iconSources } from '@zeus-web/icons'
 import { computed, ref } from 'vue'
 
-type IconCopyKind = 'react' | 'vue' | 'wc' | 'raw'
 type IconPreviewTone = 'foreground' | 'primary' | 'muted' | 'destructive'
 
 const iconSourceByName = new Map(iconSources.map(icon => [icon.name, icon.svg]))
+
+const copyKinds: readonly ShowcaseIconCopyKind[] = ['react', 'vue', 'wc', 'raw']
 
 const sizeOptions = [16, 20, 24, 32, 40] as const
 
@@ -36,19 +41,11 @@ const categories = computed<Array<ShowcaseIconCategory | 'all'>>(() => {
 
 const filteredIcons = computed(() => {
   const normalizedQuery = query.value.trim().toLowerCase()
-
   return showcaseIcons.filter(icon => {
     const categoryMatched =
       activeCategory.value === 'all' || icon.category === activeCategory.value
-
-    if (!categoryMatched) {
-      return false
-    }
-
-    if (!normalizedQuery) {
-      return true
-    }
-
+    if (!categoryMatched) return false
+    if (!normalizedQuery) return true
     return (
       icon.name.includes(normalizedQuery) ||
       icon.label.toLowerCase().includes(normalizedQuery) ||
@@ -58,40 +55,8 @@ const filteredIcons = computed(() => {
   })
 })
 
-function toPascalCase(name: string): string {
-  return name
-    .split('-')
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('')
-}
-
 function getIconSvg(iconName: string): string {
   return iconSourceByName.get(iconName) ?? ''
-}
-
-function createIconSnippet(icon: ShowcaseIcon, kind: IconCopyKind): string {
-  const componentName = `Icon${toPascalCase(icon.name)}`
-
-  switch (kind) {
-    case 'react':
-      return `import { ${componentName} } from '@zeus-web/icons/react'`
-
-    case 'vue':
-      return `<script setup lang="ts">
-import { ${componentName} } from '@zeus-web/icons/vue'
-<\/script>`
-
-    case 'wc':
-      return `import '@zeus-web/icons/wc'
-
-<zw-icon-${icon.name}></zw-icon-${icon.name}>`
-
-    case 'raw':
-      return `import ${componentName}Svg from '@zeus-web/icons/svg/${icon.name}.svg?raw'`
-
-    default:
-      return ''
-  }
 }
 
 /* eslint-disable no-restricted-globals */
@@ -100,16 +65,13 @@ async function copyText(text: string): Promise<void> {
     await navigator.clipboard.writeText(text)
     return
   }
-
   const textarea = document.createElement('textarea')
   textarea.value = text
   textarea.setAttribute('readonly', '')
   textarea.style.position = 'fixed'
   textarea.style.opacity = '0'
-
   document.body.appendChild(textarea)
   textarea.select()
-
   try {
     document.execCommand('copy')
   } finally {
@@ -117,12 +79,10 @@ async function copyText(text: string): Promise<void> {
   }
 }
 
-async function copySnippet(icon: ShowcaseIcon, kind: IconCopyKind) {
+async function copySnippet(icon: ShowcaseIcon, kind: ShowcaseIconCopyKind) {
   const key = `${icon.name}:${kind}`
-
-  await copyText(createIconSnippet(icon, kind))
+  await copyText(createShowcaseIconSnippet(icon, kind))
   copiedKey.value = key
-
   window.setTimeout(() => {
     if (copiedKey.value === key) {
       copiedKey.value = null
@@ -141,7 +101,6 @@ async function copySnippet(icon: ShowcaseIcon, kind: IconCopyKind) {
         copy framework-specific imports for React, Vue, Web Components and raw
         SVG assets.
       </p>
-
       <div class="showcase-page-meta">
         <span class="showcase-badge">{{ showcaseIcons.length }} icons</span>
         <span class="showcase-badge">
@@ -232,7 +191,6 @@ async function copySnippet(icon: ShowcaseIcon, kind: IconCopyKind) {
         <div class="showcase-icon-card-main">
           <h2 class="showcase-card-title">{{ icon.label }}</h2>
           <p class="showcase-card-description">{{ icon.name }}</p>
-
           <div class="showcase-icon-tags">
             <span class="showcase-badge">{{ icon.category }}</span>
             <span v-for="tag in icon.tags" :key="tag" class="showcase-badge">
@@ -243,7 +201,7 @@ async function copySnippet(icon: ShowcaseIcon, kind: IconCopyKind) {
 
         <div class="showcase-icon-copy-grid">
           <button
-            v-for="kind in ['react', 'vue', 'wc', 'raw'] as const"
+            v-for="kind in copyKinds"
             :key="kind"
             type="button"
             class="showcase-icon-copy"
@@ -260,9 +218,9 @@ async function copySnippet(icon: ShowcaseIcon, kind: IconCopyKind) {
           </button>
         </div>
 
-        <pre
-          class="showcase-code showcase-icon-code"
-        ><code>{{ createIconSnippet(icon, 'vue') }}</code></pre>
+        <pre class="showcase-code showcase-icon-code"><code>{{
+          createShowcaseIconSnippet(icon, 'vue')
+        }}</code></pre>
       </article>
     </section>
 

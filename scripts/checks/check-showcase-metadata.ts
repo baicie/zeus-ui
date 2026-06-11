@@ -3,7 +3,11 @@ import { resolve } from 'node:path'
 
 import pc from 'picocolors'
 
-import { validateShowcaseMetadata } from '../../examples/showcase-shared/src'
+import {
+  showcaseIcons,
+  validateShowcaseMetadata,
+} from '../../examples/showcase-shared/src'
+import { iconMetadata, iconNames } from '../../packages/icons/src'
 
 interface RegistryItem {
   name: string
@@ -29,16 +33,64 @@ function readRegistryComponentNames(): string[] {
     .sort()
 }
 
+function validateShowcaseIconCoverage(): string[] {
+  const errors: string[] = []
+  const showcaseIconNames = showcaseIcons.map(icon => icon.name)
+  const showcaseIconNameSet = new Set(showcaseIconNames)
+  const packageIconNameSet = new Set<string>(iconNames)
+
+  for (const icon of showcaseIcons) {
+    if (!packageIconNameSet.has(icon.name)) {
+      errors.push(
+        `showcaseIcons contains "${icon.name}" but @zeus-web/icons does not export it.`,
+      )
+      continue
+    }
+
+    const packageIcon = iconMetadata[icon.name]
+
+    if (packageIcon.category !== icon.category) {
+      errors.push(
+        `showcaseIcons "${icon.name}" category must be "${packageIcon.category}", got "${icon.category}".`,
+      )
+    }
+
+    for (const tag of packageIcon.tags) {
+      if (!icon.tags.includes(tag)) {
+        errors.push(
+          `showcaseIcons "${icon.name}" is missing package icon tag "${tag}".`,
+        )
+      }
+    }
+  }
+
+  for (const iconName of iconNames) {
+    if (!showcaseIconNameSet.has(iconName)) {
+      errors.push(
+        `@zeus-web/icons exports "${iconName}" but showcaseIcons does not include it.`,
+      )
+    }
+  }
+
+  return errors
+}
+
 const result = validateShowcaseMetadata({
   registryComponentNames: readRegistryComponentNames(),
 })
+
+const iconCoverageErrors = validateShowcaseIconCoverage()
 
 for (const warning of result.warnings) {
   console.log(pc.yellow(`warning: ${warning}`))
 }
 
-if (!result.valid) {
+if (!result.valid || iconCoverageErrors.length > 0) {
   for (const error of result.errors) {
+    console.error(pc.red(`error: ${error}`))
+  }
+
+  for (const error of iconCoverageErrors) {
     console.error(pc.red(`error: ${error}`))
   }
 

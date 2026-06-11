@@ -120,7 +120,7 @@ function checkPackageDeps(): string[] {
   for (const packageName of packageNames) {
     if (!reactPackage.dependencies?.[packageName]) {
       errors.push(
-        `examples/react-showcase/package.json is missing dependency "${packageName}".`,
+        ` examples/react-showcase/package.json is missing dependency "${packageName}".`,
       )
     }
 
@@ -131,10 +131,18 @@ function checkPackageDeps(): string[] {
     }
   }
 
-  if (!reactPackage.dependencies?.['@zeus-web/icons']) {
-    errors.push(
-      'examples/react-showcase/package.json is missing dependency "@zeus-web/icons".',
-    )
+  for (const packageName of ['@zeus-web/icons']) {
+    if (!reactPackage.dependencies?.[packageName]) {
+      errors.push(
+        ` examples/react-showcase/package.json is missing dependency "${packageName}".`,
+      )
+    }
+
+    if (!vuePackage.dependencies?.[packageName]) {
+      errors.push(
+        `examples/vue-showcase/package.json is missing dependency "${packageName}".`,
+      )
+    }
   }
 
   return errors

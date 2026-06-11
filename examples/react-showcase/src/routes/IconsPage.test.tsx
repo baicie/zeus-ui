@@ -17,8 +17,8 @@ function mockClipboard() {
 }
 
 describe('react IconsPage', () => {
-  it('renders recommended icons', () => {
-    render(<IconsPage />)
+  it('renders recommended icons with real svg previews', () => {
+    const { container } = render(<IconsPage />)
 
     expect(screen.getByRole('heading', { name: 'Icons' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Check' })).toBeInTheDocument()
@@ -26,6 +26,9 @@ describe('react IconsPage', () => {
     expect(
       screen.getByRole('heading', { name: 'Settings' }),
     ).toBeInTheDocument()
+    expect(
+      container.querySelectorAll('.showcase-icon-preview svg').length,
+    ).toBeGreaterThan(0)
   })
 
   it('filters icons by search query', async () => {
@@ -62,18 +65,36 @@ describe('react IconsPage', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('copies React import snippet', async () => {
+  it('copies React, Vue, Web Component and raw SVG snippets', async () => {
     const user = userEvent.setup()
     const writeText = mockClipboard()
 
     render(<IconsPage />)
 
     await user.click(screen.getByLabelText('Copy REACT import for Check'))
-
-    expect(writeText).toHaveBeenCalledWith(
-      "import { IconCheck } from '@zeus-web/icons/react'",
+    expect(writeText).toHaveBeenLastCalledWith(
+      "import { CheckIcon } from '@zeus-web/icons/react'",
     )
     expect(screen.getByText('Copied REACT')).toBeInTheDocument()
+
+    await user.click(screen.getByLabelText('Copy VUE import for Check'))
+    expect(writeText).toHaveBeenLastCalledWith(
+      `<script setup lang="ts">
+import { CheckIcon } from '@zeus-web/icons/vue'
+<\/script>`,
+    )
+
+    await user.click(screen.getByLabelText('Copy WC import for Check'))
+    expect(writeText).toHaveBeenLastCalledWith(
+      `import '@zeus-web/icons/wc'
+
+<zw-icon-check></zw-icon-check>`,
+    )
+
+    await user.click(screen.getByLabelText('Copy raw svg import for Check'))
+    expect(writeText).toHaveBeenLastCalledWith(
+      "import CheckIconSvg from '@zeus-web/icons/svg/check.svg?raw'",
+    )
   })
 
   it('updates preview size and currentColor tone controls', async () => {

@@ -1,13 +1,15 @@
 import type {
   ShowcaseIcon,
   ShowcaseIconCategory,
+  ShowcaseIconCopyKind,
 } from '@zeus-web/example-showcase-shared'
-import { showcaseIcons } from '@zeus-web/example-showcase-shared'
+import {
+  createShowcaseIconSnippet,
+  showcaseIcons,
+} from '@zeus-web/example-showcase-shared'
 /* eslint-disable no-restricted-globals */
 import { iconSources } from '@zeus-web/icons'
 import { useMemo, useState } from 'react'
-
-type IconCopyKind = 'react' | 'vue' | 'wc' | 'raw'
 
 type IconPreviewTone = 'foreground' | 'primary' | 'muted' | 'destructive'
 
@@ -22,40 +24,8 @@ const toneOptions: Array<{ label: string; value: IconPreviewTone }> = [
   { label: 'destructive', value: 'destructive' },
 ]
 
-function toPascalCase(name: string): string {
-  return name
-    .split('-')
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('')
-}
-
 function getIconSvg(iconName: string): string {
   return iconSourceByName.get(iconName) ?? ''
-}
-
-function createIconSnippet(icon: ShowcaseIcon, kind: IconCopyKind): string {
-  const componentName = `Icon${toPascalCase(icon.name)}`
-
-  switch (kind) {
-    case 'react':
-      return `import { ${componentName} } from '@zeus-web/icons/react'`
-
-    case 'vue':
-      return `<script setup lang="ts">
-import { ${componentName} } from '@zeus-web/icons/vue'
-</script>`
-
-    case 'wc':
-      return `import '@zeus-web/icons/wc'
-
-<zw-icon-${icon.name}></zw-icon-${icon.name}>`
-
-    case 'raw':
-      return `import ${componentName}Svg from '@zeus-web/icons/svg/${icon.name}.svg?raw'`
-
-    default:
-      return ''
-  }
 }
 
 async function copyText(text: string): Promise<void> {
@@ -121,10 +91,10 @@ export function IconsPage() {
     })
   }, [activeCategory, query])
 
-  async function handleCopy(icon: ShowcaseIcon, kind: IconCopyKind) {
+  async function handleCopy(icon: ShowcaseIcon, kind: ShowcaseIconCopyKind) {
     const key = `${icon.name}:${kind}`
 
-    await copyText(createIconSnippet(icon, kind))
+    await copyText(createShowcaseIconSnippet(icon, kind))
     setCopiedKey(key)
 
     window.setTimeout(() => {
@@ -172,7 +142,11 @@ export function IconsPage() {
             className="showcase-icon-select"
             value={previewSize}
             onChange={event => {
-              setPreviewSize(Number(event.currentTarget.value) as 24)
+              setPreviewSize(
+                Number(
+                  event.currentTarget.value,
+                ) as (typeof sizeOptions)[number],
+              )
             }}
           >
             {sizeOptions.map(size => (
@@ -276,7 +250,7 @@ export function IconsPage() {
                 </div>
 
                 <pre className="showcase-code showcase-icon-code">
-                  <code>{createIconSnippet(icon, 'react')}</code>
+                  <code>{createShowcaseIconSnippet(icon, 'react')}</code>
                 </pre>
               </article>
             )
