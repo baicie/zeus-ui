@@ -65,7 +65,7 @@
     "@baicie/release": "^0.3.3",
     "@baicie/scripts": "^0.1.2",
     "@stylistic/eslint-plugin": "^5.10.0",
-    "@types/node": "^25.9.2",
+    "@types/node": "^25.9.3",
     "@types/react": "^19.2.17",
     "@zeus-js/bundler-plugin": "0.1.0-beta.5",
     "@zeus-js/compiler": "0.1.0-beta.5",

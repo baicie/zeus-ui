@@ -21,6 +21,7 @@
     "@zeus-web/collapsible": "workspace:*",
     "@zeus-web/dialog": "workspace:*",
     "@zeus-web/example-showcase-shared": "workspace:*",
+    "@zeus-web/icons": "workspace:*",
     "@zeus-web/input": "workspace:*",
     "@zeus-web/label": "workspace:*",
     "@zeus-web/progress": "workspace:*",

@@ -15,6 +15,7 @@ This document tracks the implementation status of the React and Vue showcase app
 | Phase 6 | Done   | Visual and feedback pages: card, badge, separator, skeleton, alert, progress, avatar |
 | Phase 7 | Done   | Disclosure and overlay pages: collapsible, accordion, tooltip                        |
 | Phase 8 | Done   | CI hardening, build dependency orchestration, route smoke tests and roadmap          |
+| Phase 9 | Done   | Icons page with grid, search, category filters, copy snippets and previews           |
 
 ## Implemented component pages
 
@@ -50,13 +51,28 @@ This document tracks the implementation status of the React and Vue showcase app
 - accordion
 - tooltip
 
+## Implemented foundation pages
+
+### Icons
+
+- icon grid
+- search by name, label, category and tags
+- category filter
+- React import copy
+- Vue import copy
+- Web Component import copy
+- raw SVG import copy
+- preview size switch
+- currentColor tone preview
+
 ## Engineering guarantees
 
-The showcase has three layers of checks:
+The showcase has four layers of checks:
 
 1. Metadata checks validate component metadata coverage.
 2. Implementation checks validate that implemented demos have React and Vue files, dependencies and build dependency scripts.
 3. Route smoke tests validate that every implemented component route renders in React and Vue.
+4. Icons page tests validate search, filtering, preview controls and import copy actions.
 
 ## Commands
 
@@ -71,8 +87,9 @@ pnpm site:build
 
 ## Next work
 
-Future phases should focus on quality rather than expanding the number of pages:
+Future phases should continue with foundation quality and production-like examples:
 
+- Complete Phase 10 themes page with theme switching and semantic token previews.
 - Add Playwright smoke tests for React and Vue showcase.
 - Add visual snapshots for the most important component states.
 - Replace demo-only CSS with exported component theme styles where appropriate.

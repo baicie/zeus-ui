@@ -60,9 +60,17 @@ export interface ShowcaseTheme {
   description: string
 }
 
+export type ShowcaseIconCategory =
+  | 'action'
+  | 'navigation'
+  | 'status'
+  | 'theme'
+  | 'media'
+
 export interface ShowcaseIcon {
   name: string
   label: string
+  category: ShowcaseIconCategory
   tags: string[]
 }
 
