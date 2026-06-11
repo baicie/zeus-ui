@@ -8,6 +8,7 @@ import type { MotionPresetName, RadiusPresetName } from '@zeus-web/themes'
 import {
   createShowcaseThemeSnippet,
   createShowcaseThemeStyle,
+  formatShowcaseThemeTokenCssVar,
   semanticTokens,
   showcaseDarkModeStrategies,
   showcaseMotionPresets,
@@ -60,6 +61,10 @@ const activeSnippetCode = computed(() => {
     motion: motion.value,
   })
 })
+
+function setActiveTheme(themeName: string) {
+  activeTheme.value = themeName as ShowcaseThemeName
+}
 
 async function copyText(text: string): Promise<void> {
   if (navigator.clipboard?.writeText) {
@@ -138,7 +143,7 @@ async function copySnippet(kind: ShowcaseThemeSnippetKind) {
           class="showcase-theme-variant-card"
           :data-active="theme.name === activeTheme"
           :aria-pressed="theme.name === activeTheme"
-          @click="activeTheme = theme.name as ShowcaseThemeName"
+          @click="setActiveTheme(theme.name)"
         >
           <span class="showcase-theme-variant-title">{{ theme.label }}</span>
           <span class="showcase-theme-variant-description">
@@ -291,10 +296,10 @@ async function copySnippet(kind: ShowcaseThemeSnippetKind) {
             >
               <span
                 class="showcase-theme-token-swatch"
-                :style="{ background: `hsl(var(--${token}))` }"
+                :style="{ background: formatShowcaseThemeTokenCssVar(token) }"
               />
               <code>{{ token }}</code>
-              <small>hsl(var(--{{ token }}))</small>
+              <small>{{ formatShowcaseThemeTokenCssVar(token) }}</small>
             </div>
           </div>
         </article>

@@ -9,6 +9,7 @@ import type { CSSProperties } from 'react'
 import {
   createShowcaseThemeSnippet,
   createShowcaseThemeStyle,
+  formatShowcaseThemeTokenCssVar,
   semanticTokens,
   showcaseDarkModeStrategies,
   showcaseMotionPresets,
@@ -176,7 +177,9 @@ export function ThemesPage() {
           >
             {showcaseRadiusPresets.map(item => (
               <option key={item.name} value={item.name}>
-                {item.label} ·{item.value}
+                {item.label}
+                {' · '}
+                {item.value}
               </option>
             ))}
           </select>
@@ -296,20 +299,20 @@ export function ThemesPage() {
               <h3>{group.name}</h3>
 
               <div className="showcase-theme-token-grid">
-                {group.tokens.map(token => (
-                  <div key={token} className="showcase-theme-token-card">
-                    <span
-                      className="showcase-theme-token-swatch"
-                      style={{ background: `hsl(var(--${token}))` }}
-                    />
-                    <code>{token}</code>
-                    <small>
-                      hsl(var(--
-                      {token}
-                      ))
-                    </small>
-                  </div>
-                ))}
+                {group.tokens.map(token => {
+                  const tokenUsage = formatShowcaseThemeTokenCssVar(token)
+
+                  return (
+                    <div key={token} className="showcase-theme-token-card">
+                      <span
+                        className="showcase-theme-token-swatch"
+                        style={{ background: tokenUsage }}
+                      />
+                      <code>{token}</code>
+                      <small>{tokenUsage}</small>
+                    </div>
+                  )
+                })}
               </div>
             </article>
           ))}

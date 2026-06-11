@@ -10,6 +10,7 @@ interface Options {
   dryRun: boolean
   printOnly: boolean
   includeIcons: boolean
+  force: boolean
 }
 
 function readOptions(argv: string[]): Options {
@@ -17,6 +18,7 @@ function readOptions(argv: string[]): Options {
     dryRun: argv.includes('--dry-run'),
     printOnly: argv.includes('--print'),
     includeIcons: !argv.includes('--no-icons'),
+    force: argv.includes('--force'),
   }
 }
 
@@ -58,7 +60,11 @@ function createPnpmArgs(options: Options): string[] {
   return ['-w', ...filters, 'build']
 }
 
-async function buildPackage(pkg: string, isPrimitive: boolean): Promise<void> {
+async function buildPackage(
+  pkg: string,
+  isPrimitive: boolean,
+  options: Options,
+): Promise<void> {
   if (isPrimitive) {
     const pkgDir = join(
       process.cwd(),
@@ -66,28 +72,29 @@ async function buildPackage(pkg: string, isPrimitive: boolean): Promise<void> {
       pkg.replace('@zeus-web/', ''),
     )
     const indexPath = join(pkgDir, 'dist', 'index.js')
-    if (existsSync(indexPath)) {
+
+    if (!options.force && existsSync(indexPath)) {
       return
     }
+
     await execa('rolldown', ['-c', '../../../rolldown.config.ts'], {
       cwd: pkgDir,
       stdio: 'inherit',
     })
-  } else {
-    const pkgDir = join(
-      process.cwd(),
-      'packages',
-      pkg.replace('@zeus-web/', ''),
-    )
-    const indexPath = join(pkgDir, 'dist', 'index.js')
-    if (existsSync(indexPath)) {
-      return
-    }
-    await execa('pnpm', ['run', 'build'], {
-      cwd: pkgDir,
-      stdio: 'inherit',
-    })
+    return
   }
+
+  const pkgDir = join(process.cwd(), 'packages', pkg.replace('@zeus-web/', ''))
+  const indexPath = join(pkgDir, 'dist', 'index.js')
+
+  if (!options.force && existsSync(indexPath)) {
+    return
+  }
+
+  await execa('pnpm', ['run', 'build'], {
+    cwd: pkgDir,
+    stdio: 'inherit',
+  })
 }
 
 async function main(): Promise<void> {
@@ -117,7 +124,7 @@ async function main(): Promise<void> {
     const isPrimitive = pkgInfo?.isPrimitive ?? false
     process.stdout.write(`  ${pc.bold(pkg)} ... `)
     try {
-      await buildPackage(pkg, isPrimitive)
+      await buildPackage(pkg, isPrimitive, options)
       process.stdout.write(`${pc.green('✓')}\n`)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)

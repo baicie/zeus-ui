@@ -10,7 +10,12 @@ import {
   validateShowcaseMetadata,
 } from '../../examples/showcase-shared/src'
 import { iconMetadata, iconNames } from '../../packages/icons/src'
-import { semanticColorTokens, themeNames } from '../../packages/themes/src'
+import {
+  semanticColorTokens,
+  themeModeNames,
+  themeModeRegistry,
+  themeNames,
+} from '../../packages/themes/src'
 
 interface RegistryItem {
   name: string
@@ -97,6 +102,20 @@ function validateShowcaseThemeCoverage(): string[] {
     errors.push(
       `semanticTokens must match @zeus-web/themes semanticColorTokens.`,
     )
+  }
+
+  for (const themeName of themeNames) {
+    for (const mode of themeModeNames) {
+      const colors = themeModeRegistry[themeName][mode].colors
+
+      for (const token of semanticColorTokens) {
+        if (!colors[token]) {
+          errors.push(
+            `themeModeRegistry.${themeName}.${mode} is missing token "${token}".`,
+          )
+        }
+      }
+    }
   }
 
   return errors

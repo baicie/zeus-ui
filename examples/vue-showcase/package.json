@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build:deps": "pnpm -w exec tsx scripts/examples/build-showcase-deps.ts",
+    "build:deps": "pnpm -w exec tsx scripts/examples/build-showcase-deps.ts --force",
     "dev": "pnpm build:deps && vite --host 0.0.0.0 --port 5174",
     "build": "pnpm build:deps && vite build",
     "check": "pnpm build:deps && vue-tsc -p tsconfig.json --noEmit",

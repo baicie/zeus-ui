@@ -1,5 +1,7 @@
 import { mount } from '@vue/test-utils'
 
+import { semanticTokens } from '@zeus-web/example-showcase-shared'
+
 import ThemesPage from '../routes/ThemesPage.vue'
 
 function mockClipboard() {
@@ -22,9 +24,10 @@ describe('vue ThemesPage', () => {
     expect(wrapper.text()).toContain('Themes')
     expect(wrapper.text()).toContain('Default')
     expect(wrapper.text()).toContain('Slate')
-    expect(wrapper.text()).toContain('19 semantic tokens')
+    expect(wrapper.text()).toContain(`${semanticTokens.length} semantic tokens`)
     expect(wrapper.text()).toContain('Component preview')
     expect(wrapper.text()).toContain('Semantic token palette')
+    expect(wrapper.text()).toContain('hsl(var(--background))')
   })
 
   it('switches theme, mode, radius and motion controls', async () => {

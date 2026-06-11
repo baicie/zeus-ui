@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { semanticTokens } from '@zeus-web/example-showcase-shared'
 
 import { ThemesPage } from '../routes/ThemesPage'
 
@@ -23,9 +24,12 @@ describe('react ThemesPage', () => {
     expect(screen.getByRole('heading', { name: 'Themes' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Default/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Slate/ })).toBeInTheDocument()
-    expect(screen.getByText('19 semantic tokens')).toBeInTheDocument()
+    expect(
+      screen.getByText(`${semanticTokens.length} semantic tokens`),
+    ).toBeInTheDocument()
     expect(screen.getByText('Component preview')).toBeInTheDocument()
     expect(screen.getByText('Semantic token palette')).toBeInTheDocument()
+    expect(screen.getByText('hsl(var(--background))')).toBeInTheDocument()
   })
 
   it('switches theme, mode, radius and motion controls', async () => {

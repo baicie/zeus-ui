@@ -14,6 +14,15 @@ const root = process.cwd()
 
 const expectedBuildDepsScript =
   'pnpm -w exec tsx scripts/examples/build-showcase-deps.ts'
+const expectedBuildDepsScriptWithForce =
+  'pnpm -w exec tsx scripts/examples/build-showcase-deps.ts --force'
+
+function isValidBuildDeps(script: string): boolean {
+  return (
+    script === expectedBuildDepsScript ||
+    script === expectedBuildDepsScriptWithForce
+  )
+}
 
 interface PackageJson {
   scripts?: Record<string, string>
@@ -154,14 +163,16 @@ function checkBuildDepsScripts(): string[] {
   const reactPackage = readPackageJson('examples/react-showcase/package.json')
   const vuePackage = readPackageJson('examples/vue-showcase/package.json')
 
-  if (reactPackage.scripts?.['build:deps'] !== expectedBuildDepsScript) {
+  if (!isValidBuildDeps(reactPackage.scripts?.['build:deps'] ?? '')) {
     errors.push(
-      `React showcase build:deps must be "${expectedBuildDepsScript}".`,
+      `React showcase build:deps must be "${expectedBuildDepsScript}" or "${expectedBuildDepsScriptWithForce}".`,
     )
   }
 
-  if (vuePackage.scripts?.['build:deps'] !== expectedBuildDepsScript) {
-    errors.push(`Vue showcase build:deps must be "${expectedBuildDepsScript}".`)
+  if (!isValidBuildDeps(vuePackage.scripts?.['build:deps'] ?? '')) {
+    errors.push(
+      `Vue showcase build:deps must be "${expectedBuildDepsScript}" or "${expectedBuildDepsScriptWithForce}".`,
+    )
   }
 
   return errors
