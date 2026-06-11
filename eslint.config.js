@@ -103,6 +103,9 @@ export default defineConfig(
       'style/member-delimiter-style': 'off',
       'style/quotes': 'off',
       'style/jsx-curly-newline': 'off',
+      'style/jsx-one-expression-per-line': 'off',
+      'style/jsx-wrap-multilines': 'off',
+      'style/multiline-ternary': 'off',
       'style/indent': 'off',
       'style/indent-binary-ops': 'off',
     },
@@ -112,6 +115,8 @@ export default defineConfig(
     files: ['**/*.vue'],
     rules: {
       'style/brace-style': 'off',
+      'vue/html-closing-bracket-newline': 'off',
+      'vue/html-indent': 'off',
       'vue/singleline-html-element-content-newline': 'off',
       'vue/multiline-html-element-content-newline': 'off',
     },

@@ -65,7 +65,9 @@ function handleOpenChange(event: unknown) {
           <TooltipTrigger>
             <Button variant="primary">Controlled tooltip</Button>
           </TooltipTrigger>
-          <TooltipContent force-mount>Controlled tooltip content.</TooltipContent>
+          <TooltipContent force-mount
+            >Controlled tooltip content.</TooltipContent
+          >
         </Tooltip>
 
         <div class="showcase-demo-card">
