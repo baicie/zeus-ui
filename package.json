@@ -49,6 +49,8 @@
     "showcase:vue": "pnpm --filter @zeus-web/example-vue-showcase dev",
     "showcase:build": "pnpm --filter @zeus-web/example-react-showcase build && pnpm --filter @zeus-web/example-vue-showcase build",
     "showcase:test": "pnpm --filter @zeus-web/example-react-showcase test && pnpm --filter @zeus-web/example-vue-showcase test",
+    "showcase:test:unit": "pnpm showcase:test",
+    "showcase:test:coverage": "pnpm --filter @zeus-web/example-react-showcase test -- --coverage && pnpm --filter @zeus-web/example-vue-showcase test -- --coverage",
     "check:component-coverage": "tsx scripts/checks/check-component-coverage.ts",
     "check:showcase-metadata": "tsx scripts/checks/check-showcase-metadata.ts",
     "check:showcase-implementation": "tsx scripts/checks/check-showcase-implementation.ts",

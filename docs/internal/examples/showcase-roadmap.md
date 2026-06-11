@@ -18,6 +18,7 @@ This document tracks the implementation status of the React and Vue showcase app
 | Phase 9  | Done   | Icons page with grid, search, category filters, copy snippets and previews                            |
 | Phase 10 | Done   | Themes page with theme switcher, light/dark mode, radius, motion, token palette and component preview |
 | Phase 11 | Done   | Playground page with admin dashboard, settings form, project creation flow and interaction tests      |
+| Phase 12 | Done   | Unit tests for shared metadata, route smoke, foundation pages and playground interactions             |
 
 ## Implemented component pages
 
@@ -88,12 +89,13 @@ This document tracks the implementation status of the React and Vue showcase app
 
 ## Engineering guarantees
 
-The showcase has four layers of checks:
+The showcase has five layers of checks:
 
 1. Metadata checks validate component metadata coverage.
 2. Implementation checks validate that implemented demos have React and Vue files, dependencies and build dependency scripts.
 3. Route smoke tests validate that every implemented component route renders in React and Vue.
-4. Icons page tests validate search, filtering, preview controls and import copy actions.
+4. Foundation page tests validate icons, themes and playground interaction behavior.
+5. Shared unit tests validate metadata helpers, icon snippets, theme helpers and playground fixtures.
 
 ## Commands
 
@@ -108,10 +110,10 @@ pnpm site:build
 
 ## Next work
 
-Future phases should continue with foundation quality and production-like examples:
+Future phases should continue with browser-level and CI quality:
 
-- Add Playwright smoke tests for React and Vue showcase.
+- Phase 13: Add Playwright smoke tests for React and Vue showcase.
+- Phase 14: Add CI workflow jobs for showcase unit tests, build and e2e.
 - Add visual snapshots for the most important component states.
 - Replace demo-only CSS with exported component theme styles where appropriate.
-- Reduce route smoke runtime if it becomes slow.
 - Generate this roadmap from `examples/showcase-shared/src/implemented.ts`.

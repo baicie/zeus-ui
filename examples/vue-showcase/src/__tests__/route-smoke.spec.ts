@@ -1,32 +1,52 @@
-import { flushPromises, mount } from '@vue/test-utils'
 import { implementedShowcaseComponentNames } from '@zeus-web/example-showcase-shared'
 
-import App from '../App.vue'
-import { createShowcaseRouter } from '../router'
+import { mountVueShowcaseRoute } from '../test-utils/mount-route'
 
-async function renderRoute(initialPath: string) {
-  const router = createShowcaseRouter({ initialPath })
+const staticRoutes = [
+  {
+    path: '/',
+    assertion: 'Zeus Web',
+  },
+  {
+    path: '/components',
+    assertion: 'Components',
+  },
+  {
+    path: '/icons',
+    assertion: 'Icons',
+  },
+  {
+    path: '/themes',
+    assertion: 'Themes',
+  },
+  {
+    path: '/playground',
+    assertion: 'Production composition playground',
+  },
+] as const
 
-  await router.isReady()
+describe('vue showcase routes', () => {
+  it.each(staticRoutes)('renders $path', async route => {
+    const { wrapper } = await mountVueShowcaseRoute(route.path)
 
-  const wrapper = mount(App, {
-    global: {
-      plugins: [router],
-    },
+    expect(wrapper.text()).toContain(route.assertion)
   })
 
-  await flushPromises()
-
-  return wrapper
-}
-
-describe('vue showcase implemented route smoke', () => {
   it.each(implementedShowcaseComponentNames)(
-    'renders implemented component route: %s',
+    'renders component route: %s',
     async componentName => {
-      const wrapper = await renderRoute(`/components/${componentName}`)
+      const { wrapper } = await mountVueShowcaseRoute(
+        `/components/${componentName}`,
+      )
 
-      expect(wrapper.text()).toContain('capability page')
+      expect(wrapper.text()).toContain(componentName)
+      expect(wrapper.text().toLowerCase()).not.toContain('not found')
     },
   )
+
+  it('renders not found route for unknown path', async () => {
+    const { wrapper } = await mountVueShowcaseRoute('/unknown-route')
+
+    expect(wrapper.text().toLowerCase()).toContain('not found')
+  })
 })

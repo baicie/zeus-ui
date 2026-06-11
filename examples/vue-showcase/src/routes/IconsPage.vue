@@ -19,7 +19,7 @@ const copyKinds: readonly ShowcaseIconCopyKind[] = ['react', 'vue', 'wc', 'raw']
 
 const sizeOptions = [16, 20, 24, 32, 40] as const
 
-const toneOptions: Array<{ label: string; value: IconPreviewTone }> = [
+const toneOptions: Array<{ label: string, value: IconPreviewTone }> = [
   { label: 'currentColor', value: 'foreground' },
   { label: 'primary', value: 'primary' },
   { label: 'muted', value: 'muted' },
@@ -119,7 +119,7 @@ async function copySnippet(icon: ShowcaseIcon, kind: ShowcaseIconCopyKind) {
           class="showcase-icon-input"
           type="search"
           placeholder="Search check, menu, settings..."
-        />
+        >
       </label>
 
       <label class="showcase-icon-control">

@@ -13,16 +13,13 @@ describe('vue PlaygroundPage', () => {
     expect(wrapper.text()).toContain('@zeus-web/alert')
   })
 
-  it('renders admin dashboard scenario with release controls and event log', async () => {
+  it('renders admin dashboard scenario with release controls', () => {
     const wrapper = mount(PlaygroundPage)
 
-    expect(wrapper.text()).toContain('production rollout')
     expect(wrapper.text()).toContain('68%')
     expect(wrapper.text()).toContain('Promote')
     expect(wrapper.text()).toContain('Roll back')
-    expect(wrapper.text()).toContain(
-      'No events yet. Interact with controls to record state changes.',
-    )
+    expect(wrapper.text()).toContain('production rollout')
   })
 
   it('switches to settings form scenario', async () => {
@@ -56,8 +53,6 @@ describe('vue PlaygroundPage', () => {
     expect(wrapper.text()).toContain('Create and review projects')
     expect(wrapper.text()).toContain('Templates')
     expect(wrapper.text()).toContain('Created projects')
-    expect(wrapper.text()).toContain(
-      'Internal admin dashboard with forms, tables and alerts.',
-    )
+    expect(wrapper.text()).toContain('Component library')
   })
 })

@@ -64,10 +64,13 @@ describe('react PlaygroundPage', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('Templates')).toBeInTheDocument()
     expect(screen.getByText('Created projects')).toBeInTheDocument()
-    expect(
-      screen.getByText(
-        'Internal admin dashboard with forms, tables and alerts.',
-      ),
-    ).toBeInTheDocument()
+
+    const dashboardTemplate = screen
+      .getAllByText('Dashboard app')
+      .find(element => element.closest('button'))
+
+    expect(dashboardTemplate).toBeTruthy()
+
+    await user.click(dashboardTemplate!)
   })
 })

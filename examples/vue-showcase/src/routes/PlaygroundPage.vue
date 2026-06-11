@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ShowcasePlaygroundActivity, ShowcasePlaygroundScenarioId, ShowcasePlaygroundServiceStatus } from '@zeus-web/example-showcase-shared'
 import { Alert, AlertDescription, AlertTitle } from '@zeus-web/alert/vue'
 import { Badge } from '@zeus-web/badge/vue'
 import { Button } from '@zeus-web/button/vue'
@@ -11,20 +12,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@zeus-web/dialog/vue'
-import { Input } from '@zeus-web/input/vue'
-import { Progress } from '@zeus-web/progress/vue'
-import { Select } from '@zeus-web/select/vue'
-import { Switch } from '@zeus-web/switch/vue'
 import {
   getPlaygroundScenario,
   playgroundActivityItems,
   playgroundDashboardServices,
   playgroundProjectTemplates,
   playgroundScenarios,
-  type ShowcasePlaygroundActivity,
-  type ShowcasePlaygroundScenarioId,
-  type ShowcasePlaygroundServiceStatus,
+
 } from '@zeus-web/example-showcase-shared'
+import { Input } from '@zeus-web/input/vue'
+import { Progress } from '@zeus-web/progress/vue'
+import { Select } from '@zeus-web/select/vue'
+import { Switch } from '@zeus-web/switch/vue'
 import { computed, ref } from 'vue'
 
 interface PlaygroundEvent {
@@ -205,9 +204,7 @@ function createProject() {
       </p>
 
       <div class="showcase-page-meta">
-        <span class="showcase-badge"
-          >{{ playgroundScenarios.length }} scenarios</span
-        >
+        <span class="showcase-badge">{{ playgroundScenarios.length }} scenarios</span>
         <span class="showcase-badge">React + Vue parity</span>
         <span class="showcase-badge">stateful composition</span>
       </div>
@@ -329,7 +326,6 @@ function createProject() {
               <h3>Release progress</h3>
               <div class="showcase-playground-actions">
                 <Button
-                  aria-label="Roll back release"
                   size="sm"
                   variant="outline"
                   @press="promoteRelease(-10)"
@@ -337,7 +333,6 @@ function createProject() {
                   Roll back
                 </Button>
                 <Button
-                  aria-label="Promote release"
                   size="sm"
                   variant="primary"
                   @press="promoteRelease(10)"
@@ -353,9 +348,7 @@ function createProject() {
               label="Release progress"
               :style="progressStyle"
             >
-              <span class="showcase-progress-label"
-                >{{ releaseProgress }}%</span
-              >
+              <span class="showcase-progress-label">{{ releaseProgress }}%</span>
             </Progress>
           </div>
 
@@ -432,9 +425,7 @@ function createProject() {
                   }
                 "
               />
-              <small v-if="organizationInvalid"
-                >Use at least 3 characters.</small
-              >
+              <small v-if="organizationInvalid">Use at least 3 characters.</small>
             </label>
 
             <label class="showcase-playground-field">

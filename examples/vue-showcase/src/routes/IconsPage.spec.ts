@@ -1,19 +1,7 @@
 import { mount } from '@vue/test-utils'
 
+import { findButtonByText, mockClipboard } from '../test-utils/custom-events'
 import IconsPage from './IconsPage.vue'
-
-function mockClipboard() {
-  const writeText = vi.fn().mockResolvedValue(undefined)
-
-  Object.defineProperty(navigator, 'clipboard', {
-    configurable: true,
-    value: {
-      writeText,
-    },
-  })
-
-  return writeText
-}
 
 describe('vue IconsPage', () => {
   it('renders recommended icons with real svg previews', () => {
@@ -41,13 +29,7 @@ describe('vue IconsPage', () => {
   it('filters icons by category', async () => {
     const wrapper = mount(IconsPage)
 
-    const navigationButton = wrapper
-      .findAll('button')
-      .find(button => button.text() === 'navigation')
-
-    expect(navigationButton).toBeDefined()
-
-    await navigationButton?.trigger('click')
+    await findButtonByText(wrapper, 'navigation').trigger('click')
 
     expect(wrapper.text()).toContain('Menu')
     expect(wrapper.text()).toContain('Chevron down')

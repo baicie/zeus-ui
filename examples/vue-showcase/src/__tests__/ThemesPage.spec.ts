@@ -3,19 +3,7 @@ import { mount } from '@vue/test-utils'
 import { semanticTokens } from '@zeus-web/example-showcase-shared'
 
 import ThemesPage from '../routes/ThemesPage.vue'
-
-function mockClipboard() {
-  const writeText = vi.fn().mockResolvedValue(undefined)
-
-  Object.defineProperty(navigator, 'clipboard', {
-    configurable: true,
-    value: {
-      writeText,
-    },
-  })
-
-  return writeText
-}
+import { findButtonByText, mockClipboard } from '../test-utils/custom-events'
 
 describe('vue ThemesPage', () => {
   it('renders theme variants and token metadata', () => {
@@ -33,13 +21,7 @@ describe('vue ThemesPage', () => {
   it('switches theme, mode, radius and motion controls', async () => {
     const wrapper = mount(ThemesPage)
 
-    const slateButton = wrapper
-      .findAll('button')
-      .find(button => button.text().includes('Slate'))
-
-    expect(slateButton).toBeDefined()
-
-    await slateButton?.trigger('click')
+    await findButtonByText(wrapper, 'Slate').trigger('click')
     await wrapper.get('[aria-label="Theme mode"]').setValue('dark')
     await wrapper.get('[aria-label="Radius preset"]').setValue('xl')
     await wrapper.get('[aria-label="Motion preset"]').setValue('expressive')
@@ -63,17 +45,8 @@ describe('vue ThemesPage', () => {
     const writeText = mockClipboard()
     const wrapper = mount(ThemesPage)
 
-    const htmlButton = wrapper
-      .findAll('button')
-      .find(button => button.text() === 'HTML usage')
-
-    expect(htmlButton).toBeDefined()
-
-    await htmlButton?.trigger('click')
-    await wrapper
-      .findAll('button')
-      .find(button => button.text() === 'Copy snippet')
-      ?.trigger('click')
+    await findButtonByText(wrapper, 'HTML usage').trigger('click')
+    await findButtonByText(wrapper, 'Copy snippet').trigger('click')
 
     expect(writeText).toHaveBeenCalledWith(
       expect.stringContaining('data-theme="default"'),

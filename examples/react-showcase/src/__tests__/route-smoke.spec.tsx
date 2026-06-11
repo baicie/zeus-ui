@@ -1,30 +1,57 @@
-import { RouterProvider } from '@tanstack/react-router'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, screen } from '@testing-library/react'
 import { implementedShowcaseComponentNames } from '@zeus-web/example-showcase-shared'
 
-import { createShowcaseRouter } from '../router'
+import { renderReactShowcaseRoute } from '../test-utils/render-route'
 
-function renderRoute(initialPath: string) {
-  const router = createShowcaseRouter({ initialPath })
+const staticRoutes = [
+  {
+    path: '/',
+    assertion: /Zeus Web React Showcase/i,
+  },
+  {
+    path: '/components',
+    assertion: /Components/i,
+  },
+  {
+    path: '/icons',
+    assertion: /Icons/i,
+  },
+  {
+    path: '/themes',
+    assertion: /Themes/i,
+  },
+  {
+    path: '/playground',
+    assertion: /Production composition playground/i,
+  },
+] as const
 
-  return render(<RouterProvider router={router} />)
-}
-
-describe('react showcase implemented route smoke', () => {
+describe('react showcase routes', () => {
   afterEach(() => {
     cleanup()
   })
 
-  it.each(implementedShowcaseComponentNames)(
-    'renders implemented component route: %s',
-    async componentName => {
-      renderRoute(`/components/${componentName}`)
+  it.each(staticRoutes)('renders $path', async route => {
+    await renderReactShowcaseRoute(route.path)
 
-      expect(
-        await screen.findByRole('heading', {
-          name: /capability page/i,
-        }),
-      ).toBeInTheDocument()
+    expect(screen.getAllByText(route.assertion).length).toBeGreaterThan(0)
+  })
+
+  it.each(implementedShowcaseComponentNames)(
+    'renders component route: %s',
+    async componentName => {
+      const { container } = await renderReactShowcaseRoute(
+        `/components/${componentName}`,
+      )
+
+      expect(container.textContent).toContain(componentName)
+      expect(container.textContent).not.toContain('Not found')
     },
   )
+
+  it('renders not found route for unknown path', async () => {
+    const { container } = await renderReactShowcaseRoute('/unknown-route')
+
+    expect(container.textContent).toMatch(/not found/i)
+  })
 })
