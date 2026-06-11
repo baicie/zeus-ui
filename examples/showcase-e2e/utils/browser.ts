@@ -32,6 +32,7 @@ export type ShowcasePageCallback<T> = (
 ) => Promise<T>
 
 let browserPromise: Promise<Browser> | undefined
+let artifactCounter = 0
 
 function shouldRunHeadless(): boolean {
   return process.env.SHOWCASE_E2E_HEADLESS !== 'false'
@@ -73,8 +74,10 @@ function toSafeFileName(value: string): string {
 }
 
 function createArtifactPrefix(target: ShowcaseTarget): string {
+  artifactCounter += 1
+
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-  return `${timestamp}-${toSafeFileName(target.name)}`
+  return `${timestamp}-${artifactCounter}-${toSafeFileName(target.name)}`
 }
 
 async function ensureArtifactDir(): Promise<string> {

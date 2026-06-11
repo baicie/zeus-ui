@@ -95,3 +95,18 @@ pnpm showcase:ci
 `site:check` remains a local-friendly metadata/docs/unit/build check.
 
 Browser E2E is slower because it installs and launches Chromium. It is gated in CI through the dedicated `showcase.yml` workflow instead.
+
+## Reusable workflow concurrency
+
+The showcase workflow is called from `ci.yml`, so it must not use the same
+`${{ github.workflow }}-${{ github.ref }}` concurrency group as the caller.
+
+Use an explicit prefix instead:
+
+```yaml
+concurrency:
+  group: showcase-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+```
+
+This avoids the called workflow cancelling the caller workflow.
