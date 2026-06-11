@@ -87,3 +87,42 @@ export interface ShowcaseValidationResult {
   errors: string[]
   warnings: string[]
 }
+
+export type ShowcasePlaygroundScenarioId =
+  | 'admin-dashboard'
+  | 'settings-form'
+  | 'project-creation'
+
+export interface ShowcasePlaygroundScenario {
+  id: ShowcasePlaygroundScenarioId
+  title: string
+  description: string
+  components: string[]
+}
+
+export type ShowcasePlaygroundServiceStatus =
+  | 'healthy'
+  | 'degraded'
+  | 'incident'
+
+export interface ShowcasePlaygroundService {
+  name: string
+  owner: string
+  status: ShowcasePlaygroundServiceStatus
+  uptime: number
+  latency: number
+  errorRate: number
+}
+
+export interface ShowcasePlaygroundActivity {
+  id: string
+  title: string
+  description: string
+  tone: 'info' | 'success' | 'warning' | 'danger'
+}
+
+export interface ShowcasePlaygroundProjectTemplate {
+  value: string
+  label: string
+  description: string
+}
