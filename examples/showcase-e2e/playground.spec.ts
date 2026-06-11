@@ -5,7 +5,7 @@ import { showcaseTargets, withShowcasePage } from './utils/browser'
 import { collectPageErrors } from './utils/page-errors'
 
 describe.each(showcaseTargets)('$name showcase playground page', target => {
-  it('renders admin dashboard scenario', () => {
+  it('uses admin dashboard interactions', () => {
     return withShowcasePage(target, page => {
       const errors = collectPageErrors(page)
 
@@ -20,25 +20,30 @@ describe.each(showcaseTargets)('$name showcase playground page', target => {
         )
         .then(() => expectPage(page.getByText('68%').first()).toBeVisible())
         .then(() =>
-          expectPage(
-            page.getByRole('button', { name: /Admin dashboard/ }),
-          ).toBeVisible(),
+          page.getByRole('button', { name: 'Promote release' }).click(),
+        )
+        .then(() => expectPage(page.getByText('78%').first()).toBeVisible())
+        .then(() =>
+          expectPage(page.getByText('release-progress')).toBeVisible(),
         )
         .then(() =>
-          expectPage(
-            page.getByRole('button', { name: /Settings form/ }),
-          ).toBeVisible(),
+          page.getByRole('button', { name: 'Roll back release' }).click(),
         )
+        .then(() => expectPage(page.getByText('68%').first()).toBeVisible())
         .then(() =>
-          expectPage(
-            page.getByRole('button', { name: /Project creation/ }),
-          ).toBeVisible(),
+          page
+            .getByRole('combobox', { name: 'Dashboard environment' })
+            .selectOption('staging'),
+        )
+        .then(() => expectPage(page.getByText('staging rollout')).toBeVisible())
+        .then(() =>
+          expectPage(page.getByText('environment-change')).toBeVisible(),
         )
         .then(() => errors.assertClean())
     })
   })
 
-  it('switches to settings form scenario', () => {
+  it('validates settings form', () => {
     return withShowcasePage(target, page => {
       const errors = collectPageErrors(page)
 
@@ -51,11 +56,23 @@ describe.each(showcaseTargets)('$name showcase playground page', target => {
           ).toBeVisible(),
         )
         .then(() => expectPage(page.getByText('Settings ready')).toBeVisible())
+        .then(() => page.getByPlaceholder('Organization name').fill('ze'))
+        .then(() =>
+          expectPage(page.getByText('Validation warning')).toBeVisible(),
+        )
+        .then(() =>
+          expectPage(
+            page.getByText('Use at least 3 characters.'),
+          ).toBeVisible(),
+        )
+        .then(() =>
+          expectPage(page.getByText('organization-name-change')).toBeVisible(),
+        )
         .then(() => errors.assertClean())
     })
   })
 
-  it('switches to project creation scenario', () => {
+  it('selects project template and shows creation action', () => {
     return withShowcasePage(target, page => {
       const errors = collectPageErrors(page)
 
@@ -69,7 +86,22 @@ describe.each(showcaseTargets)('$name showcase playground page', target => {
             page.getByRole('heading', { name: /Create and review projects/i }),
           ).toBeVisible(),
         )
-        .then(() => expectPage(page.getByText('Templates')).toBeVisible())
+        .then(() =>
+          expectPage(
+            page.getByRole('button', { name: /Component library/ }),
+          ).toBeVisible(),
+        )
+        .then(() => page.getByRole('button', { name: /Dashboard app/ }).click())
+        .then(() =>
+          expectPage(page.getByText('project-template-change')).toBeVisible(),
+        )
+        .then(() =>
+          expectPage(
+            page
+              .locator('.showcase-playground-template-card[data-active="true"]')
+              .getByText('Dashboard app'),
+          ).toBeVisible(),
+        )
         .then(() => errors.assertClean())
     })
   })

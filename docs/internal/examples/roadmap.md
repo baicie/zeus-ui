@@ -809,8 +809,8 @@ Vitest:
 
 Playwright:
   在 Vitest 测试内作为浏览器自动化 API 使用
-  本地默认使用系统 Chrome
-  CI / 无系统 Chrome 环境使用 Playwright Chromium
+  默认使用 Playwright 管理的 Chromium
+  需要系统 Chrome 时显式设置 SHOWCASE_E2E_BROWSER_CHANNEL=chrome
 ```
 
 验收：

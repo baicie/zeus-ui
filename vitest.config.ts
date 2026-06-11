@@ -22,6 +22,11 @@ const runtimeDomEsmPath = resolve(
   'node_modules/@zeus-js/runtime-dom/dist/runtime-dom.esm-bundler.js',
 )
 
+const showcaseSharedPath = resolve(
+  process.cwd(),
+  'examples/showcase-shared/src/index.ts',
+)
+
 export default defineConfig({
   define: {
     __DEV__: true,
@@ -270,6 +275,14 @@ export default defineConfig({
           testTimeout: 30_000,
           hookTimeout: 120_000,
           pool: 'forks',
+        },
+        resolve: {
+          alias: [
+            {
+              find: /^@zeus-web\/example-showcase-shared$/,
+              replacement: showcaseSharedPath,
+            },
+          ],
         },
       },
     ],

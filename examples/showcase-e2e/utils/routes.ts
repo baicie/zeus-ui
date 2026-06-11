@@ -1,3 +1,5 @@
+import { implementedShowcaseComponentNames } from '@zeus-web/example-showcase-shared'
+
 export const showcaseFoundationRoutes = [
   {
     path: '/',
@@ -21,25 +23,4 @@ export const showcaseFoundationRoutes = [
   },
 ] as const
 
-export const showcaseComponentRoutes = [
-  'button',
-  'input',
-  'checkbox',
-  'switch',
-  'tabs',
-  'dialog',
-  'label',
-  'textarea',
-  'radio-group',
-  'select',
-  'card',
-  'badge',
-  'separator',
-  'skeleton',
-  'alert',
-  'progress',
-  'avatar',
-  'collapsible',
-  'accordion',
-  'tooltip',
-] as const
+export const showcaseComponentRoutes = implementedShowcaseComponentNames

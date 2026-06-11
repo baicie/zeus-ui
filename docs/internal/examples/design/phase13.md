@@ -35,9 +35,10 @@ Phase 13 = Vitest + Playwright E2E
 
 ```json id="root-package-scripts"
 {
-  "showcase:e2e": "pnpm build:examples && vitest --project showcase-e2e --run",
-  "showcase:e2e:ui": "pnpm build:examples && vitest --project showcase-e2e --ui",
-  "showcase:e2e:headed": "pnpm build:examples && SHOWCASE_E2E_HEADLESS=false vitest --project showcase-e2e --run"
+  "showcase:e2e:deps": "pnpm -w exec tsx scripts/examples/build-showcase-deps.ts --force",
+  "showcase:e2e": "pnpm showcase:e2e:deps && vitest --project showcase-e2e --run",
+  "showcase:e2e:ui": "pnpm showcase:e2e:deps && vitest --project showcase-e2e --ui",
+  "showcase:e2e:headed": "pnpm showcase:e2e:deps && SHOWCASE_E2E_HEADLESS=false vitest --project showcase-e2e --run"
 }
 ```
 
@@ -60,9 +61,10 @@ Phase 13 = Vitest + Playwright E2E
     "showcase:test": "pnpm --filter @zeus-web/example-react-showcase test && pnpm --filter @zeus-web/example-vue-showcase test",
     "showcase:test:unit": "pnpm showcase:test",
     "showcase:test:coverage": "pnpm --filter @zeus-web/example-react-showcase test -- --coverage && pnpm --filter @zeus-web/example-vue-showcase test -- --coverage",
-    "showcase:e2e": "pnpm build:examples && vitest --project showcase-e2e --run",
-    "showcase:e2e:ui": "pnpm build:examples && vitest --project showcase-e2e --ui",
-    "showcase:e2e:headed": "pnpm build:examples && SHOWCASE_E2E_HEADLESS=false vitest --project showcase-e2e --run"
+    "showcase:e2e:deps": "pnpm -w exec tsx scripts/examples/build-showcase-deps.ts --force",
+    "showcase:e2e": "pnpm showcase:e2e:deps && vitest --project showcase-e2e --run",
+    "showcase:e2e:ui": "pnpm showcase:e2e:deps && vitest --project showcase-e2e --ui",
+    "showcase:e2e:headed": "pnpm showcase:e2e:deps && SHOWCASE_E2E_HEADLESS=false vitest --project showcase-e2e --run"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0"
@@ -74,7 +76,7 @@ Phase 13 = Vitest + Playwright E2E
 
 ```bash id="install-playwright"
 pnpm install
-# CI / 无系统 Chrome 环境需要；本地默认走系统 Chrome
+# 默认走 Playwright 管理的 Chromium
 pnpm exec playwright install chromium
 ```
 
@@ -83,6 +85,11 @@ pnpm exec playwright install chromium
 # 2. 在 Vitest 中新增 `showcase-e2e` project
 
 ```ts id="vitest-showcase-e2e-project"
+const showcaseSharedPath = resolve(
+  process.cwd(),
+  'examples/showcase-shared/src/index.ts',
+)
+
 {
   extends: true,
   test: {
@@ -93,6 +100,14 @@ pnpm exec playwright install chromium
     testTimeout: 30_000,
     hookTimeout: 120_000,
     pool: 'forks',
+  },
+  resolve: {
+    alias: [
+      {
+        find: /^@zeus-web\/example-showcase-shared$/,
+        replacement: showcaseSharedPath,
+      },
+    ],
   },
 }
 ```
@@ -142,7 +157,7 @@ function startShowcaseServer(
 
 ## `examples/showcase-e2e/utils/browser.ts`
 
-测试文件使用 Vitest 的 `describe/it`，浏览器生命周期由这个工具集中管理。本地默认走系统 Chrome，CI 默认使用 Playwright 管理的 Chromium；需要强制指定浏览器时可设置 `SHOWCASE_E2E_BROWSER_CHANNEL`。
+测试文件使用 Vitest 的 `describe/it`，浏览器生命周期由这个工具集中管理。默认走 Playwright 管理的 Chromium；需要强制使用系统 Chrome 时可设置 `SHOWCASE_E2E_BROWSER_CHANNEL=chrome`。
 
 ```ts id="e2e-browser"
 import type {
@@ -183,15 +198,7 @@ function shouldRunHeadless(): boolean {
 }
 
 function getBrowserChannel(): string | undefined {
-  if (process.env.SHOWCASE_E2E_BROWSER_CHANNEL) {
-    return process.env.SHOWCASE_E2E_BROWSER_CHANNEL
-  }
-
-  if (process.env.CI === 'true') {
-    return undefined
-  }
-
-  return 'chrome'
+  return process.env.SHOWCASE_E2E_BROWSER_CHANNEL || undefined
 }
 
 function getLaunchOptions(): BrowserTypeLaunchOptions {
@@ -211,7 +218,7 @@ function getLaunchOptions(): BrowserTypeLaunchOptions {
 ## `examples/showcase-e2e/utils/page-errors.ts`
 
 ```ts id="e2e-page-errors"
-import type { Page } from '@playwright/test'
+import type { Page, Response } from '@playwright/test'
 import { expect } from 'vitest'
 
 const ignoredConsolePatterns = [
@@ -219,19 +226,27 @@ const ignoredConsolePatterns = [
   /Vue Devtools/i,
   /vite\/client/i,
   /HMR connection/i,
-  /Failed to load resource.*vite/i,
-  /Failed to load resource.*404/i,
-  /\[zeus:web-c\] Failed to initialize/i,
-  /\[Zeus context\] No provider found/i,
+  /Failed to load resource: the server responded with a status of 404 \(Not Found\)/i,
+  /^\[zeus:web-c\] Failed to initialize <zw-.+>\. Error: \[Zeus context\] No provider found for context\./i,
 ]
+
+const ignoredResponsePatterns = [/\/favicon\.ico$/]
 
 export interface PageErrorCollector {
   assertClean: () => Promise<void>
 }
 
+function shouldIgnoreResponse(response: Response): boolean {
+  const url = response.url()
+
+  return ignoredResponsePatterns.some(pattern => pattern.test(url))
+}
+
 export function collectPageErrors(page: Page): PageErrorCollector {
   const pageErrors: string[] = []
   const consoleErrors: string[] = []
+  const failedResponses: string[] = []
+  const requestFailures: string[] = []
 
   page.on('pageerror', error => {
     pageErrors.push(error.stack || error.message)
@@ -620,7 +635,7 @@ docs/internal/examples/showcase-roadmap.md
 
 ```bash id="phase13-acceptance"
 pnpm install
-# CI / 无系统 Chrome 环境需要
+# 默认走 Playwright 管理的 Chromium
 pnpm exec playwright install chromium
 
 pnpm showcase:test

@@ -36,15 +36,7 @@ function shouldRunHeadless(): boolean {
 }
 
 function getBrowserChannel(): string | undefined {
-  if (process.env.SHOWCASE_E2E_BROWSER_CHANNEL) {
-    return process.env.SHOWCASE_E2E_BROWSER_CHANNEL
-  }
-
-  if (process.env.CI === 'true') {
-    return undefined
-  }
-
-  return 'chrome'
+  return process.env.SHOWCASE_E2E_BROWSER_CHANNEL || undefined
 }
 
 function getLaunchOptions(): BrowserTypeLaunchOptions {

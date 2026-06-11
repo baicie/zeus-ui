@@ -113,6 +113,10 @@ pnpm site:check
 pnpm site:build
 ```
 
+> `pnpm site:check` intentionally does not run `pnpm showcase:e2e` in Phase 13.
+> Browser E2E will be wired into CI gates in Phase 14 to avoid slowing down local
+> metadata/docs/unit checks.
+
 ## Next work
 
 Future phases should continue with CI and release quality:
