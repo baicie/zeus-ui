@@ -98,6 +98,20 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Set Playwright cache path and version
+        run: |
+          echo "PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/playwright-bin" >> "$GITHUB_ENV"
+          PLAYWRIGHT_VERSION="$(node -p "require('./node_modules/@playwright/test/package.json').version")"
+          echo "PLAYWRIGHT_VERSION=$PLAYWRIGHT_VERSION" >> "$GITHUB_ENV"
+
+      - name: Cache Playwright Chromium
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-playwright-bin-v1-${{ env.PLAYWRIGHT_VERSION }}
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-bin-v1-
+
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 

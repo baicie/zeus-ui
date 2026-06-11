@@ -834,9 +834,13 @@ E2E 可以单独 job：
 
 ```bash
 # CI / 无系统 Chrome 环境需要
+export PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/playwright-bin"
 pnpm exec playwright install --with-deps chromium
 pnpm showcase:e2e
 ```
+
+CI 中缓存 `PLAYWRIGHT_BROWSERS_PATH`，cache key 使用 runner OS 和
+`@playwright/test` 版本，避免每次重新下载 Chromium。
 
 建议 CI 分层：
 

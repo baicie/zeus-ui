@@ -361,6 +361,20 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Set Playwright cache path and version
+        run: |
+          echo "PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/playwright-bin" >> "$GITHUB_ENV"
+          PLAYWRIGHT_VERSION="$(node -p "require('./node_modules/@playwright/test/package.json').version")"
+          echo "PLAYWRIGHT_VERSION=$PLAYWRIGHT_VERSION" >> "$GITHUB_ENV"
+
+      - name: Cache Playwright Chromium
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-playwright-bin-v1-${{ env.PLAYWRIGHT_VERSION }}
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-bin-v1-
+
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
@@ -388,6 +402,22 @@ metadata/unit/build 先跑，e2e needs 它们：
   - unit 失败：说明页面交互单测有问题，不需要浏览器
   - build 失败：说明 app 无法构建，不需要 e2e
   - e2e 只在前三者通过后跑，减少 CI 浪费
+```
+
+Playwright 下载缓存参考 Vite CI 的模式：
+
+```txt
+PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=true:
+  pnpm install 阶段不隐式下载浏览器
+
+PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/playwright-bin:
+  浏览器二进制放到独立缓存目录
+
+cache key = runner.os + playwright version:
+  @playwright/test 升级时自动刷新缓存
+
+pnpm exec playwright install --with-deps chromium:
+  cache hit 时复用 Chromium 二进制，同时仍确认 Linux 系统依赖
 ```
 
 ---

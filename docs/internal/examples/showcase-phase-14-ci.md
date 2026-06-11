@@ -70,9 +70,15 @@ This validates that React and Vue showcase apps can build.
 Runs after metadata, unit and build.
 
 ```bash
+export PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/playwright-bin"
 pnpm exec playwright install --with-deps chromium
 pnpm showcase:ci:e2e
 ```
+
+The GitHub Actions job caches `PLAYWRIGHT_BROWSERS_PATH` with a key based on
+`runner.os` and the installed `@playwright/test` version. This follows Vite's
+CI pattern: dependency install skips implicit browser downloads, then the E2E
+job restores the browser cache and runs an explicit Chromium install step.
 
 On failure it uploads:
 

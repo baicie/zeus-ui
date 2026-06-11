@@ -34,7 +34,7 @@
     "@zeus-web/textarea": "workspace:*",
     "@zeus-web/themes": "workspace:*",
     "@zeus-web/tooltip": "workspace:*",
-    "vue": "^3.5.35",
+    "vue": "^3.5.38",
     "vue-router": "^5.1.0"
   },
   "devDependencies": {
