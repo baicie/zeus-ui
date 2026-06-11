@@ -1,0 +1,75 @@
+{
+  "name": "@zeus-web/select",
+  "type": "module",
+  "version": "0.0.0",
+  "description": "Headless select primitive for Zeus Web.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baicie/zeus-ui.git",
+    "directory": "packages/primitives/select"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "sideEffects": [
+    "./dist/wc/index.js",
+    "./dist/wc/*.js",
+    "./dist/**/*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/wc/index.d.ts",
+      "import": "./dist/wc/index.js"
+    },
+    "./wc": {
+      "types": "./dist/wc/index.d.ts",
+      "import": "./dist/wc/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
+    },
+    "./vue": {
+      "types": "./dist/vue/index.d.ts",
+      "import": "./dist/vue/index.js"
+    },
+    "./vue/global": {
+      "types": "./dist/vue/global.d.ts"
+    },
+    "./custom-elements.json": {
+      "default": "./dist/custom-elements.json"
+    },
+    "./zeus.components.json": {
+      "default": "./dist/zeus.components.json"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "rolldown -c ../../../rolldown.config.ts --watch",
+    "build": "rimraf dist && rolldown -c ../../../rolldown.config.ts",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest --root ../../.. --project unit packages/primitives/__tests__/phase11-contract.spec.ts"
+  },
+  "peerDependencies": {
+    "@zeus-js/zeus": ">=0.1.0-beta.5 <0.2.0",
+    "react": ">=18 || >=19",
+    "vue": ">=3"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@zeus-js/runtime-dom": "0.1.0-beta.5",
+    "@zeus-js/web-c-runtime": "0.2.0",
+    "@zeus-web/zeus-compat": "workspace:*"
+  }
+}

@@ -4,6 +4,15 @@
   "version": "0.0.0",
   "description": "Shared utilities for Zeus Web.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baicie/zeus-ui.git",
+    "directory": "packages/utils"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "sideEffects": false,
   "exports": {
     ".": {

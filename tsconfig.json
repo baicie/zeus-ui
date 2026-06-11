@@ -1,9 +1,20 @@
 {
-  "extends": "./scripts/tsconfig.base.json",
+  "extends": "./scripts/config/tsconfig.base.json",
   "compilerOptions": {
     "types": ["vitest/globals", "node"],
     "noEmit": true,
     "outDir": "temp",
     "isolatedDeclarations": false
-  }
+  },
+  "include": [
+    "scripts/config/jsx.d.ts",
+    "packages/*/src",
+    "packages/primitives/*/src",
+    "packages/*/__tests__",
+    "packages/primitives/*/__tests__",
+    "scripts/**/*",
+    "apps/**/*",
+    "examples/showcase-shared/src/**/*"
+  ],
+  "exclude": ["packages/zeus-compat/__tests__/canary-capabilities.spec.ts"]
 }

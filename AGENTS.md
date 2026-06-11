@@ -2,13 +2,20 @@
 
 ## 项目背景
 
-这是一个基于 pnpm workspace 的 monorepo 项目，用于管理和开发多个相关的 TypeScript 包。
+Zeus 是一个响应式前端框架 monorepo 项目，使用 pnpm workspace 管理多个 TypeScript 包。
 
 - 使用 TypeScript 开发，编译目标为 ES2016
 - 使用 pnpm 作为包管理器
 - 使用 Vitest 进行单元测试和 E2E 测试
 - 使用 ESLint 和 Prettier 进行代码质量检查（基于 @antfu/eslint-config）
-- 支持多包协同开发和发布
+- 核心包括响应式系统（`@zeus-js/signal`）、DOM Runtime（`@zeus-js/runtime-dom`）、JSX 编译器（`@zeus-js/compiler`）和 Web Component 输出工具链
+- 所有包的公共 API 必须参考 [docs/internal/packages.md](docs/internal/packages.md)，该文档为 API 唯一权威来源
+
+## 项目阶段
+
+- 当前项目处于 MVP（最小可行性产品）验证阶段，优先验证核心方案和快速迭代，无需考虑向后兼容、旧版本兼容、历史 API 兼容或迁移成本
+- 必要时可以直接进行破坏性变更，无需保留兼容层、废弃期或旧实现
+- 除非任务明确提出兼容性要求，否则本文档其他章节中的兼容性约束不适用
 
 ## AI助手使用规范
 
@@ -119,14 +126,36 @@ pnpm test-coverage # 生成测试覆盖率报告
 - 测试文件放在 `packages/{package-name}/__tests__/` 目录
 - 使用 `index.ts` 作为包的入口文件
 
+## 项目包 API 参考
+
+> **重要**：所有 `@zeus-js/*` 包的公共 API 详情（包括函数签名、类型定义、使用示例）必须参考 [docs/internal/packages.md](docs/internal/packages.md)。该文档由 AI 优先维护，是 Zeus 包 API 的唯一权威来源，AGENTS.md 中的 API 描述如与该文档冲突，以 `docs/internal/packages.md` 为准。
+
+### 包总览
+
+| 包名                                | 路径                                      | 类型     | 说明                              |
+| ----------------------------------- | ----------------------------------------- | -------- | --------------------------------- |
+| `@zeus-js/zeus`                     | `packages/core/zeus`                      | core     | 统一入口，导出所有公共 API        |
+| `@zeus-js/signal`                   | `packages/core/signal`                    | core     | 响应式核心，基于 alien-signals    |
+| `@zeus-js/runtime-dom`              | `packages/core/runtime-dom`               | core     | DOM runtime helpers               |
+| `@zeus-js/compiler`                 | `packages/core/compiler`                  | core     | Babel JSX 编译器插件              |
+| `@zeus-js/shared`                   | `packages/core/shared`                    | core     | 内部工具函数，无外部依赖          |
+| `@zeus-js/vite-plugin`              | `packages/devtools/vite-plugin`           | devtools | Vite 集成插件                     |
+| `@zeus-js/output-wc`                | `packages/web-c/output-wc`                | web-c    | Web Component 输出插件            |
+| `@zeus-js/component-analyzer`       | `packages/web-c/component-analyzer`       | web-c    | 组件分析器（解析 JSX）            |
+| `@zeus-js/bundler-plugin`           | `packages/web-c/bundler-plugin`           | web-c    | bundler 插件宿主（Vite / Rollup） |
+| `@zeus-js/preset-component-library` | `packages/web-c/preset-component-library` | web-c    | 组件库预设（一键集成）            |
+| `@zeus-ui/registry`                 | `packages/create/registry`                | create   | UI 组件注册表（copyable 源码）    |
+| `zeus-ui`                           | `packages/create/zeus-ui`                 | create   | CLI 工具添加 UI 组件到项目        |
+
+详细 API 文档见 [docs/internal/packages.md](docs/internal/packages.md)。
+
 ## Monorepo 工作流
 
 ### 包管理
 
-- 所有包共享根目录的依赖（devDependencies）
-- 包特定的依赖应在对应包的 `package.json` 中声明
-- 使用 pnpm workspace 协议引用内部包
-- 包之间的依赖应通过 workspace 协议声明
+- 所有包位于 `packages/` 目录下，通过 pnpm workspace 管理
+- `@zeus-js/*` 包为 Zeus 核心运行时和工具链包，`@zeus-ui/*` 包为 Zeus 生态工具包
+- 包之间的依赖通过 pnpm workspace 协议声明（如 `@zeus-js/signal`）
 
 ### 构建和发布
 
@@ -134,12 +163,14 @@ pnpm test-coverage # 生成测试覆盖率报告
 - 构建产物应放在 `packages/{package-name}/dist/` 目录
 - 使用统一的构建配置确保一致性
 - 发布前确保所有包的类型检查通过
+- `@zeus-js/*` 包为核心运行时和工具链包，`@zeus-js/output-*` 包为组件库编译输出包，`@zeus-ui/*` 包为生态工具包
 
 ### 路径别名
 
 项目配置了路径别名以便于包之间的引用：
 
 - `@zeus-js/*` 映射到 `packages/*/src`
+- `@zeus-ui/*` 映射到 `packages/*/src`
 
 ## 测试指南
 
@@ -392,4 +423,5 @@ refactor(parser): simplify AST node creation
 
 ## 特别说明
 
-如果使用 AI 编程助手（如 Cursor）进行开发，请在提交 PR 时在末尾标注：`> Submitted by Cursor`
+- 如果使用 AI 编程助手（如 Cursor）进行开发，请在提交 PR 时在末尾标注：`> Submitted by Cursor`
+- 所有 `@zeus-js/*` 包的 API 必须以 [docs/internal/packages.md](docs/internal/packages.md) 为准，该文档详细列出了每个包的导出函数、类型签名和使用示例

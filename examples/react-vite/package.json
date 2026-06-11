@@ -1,0 +1,31 @@
+{
+  "name": "@zeus-web/example-react-vite",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^6.0.2",
+    "@zeus-web/button": "workspace:*",
+    "@zeus-web/checkbox": "workspace:*",
+    "@zeus-web/dialog": "workspace:*",
+    "@zeus-web/input": "workspace:*",
+    "@zeus-web/switch": "workspace:*",
+    "@zeus-web/tabs": "workspace:*",
+    "@zeus-web/themes": "workspace:*",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tailwind-merge": "^3.6.0",
+    "vite": "^8.0.16"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^6.0.3"
+  }
+}

@@ -4,6 +4,15 @@
   "version": "0.0.0",
   "description": "Aggregated headless Web Components for Zeus Web.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baicie/zeus-ui.git",
+    "directory": "packages/headless"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "sideEffects": [
     "./dist/index.js"
   ],
@@ -19,9 +28,15 @@
   "scripts": {
     "dev": "tsup src/index.ts --format esm --dts --clean --watch",
     "build": "tsup src/index.ts --format esm --dts --clean",
-    "check": "tsc -p tsconfig.json --noEmit"
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest --root ../.. --project unit packages/headless/__tests__/headless.spec.ts"
   },
   "dependencies": {
-    "@zeus-web/input": "workspace:*"
+    "@zeus-web/button": "workspace:*",
+    "@zeus-web/checkbox": "workspace:*",
+    "@zeus-web/dialog": "workspace:*",
+    "@zeus-web/input": "workspace:*",
+    "@zeus-web/switch": "workspace:*",
+    "@zeus-web/tabs": "workspace:*"
   }
 }

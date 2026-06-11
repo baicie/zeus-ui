@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zeus Web Native WC Example</title>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <p>Zeus Web</p>
+        <h1>Native Web Components Example</h1>
+      </section>
+
+      <section class="panel">
+        <h2>Button</h2>
+        <zw-button variant="primary">Native WC Button</zw-button>
+      </section>
+
+      <section class="panel">
+        <h2>Input</h2>
+        <zw-input placeholder="Email" type="email"></zw-input>
+      </section>
+
+      <section class="panel">
+        <h2>Selection</h2>
+        <zw-checkbox>Accept terms</zw-checkbox>
+        <zw-switch>Enable notifications</zw-switch>
+      </section>
+
+      <section class="panel">
+        <h2>Tabs</h2>
+        <zw-tabs default-value="one">
+          <zw-tabs-list>
+            <zw-tabs-trigger value="one">One</zw-tabs-trigger>
+            <zw-tabs-trigger value="two">Two</zw-tabs-trigger>
+          </zw-tabs-list>
+          <zw-tabs-content value="one">Panel one</zw-tabs-content>
+          <zw-tabs-content value="two">Panel two</zw-tabs-content>
+        </zw-tabs>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

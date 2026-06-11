@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zeus Web - Vanilla Demo</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        padding: 2rem;
+        background: hsl(var(--muted));
+        color: hsl(var(--foreground));
+        min-height: 100vh;
+      }
+      h1 {
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+      }
+      section {
+        background: hsl(var(--card));
+        color: hsl(var(--card-foreground));
+        padding: 1.5rem;
+        border-radius: var(--radius);
+        border: 1px solid hsl(var(--border));
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        max-width: 400px;
+      }
+      h2 {
+        font-size: 1rem;
+        margin-bottom: 1rem;
+        color: hsl(var(--muted-foreground));
+      }
+      p {
+        margin-top: 1rem;
+        font-size: 0.875rem;
+        color: hsl(var(--muted-foreground));
+      }
+      span {
+        color: hsl(var(--foreground));
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Zeus Web - Vanilla Demo</h1>
+
+    <section>
+      <h2>Input 组件（无框架）</h2>
+      <zw-input id="my-input" placeholder="请输入内容..."></zw-input>
+      <p>当前值: <span id="value-display"></span></p>
+    </section>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

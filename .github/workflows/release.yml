@@ -1,43 +1,75 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version, for example 0.1.0-beta.0 or 0.1.0'
+        required: true
+        type: string
+      tag:
+        description: npm dist-tag
+        required: true
+        default: beta
+        type: choice
+        options:
+          - beta
+          - latest
+      dry_run:
+        description: Run with --dry-run (no commit, no publish)
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+  id-token: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: release-${{ github.event.inputs.version }}
+  cancel-in-progress: false
 
 jobs:
-  test:
-    uses: ./.github/workflows/test.yml
-
   release:
-    needs: [test]
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-    environment: Release
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
       - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
-          registry-url: 'https://registry.npmjs.org'
           cache: pnpm
-      - run: pnpm install
-      - run: npm i -g npm@latest
-      - name: Build and publish
-        run: pnpm release --publishOnly
-      - name: Create GitHub release
-        uses: yyx990803/release-tag@master
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Dry-run release
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          pnpm release \
+            ${{ github.event.inputs.version }} \
+            --tag ${{ github.event.inputs.tag }} \
+            --dry
+
+      - name: Release
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          pnpm release \
+            ${{ github.event.inputs.version }} \
+            --tag ${{ github.event.inputs.tag }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          body: |
-            For stable releases, please refer to [CHANGELOG.md](https://github.com/baicie/zeus/blob/main/CHANGELOG.md) for details.
-            For pre-releases, please refer to [CHANGELOG.md](https://github.com/baicie/zeus/blob/minor/CHANGELOG.md) of the `minor` branch.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create default tag for publish trigger
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          git tag default@${{ github.event.inputs.version }}
+          git push origin default@${{ github.event.inputs.version }}

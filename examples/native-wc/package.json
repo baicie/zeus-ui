@@ -1,0 +1,25 @@
+{
+  "name": "@zeus-web/example-native-wc",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@zeus-web/button": "workspace:*",
+    "@zeus-web/checkbox": "workspace:*",
+    "@zeus-web/dialog": "workspace:*",
+    "@zeus-web/input": "workspace:*",
+    "@zeus-web/switch": "workspace:*",
+    "@zeus-web/tabs": "workspace:*",
+    "@zeus-web/themes": "workspace:*",
+    "vite": "^8.0.16"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^6.0.3"
+  }
+}

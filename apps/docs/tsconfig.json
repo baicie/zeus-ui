@@ -1,0 +1,14 @@
+{
+  "extends": "../../scripts/config/tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "types": ["node", "vite/client"],
+    "noEmit": true,
+    "isolatedDeclarations": false
+  },
+  "include": [
+    ".vitepress/**/*.ts",
+    ".vitepress/**/*.vue",
+    ".vitepress/**/*.d.ts"
+  ]
+}

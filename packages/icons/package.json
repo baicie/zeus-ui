@@ -1,0 +1,68 @@
+{
+  "name": "@zeus-web/icons",
+  "type": "module",
+  "version": "0.0.0",
+  "description": "Multi-framework icon set for Zeus Web.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baicie/zeus-ui.git",
+    "directory": "packages/icons"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "sideEffects": [
+    "./dist/wc/index.js",
+    "./dist/wc/*.js"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
+    },
+    "./vue": {
+      "types": "./dist/vue/index.d.ts",
+      "import": "./dist/vue/index.js"
+    },
+    "./wc": {
+      "types": "./dist/wc/index.d.ts",
+      "import": "./dist/wc/index.js"
+    },
+    "./manifest.json": {
+      "default": "./dist/manifest.json"
+    },
+    "./svg/*": {
+      "default": "./dist/svg/*.svg"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "pnpm run build -- --watch",
+    "build": "rimraf dist && tsup src/index.ts --format esm --dts --clean && tsx scripts/build-icons.ts",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest --root ../.. --project unit packages/icons/__tests__/icons.spec.ts"
+  },
+  "peerDependencies": {
+    "react": ">=18 || >=19",
+    "vue": ">=3"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@zeus-js/output-icons": "0.1.0-beta.5"
+  }
+}

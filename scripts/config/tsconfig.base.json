@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0",
+    /* 项目引用 */
+    "composite": true,
+    /* 基础配置 */
+    "target": "ES2016",
+    "lib": ["ES2016", "DOM", "DOM.Iterable"],
+
+    /* 类字段 */
+    "useDefineForClassFields": false,
+    "emitDecoratorMetadata": true,
+    /* 装饰器支持 */
+    "experimentalDecorators": true,
+    /* 路径别名 */
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "paths": {
+      "@zeus-web/input": ["../../packages/primitives/input/src/index"],
+      "@zeus-web/input/wc": ["../../packages/primitives/input/src/index"],
+      "@zeus-web/input/react": ["../../packages/primitives/input/src/index"],
+      "@zeus-web/input/vue": ["../../packages/primitives/input/src/index"],
+      "@zeus-web/*/react": ["../../packages/primitives/*/src/index"],
+      "@zeus-web/*/vue": ["../../packages/primitives/*/src/index"],
+      "@zeus-web/*/wc": ["../../packages/primitives/*/src/index"],
+      "@zeus-web/*/vue/global": ["../../packages/primitives/*/src/index"],
+      "@zeus-web/*": ["../../packages/*/src", "../../packages/primitives/*/src"]
+    },
+    "resolveJsonModule": true,
+    /* 类型检查 */
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "declaration": true,
+    "declarationMap": true,
+    "newLine": "LF",
+
+    "removeComments": false,
+    /* 输出配置 */
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true,
+
+    /* 模块解析 */
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedDeclarations": true,
+    "isolatedModules": true,
+    "skipLibCheck": true
+  },
+  "references": [{ "path": "./tsconfig.build.json" }],
+  "include": [
+    "../../packages/*/src",
+    "../../packages/primitives/*/src",
+    "../../packages/*/__tests__",
+    "../../packages/primitives/*/__tests__",
+    "../../scripts/**/*",
+    "../../apps/**/*",
+    "../../examples/**/*"
+  ],
+  "exclude": [
+    "**/dist",
+    "**/temp",
+    "**/node_modules",
+    "**/tsconfig.tsbuildinfo",
+    "../../playground"
+  ]
+}

@@ -157,3 +157,8 @@ docs/.vitepress/cache
 .pnp.*
 
 # temp
+
+# Showcase E2E artifacts
+examples/showcase-e2e/.artifacts
+playwright-report
+test-results

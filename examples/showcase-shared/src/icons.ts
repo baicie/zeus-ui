@@ -1,0 +1,148 @@
+import type { ShowcaseIcon } from './types'
+
+export const showcaseIcons: ShowcaseIcon[] = [
+  {
+    name: 'check',
+    label: 'Check',
+    category: 'status',
+    tags: ['check', 'confirm', 'success', 'form', 'action'],
+  },
+  {
+    name: 'x',
+    label: 'X',
+    category: 'action',
+    tags: ['close', 'dismiss', 'remove', 'dialog'],
+  },
+  {
+    name: 'plus',
+    label: 'Plus',
+    category: 'action',
+    tags: ['add', 'create', 'new'],
+  },
+  {
+    name: 'minus',
+    label: 'Minus',
+    category: 'action',
+    tags: ['remove', 'collapse'],
+  },
+  {
+    name: 'chevron-down',
+    label: 'Chevron down',
+    category: 'navigation',
+    tags: ['arrow', 'down', 'select', 'disclosure'],
+  },
+  {
+    name: 'chevron-up',
+    label: 'Chevron up',
+    category: 'navigation',
+    tags: ['arrow', 'up', 'disclosure'],
+  },
+  {
+    name: 'chevron-left',
+    label: 'Chevron left',
+    category: 'navigation',
+    tags: ['arrow', 'left', 'previous'],
+  },
+  {
+    name: 'chevron-right',
+    label: 'Chevron right',
+    category: 'navigation',
+    tags: ['arrow', 'right', 'next'],
+  },
+  {
+    name: 'search',
+    label: 'Search',
+    category: 'action',
+    tags: ['find', 'filter', 'input', 'navigation'],
+  },
+  {
+    name: 'menu',
+    label: 'Menu',
+    category: 'navigation',
+    tags: ['hamburger', 'nav', 'layout'],
+  },
+  {
+    name: 'settings',
+    label: 'Settings',
+    category: 'action',
+    tags: ['gear', 'config', 'preferences'],
+  },
+  {
+    name: 'user',
+    label: 'User',
+    category: 'action',
+    tags: ['account', 'profile', 'avatar'],
+  },
+  {
+    name: 'copy',
+    label: 'Copy',
+    category: 'action',
+    tags: ['clipboard', 'duplicate'],
+  },
+  {
+    name: 'external-link',
+    label: 'External link',
+    category: 'navigation',
+    tags: ['open', 'link'],
+  },
+  {
+    name: 'info',
+    label: 'Info',
+    category: 'status',
+    tags: ['help', 'information', 'feedback'],
+  },
+  {
+    name: 'alert-triangle',
+    label: 'Alert triangle',
+    category: 'status',
+    tags: ['warning', 'error', 'feedback'],
+  },
+  {
+    name: 'circle-check',
+    label: 'Circle check',
+    category: 'status',
+    tags: ['success', 'done'],
+  },
+  {
+    name: 'circle-x',
+    label: 'Circle x',
+    category: 'status',
+    tags: ['error', 'failed'],
+  },
+  {
+    name: 'loader',
+    label: 'Loader',
+    category: 'status',
+    tags: ['loading', 'spinner', 'progress'],
+  },
+  {
+    name: 'sun',
+    label: 'Sun',
+    category: 'theme',
+    tags: ['light', 'theme'],
+  },
+  {
+    name: 'moon',
+    label: 'Moon',
+    category: 'theme',
+    tags: ['dark', 'theme'],
+  },
+  {
+    name: 'eye',
+    label: 'Eye',
+    category: 'media',
+    tags: ['visible', 'show', 'visibility', 'input'],
+  },
+  {
+    name: 'eye-off',
+    label: 'Eye off',
+    category: 'media',
+    tags: ['hidden', 'hide', 'visibility', 'input'],
+  },
+  {
+    name: 'trash',
+    label: 'Trash',
+    category: 'action',
+    tags: ['delete', 'remove', 'danger'],
+  },
+]

@@ -7,9 +7,6 @@ on:
     tags-ignore:
       - 'v*'
   pull_request:
-    branches:
-      - main
-      - minor
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -17,17 +14,35 @@ concurrency:
 
 jobs:
   test:
-    if: ${{ ! startsWith(github.event.head_commit.message, 'release:') && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
+    if: ${{ github.event_name != 'push' || ! startsWith(github.event.head_commit.message, 'release:') }}
     uses: ./.github/workflows/test.yml
 
+  showcase:
+    if: ${{ github.event_name != 'push' || ! startsWith(github.event.head_commit.message, 'release:') }}
+    uses: ./.github/workflows/showcase.yml
+
   build:
+    if: ${{ github.event_name != 'push' || ! startsWith(github.event.head_commit.message, 'release:') }}
     runs-on: ubuntu-latest
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
     steps:
       - uses: actions/checkout@v5
+
       - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
           cache: pnpm
-      - run: pnpm install
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:zeus-baseline
+      - run: pnpm check:workspace-overrides
+      - run: pnpm check:zeus-imports
+      - run: pnpm check
       - run: pnpm build
+      - run: pnpm check:exports
+      - run: pnpm check:build-output
+      - run: pnpm site:check
+      - run: pnpm release:verify --allow-zero

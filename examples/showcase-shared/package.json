@@ -1,0 +1,20 @@
+{
+  "name": "@zeus-web/example-showcase-shared",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "pnpm check",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "cd ../.. && pnpm vitest --project unit --run examples/showcase-shared/src/__tests__"
+  },
+  "dependencies": {
+    "@zeus-web/themes": "workspace:*"
+  }
+}

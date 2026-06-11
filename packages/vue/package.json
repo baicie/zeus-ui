@@ -4,6 +4,15 @@
   "version": "0.0.0",
   "description": "Vue wrappers for Zeus Web primitives.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baicie/zeus-ui.git",
+    "directory": "packages/vue"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "sideEffects": false,
   "exports": {
     ".": {
@@ -20,7 +29,7 @@
     "check": "tsc -p tsconfig.json --noEmit"
   },
   "peerDependencies": {
-    "vue": "^3.4 || ^3.5"
+    "vue": ">=3"
   },
   "peerDependenciesMeta": {
     "vue": {
@@ -28,6 +37,11 @@
     }
   },
   "dependencies": {
-    "@zeus-web/input": "workspace:*"
+    "@zeus-web/button": "workspace:*",
+    "@zeus-web/checkbox": "workspace:*",
+    "@zeus-web/dialog": "workspace:*",
+    "@zeus-web/input": "workspace:*",
+    "@zeus-web/switch": "workspace:*",
+    "@zeus-web/tabs": "workspace:*"
   }
 }

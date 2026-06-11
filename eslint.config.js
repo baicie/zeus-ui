@@ -20,6 +20,7 @@ export default defineConfig(
       'no-restricted-syntax': ['error', banConstEnum],
       'style/operator-linebreak': 'off',
       'antfu/if-newline': 'off',
+      'style/arrow-parens': 'off',
     },
   },
 
@@ -49,6 +50,13 @@ export default defineConfig(
       'style/operator-linebreak': 'off',
       'antfu/if-newline': 'off',
       'jsonc/sort-keys': 'off',
+    },
+  },
+
+  {
+    files: ['pnpm-workspace.yaml'],
+    rules: {
+      'pnpm/yaml-enforce-settings': 'off',
     },
   },
 
@@ -89,7 +97,31 @@ export default defineConfig(
       'style/arrow-parens': ['error', 'as-needed'],
       'antfu/if-newline': 'off',
       'style/brace-style': ['error', '1tbs', { allowSingleLine: true }],
+      'style/quote-props': 'off',
       'perfectionist/sort-named-exports': 'off',
+      // Disable in favour of Prettier's formatting.
+      'style/member-delimiter-style': 'off',
+      'style/quotes': 'off',
+      'style/jsx-curly-newline': 'off',
+      'style/jsx-one-expression-per-line': 'off',
+      'style/jsx-wrap-multilines': 'off',
+      'style/multiline-ternary': 'off',
+      'style/indent': 'off',
+      'style/indent-binary-ops': 'off',
+    },
+  },
+  // Vue files - disable rules that conflict with Prettier
+  {
+    files: ['**/*.vue'],
+    rules: {
+      'style/brace-style': 'off',
+      'style/member-delimiter-style': 'off',
+      'style/quotes': 'off',
+      'vue/html-closing-bracket-newline': 'off',
+      'vue/html-indent': 'off',
+      'vue/html-self-closing': 'off',
+      'vue/singleline-html-element-content-newline': 'off',
+      'vue/multiline-html-element-content-newline': 'off',
     },
   },
 
@@ -107,6 +139,7 @@ export default defineConfig(
       '**/.vitepress/cache/',
       '**/.vitepress/dist/',
       'packages/napi',
+      '**/next-env.d.ts',
     ],
   },
 )

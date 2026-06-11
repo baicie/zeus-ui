@@ -1,0 +1,21 @@
+{
+  "name": "@zeus-web/example-vite-vue2",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Vite + Vue 2 example for Zeus Web.",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@zeus-web/input": "workspace:*",
+    "@zeus-web/themes": "workspace:*",
+    "vue": "^3.5.38"
+  },
+  "devDependencies": {
+    "vite": "^8.0.16"
+  }
+}

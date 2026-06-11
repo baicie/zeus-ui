@@ -1,10 +1,16 @@
 {
-  "extends": "../../scripts/tsconfig.base.json",
+  "extends": "../../scripts/config/tsconfig.base.json",
   "compilerOptions": {
     "composite": false,
-    "rootDir": "src",
+    "rootDir": "../..",
+    "types": ["node"],
     "outDir": "dist",
     "isolatedDeclarations": false
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    "../../packages/ai/src",
+    "../../packages/registry/src",
+    "../../packages/themes/src"
+  ]
 }

@@ -4,6 +4,15 @@
   "version": "0.0.0",
   "description": "Registry for Zeus Web shadcn-like components.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baicie/zeus-ui.git",
+    "directory": "packages/registry"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "sideEffects": false,
   "exports": {
     ".": {
@@ -15,12 +24,14 @@
     }
   },
   "files": [
+    "default",
     "dist",
     "registry.json"
   ],
   "scripts": {
     "dev": "tsup src/index.ts --format esm --dts --clean --watch",
     "build": "tsup src/index.ts --format esm --dts --clean",
-    "check": "tsc -p tsconfig.json --noEmit"
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest --root ../.. --project unit packages/registry/__tests__/registry.spec.ts packages/registry/__tests__/phase11-registry.spec.ts packages/registry/__tests__/phase12-registry.spec.ts"
   }
 }

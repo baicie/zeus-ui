@@ -1,0 +1,237 @@
+name: Zeus Canary Compatibility
+
+on:
+  repository_dispatch:
+    types:
+      - zeus-canary-published
+
+  workflow_dispatch:
+    inputs:
+      target_ref:
+        description: Branch to test against Zeus canary
+        required: false
+        default: mvp
+        type: string
+
+      zeus_version:
+        description: Exact Zeus canary version or canary dist-tag
+        required: false
+        default: canary
+        type: string
+
+  schedule:
+    - cron: '17 2 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: >-
+    zeus-canary-compat-${{
+      github.event.client_payload.target_ref ||
+      inputs.target_ref ||
+      'mvp'
+    }}
+  cancel-in-progress: true
+
+jobs:
+  compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+
+    steps:
+      - name: Resolve target ref
+        shell: bash
+        env:
+          DISPATCH_TARGET_REF: ${{ github.event.client_payload.target_ref }}
+          MANUAL_TARGET_REF: ${{ inputs.target_ref }}
+        run: |
+          set -euo pipefail
+
+          TARGET_REF="${DISPATCH_TARGET_REF:-${MANUAL_TARGET_REF:-mvp}}"
+
+          case "$TARGET_REF" in
+            main|mvp)
+              ;;
+            *)
+              echo "Unsupported target ref: $TARGET_REF" >&2
+              exit 1
+              ;;
+          esac
+
+          echo "TARGET_REF=$TARGET_REF" >> "$GITHUB_ENV"
+          echo "Testing zeus-ui ref: $TARGET_REF"
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TARGET_REF }}
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Print dispatch payload
+        if: github.event_name == 'repository_dispatch'
+        env:
+          DISPATCH_SOURCE: ${{ github.event.client_payload.source }}
+          DISPATCH_SHA: ${{ github.event.client_payload.sha }}
+          DISPATCH_VERSION: ${{ github.event.client_payload.version }}
+          DISPATCH_TARGET_REF: ${{ github.event.client_payload.target_ref }}
+        run: |
+          printf 'source=%s\n' "$DISPATCH_SOURCE"
+          printf 'sha=%s\n' "$DISPATCH_SHA"
+          printf 'version=%s\n' "$DISPATCH_VERSION"
+          printf 'target_ref=%s\n' "$DISPATCH_TARGET_REF"
+
+      - name: Resolve Zeus version
+        shell: bash
+        env:
+          DISPATCH_VERSION: ${{ github.event.client_payload.version }}
+          MANUAL_VERSION: ${{ inputs.zeus_version }}
+        run: |
+          set -euo pipefail
+
+          VERSION="${DISPATCH_VERSION:-${MANUAL_VERSION:-canary}}"
+
+          if [[ ! "$VERSION" =~ ^(canary|[0-9]+\.[0-9]+\.[0-9]+-[0-9A-Za-z.-]+)$ ]]; then
+            echo "Invalid Zeus canary version: $VERSION" >&2
+            exit 1
+          fi
+
+          echo "ZEUS_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Testing Zeus version: $VERSION"
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Check workspace overrides
+        run: pnpm check:workspace-overrides
+
+      - name: Check Zeus baseline
+        run: pnpm check:zeus-baseline
+
+      - name: Relax Zeus peer ranges for selected canary
+        run: pnpm zeus:relax-peer-ranges
+
+      - name: Install selected Zeus packages
+        run: |
+          pnpm add -Dw \
+            "@zeus-js/zeus@${ZEUS_VERSION}" \
+            "@zeus-js/runtime-dom@${ZEUS_VERSION}" \
+            "@zeus-js/web-c-runtime@${ZEUS_VERSION}" \
+            "@zeus-js/signal@${ZEUS_VERSION}" \
+            "@zeus-js/compiler@${ZEUS_VERSION}" \
+            "@zeus-js/component-analyzer@${ZEUS_VERSION}" \
+            "@zeus-js/component-dts@${ZEUS_VERSION}" \
+            "@zeus-js/bundler-plugin@${ZEUS_VERSION}" \
+            "@zeus-js/output-wc@${ZEUS_VERSION}" \
+            "@zeus-js/output-react-wrapper@${ZEUS_VERSION}" \
+            "@zeus-js/output-vue-wrapper@${ZEUS_VERSION}" \
+            "@zeus-js/output-css@${ZEUS_VERSION}" \
+            "@zeus-js/output-icons@${ZEUS_VERSION}" \
+            "@zeus-js/preset-component-library@${ZEUS_VERSION}" \
+            "@zeus-js/vite-plugin@${ZEUS_VERSION}" \
+            --save-exact
+
+      - name: Verify installed Zeus versions
+        run: |
+          node --input-type=module <<'EOF'
+          import fs from 'node:fs'
+          import path from 'node:path'
+
+          const packageNames = [
+            '@zeus-js/zeus',
+            '@zeus-js/runtime-dom',
+            '@zeus-js/web-c-runtime',
+            '@zeus-js/signal',
+            '@zeus-js/compiler',
+            '@zeus-js/component-analyzer',
+            '@zeus-js/component-dts',
+            '@zeus-js/bundler-plugin',
+            '@zeus-js/output-wc',
+            '@zeus-js/output-react-wrapper',
+            '@zeus-js/output-vue-wrapper',
+            '@zeus-js/output-css',
+            '@zeus-js/output-icons',
+            '@zeus-js/preset-component-library',
+            '@zeus-js/vite-plugin',
+          ]
+
+          const versions = new Map(
+            packageNames.map(name => {
+              const file = path.join(
+                'node_modules',
+                ...name.split('/'),
+                'package.json',
+              )
+
+              const pkg = JSON.parse(fs.readFileSync(file, 'utf8'))
+
+              return [name, pkg.version]
+            }),
+          )
+
+          const zeusVersion = versions.get('@zeus-js/zeus')
+          const expectedVersion = process.env.ZEUS_VERSION
+
+          if (
+            expectedVersion !== 'canary' &&
+            zeusVersion !== expectedVersion
+          ) {
+            console.error(
+              `Expected @zeus-js/zeus@${expectedVersion}, got ${zeusVersion}`,
+            )
+            process.exit(1)
+          }
+
+          for (const [name, version] of versions) {
+            if (version !== zeusVersion) {
+              console.error(
+                `Expected ${name}@${zeusVersion}, got ${name}@${version}`,
+              )
+              process.exit(1)
+            }
+          }
+
+          console.log(`Verified synchronized Zeus version: ${zeusVersion}`)
+          EOF
+
+      - name: Print Zeus versions
+        run: |
+          pnpm list \
+            @zeus-js/zeus \
+            @zeus-js/bundler-plugin \
+            @zeus-js/output-wc \
+            @zeus-js/runtime-dom \
+            @zeus-js/web-c-runtime
+
+      - name: Check import boundaries
+        run: pnpm check:zeus-imports
+
+      - name: Typecheck
+        run: pnpm check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests
+        run: pnpm test-unit
+
+      - name: Zeus capabilities contract
+        run: pnpm vitest run --project canary
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Check package exports
+        run: pnpm check:exports
+
+      - name: Check build output
+        run: pnpm check:build-output

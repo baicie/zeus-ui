@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "composite": false,
+    "target": "ES2016",
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["vite/client", "react", "react-dom"],
+    "strict": true,
+    "noEmit": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "isolatedDeclarations": false,
+    "skipLibCheck": true
+  },
+  "include": ["src"],
+  "exclude": [
+    "**/dist",
+    "**/node_modules",
+    "../../packages",
+    "../../packages/primitives"
+  ]
+}

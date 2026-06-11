@@ -1,0 +1,49 @@
+{
+  "name": "@zeus-web/example-vue-showcase",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build:deps": "pnpm -w exec tsx scripts/examples/build-showcase-deps.ts --force",
+    "dev": "pnpm build:deps && vite --host 0.0.0.0 --port 5174",
+    "build": "pnpm build:deps && vite build",
+    "check": "pnpm build:deps && vue-tsc -p tsconfig.json --noEmit",
+    "test": "pnpm build:deps && vitest --run"
+  },
+  "dependencies": {
+    "@zeus-web/accordion": "workspace:*",
+    "@zeus-web/alert": "workspace:*",
+    "@zeus-web/avatar": "workspace:*",
+    "@zeus-web/badge": "workspace:*",
+    "@zeus-web/button": "workspace:*",
+    "@zeus-web/card": "workspace:*",
+    "@zeus-web/checkbox": "workspace:*",
+    "@zeus-web/collapsible": "workspace:*",
+    "@zeus-web/dialog": "workspace:*",
+    "@zeus-web/example-showcase-shared": "workspace:*",
+    "@zeus-web/icons": "workspace:*",
+    "@zeus-web/input": "workspace:*",
+    "@zeus-web/label": "workspace:*",
+    "@zeus-web/progress": "workspace:*",
+    "@zeus-web/radio-group": "workspace:*",
+    "@zeus-web/select": "workspace:*",
+    "@zeus-web/separator": "workspace:*",
+    "@zeus-web/skeleton": "workspace:*",
+    "@zeus-web/switch": "workspace:*",
+    "@zeus-web/tabs": "workspace:*",
+    "@zeus-web/textarea": "workspace:*",
+    "@zeus-web/themes": "workspace:*",
+    "@zeus-web/tooltip": "workspace:*",
+    "vue": "^3.5.38",
+    "vue-router": "^5.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.7",
+    "@vue/test-utils": "^2.4.11",
+    "jsdom": "^29.1.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8",
+    "vue-tsc": "^3.3.4"
+  }
+}
