@@ -4,6 +4,8 @@ import type {
   BrowserTypeLaunchOptions,
   Page,
 } from '@playwright/test'
+import { mkdir } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import process from 'node:process'
 import { chromium } from '@playwright/test'
 import { afterAll } from 'vitest'
@@ -35,6 +37,12 @@ function shouldRunHeadless(): boolean {
   return process.env.SHOWCASE_E2E_HEADLESS !== 'false'
 }
 
+function shouldRecordArtifacts(): boolean {
+  return (
+    process.env.CI === 'true' || process.env.SHOWCASE_E2E_ARTIFACTS === 'true'
+  )
+}
+
 function getBrowserChannel(): string | undefined {
   return process.env.SHOWCASE_E2E_BROWSER_CHANNEL || undefined
 }
@@ -60,6 +68,24 @@ function getBrowser(): Promise<Browser> {
   return browserPromise
 }
 
+function toSafeFileName(value: string): string {
+  return value.replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '')
+}
+
+function createArtifactPrefix(target: ShowcaseTarget): string {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+  return `${timestamp}-${toSafeFileName(target.name)}`
+}
+
+async function ensureArtifactDir(): Promise<string> {
+  const artifactDir = resolve(process.cwd(), 'examples/showcase-e2e/.artifacts')
+  await mkdir(artifactDir, {
+    recursive: true,
+  })
+
+  return artifactDir
+}
+
 afterAll(() => {
   if (!browserPromise) {
     return Promise.resolve()
@@ -76,19 +102,66 @@ export function withShowcasePage<T>(
   target: ShowcaseTarget,
   callback: ShowcasePageCallback<T>,
 ): Promise<T> {
-  return getBrowser().then(browser =>
-    browser
-      .newContext({
-        baseURL: target.baseURL,
-        viewport: {
-          width: 1280,
-          height: 720,
-        },
+  return getBrowser().then(async browser => {
+    const context = await browser.newContext({
+      baseURL: target.baseURL,
+      viewport: {
+        width: 1280,
+        height: 720,
+      },
+    })
+
+    const shouldTrace = shouldRecordArtifacts()
+    let traceStopped = false
+
+    if (shouldTrace) {
+      await context.tracing.start({
+        screenshots: true,
+        snapshots: true,
+        sources: true,
       })
-      .then(context =>
-        context
-          .newPage()
-          .then(page => callback(page, context).finally(() => context.close())),
-      ),
-  )
+    }
+
+    const page = await context.newPage()
+
+    try {
+      const result = await callback(page, context)
+
+      if (shouldTrace) {
+        await context.tracing.stop()
+        traceStopped = true
+      }
+
+      return result
+    } catch (error) {
+      if (shouldTrace) {
+        const artifactDir = await ensureArtifactDir()
+        const artifactPrefix = createArtifactPrefix(target)
+
+        await page
+          .screenshot({
+            path: resolve(artifactDir, `${artifactPrefix}.png`),
+            fullPage: true,
+          })
+          .catch(() => {})
+
+        await context.tracing
+          .stop({
+            path: resolve(artifactDir, `${artifactPrefix}.trace.zip`),
+          })
+          .then(() => {
+            traceStopped = true
+          })
+          .catch(() => {})
+      }
+
+      throw error
+    } finally {
+      if (shouldTrace && !traceStopped) {
+        await context.tracing.stop().catch(() => {})
+      }
+
+      await context.close()
+    }
+  })
 }

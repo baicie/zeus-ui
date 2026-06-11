@@ -20,6 +20,7 @@ This document tracks the implementation status of the React and Vue showcase app
 | Phase 11 | Done   | Playground page with admin dashboard, settings form, project creation flow and interaction tests                 |
 | Phase 12 | Done   | Unit tests for shared metadata, route smoke, foundation pages, playground interactions and root test-unit wiring |
 | Phase 13 | Done   | Vitest-powered Playwright E2E smoke tests for React and Vue showcase routes and foundation interactions          |
+| Phase 14 | Done   | CI workflow gates for showcase metadata, unit tests, builds and Vitest-powered Playwright E2E                    |
 
 ## Implemented component pages
 
@@ -90,7 +91,7 @@ This document tracks the implementation status of the React and Vue showcase app
 
 ## Engineering guarantees
 
-The showcase has six layers of checks:
+The showcase has seven layers of checks:
 
 1. Metadata checks validate component metadata coverage.
 2. Implementation checks validate that implemented demos have React and Vue files, dependencies and build dependency scripts.
@@ -98,6 +99,7 @@ The showcase has six layers of checks:
 4. Foundation page tests validate icons, themes and playground interaction behavior.
 5. Shared unit tests validate metadata helpers, icon snippets, theme helpers and playground fixtures.
 6. Vitest-powered Playwright E2E tests validate React and Vue showcase routes and critical browser interactions.
+7. CI gates run showcase metadata, unit tests, builds and browser E2E as separate jobs.
 
 ## Commands
 
@@ -109,19 +111,19 @@ pnpm showcase:build
 pnpm showcase:e2e
 pnpm showcase:e2e:ui
 pnpm showcase:e2e:headed
+pnpm showcase:ci
 pnpm site:check
 pnpm site:build
 ```
 
-> `pnpm site:check` intentionally does not run `pnpm showcase:e2e` in Phase 13.
-> Browser E2E will be wired into CI gates in Phase 14 to avoid slowing down local
-> metadata/docs/unit checks.
+> `pnpm site:check` intentionally does not run `pnpm showcase:e2e`.
+> Browser E2E is wired into CI through `.github/workflows/showcase.yml`.
 
 ## Next work
 
-Future phases should continue with CI and release quality:
+Future phases should continue with visual and release quality:
 
-- Phase 14: Add CI workflow jobs for showcase unit tests, build and e2e.
 - Add visual snapshots for the most important component states.
+- Add optional multi-browser showcase E2E matrix.
 - Replace demo-only CSS with exported component theme styles where appropriate.
 - Generate this roadmap from `examples/showcase-shared/src/implemented.ts`.
