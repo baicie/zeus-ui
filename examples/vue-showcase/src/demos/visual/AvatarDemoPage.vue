@@ -29,20 +29,20 @@ const eventLogRows = [
 const propTableRows = [
   {
     name: 'size',
-    type: '\'sm\' | \'md\' | \'lg\'',
-    defaultValue: '\'md\'',
+    type: "'sm' | 'md' | 'lg'",
+    defaultValue: "'md'",
     description: 'Avatar size.',
   },
   {
     name: 'shape',
-    type: '\'circle\' | \'square\'',
-    defaultValue: '\'circle\'',
+    type: "'circle' | 'square'",
+    defaultValue: "'circle'",
     description: 'Avatar shape.',
   },
   {
     name: 'imageStatus',
-    type: '\'idle\' | \'loading\' | \'loaded\' | \'error\'',
-    defaultValue: '\'idle\'',
+    type: "'idle' | 'loading' | 'loaded' | 'error'",
+    defaultValue: "'idle'",
     description: 'Current image loading status.',
   },
   {

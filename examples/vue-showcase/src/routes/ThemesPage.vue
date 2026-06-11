@@ -13,11 +13,8 @@ import {
   showcaseDarkModeStrategies,
   showcaseMotionPresets,
   showcaseRadiusPresets,
-
   showcaseThemeModes,
-
   showcaseThemes,
-
   showcaseThemeTokenGroups,
 } from '@zeus-web/example-showcase-shared'
 import { computed, ref } from 'vue'
@@ -231,7 +228,7 @@ async function copySnippet(kind: ShowcaseThemeSnippetKind) {
             <span class="showcase-badge">Form</span>
             <label class="showcase-theme-form-field">
               <span>Email</span>
-              <input value="zeus@example.com">
+              <input value="zeus@example.com" />
             </label>
             <button class="showcase-theme-secondary-button" type="button">
               Save settings

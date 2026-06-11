@@ -41,14 +41,14 @@ const propTableRows = [
   },
   {
     name: 'orientation',
-    type: '\'horizontal\' | \'vertical\'',
-    defaultValue: '\'vertical\'',
+    type: "'horizontal' | 'vertical'",
+    defaultValue: "'vertical'",
     description: 'Radio group layout direction.',
   },
   {
     name: 'size',
-    type: '\'sm\' | \'md\' | \'lg\'',
-    defaultValue: '\'md\'',
+    type: "'sm' | 'md' | 'lg'",
+    defaultValue: "'md'",
     description: 'Radio item size.',
   },
 ]

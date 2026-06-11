@@ -57,8 +57,8 @@ const propTableRows = [
   },
   {
     name: 'resize',
-    type: '\'none\' | \'vertical\' | \'horizontal\' | \'both\'',
-    defaultValue: '\'vertical\'',
+    type: "'none' | 'vertical' | 'horizontal' | 'both'",
+    defaultValue: "'vertical'",
     description: 'Textarea resize behavior.',
   },
   {
