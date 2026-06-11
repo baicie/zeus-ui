@@ -1,4 +1,5 @@
 import type { VueWrapper } from '@vue/test-utils'
+import { flushPromises } from '@vue/test-utils'
 
 export function dispatchZeusEvent(
   element: Element,
@@ -25,6 +26,7 @@ export async function emitZeusEvent(
   dispatchZeusEvent(element, name, detail)
 
   await wrapper.vm.$nextTick()
+  await flushPromises()
 }
 
 export function findButtonByText(wrapper: VueWrapper, text: string) {

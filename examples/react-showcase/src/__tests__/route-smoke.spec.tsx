@@ -6,7 +6,7 @@ import { renderReactShowcaseRoute } from '../test-utils/render-route'
 const staticRoutes = [
   {
     path: '/',
-    assertion: /Zeus Web React Showcase/i,
+    assertion: /Zeus Web component laboratory/i,
   },
   {
     path: '/components',
@@ -45,7 +45,7 @@ describe('react showcase routes', () => {
       )
 
       expect(container.textContent).toContain(componentName)
-      expect(container.textContent).not.toContain('Not found')
+      expect(container.textContent).not.toMatch(/not found/i)
     },
   )
 

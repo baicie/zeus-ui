@@ -26,12 +26,18 @@ importers:
       '@stylistic/eslint-plugin':
         specifier: ^5.10.0
         version: 5.10.0(eslint@10.4.1)
+      '@testing-library/jest-dom':
+        specifier: ^6.9.1
+        version: 6.9.1
       '@types/node':
         specifier: ^25.9.3
         version: 25.9.3
       '@types/react':
         specifier: ^19.2.17
         version: 19.2.17
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.7
+        version: 6.0.7(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
       '@zeus-js/bundler-plugin':
         specifier: 0.1.0-beta.5
         version: 0.1.0-beta.5(rolldown@1.1.0)(rollup@4.61.1)(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.0)(tsx@4.22.4)(yaml@2.9.0))

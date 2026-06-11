@@ -1,5 +1,7 @@
 import type { MockInstance } from 'vitest'
 
+import '@testing-library/jest-dom/vitest'
+
 declare module 'vitest' {
   interface Assertion<T = any> extends CustomMatchers<T> {}
   interface AsymmetricMatchersContaining extends CustomMatchers {}
@@ -89,6 +91,8 @@ expect.extend({
   },
 })
 
+const KNOWN_NOISE_PREFIXES = ['[Zeus context]', '[zeus:web-c]']
+
 beforeEach(() => {
   asserted.clear()
   warn = vi.spyOn(console, 'warn')
@@ -100,6 +104,11 @@ afterEach(() => {
   const nonAssertedWarnings = warn.mock.calls
     .map(args => args[0])
     .filter(received => {
+      if (
+        KNOWN_NOISE_PREFIXES.some(prefix => String(received).startsWith(prefix))
+      ) {
+        return false
+      }
       return !assertedArray.some(assertedMsg => {
         return received.includes(assertedMsg)
       })

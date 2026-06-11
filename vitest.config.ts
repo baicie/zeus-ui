@@ -1,4 +1,5 @@
 import { resolve } from 'node:path'
+import vue from '@vitejs/plugin-vue'
 
 import { configDefaults, defineConfig } from 'vitest/config'
 
@@ -84,6 +85,16 @@ export default defineConfig({
             'packages/**/*.spec.ts',
             'packages/**/*.test.tsx',
             'packages/**/*.spec.tsx',
+
+            // Showcase page / route unit tests (requires build:examples deps).
+            'examples/react-showcase/src/**/*.test.ts',
+            'examples/react-showcase/src/**/*.spec.ts',
+            'examples/react-showcase/src/**/*.test.tsx',
+            'examples/react-showcase/src/**/*.spec.tsx',
+            'examples/vue-showcase/src/**/*.test.ts',
+            'examples/vue-showcase/src/**/*.spec.ts',
+            'examples/vue-showcase/src/**/*.test.tsx',
+            'examples/vue-showcase/src/**/*.spec.tsx',
           ],
           exclude: [
             ...configDefaults.exclude,
@@ -92,6 +103,7 @@ export default defineConfig({
             canaryCapabilitiesTest,
           ],
         },
+        plugins: [vue()],
         resolve: {
           conditions: ['import', 'module', 'browser', 'default'],
           alias: [
@@ -104,6 +116,79 @@ export default defineConfig({
               find: /^@zeus-js\/runtime-dom$/,
               replacement: runtimeDomEsmPath,
             },
+            // React wrapper sub-paths for showcase tests (must come before base @zeus-web/* aliases).
+            ...[
+              '@zeus-web/alert',
+              '@zeus-web/badge',
+              '@zeus-web/button',
+              '@zeus-web/checkbox',
+              '@zeus-web/dialog',
+              '@zeus-web/input',
+              '@zeus-web/progress',
+              '@zeus-web/select',
+              '@zeus-web/switch',
+              '@zeus-web/accordion',
+              '@zeus-web/collapsible',
+              '@zeus-web/tooltip',
+              '@zeus-web/card',
+              '@zeus-web/avatar',
+              '@zeus-web/skeleton',
+              '@zeus-web/separator',
+              '@zeus-web/label',
+              '@zeus-web/radio-group',
+              '@zeus-web/tabs',
+              '@zeus-web/textarea',
+            ].flatMap(pkg => ({
+              find: new RegExp(`^${pkg}/react$`),
+              replacement: resolve(
+                process.cwd(),
+                `packages/primitives/${pkg.replace('@zeus-web/', '')}/dist/react/index.js`,
+              ),
+            })),
+            // Icons and themes are in packages/* (not packages/primitives/*).
+            {
+              find: /^@zeus-web\/icons\/react$/,
+              replacement: resolve(
+                process.cwd(),
+                'packages/icons/dist/react/index.js',
+              ),
+            },
+            {
+              find: /^@zeus-web\/themes\/react$/,
+              replacement: resolve(
+                process.cwd(),
+                'packages/themes/dist/react/index.js',
+              ),
+            },
+            // Vue wrapper sub-paths for showcase tests.
+            ...[
+              '@zeus-web/alert',
+              '@zeus-web/badge',
+              '@zeus-web/button',
+              '@zeus-web/checkbox',
+              '@zeus-web/dialog',
+              '@zeus-web/input',
+              '@zeus-web/progress',
+              '@zeus-web/select',
+              '@zeus-web/switch',
+              '@zeus-web/accordion',
+              '@zeus-web/collapsible',
+              '@zeus-web/tooltip',
+              '@zeus-web/card',
+              '@zeus-web/avatar',
+              '@zeus-web/skeleton',
+              '@zeus-web/separator',
+              '@zeus-web/label',
+              '@zeus-web/radio-group',
+              '@zeus-web/tabs',
+              '@zeus-web/textarea',
+            ].flatMap(pkg => ({
+              find: new RegExp(`^${pkg}/vue$`),
+              replacement: resolve(
+                process.cwd(),
+                `packages/primitives/${pkg.replace('@zeus-web/', '')}/dist/vue/index.js`,
+              ),
+            })),
             // Then workspace aliases required by local packages.
             ...Object.entries(entries).map(([find, replacement]) => ({
               find,

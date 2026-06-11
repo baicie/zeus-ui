@@ -1,18 +1,20 @@
-import { fireEvent, screen } from '@testing-library/react'
+import { act, fireEvent, screen } from '@testing-library/react'
 
 export function dispatchZeusEvent(
   element: Element,
   name: string,
   detail: Record<string, unknown> = {},
 ): void {
-  fireEvent(
-    element,
-    new CustomEvent(name, {
-      bubbles: true,
-      composed: true,
-      detail,
-    }),
-  )
+  act(() => {
+    fireEvent(
+      element,
+      new CustomEvent(name, {
+        bubbles: true,
+        composed: true,
+        detail,
+      }),
+    )
+  })
 }
 
 export function getCustomElementByText(
