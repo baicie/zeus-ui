@@ -106,7 +106,7 @@ function isRegistryPhase17RequiredItem(name: string): boolean {
 
 function getRegistryUiItems(registry: Registry): RegistryItem[] {
   return registry.items.filter(
-    item => item.type === 'registry:ui' || item.type === 'component',
+    item => item.type === 'component' || item.type === 'registry:ui',
   )
 }
 

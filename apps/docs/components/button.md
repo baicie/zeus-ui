@@ -79,19 +79,16 @@ Internal selectors:
 
 ## Registry
 
-Type: `registry:ui`
+Type: `component`
 
 Dependencies:
 
 - `@zeus-web/button`
-- `class-variance-authority`
-- `clsx`
-- `tailwind-merge`
 
 Files:
 
-- `templates/react/button.tsx` → `components/ui/button.tsx` (`registry:ui`)
-- `templates/vue/button.vue` → `components/ui/button.vue` (`registry:ui`)
+- `templates/react/button.tsx` → `components/ui/button.tsx`
+- `templates/vue/button.vue` → `components/ui/button.vue`
 
 ## AI usage rules
 

@@ -35,59 +35,41 @@
     },
     {
       "name": "button",
-      "type": "registry:ui",
+      "type": "component",
       "description": "Styled button component built on top of @zeus-web/button primitives.",
       "frameworks": ["react", "vue"],
-      "dependencies": [
-        "@zeus-web/button",
-        "class-variance-authority",
-        "clsx",
-        "tailwind-merge"
-      ],
+      "dependencies": ["@zeus-web/button"],
       "registryDependencies": ["cn", "globals"],
       "files": [
         {
           "framework": "react",
           "source": "templates/react/button.tsx",
-          "path": "templates/react/button.tsx",
-          "target": "components/ui/button.tsx",
-          "type": "registry:ui"
+          "target": "components/ui/button.tsx"
         },
         {
           "framework": "vue",
           "source": "templates/vue/button.vue",
-          "path": "templates/vue/button.vue",
-          "target": "components/ui/button.vue",
-          "type": "registry:ui"
+          "target": "components/ui/button.vue"
         }
       ]
     },
     {
       "name": "input",
-      "type": "registry:ui",
+      "type": "component",
       "description": "Styled input component built on top of @zeus-web/input primitives.",
       "frameworks": ["react", "vue"],
-      "dependencies": [
-        "@zeus-web/input",
-        "class-variance-authority",
-        "clsx",
-        "tailwind-merge"
-      ],
+      "dependencies": ["@zeus-web/input"],
       "registryDependencies": ["cn", "globals"],
       "files": [
         {
           "framework": "react",
           "source": "templates/react/input.tsx",
-          "path": "templates/react/input.tsx",
-          "target": "components/ui/input.tsx",
-          "type": "registry:ui"
+          "target": "components/ui/input.tsx"
         },
         {
           "framework": "vue",
           "source": "templates/vue/input.vue",
-          "path": "templates/vue/input.vue",
-          "target": "components/ui/input.vue",
-          "type": "registry:ui"
+          "target": "components/ui/input.vue"
         }
       ]
     }

@@ -3,9 +3,9 @@
   "compilerOptions": {
     "composite": false,
     "rootDir": ".",
+    "types": ["@types/node"],
     "outDir": "dist",
-    "isolatedDeclarations": false,
-    "types": ["@types/node"]
+    "isolatedDeclarations": false
   },
   "include": ["src", "__tests__"]
 }

@@ -91,7 +91,6 @@ export async function updateComponentsLockFromPlans(params: {
       files.push({
         target,
         source: file.source,
-        type: file.type,
         hash: hashFile(absoluteTarget),
       })
     }

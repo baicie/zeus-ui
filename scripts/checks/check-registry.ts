@@ -4,36 +4,28 @@ import { resolve } from 'node:path'
 import pc from 'picocolors'
 
 type RegistryFramework = 'react' | 'vue' | 'native' | 'shared'
-type RegistryItemType =
-  | 'component'
-  | 'utility'
-  | 'style'
-  | 'registry:ui'
-  | 'registry:lib'
-  | 'registry:style'
+type RegistryItemType = 'component' | 'utility' | 'style'
 
 interface RegistryFile {
-  framework?: RegistryFramework
-  source?: string
-  path?: string
+  framework: RegistryFramework
+  source: string
   target: string
-  type?: string
 }
 
 interface RegistryItem {
   name: string
   type: RegistryItemType
-  description?: string
-  frameworks?: RegistryFramework[]
-  dependencies?: string[]
-  registryDependencies?: string[]
+  description: string
+  frameworks: RegistryFramework[]
+  dependencies: string[]
+  registryDependencies: string[]
   files: RegistryFile[]
 }
 
 interface RegistryManifest {
-  schemaVersion?: number
+  schemaVersion: number
   name: string
-  version?: string
+  version: string
   items: RegistryItem[]
 }
 
@@ -69,10 +61,13 @@ const allowedTypes = new Set<RegistryItemType>([
   'component',
   'utility',
   'style',
-  'registry:ui',
-  'registry:lib',
-  'registry:style',
 ])
+
+const forbiddenDependencies = [
+  'class-variance-authority',
+  'clsx',
+  'tailwind-merge',
+]
 
 function read(relativePath: string): string {
   return readFileSync(resolve(packageRoot, relativePath), 'utf-8')
@@ -201,12 +196,11 @@ function checkManifestShape(
     }
 
     for (const file of item.files) {
-      if (file.framework && !allowedFrameworks.has(file.framework)) {
+      if (!allowedFrameworks.has(file.framework)) {
         errors.push(`${item.name}: invalid file framework ${file.framework}`)
       }
 
-      const sourcePath = file.source ?? file.path
-      if (sourcePath && !sourcePath.startsWith('templates/')) {
+      if (!file.source.startsWith('templates/')) {
         errors.push(`${item.name}: file source must start with templates/`)
       }
 
@@ -214,8 +208,8 @@ function checkManifestShape(
         errors.push(`${item.name}: unsafe file target ${file.target}`)
       }
 
-      if (sourcePath && !existsSync(resolve(packageRoot, sourcePath))) {
-        errors.push(`${item.name}: missing template ${sourcePath}`)
+      if (!existsSync(resolve(packageRoot, file.source))) {
+        errors.push(`${item.name}: missing template ${file.source}`)
       }
     }
   }
@@ -227,7 +221,7 @@ function checkManifestShape(
   }
 
   for (const item of manifest.items) {
-    for (const dependency of item.registryDependencies ?? []) {
+    for (const dependency of item.registryDependencies) {
       if (!names.has(dependency)) {
         errors.push(`${item.name}: missing registry dependency ${dependency}`)
       }
@@ -252,15 +246,15 @@ function checkComponentItems(
   if (!button) {
     errors.push('registry missing button item')
   } else {
-    if (!(button.dependencies ?? []).includes('@zeus-web/button')) {
+    if (!button.dependencies.includes('@zeus-web/button')) {
       errors.push('button item must depend on @zeus-web/button')
     }
 
-    if (!(button.registryDependencies ?? []).includes('cn')) {
+    if (!button.registryDependencies.includes('cn')) {
       errors.push('button item must depend on registry item cn')
     }
 
-    if (!(button.registryDependencies ?? []).includes('globals')) {
+    if (!button.registryDependencies.includes('globals')) {
       errors.push('button item must depend on registry item globals')
     }
   }
@@ -268,15 +262,15 @@ function checkComponentItems(
   if (!input) {
     errors.push('registry missing input item')
   } else {
-    if (!(input.dependencies ?? []).includes('@zeus-web/input')) {
+    if (!input.dependencies.includes('@zeus-web/input')) {
       errors.push('input item must depend on @zeus-web/input')
     }
 
-    if (!(input.registryDependencies ?? []).includes('cn')) {
+    if (!input.registryDependencies.includes('cn')) {
       errors.push('input item must depend on registry item cn')
     }
 
-    if (!(input.registryDependencies ?? []).includes('globals')) {
+    if (!input.registryDependencies.includes('globals')) {
       errors.push('input item must depend on registry item globals')
     }
   }
@@ -358,6 +352,21 @@ function checkTemplateContents(errors: string[]): void {
   }
 }
 
+function checkForbiddenDependencies(
+  manifest: RegistryManifest,
+  errors: string[],
+): void {
+  for (const item of manifest.items) {
+    for (const dependency of item.dependencies) {
+      if (forbiddenDependencies.includes(dependency)) {
+        errors.push(
+          `${item.name}: ${dependency} is not used by Phase 17 templates`,
+        )
+      }
+    }
+  }
+}
+
 function main(): void {
   const errors: string[] = []
 
@@ -375,6 +384,7 @@ function main(): void {
       checkManifestShape(manifest, errors)
       checkComponentItems(manifest, errors)
       checkTemplateContents(errors)
+      checkForbiddenDependencies(manifest, errors)
     }
   }
 

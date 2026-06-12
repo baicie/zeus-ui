@@ -36,7 +36,7 @@ function readRegistryComponentNames(): string[] {
   )
 
   return registry.items
-    .filter(item => item.type === 'registry:ui')
+    .filter(item => item.type === 'component' || item.type === 'registry:ui')
     .map(item => item.name)
     .sort()
 }

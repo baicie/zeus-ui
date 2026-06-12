@@ -1,4 +1,4 @@
-import type { AddPlan, RegistryFilePlan } from './add'
+import type { AddPlan } from './add'
 
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
@@ -24,7 +24,6 @@ export interface DiffEntry {
   source: string
   target: string
   resolvedTarget: string
-  type: RegistryFilePlan['type']
   status: DiffStatus
   registryHash: string
   currentHash?: string
@@ -132,7 +131,6 @@ export async function createDiffEntries(params: {
           source: file.source,
           target,
           resolvedTarget,
-          type: file.type,
           status: 'missing',
           registryHash,
           registrySource,
@@ -146,7 +144,6 @@ export async function createDiffEntries(params: {
         source: file.source,
         target,
         resolvedTarget,
-        type: file.type,
         status: currentHash === registryHash ? 'unchanged' : 'changed',
         registryHash,
         currentHash,
@@ -192,7 +189,6 @@ export async function diff(args: string[]): Promise<void> {
               component: e.component,
               source: e.source,
               target: e.target,
-              type: e.type,
               status: e.status,
               registryHash: e.registryHash,
               currentHash: e.currentHash,

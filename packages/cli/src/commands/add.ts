@@ -30,7 +30,6 @@ export interface RegistryFilePlan {
   source: string
   target: string
   resolvedTarget?: string
-  type?: string
 }
 
 export interface AddPlan {
@@ -102,73 +101,95 @@ export function loadRegistry(): Registry {
 
 function toFilePlan(file: RegistryItemFile): RegistryFilePlan {
   return {
-    source: file.source ?? file.path ?? '',
+    source: file.source,
     target: file.target,
-    type: file.type,
   }
 }
 
-function toAddPlan(item: RegistryItem): AddPlan {
+function shouldIncludeFileForFramework(
+  file: RegistryItemFile,
+  framework: ComponentsConfig['framework'],
+): boolean {
+  return file.framework === 'shared' || file.framework === framework
+}
+
+function toAddPlan(
+  item: RegistryItem,
+  framework: ComponentsConfig['framework'],
+): AddPlan {
   return {
     component: item.name,
-    dependencies: item.dependencies ?? [],
-    devDependencies: item.devDependencies ?? [],
-    files: item.files.map(toFilePlan),
+    dependencies: item.dependencies,
+    devDependencies: [],
+    files: item.files
+      .filter(file => shouldIncludeFileForFramework(file, framework))
+      .map(toFilePlan),
   }
 }
 
-function findRegistryItem(registry: Registry, component: string): RegistryItem {
-  const item = registry.items.find(entry => entry.name === component)
+function collectRegistryItems(params: {
+  registry: Registry
+  component: string
+  collected: Map<string, RegistryItem>
+  visiting: string[]
+}): void {
+  const { registry, component, collected, visiting } = params
+
+  if (collected.has(component)) return
+
+  if (visiting.includes(component)) {
+    throw new Error(
+      `Circular registry dependency: ${[...visiting, component].join(' -> ')}`,
+    )
+  }
+
+  const item = registry.items.find(i => i.name === component)
 
   if (!item) {
     throw new Error(`Unknown component: ${component}`)
   }
 
-  return item
-}
+  for (const dependency of item.registryDependencies) {
+    collectRegistryItems({
+      registry,
+      component: dependency,
+      collected,
+      visiting: [...visiting, component],
+    })
+  }
 
-function uniqueSorted(values: string[]): string[] {
-  return Array.from(new Set(values)).sort()
-}
-
-function dedupePlans(plans: AddPlan[]): AddPlan[] {
-  return plans.map(plan => {
-    const files = new Map<string, RegistryFilePlan>()
-
-    for (const file of plan.files) {
-      files.set(file.target, file)
-    }
-
-    return {
-      ...plan,
-      dependencies: uniqueSorted(plan.dependencies),
-      devDependencies: uniqueSorted(plan.devDependencies),
-      files: Array.from(files.values()),
-    }
-  })
+  collected.set(item.name, item)
 }
 
 export function listAvailableComponents(registry = loadRegistry()): string[] {
   assertValidRegistry(registry)
 
   return registry.items
-    .filter(item => item.type === 'registry:ui')
+    .filter(item => item.type === 'component')
     .map(item => item.name)
 }
 
 export function createAddPlan(
   components: string[],
   registry = loadRegistry(),
+  framework: ComponentsConfig['framework'] = 'react',
 ): AddPlan[] {
   assertValidRegistry(registry)
 
-  const plans = components.map(component => {
-    const item = findRegistryItem(registry, component)
+  const collected = new Map<string, RegistryItem>()
 
-    return toAddPlan(item)
-  })
+  for (const component of components) {
+    collectRegistryItems({
+      registry,
+      component,
+      collected,
+      visiting: [],
+    })
+  }
 
-  return dedupePlans(plans)
+  return dedupePlans(
+    Array.from(collected.values()).map(item => toAddPlan(item, framework)),
+  )
 }
 
 export function resolveAddPlanTargets(
@@ -195,6 +216,27 @@ export function createCombinedInstallPlan(plans: AddPlan[]): {
   }
 }
 
+function uniqueSorted(values: string[]): string[] {
+  return Array.from(new Set(values)).sort()
+}
+
+function dedupePlans(plans: AddPlan[]): AddPlan[] {
+  return plans.map(plan => {
+    const files = new Map<string, RegistryFilePlan>()
+
+    for (const file of plan.files) {
+      files.set(file.target, file)
+    }
+
+    return {
+      ...plan,
+      dependencies: uniqueSorted(plan.dependencies),
+      devDependencies: uniqueSorted(plan.devDependencies),
+      files: Array.from(files.values()),
+    }
+  })
+}
+
 function normalizeImportAlias(alias: string): string {
   return alias.replace(/\/$/, '')
 }
@@ -205,7 +247,9 @@ export function rewriteRegistrySource(
 ): string {
   const libAlias = normalizeImportAlias(config.aliases.lib)
 
-  return source.replace(/@\/lib\/utils/g, `${libAlias}/utils`)
+  return source
+    .replace(/@\/lib\/cn/g, `${libAlias}/cn`)
+    .replace(/@\/lib\/utils/g, `${libAlias}/utils`)
 }
 
 function parsePackageManagerValue(value: string): PackageManager {
@@ -515,7 +559,8 @@ export async function add(args: string[]) {
       process.exit(1)
     }
 
-    const plans = createAddPlan(finalComponents, registry)
+    const config = readComponentsConfig(options.cwd)
+    const plans = createAddPlan(finalComponents, registry, config.framework)
 
     printPlan(plans, options)
 
@@ -524,7 +569,6 @@ export async function add(args: string[]) {
     printResult(result, options)
 
     if (!options.dryRun) {
-      const config = readComponentsConfig(options.cwd)
       const resolvedPlans = resolveAddPlanTargets(plans, options.cwd, config)
 
       await updateComponentsLockFromPlans({

@@ -173,7 +173,7 @@ function renderRegistryInfo(
       ? '- None.'
       : registryItem.files
           .map(file => {
-            return `- ${mdInlineCode(file.source ?? file.path ?? '')} \u2192 ${mdInlineCode(file.target)} (${mdInlineCode(file.type ?? '')})`
+            return `- ${mdInlineCode(file.source)} \u2192 ${mdInlineCode(file.target)}`
           })
           .join('\n'),
   ].join('\n')

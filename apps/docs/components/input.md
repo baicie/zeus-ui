@@ -81,19 +81,16 @@ Internal selectors:
 
 ## Registry
 
-Type: `registry:ui`
+Type: `component`
 
 Dependencies:
 
 - `@zeus-web/input`
-- `class-variance-authority`
-- `clsx`
-- `tailwind-merge`
 
 Files:
 
-- `templates/react/input.tsx` → `components/ui/input.tsx` (`registry:ui`)
-- `templates/vue/input.vue` → `components/ui/input.vue` (`registry:ui`)
+- `templates/react/input.tsx` → `components/ui/input.tsx`
+- `templates/vue/input.vue` → `components/ui/input.vue`
 
 ## AI usage rules
 

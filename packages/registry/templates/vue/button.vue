@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { Button as ButtonPrimitive } from '@zeus-web/button/vue'
+import { computed } from 'vue'
 
 import { cn } from '@/lib/cn'
 

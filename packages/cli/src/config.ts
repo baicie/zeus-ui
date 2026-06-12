@@ -31,7 +31,7 @@ export interface ComponentsConfig {
   style: ThemeName
   theme: ComponentsThemeConfig
   tailwind: { css: string; cssVariables: boolean }
-  aliases: { components: string; ui: string; lib: string }
+  aliases: { components: string; ui: string; lib: string; styles: string }
 }
 
 export interface CreateConfigOptions {
@@ -71,6 +71,7 @@ export function createDefaultComponentsConfig(
       components: '@/components',
       ui: '@/components/ui',
       lib: '@/lib',
+      styles: '@/styles',
     },
   }
 }
@@ -178,6 +179,10 @@ export function resolveRegistryTarget(
     const rest =
       target === 'components' ? '' : target.slice('components/'.length)
     return resolve(resolveAliasToPath(cwd, config.aliases.components), rest)
+  }
+  if (target === 'styles' || target.startsWith('styles/')) {
+    const rest = target === 'styles' ? '' : target.slice('styles/'.length)
+    return resolve(resolveAliasToPath(cwd, config.aliases.styles), rest)
   }
   return resolve(cwd, target)
 }

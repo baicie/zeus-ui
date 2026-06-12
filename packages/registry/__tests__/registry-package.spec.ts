@@ -1,10 +1,11 @@
 import type { RegistryManifest } from '../src'
+
 import { existsSync, readFileSync } from 'node:fs'
-
 import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+
 import {
   findRegistryItem,
   getRegistryDependencies,
@@ -58,18 +59,8 @@ describe('@zeus-web/registry package contract', () => {
     expect(button).toBeTruthy()
     expect(input).toBeTruthy()
 
-    expect(button?.dependencies).toEqual([
-      '@zeus-web/button',
-      'class-variance-authority',
-      'clsx',
-      'tailwind-merge',
-    ])
-    expect(input?.dependencies).toEqual([
-      '@zeus-web/input',
-      'class-variance-authority',
-      'clsx',
-      'tailwind-merge',
-    ])
+    expect(button?.dependencies).toEqual(['@zeus-web/button'])
+    expect(input?.dependencies).toEqual(['@zeus-web/input'])
 
     expect(
       getRegistryDependencies(manifest, button!).map(item => item.name),
@@ -89,8 +80,6 @@ describe('@zeus-web/registry package contract', () => {
         framework: 'react',
         source: 'templates/react/button.tsx',
         target: 'components/ui/button.tsx',
-        path: 'templates/react/button.tsx',
-        type: 'registry:ui',
       },
     ])
 
@@ -99,8 +88,6 @@ describe('@zeus-web/registry package contract', () => {
         framework: 'vue',
         source: 'templates/vue/button.vue',
         target: 'components/ui/button.vue',
-        path: 'templates/vue/button.vue',
-        type: 'registry:ui',
       },
     ])
   })
@@ -110,10 +97,9 @@ describe('@zeus-web/registry package contract', () => {
 
     for (const item of manifest.items) {
       for (const file of item.files) {
-        const sourcePath = file.source ?? file.path
         expect(
-          existsSync(resolve(packageRoot, sourcePath!)),
-          `${item.name} missing template ${sourcePath}`,
+          existsSync(resolve(packageRoot, file.source)),
+          `${item.name} missing template ${file.source}`,
         ).toBe(true)
       }
     }
