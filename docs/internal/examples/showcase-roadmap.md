@@ -21,6 +21,7 @@ This document tracks the implementation status of the React and Vue showcase app
 | Phase 12 | Done   | Unit tests for shared metadata, route smoke, foundation pages, playground interactions and root test-unit wiring |
 | Phase 13 | Done   | Vitest-powered Playwright E2E smoke tests for React and Vue showcase routes and foundation interactions          |
 | Phase 14 | Done   | CI workflow gates for showcase metadata, unit tests, builds and Vitest-powered Playwright E2E                    |
+| Phase 15 | Done   | Product layering contract for primitives, themes, native styled Web-C, registry, CLI and showcase usage          |
 
 ## Implemented component pages
 
@@ -91,7 +92,7 @@ This document tracks the implementation status of the React and Vue showcase app
 
 ## Engineering guarantees
 
-The showcase has seven layers of checks:
+The showcase has eight layers of checks:
 
 1. Metadata checks validate component metadata coverage.
 2. Implementation checks validate that implemented demos have React and Vue files, dependencies and build dependency scripts.
@@ -100,10 +101,12 @@ The showcase has seven layers of checks:
 5. Shared unit tests validate metadata helpers, icon snippets, theme helpers and playground fixtures.
 6. Vitest-powered Playwright E2E tests validate React and Vue showcase routes and critical browser interactions.
 7. CI gates run showcase metadata, unit tests, builds and browser E2E as separate jobs.
+8. Product layer checks validate Zeus-UI package boundaries and usage entry decisions.
 
 ## Commands
 
 ```bash
+pnpm check:product-layers
 pnpm check:showcase-metadata
 pnpm check:showcase-implementation
 pnpm showcase:test
@@ -121,9 +124,12 @@ pnpm site:build
 
 ## Next work
 
-Future phases should continue with visual and release quality:
+Future phases should continue with product usage and distribution quality:
 
-- Add visual snapshots for the most important component states.
-- Add optional multi-browser showcase E2E matrix.
-- Replace demo-only CSS with exported component theme styles where appropriate.
-- Generate this roadmap from `examples/showcase-shared/src/implemented.ts`.
+- Phase 16: Add @zeus-web/ui native styled Web-C package for button and input.
+- Phase 17: Add registry foundation with React and Vue button/input templates.
+- Phase 18: Add CLI init command and project configuration.
+- Phase 19: Add CLI add command for registry component installation.
+- Phase 20: Switch React and Vue showcase to registry-installed styled usage.
+- Phase 21: Add native showcase for @zeus-web/ui.
+- Phase 22: Rewrite public docs around CLI, native styled Web-C and advanced primitive usage.
