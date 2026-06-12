@@ -27,6 +27,7 @@ This document tracks the implementation status of the React and Vue showcase app
 | Phase 18 | Done   | CLI init command with zeus-ui.json, project detection, cn utility and styles initialization                      |
 | Phase 19 | Done   | CLI add command with registry dependency expansion, framework filtering, file writing and lockfile tracking      |
 | Phase 20 | Done   | React and Vue showcase consume registry-installed styled button and input components                             |
+| Phase 21 | Done   | Native showcase for @zeus-web/ui styled Web Components without React or Vue                                      |
 
 ## Implemented component pages
 
@@ -97,7 +98,7 @@ This document tracks the implementation status of the React and Vue showcase app
 
 ## Engineering guarantees
 
-The showcase has thirteen layers of checks:
+The showcase has fourteen layers of checks:
 
 1. Metadata checks validate component metadata coverage.
 2. Implementation checks validate that implemented demos have React and Vue files, dependencies and build dependency scripts.
@@ -112,6 +113,7 @@ The showcase has thirteen layers of checks:
 11. CLI init checks validate zeus-ui.json initialization, project detection and base file generation.
 12. CLI add checks validate registry dependency expansion, framework-specific template filtering and lockfile tracking.
 13. Showcase registry checks validate React and Vue demos consume registry-synced local styled components.
+14. Native showcase checks validate @zeus-web/ui can be consumed without React or Vue.
 
 ## Commands
 
@@ -124,10 +126,14 @@ pnpm check:cli-add
 pnpm check:showcase-metadata
 pnpm check:showcase-implementation
 pnpm check:showcase-registry
+pnpm check:native-showcase
 pnpm --filter @zeus-web/cli test:init
 pnpm --filter @zeus-web/cli test:add
 pnpm showcase:registry:sync
 pnpm showcase:registry:check
+pnpm showcase:native
+pnpm showcase:native:test
+pnpm showcase:native:build
 pnpm --filter @zeus-web/ui build
 pnpm --filter @zeus-web/ui check
 pnpm --filter @zeus-web/ui test
@@ -149,7 +155,6 @@ pnpm site:build
 
 ## Next work
 
-Future phases should add native styled Web-C showcase and public docs:
+Future phases should rewrite public docs around the final product usage paths:
 
-- Phase 21: Add native showcase for @zeus-web/ui.
 - Phase 22: Rewrite public docs around CLI, native styled Web-C and advanced primitive usage.
