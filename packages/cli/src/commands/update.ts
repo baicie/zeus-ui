@@ -6,8 +6,8 @@ import pc from 'picocolors'
 import { readComponentsConfig } from '../config'
 import {
   getLockedFile,
-  readComponentsLock,
-  updateComponentsLockFromPlans,
+  readLegacyLock,
+  updateLegacyLockFromPlans,
 } from '../lock'
 import {
   createAddPlan,
@@ -84,11 +84,15 @@ export async function update(args: string[]): Promise<void> {
       : components
     if (finalComponents.length === 0)
       throw new Error('Please provide components or use --all.')
-    const plans = createAddPlan(finalComponents, registry)
+    const plans = createAddPlan({ components: finalComponents, registry })
     const config = readComponentsConfig(options.cwd)
-    const resolvedPlans = resolveAddPlanTargets(plans, options.cwd, config)
+    const resolvedPlans = resolveAddPlanTargets({
+      plans,
+      cwd: options.cwd,
+      config,
+    })
     const entries = await createDiffEntries({ cwd: options.cwd, plans })
-    const lock = readComponentsLock(options.cwd)
+    const lock = readLegacyLock(options.cwd)
     const changed = entries.filter(e => e.status !== 'unchanged')
     const writtenTargets: string[] = []
 
@@ -130,7 +134,7 @@ export async function update(args: string[]): Promise<void> {
     }
 
     if (!options.dryRun && writtenTargets.length > 0) {
-      await updateComponentsLockFromPlans({
+      await updateLegacyLockFromPlans({
         cwd: options.cwd,
         plans: resolvedPlans,
         writtenTargets,

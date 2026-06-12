@@ -1,21 +1,24 @@
 import type { AddPlan } from './add'
 
+import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { isAbsolute, relative, resolve } from 'node:path'
 
 import pc from 'picocolors'
 
-import { readComponentsConfig, toRelativeProjectPath } from '../config'
-import { hashString } from '../lock'
+import { readComponentsConfig } from '../config'
 import {
   createAddPlan,
   listAvailableComponents,
   loadRegistry,
-  resolveAddPlanTargets,
   resolveRegistryRoot,
   rewriteRegistrySource,
 } from './add'
+
+export function hashString(source: string): string {
+  return createHash('sha256').update(source).digest('hex')
+}
 
 export type DiffStatus = 'missing' | 'changed' | 'unchanged'
 
@@ -36,6 +39,7 @@ interface DiffOptions {
   all: boolean
   json: boolean
 }
+
 interface ParsedDiffArgs {
   components: string[]
   options: DiffOptions
@@ -103,6 +107,16 @@ async function readRegistrySource(params: {
   return rewriteRegistrySource(source, params.config)
 }
 
+function dedupeAddPlanFiles(plans: AddPlan[]): AddPlan['files'] {
+  const byTarget = new Map<string, AddPlan['files'][number]>()
+  for (const plan of plans) {
+    for (const file of plan.files) {
+      byTarget.set(file.target, file)
+    }
+  }
+  return Array.from(byTarget.values())
+}
+
 export async function createDiffEntries(params: {
   cwd: string
   plans: AddPlan[]
@@ -110,14 +124,15 @@ export async function createDiffEntries(params: {
 }): Promise<DiffEntry[]> {
   const config = readComponentsConfig(params.cwd)
   const registryRoot = params.registryRoot ?? resolveRegistryRoot()
-  const plans = resolveAddPlanTargets(params.plans, params.cwd, config)
+  const dedupedPlans = params.plans.map(plan => ({
+    ...plan,
+    files: dedupeAddPlanFiles([plan]),
+  }))
   const entries: DiffEntry[] = []
 
-  for (const plan of plans) {
+  for (const plan of dedupedPlans) {
     for (const file of plan.files) {
-      const rawResolvedTarget = file.resolvedTarget ?? file.target
-      const resolvedTarget = assertSafeTarget(params.cwd, rawResolvedTarget)
-      const target = toRelativeProjectPath(params.cwd, resolvedTarget)
+      const resolvedTarget = assertSafeTarget(params.cwd, file.target)
       const registrySource = await readRegistrySource({
         registryRoot,
         source: file.source,
@@ -129,7 +144,7 @@ export async function createDiffEntries(params: {
         entries.push({
           component: plan.component,
           source: file.source,
-          target,
+          target: file.target,
           resolvedTarget,
           status: 'missing',
           registryHash,
@@ -142,7 +157,7 @@ export async function createDiffEntries(params: {
       entries.push({
         component: plan.component,
         source: file.source,
-        target,
+        target: file.target,
         resolvedTarget,
         status: currentHash === registryHash ? 'unchanged' : 'changed',
         registryHash,
@@ -179,7 +194,7 @@ export async function diff(args: string[]): Promise<void> {
       : components
     if (finalComponents.length === 0)
       throw new Error('Please provide components or use --all.')
-    const plans = createAddPlan(finalComponents, registry)
+    const plans = createAddPlan({ components: finalComponents, registry })
     const entries = await createDiffEntries({ cwd: options.cwd, plans })
     if (options.json) {
       console.log(

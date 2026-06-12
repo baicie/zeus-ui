@@ -25,6 +25,7 @@ This document tracks the implementation status of the React and Vue showcase app
 | Phase 16 | Done   | Native styled Web-C package with styled button and input entrypoints                                             |
 | Phase 17 | Done   | Registry foundation with React and Vue button/input templates                                                    |
 | Phase 18 | Done   | CLI init command with zeus-ui.json, project detection, cn utility and styles initialization                      |
+| Phase 19 | Done   | CLI add command with registry dependency expansion, framework filtering, file writing and lockfile tracking      |
 
 ## Implemented component pages
 
@@ -95,7 +96,7 @@ This document tracks the implementation status of the React and Vue showcase app
 
 ## Engineering guarantees
 
-The showcase has eleven layers of checks:
+The showcase has twelve layers of checks:
 
 1. Metadata checks validate component metadata coverage.
 2. Implementation checks validate that implemented demos have React and Vue files, dependencies and build dependency scripts.
@@ -108,6 +109,7 @@ The showcase has eleven layers of checks:
 9. Native styled Web-C checks validate @zeus-web/ui package exports, CSS entrypoints and primitive composition.
 10. Registry checks validate @zeus-web/registry schema, metadata, templates and primitive dependencies.
 11. CLI init checks validate zeus-ui.json initialization, project detection and base file generation.
+12. CLI add checks validate registry dependency expansion, framework-specific template filtering and lockfile tracking.
 
 ## Commands
 
@@ -116,9 +118,11 @@ pnpm check:product-layers
 pnpm check:ui-package
 pnpm check:registry
 pnpm check:cli-init
+pnpm check:cli-add
 pnpm check:showcase-metadata
 pnpm check:showcase-implementation
 pnpm --filter @zeus-web/cli test:init
+pnpm --filter @zeus-web/cli test:add
 pnpm --filter @zeus-web/ui build
 pnpm --filter @zeus-web/ui check
 pnpm --filter @zeus-web/ui test
@@ -140,9 +144,8 @@ pnpm site:build
 
 ## Next work
 
-Future phases should continue with CLI component installation:
+Future phases should switch showcase to real registry usage:
 
-- Phase 19: Add CLI add command for registry component installation.
 - Phase 20: Switch React and Vue showcase to registry-installed styled usage.
 - Phase 21: Add native showcase for @zeus-web/ui.
 - Phase 22: Rewrite public docs around CLI, native styled Web-C and advanced primitive usage.

@@ -8,7 +8,7 @@ import {
   readComponentsConfig,
   resolveAliasToPath,
 } from '../config'
-import { componentsLockFileName, readComponentsLock } from '../lock'
+import { legacyLockFileName, readLegacyLock } from '../lock'
 import { loadRegistry } from './add'
 
 type DoctorLevel = 'pass' | 'warn' | 'fail'
@@ -147,17 +147,17 @@ export async function doctor(args: string[]): Promise<void> {
       })
     }
 
-    const lock = readComponentsLock(options.cwd)
+    const lock = readLegacyLock(options.cwd)
     const lockedComponents = Object.keys(lock.components)
     if (lockedComponents.length === 0) {
       checks.push({
         level: 'warn',
-        message: `${componentsLockFileName} has no tracked components.`,
+        message: `${legacyLockFileName} has no tracked components.`,
       })
     } else {
       checks.push({
         level: 'pass',
-        message: `${componentsLockFileName} tracks ${lockedComponents.length} component(s).`,
+        message: `${legacyLockFileName} tracks ${lockedComponents.length} component(s).`,
       })
       for (const [component, item] of Object.entries(lock.components)) {
         for (const file of item.files) {
