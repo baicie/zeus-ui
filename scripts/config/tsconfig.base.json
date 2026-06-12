@@ -20,13 +20,21 @@
     "paths": {
       "@zeus-web/input": ["../../packages/primitives/input/src/index"],
       "@zeus-web/input/wc": ["../../packages/primitives/input/src/index"],
+      "@zeus-web/input/wc/auto": ["../../packages/primitives/input/src/index"],
       "@zeus-web/input/react": ["../../packages/primitives/input/src/index"],
       "@zeus-web/input/vue": ["../../packages/primitives/input/src/index"],
       "@zeus-web/*/react": ["../../packages/primitives/*/src/index"],
       "@zeus-web/*/vue": ["../../packages/primitives/*/src/index"],
       "@zeus-web/*/wc": ["../../packages/primitives/*/src/index"],
+      "@zeus-web/*/wc/auto": ["../../packages/primitives/*/src/index"],
       "@zeus-web/*/vue/global": ["../../packages/primitives/*/src/index"],
-      "@zeus-web/*": ["../../packages/*/src", "../../packages/primitives/*/src"]
+      "@zeus-web/*": [
+        "../../packages/*/src",
+        "../../packages/primitives/*/src"
+      ],
+      "@testing-library/jest-dom/vitest": [
+        "../../node_modules/.pnpm/node_modules/@testing-library/jest-dom/types/vitest.d.ts"
+      ]
     },
     "resolveJsonModule": true,
     /* 类型检查 */

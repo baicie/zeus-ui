@@ -28,6 +28,7 @@ This document tracks the implementation status of the React and Vue showcase app
 | Phase 19 | Done   | CLI add command with registry dependency expansion, framework filtering, file writing and lockfile tracking      |
 | Phase 20 | Done   | React and Vue showcase consume registry-installed styled button and input components                             |
 | Phase 21 | Done   | Native showcase for @zeus-web/ui styled Web Components without React or Vue                                      |
+| Phase 22 | Done   | Public docs rewrite for CLI registry, native styled Web-C and advanced primitive usage paths                     |
 
 ## Implemented component pages
 
@@ -98,7 +99,7 @@ This document tracks the implementation status of the React and Vue showcase app
 
 ## Engineering guarantees
 
-The showcase has fourteen layers of checks:
+The showcase has fifteen layers of checks:
 
 1. Metadata checks validate component metadata coverage.
 2. Implementation checks validate that implemented demos have React and Vue files, dependencies and build dependency scripts.
@@ -106,7 +107,7 @@ The showcase has fourteen layers of checks:
 4. Foundation page tests validate icons, themes and playground interaction behavior.
 5. Shared unit tests validate metadata helpers, icon snippets, theme helpers and playground fixtures.
 6. Vitest-powered Playwright E2E tests validate React and Vue showcase routes and critical browser interactions.
-7. CI gates run showcase metadata, unit tests, builds and browser E2E as separate jobs.
+7. CI gates run showcase metadata, unit tests, builds and Vitest-powered Playwright E2E as separate jobs.
 8. Product layer checks validate Zeus-UI package boundaries and usage entry decisions.
 9. Native styled Web-C checks validate @zeus-web/ui package exports, CSS entrypoints and primitive composition.
 10. Registry checks validate @zeus-web/registry schema, metadata, templates and primitive dependencies.
@@ -114,6 +115,7 @@ The showcase has fourteen layers of checks:
 12. CLI add checks validate registry dependency expansion, framework-specific template filtering and lockfile tracking.
 13. Showcase registry checks validate React and Vue demos consume registry-synced local styled components.
 14. Native showcase checks validate @zeus-web/ui can be consumed without React or Vue.
+15. Public docs checks validate CLI registry, native styled Web-C and advanced primitive usage paths.
 
 ## Commands
 
@@ -127,6 +129,9 @@ pnpm check:showcase-metadata
 pnpm check:showcase-implementation
 pnpm check:showcase-registry
 pnpm check:native-showcase
+pnpm check:public-docs
+pnpm docs:check
+pnpm docs:build
 pnpm --filter @zeus-web/cli test:init
 pnpm --filter @zeus-web/cli test:add
 pnpm showcase:registry:sync
@@ -155,6 +160,6 @@ pnpm site:build
 
 ## Next work
 
-Future phases should rewrite public docs around the final product usage paths:
+Future phases should improve registry maintenance:
 
-- Phase 22: Rewrite public docs around CLI, native styled Web-C and advanced primitive usage.
+- Phase 23: Add CLI update and diff support for registry-installed components.

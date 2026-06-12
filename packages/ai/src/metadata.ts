@@ -17,7 +17,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
     'Run `zweb init` before adding styled components.',
     'Run `zweb add <component>` to copy shadcn-like styled source into the user project.',
     'Import styled components from the copied local path, usually `@/components/ui/<component>`.',
-    'Do not import `@zeus-web/react` directly in generated app code unless the user explicitly wants the aggregate wrapper package.',
+    'Do not import aggregate framework packages directly in generated app code unless the user explicitly wants the wrapper package.',
     'Prefer per-component packages such as `@zeus-web/button/react` inside registry source.',
   ],
   icons: {

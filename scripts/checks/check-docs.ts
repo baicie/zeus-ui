@@ -37,27 +37,75 @@ const componentDocs = [
 const requiredDocs: RequiredDoc[] = [
   {
     path: 'index.md',
-    mustContain: ['Zeus Web', 'pnpm dlx @zeus-web/cli init'],
+    mustContain: [
+      'Zeus Web',
+      'CLI registry source',
+      '@zeus-web/ui',
+      'pnpm dlx @zeus-web/cli init',
+    ],
   },
   {
     path: 'guide/getting-started.md',
     mustContain: [
       '# Getting Started',
+      'zeus-ui.json',
+      'src/lib/cn.ts',
+      'src/styles/zeus.css',
       'pnpm dlx @zeus-web/cli init',
       'pnpm dlx @zeus-web/cli add button input',
+      "import '@zeus-web/ui'",
+      '@zeus-web/button/react',
+    ],
+  },
+  {
+    path: 'guide/usage-modes.md',
+    mustContain: [
+      '# Usage Modes',
+      'CLI registry source',
+      'Native styled Web Components',
+      'Advanced primitives',
+      '@zeus-web/ui',
+      '@zeus-web/button/react',
     ],
   },
   {
     path: 'guide/cli.md',
-    mustContain: ['# CLI', 'zweb init', 'zweb add', 'zweb ai'],
+    mustContain: [
+      '# CLI',
+      'zweb init',
+      'zweb add',
+      'zeus-ui.json',
+      'src/lib/cn.ts',
+      'src/styles/zeus.css',
+      'zeus-ui.lock.json',
+      'zweb ai',
+    ],
   },
   {
     path: 'guide/theming.md',
-    mustContain: ['# Theming', 'default', 'slate', 'zinc', 'neutral', 'stone'],
+    mustContain: [
+      '# Theming',
+      '--zeus-*',
+      '--zw-*',
+      'default',
+      'slate',
+      'zinc',
+      'neutral',
+      'stone',
+      'src/styles/zeus.css',
+    ],
   },
   {
     path: 'guide/registry.md',
-    mustContain: ['# Registry', '@zeus-web/registry', 'registry.json'],
+    mustContain: [
+      '# Registry',
+      '@zeus-web/registry',
+      'registry.json',
+      'registryDependencies',
+      'templates/react/button.tsx',
+      'templates/vue/button.vue',
+      'zeus-ui.json',
+    ],
   },
   {
     path: 'guide/ai.md',
@@ -100,7 +148,10 @@ const requiredDocs: RequiredDoc[] = [
     path: 'examples/native-wc.md',
     mustContain: [
       '# Native Web Components Example',
-      '@zeus-web/example-native-wc',
+      '@zeus-web/ui',
+      'pnpm showcase:native',
+      "import '@zeus-web/ui'",
+      '@zeus-web/button/wc',
     ],
   },
   {
@@ -119,8 +170,29 @@ const forbiddenPatterns = [
     message: 'old @zeus-ui package scope must not appear in docs',
   },
   {
-    pattern: 'zeus-ui',
-    message: 'old zeus-ui name must not appear in docs content',
+    pattern: '@zeus-web/react',
+    message: 'old aggregate @zeus-web/react package must not appear in docs',
+  },
+  {
+    pattern: '@zeus-web/vue',
+    message: 'old aggregate @zeus-web/vue package must not appear in docs',
+  },
+  {
+    pattern: '@zeus-web/headless',
+    message: 'old aggregate @zeus-web/headless package must not appear in docs',
+  },
+  {
+    pattern: 'components.json',
+    message: 'old components.json config must not appear in public docs',
+  },
+  {
+    pattern: 'src/styles/globals.css',
+    message: 'old globals.css config path must not appear in public docs',
+  },
+  {
+    pattern: 'src/lib/utils.ts',
+    message:
+      'old utils.ts registry utility path must not appear in public docs',
   },
 ]
 
@@ -178,6 +250,7 @@ function checkVitePressConfig(): string[] {
 
   for (const route of [
     '/guide/getting-started',
+    '/guide/usage-modes',
     '/guide/cli',
     '/guide/theming',
     '/guide/icons',
