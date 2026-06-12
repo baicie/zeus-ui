@@ -1,4 +1,8 @@
 /* eslint-disable no-restricted-globals */
+import '@zeus-web/ui'
+import '@zeus-web/ui/button'
+import '@zeus-web/ui/input'
+
 const buttonVariants = [
   'default',
   'primary',

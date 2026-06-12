@@ -1,9 +1,15 @@
 /* eslint-disable no-restricted-globals */
 import { describe, expect, it } from 'vitest'
-
 import { renderNativeShowcase } from './showcase'
 
+import '@zeus-web/ui'
+
 describe('native showcase', () => {
+  it('registers styled native Web Components from @zeus-web/ui', () => {
+    expect(customElements.get('zw-button')).toBeTypeOf('function')
+    expect(customElements.get('zw-input')).toBeTypeOf('function')
+  })
+
   it('renders styled native Web Component examples', () => {
     const root = document.createElement('div')
 

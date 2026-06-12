@@ -2,16 +2,16 @@
   "compilerOptions": {
     "composite": false,
     "target": "ES2016",
+    "jsx": "preserve",
     "lib": ["ES2016", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "jsx": "preserve",
+    "types": ["vitest/globals", "vite/client"],
     "strict": true,
     "noEmit": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
-    "types": ["vitest/globals", "vite/client"]
+    "skipLibCheck": true
   },
-  "include": ["src", "vite.config.ts", "vitest.config.ts"]
+  "include": ["src", "vite.config.ts"]
 }

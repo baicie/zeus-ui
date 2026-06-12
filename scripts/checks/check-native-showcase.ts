@@ -15,6 +15,7 @@ const requiredFiles = [
   'examples/native-showcase/src/showcase.ts',
   'examples/native-showcase/src/styles.css',
   'examples/native-showcase/src/showcase.spec.ts',
+  'scripts/examples/build-showcase-deps.ts',
 ]
 
 function read(path: string): string {
@@ -123,9 +124,21 @@ function main(): void {
     checkSourceContains(
       'examples/native-showcase/src/showcase.spec.ts',
       [
+        "import '@zeus-web/ui'",
+        "customElements.get('zw-button')",
+        "customElements.get('zw-input')",
         'renderNativeShowcase',
         "root.querySelectorAll('zw-button')",
         "root.querySelectorAll('zw-input')",
+      ],
+      errors,
+    )
+
+    checkSourceContains(
+      'scripts/examples/build-showcase-deps.ts',
+      [
+        "const nativeShowcasePackages = ['@zeus-web/ui']",
+        'createBuildTargetNames',
       ],
       errors,
     )

@@ -5,5 +5,10 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     include: ['src/**/*.spec.ts'],
+    deps: {
+      optimizer: {
+        enabled: false,
+      },
+    } as Parameters<typeof defineConfig>[0]['test']['deps'],
   },
 })

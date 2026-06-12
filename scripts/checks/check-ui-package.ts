@@ -18,14 +18,13 @@ const packageRoot = resolve(root, 'packages/ui')
 const requiredFiles = [
   'package.json',
   'tsconfig.json',
-  'src/css.d.ts',
   'src/index.ts',
   'src/styles.css',
   'src/button.ts',
   'src/button.css',
   'src/input.ts',
   'src/input.css',
-  'scripts/copy-css.mjs',
+  'scripts/copy-css.ts',
   '__tests__/ui-package.spec.ts',
 ]
 
@@ -97,16 +96,18 @@ function checkEntrySources(errors: string[]): void {
   const inputEntry = read('src/input.ts')
   const indexEntry = read('src/index.ts')
 
+  // button.ts must import the auto-registration entry and its CSS dependencies.
   const buttonRequired = [
+    "import '@zeus-web/button/wc/auto'",
     "import '@zeus-web/themes/default.css'",
     "import './button.css'",
-    "import '@zeus-web/button/wc'",
   ]
 
+  // input.ts must import the auto-registration entry and its CSS dependencies.
   const inputRequired = [
+    "import '@zeus-web/input/wc/auto'",
     "import '@zeus-web/themes/default.css'",
     "import './input.css'",
-    "import '@zeus-web/input/wc'",
   ]
 
   for (const item of buttonRequired) {
@@ -121,6 +122,7 @@ function checkEntrySources(errors: string[]): void {
     }
   }
 
+  // index.ts re-exports sub-entries to trigger registration when importing the aggregate.
   if (!indexEntry.includes("import './button'")) {
     errors.push("packages/ui/src/index.ts must import './button'")
   }

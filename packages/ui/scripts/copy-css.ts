@@ -7,12 +7,14 @@ const packageRoot = resolve(root, '..')
 const sourceDir = resolve(packageRoot, 'src')
 const distDir = resolve(packageRoot, 'dist')
 
-const files = ['styles.css', 'button.css', 'input.css']
+const cssFiles = ['styles.css', 'button.css', 'input.css']
 
 await mkdir(distDir, {
   recursive: true,
 })
 
 await Promise.all(
-  files.map(file => copyFile(resolve(sourceDir, file), resolve(distDir, file))),
+  cssFiles.map(file =>
+    copyFile(resolve(sourceDir, file), resolve(distDir, file)),
+  ),
 )

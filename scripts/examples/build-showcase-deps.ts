@@ -47,14 +47,27 @@ function discoverPackages(): { name: string; isPrimitive: boolean }[] {
   return packages
 }
 
-function createPnpmArgs(options: Options): string[] {
+function createBuildTargetNames(options: Options): string[] {
   const packages = getImplementedShowcasePackageNames()
 
   const foundationPackages = options.includeIcons
     ? ['@zeus-web/themes', '@zeus-web/icons']
     : ['@zeus-web/themes']
 
-  const packageNames = [...foundationPackages, ...packages]
+  /**
+   * Native showcase consumes @zeus-web/ui directly.
+   *
+   * @zeus-web/ui is not part of implemented showcase primitives, because it is
+   * the package-owned styled Web-C entry layer. It must be built before native
+   * showcase check/build/test can resolve its package exports.
+   */
+  const nativeShowcasePackages = ['@zeus-web/ui']
+
+  return [...foundationPackages, ...packages, ...nativeShowcasePackages]
+}
+
+function createPnpmArgs(options: Options): string[] {
+  const packageNames = createBuildTargetNames(options)
   const filters = packageNames.flatMap(packageName => ['--filter', packageName])
 
   return ['-w', ...filters, 'build']
@@ -106,14 +119,8 @@ async function main(): Promise<void> {
     return
   }
 
-  const implementedPackages = getImplementedShowcasePackageNames()
   const allPackages = discoverPackages()
-
-  const foundationPackages = options.includeIcons
-    ? ['@zeus-web/themes', '@zeus-web/icons']
-    : ['@zeus-web/themes']
-
-  const targets = [...foundationPackages, ...implementedPackages]
+  const targets = createBuildTargetNames(options)
 
   console.log(
     pc.cyan(`Building showcase dependencies (${targets.length} packages)...`),
