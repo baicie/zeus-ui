@@ -14,6 +14,7 @@ const requiredFiles = [
   'examples/react-showcase/src/styles/zeus.css',
   'examples/react-showcase/src/components/ui/button.tsx',
   'examples/react-showcase/src/components/ui/input.tsx',
+  'examples/react-showcase/src/main.tsx',
 
   'examples/vue-showcase/zeus-ui.json',
   'examples/vue-showcase/zeus-ui.lock.json',
@@ -21,6 +22,7 @@ const requiredFiles = [
   'examples/vue-showcase/src/styles/zeus.css',
   'examples/vue-showcase/src/components/ui/button.vue',
   'examples/vue-showcase/src/components/ui/input.vue',
+  'examples/vue-showcase/src/main.ts',
 ]
 
 function read(path: string): string {
@@ -147,6 +149,18 @@ function main(): void {
     checkSourceNotContains(
       'examples/vue-showcase/src/demos/p0/InputDemoPage.vue',
       ['@zeus-web/input/vue'],
+      errors,
+    )
+
+    checkSourceContains(
+      'examples/react-showcase/src/main.tsx',
+      ["import './styles/zeus.css'"],
+      errors,
+    )
+
+    checkSourceContains(
+      'examples/vue-showcase/src/main.ts',
+      ["import './styles/zeus.css'"],
       errors,
     )
   }

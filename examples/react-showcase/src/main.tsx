@@ -6,6 +6,7 @@ import { createRoot } from 'react-dom/client'
 import { createShowcaseRouter } from './router'
 import '@zeus-web/themes/default.css'
 import '@zeus-web/themes/components.css'
+import './styles/zeus.css'
 
 import './app.css'
 

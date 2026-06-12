@@ -26,8 +26,7 @@ This document tracks the implementation status of the React and Vue showcase app
 | Phase 17 | Done   | Registry foundation with React and Vue button/input templates                                                    |
 | Phase 18 | Done   | CLI init command with zeus-ui.json, project detection, cn utility and styles initialization                      |
 | Phase 19 | Done   | CLI add command with registry dependency expansion, framework filtering, file writing and lockfile tracking      |
-
-| Phase 20 | Done | React and Vue showcase consume registry-installed styled button and input components |
+| Phase 20 | Done   | React and Vue showcase consume registry-installed styled button and input components                             |
 
 ## Implemented component pages
 

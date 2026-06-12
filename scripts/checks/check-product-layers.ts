@@ -61,12 +61,12 @@ const docs: RequiredDoc[] = [
   {
     path: 'docs/internal/examples/showcase-roadmap.md',
     mustContain: [
-      '| Phase 15 | Done   | Product layering contract for primitives, themes, native styled Web-C, registry, CLI and showcase usage          |',
-      '| Phase 16 | Done   | Native styled Web-C package with styled button and input entrypoints                                             |',
-      '| Phase 17 | Done   | Registry foundation with React and Vue button/input templates                                                    |',
-      '| Phase 18 | Done   | CLI init command with zeus-ui.json, project detection, cn utility and styles initialization                       |',
-      '| Phase 19 | Done   | CLI add command with registry dependency expansion, framework filtering, file writing and lockfile tracking        |',
-      '| Phase 20 | Done   | React and Vue showcase consume registry-installed styled button and input components                              |',
+      '| Phase 15 | Done',
+      '| Phase 16 | Done',
+      '| Phase 17 | Done',
+      '| Phase 18 | Done',
+      '| Phase 19 | Done',
+      '| Phase 20 | Done',
       'The showcase has thirteen layers of checks:',
       'Product layer checks validate Zeus-UI package boundaries and usage entry decisions.',
       'Native styled Web-C checks validate @zeus-web/ui package exports, CSS entrypoints and primitive composition.',

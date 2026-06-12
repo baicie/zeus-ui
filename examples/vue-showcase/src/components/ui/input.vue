@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { Input as InputPrimitive } from '@zeus-web/input/vue'
-import { computed } from 'vue'
+import { computed, useAttrs } from 'vue'
 
 import { cn } from '@/lib/cn'
 
-type InputSize = 'sm' | 'md' | 'lg'
+defineOptions({
+  inheritAttrs: false,
+})
 
 const props = withDefaults(
   defineProps<{
@@ -20,14 +22,18 @@ const props = withDefaults(
     class: '',
     disabled: false,
     invalid: false,
-    placeholder: '',
-    modelValue: '',
+    placeholder: undefined,
+    modelValue: undefined,
   },
 )
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
+
+type InputSize = 'sm' | 'md' | 'lg'
+
+const attrs = useAttrs()
 
 const inputSizeClasses: Record<InputSize, string> = {
   sm: 'h-8 px-2.5 text-xs',
@@ -48,6 +54,14 @@ const classes = computed(() =>
   ),
 )
 
+const mergedAttrs = computed(() => {
+  const result: Record<string, unknown> = { ...attrs }
+  if (props.modelValue !== undefined) {
+    result.value = props.modelValue
+  }
+  return result
+})
+
 function handleInput(event: Event) {
   const target = event.target as HTMLInputElement | null
   emit('update:modelValue', target?.value ?? '')
@@ -56,11 +70,11 @@ function handleInput(event: Event) {
 
 <template>
   <InputPrimitive
+    v-bind="mergedAttrs"
     :size="size"
     :disabled="disabled"
     :invalid="invalid"
     :placeholder="placeholder"
-    :value="modelValue"
     :class="classes"
     @input="handleInput"
   />
