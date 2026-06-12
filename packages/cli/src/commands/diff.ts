@@ -8,11 +8,11 @@ import { isAbsolute, relative, resolve } from 'node:path'
 import pc from 'picocolors'
 
 import { readComponentsConfig } from '../config'
+import { readRegistryAsset } from '../registry-assets'
 import {
   createAddPlan,
   listAvailableComponents,
   loadRegistry,
-  resolveRegistryRoot,
   rewriteRegistrySource,
 } from './add'
 
@@ -97,14 +97,12 @@ export function parseDiffArgs(
   return { components, options }
 }
 
-async function readRegistrySource(params: {
-  registryRoot: string
+function readRegistrySource(params: {
   source: string
   config: ReturnType<typeof readComponentsConfig>
-}): Promise<string> {
-  const file = resolve(params.registryRoot, params.source)
-  const source = await readFile(file, 'utf-8')
-  return rewriteRegistrySource(source, params.config)
+}): string {
+  const raw = readRegistryAsset(params.source)
+  return rewriteRegistrySource(raw, params.config)
 }
 
 function dedupeAddPlanFiles(plans: AddPlan[]): AddPlan['files'] {
@@ -120,10 +118,8 @@ function dedupeAddPlanFiles(plans: AddPlan[]): AddPlan['files'] {
 export async function createDiffEntries(params: {
   cwd: string
   plans: AddPlan[]
-  registryRoot?: string
 }): Promise<DiffEntry[]> {
   const config = readComponentsConfig(params.cwd)
-  const registryRoot = params.registryRoot ?? resolveRegistryRoot()
   const dedupedPlans = params.plans.map(plan => ({
     ...plan,
     files: dedupeAddPlanFiles([plan]),
@@ -133,8 +129,7 @@ export async function createDiffEntries(params: {
   for (const plan of dedupedPlans) {
     for (const file of plan.files) {
       const resolvedTarget = assertSafeTarget(params.cwd, file.target)
-      const registrySource = await readRegistrySource({
-        registryRoot,
+      const registrySource = readRegistrySource({
         source: file.source,
         config,
       })

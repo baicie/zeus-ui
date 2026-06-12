@@ -1,6 +1,6 @@
 import type { Registry } from '@zeus-web/registry'
 
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -8,6 +8,7 @@ import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import {
+  add,
   createAddPlan,
   parseAddArgs,
   rewriteRegistrySource,
@@ -373,6 +374,46 @@ describe('@zeus-web/cli add', () => {
         version: 1,
         components: {},
       })
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('writes registry files and updates lock when running add command', async () => {
+    const root = await createTempDir()
+
+    try {
+      writeConfig(root, 'react')
+
+      await add(['button', '--cwd', root])
+
+      expect(existsSync(resolve(root, 'src/lib/cn.ts'))).toBe(true)
+      expect(existsSync(resolve(root, 'src/styles/zeus.css'))).toBe(true)
+      expect(existsSync(resolve(root, 'src/components/ui/button.tsx'))).toBe(
+        true,
+      )
+      expect(existsSync(resolve(root, 'src/components/ui/button.vue'))).toBe(
+        false,
+      )
+
+      const button = readFileSync(
+        resolve(root, 'src/components/ui/button.tsx'),
+        'utf-8',
+      )
+
+      expect(button).toContain("import { cn } from '@/lib/cn'")
+      expect(button).toContain('@zeus-web/button/react')
+
+      const lock = readComponentsLock(root)
+
+      expect(lock.components.button.files).toContain(
+        'src/components/ui/button.tsx',
+      )
+      expect(lock.components.button.dependencies).toEqual(['@zeus-web/button'])
+      expect(lock.components.button.registryDependencies).toEqual([
+        'cn',
+        'globals',
+      ])
     } finally {
       await rm(root, { recursive: true, force: true })
     }

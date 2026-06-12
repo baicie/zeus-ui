@@ -35,6 +35,20 @@ function checkSourceContains(
   }
 }
 
+function checkSourceNotContains(
+  file: string,
+  contents: string[],
+  errors: string[],
+): void {
+  const source = read(file)
+
+  for (const content of contents) {
+    if (source.includes(content)) {
+      errors.push(`${file} must not contain "${content}"`)
+    }
+  }
+}
+
 function main(): void {
   const errors: string[] = []
 
@@ -54,10 +68,17 @@ function main(): void {
         'readComponentsConfig',
         'readComponentsLock',
         'writeComponentsLock',
+        'readRegistryAsset(params.file.source)',
         '--dry-run',
         '--overwrite',
         '--install',
       ],
+      errors,
+    )
+
+    checkSourceNotContains(
+      'packages/cli/src/commands/add.ts',
+      ['resolveRegistryRoot', 'resolveRegistryJsonPath', 'readFile(sourcePath'],
       errors,
     )
 
@@ -81,6 +102,7 @@ function main(): void {
         'dedupes shared registry dependencies',
         'marks existing files as skipped by default',
         'marks existing files as overwrite when requested',
+        'writes registry files and updates lock when running add command',
       ],
       errors,
     )

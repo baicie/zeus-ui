@@ -8,8 +8,7 @@ import type { ComponentsConfig } from '../config'
 import type { PackageManager } from '../package-manager'
 
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { createRequire } from 'node:module'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, resolve } from 'node:path'
 
 import { findRegistryItem, validateRegistry } from '@zeus-web/registry'
@@ -60,16 +59,6 @@ export interface AddPlan {
 interface AddResult {
   written: string[]
   skipped: string[]
-}
-
-const require = createRequire(import.meta.url)
-
-export function resolveRegistryJsonPath(): string {
-  return require.resolve('@zeus-web/registry/registry.json')
-}
-
-export function resolveRegistryRoot(): string {
-  return dirname(resolveRegistryJsonPath())
 }
 
 function parsePackageManager(value: string): PackageManager {
@@ -484,7 +473,6 @@ function printAddPlan(params: {
 }
 
 async function writeFilePlan(params: {
-  cwd: string
   config: ComponentsConfig
   file: RegistryFilePlan
   overwrite: boolean
@@ -493,9 +481,7 @@ async function writeFilePlan(params: {
     return 'skipped'
   }
 
-  const registryRoot = resolveRegistryRoot()
-  const sourcePath = resolve(registryRoot, params.file.source)
-  const raw = await readFile(sourcePath, 'utf-8')
+  const raw = readRegistryAsset(params.file.source)
   const source = rewriteRegistrySource(raw, params.config)
 
   await mkdir(dirname(params.file.absoluteTarget), {
@@ -508,7 +494,6 @@ async function writeFilePlan(params: {
 }
 
 async function writePlans(params: {
-  cwd: string
   config: ComponentsConfig
   plans: AddPlan[]
   overwrite: boolean
@@ -518,7 +503,6 @@ async function writePlans(params: {
 
   for (const file of flattenFiles(params.plans)) {
     const result = await writeFilePlan({
-      cwd: params.cwd,
       config: params.config,
       file,
       overwrite: params.overwrite,
@@ -599,7 +583,6 @@ export async function add(args: string[]) {
     }
 
     const result = await writePlans({
-      cwd: parsed.options.cwd,
       config,
       plans,
       overwrite: parsed.options.overwrite,
