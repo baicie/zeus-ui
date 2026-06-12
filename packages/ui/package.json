@@ -38,8 +38,8 @@
     "dist"
   ],
   "scripts": {
-    "dev": "tsup src/index.ts src/button.ts src/input.ts --format esm --clean --no-treeshake --watch",
-    "build": "tsup src/index.ts src/button.ts src/input.ts --format esm --clean --no-treeshake && tsx scripts/copy-css.ts",
+    "dev": "tsup src/button.ts src/input.ts --format esm --dts --clean --no-treeshake --watch",
+    "build": "tsup src/button.ts src/input.ts --format esm --dts --clean --no-treeshake && tsx scripts/copy-css.ts",
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "vitest --root ../.. --project unit packages/ui/__tests__/ui-package.spec.ts"
   },

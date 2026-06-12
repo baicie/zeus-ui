@@ -36,8 +36,8 @@ This validates publishable packages:
 - description exists
 - exports exist
 - files include `dist`
-- package README exists
-- root or package LICENSE exists
+- root README exists
+- root LICENSE exists
 - build/check scripts exist
 - dist exists
 - export targets exist
@@ -55,13 +55,15 @@ pnpm release:verify:pack
 This runs `pnpm pack --dry-run --json` for every publishable package and validates:
 
 - tarball includes `package.json`
-- tarball includes `README.md`
 - tarball includes `dist/`
+- tarball may include package README when a package owns one
 - tarball does not include `src/`
 - tarball does not include tests
 - tarball does not include examples
 - tarball does not include scripts
-- tarball does not include `.map`, `.tsbuildinfo`, or logs
+- tarball may include `dist/**/*.map`
+- tarball does not include `*.tsbuildinfo` or `*.log`
+- tarball does not include `src/`, tests, examples, or scripts
 
 ## Package-specific checks
 
@@ -121,6 +123,20 @@ The built `dist/index.js` must start with:
 
 ```
 #!/usr/bin/env node
+```
+
+## Development verification
+
+Before versions are bumped, run:
+
+```bash
+pnpm release:final --allow-zero
+```
+
+For real release readiness, run:
+
+```bash
+pnpm release:final
 ```
 
 ## Before publishing

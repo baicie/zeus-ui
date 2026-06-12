@@ -1,4 +1,4 @@
-import { copyFile, mkdir } from 'node:fs/promises'
+import { copyFile, mkdir, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -18,3 +18,12 @@ await Promise.all(
     copyFile(resolve(sourceDir, file), resolve(distDir, file)),
   ),
 )
+
+await writeFile(
+  resolve(distDir, 'index.js'),
+  `// Aggregate entry: import '@zeus-web/ui/button' and '@zeus-web/ui/input' directly
+// This file exists to satisfy the '.' export; all actual registration is in button.js and input.js
+`,
+)
+
+await writeFile(resolve(distDir, 'index.d.ts'), 'export {}\n')

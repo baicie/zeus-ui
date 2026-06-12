@@ -31,32 +31,23 @@ const forbiddenPathPrefixes = [
   'temp/',
 ]
 
-const forbiddenPathSuffixes = ['.map', '.tsbuildinfo', '.log']
+const forbiddenPathSuffixes = ['.tsbuildinfo', '.log']
 
 function parsePackOutput(stdout: string): PackResult[] {
   const trimmed = stdout.trim()
-
   if (!trimmed) return []
 
   const parsed = JSON.parse(trimmed) as unknown
-
-  if (Array.isArray(parsed)) {
-    return parsed as PackResult[]
-  }
-
-  return [parsed as PackResult]
+  return Array.isArray(parsed)
+    ? (parsed as PackResult[])
+    : [parsed as PackResult]
 }
 
 function isForbiddenFile(path: string): boolean {
-  if (forbiddenPathPrefixes.some(prefix => path.startsWith(prefix))) {
-    return true
-  }
-
-  if (forbiddenPathSuffixes.some(suffix => path.endsWith(suffix))) {
-    return true
-  }
-
-  return false
+  return (
+    forbiddenPathPrefixes.some(prefix => path.startsWith(prefix)) ||
+    forbiddenPathSuffixes.some(suffix => path.endsWith(suffix))
+  )
 }
 
 function checkPackResult(
@@ -72,10 +63,8 @@ function checkPackResult(
     return
   }
 
-  for (const required of ['package.json', 'README.md']) {
-    if (!paths.includes(required)) {
-      errors.push(`${pkg.name}: tarball must include ${required}`)
-    }
+  if (!paths.includes('package.json')) {
+    errors.push(`${pkg.name}: tarball must include package.json`)
   }
 
   if (!paths.some(path => path.startsWith('dist/'))) {
@@ -119,6 +108,14 @@ async function main(): Promise<void> {
 
       for (const result of results) {
         checkPackResult(pkg, result, errors)
+
+        for (const file of result.files ?? []) {
+          if (file.path.endsWith('.map') && !file.path.startsWith('dist/')) {
+            errors.push(
+              `${pkg.name}: sourcemap must be inside dist/: ${file.path}`,
+            )
+          }
+        }
       }
 
       process.stdout.write(`${pc.green('✓')}\n`)

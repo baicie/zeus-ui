@@ -11,6 +11,7 @@ const requiredFiles = [
   'scripts/checks/check-release-final.ts',
   'docs/internal/release/release-readiness.md',
   'docs/internal/design/zeus-ui-release-readiness.md',
+  'LICENSE',
 ]
 
 function read(path: string): string {
@@ -33,6 +34,20 @@ function checkSourceContains(
   for (const content of contents) {
     if (!source.includes(content)) {
       errors.push(`${file} must contain "${content}"`)
+    }
+  }
+}
+
+function checkSourceNotContains(
+  file: string,
+  contents: string[],
+  errors: string[],
+): void {
+  const source = read(file)
+
+  for (const content of contents) {
+    if (source.includes(content)) {
+      errors.push(`${file} must not contain "${content}"`)
     }
   }
 }
@@ -60,7 +75,9 @@ function main(): void {
         'checkAiPackage',
         'checkExportTargets',
         'checkFilesAllowList',
-        'checkPrivateWorkspacePackages',
+        'checkPrivateExamplesAndDocs',
+        'wildcardExportTargetExists',
+        'Root LICENSE is required',
       ],
       errors,
     )
@@ -77,9 +94,17 @@ function main(): void {
       errors,
     )
 
+    checkSourceNotContains(
+      'scripts/checks/check-release-tarballs.ts',
+      ['tarball must include README.md'],
+      errors,
+    )
+
     checkSourceContains(
       'scripts/checks/check-release-final.ts',
       [
+        'parseOptions',
+        '--allow-zero',
         'release:verify:strict',
         'release:verify:pack',
         'release:dry',

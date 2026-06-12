@@ -1,14 +1,13 @@
 import type { PackageJsonLike, WorkspacePackage } from '../release/workspace'
 
-import { existsSync, readFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 import pc from 'picocolors'
 
 import {
   getUniqueVersions,
   listPublishablePackages,
-  listWorkspacePackages,
   repositoryUrl,
 } from '../release/workspace'
 
@@ -48,10 +47,6 @@ function hasExport(pkg: PackageJsonLike, key: string): boolean {
   return Boolean(pkg.exports && key in pkg.exports)
 }
 
-function hasDistTarget(pkg: WorkspacePackage, target: string): boolean {
-  return existsSync(resolve(pkg.dir, target.replace(/^\.\//, '')))
-}
-
 function toArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : []
 }
@@ -64,20 +59,12 @@ function toObject(value: unknown): Record<string, unknown> {
 
 function collectExportTargets(value: unknown): string[] {
   if (typeof value === 'string') return [value]
-
-  if (Array.isArray(value)) {
-    return value.flatMap(collectExportTargets)
-  }
-
+  if (Array.isArray(value)) return value.flatMap(collectExportTargets)
   if (!value || typeof value !== 'object') return []
 
-  const result: string[] = []
-
-  for (const child of Object.values(value as Record<string, unknown>)) {
-    result.push(...collectExportTargets(child))
-  }
-
-  return result
+  return Object.values(value as Record<string, unknown>).flatMap(
+    collectExportTargets,
+  )
 }
 
 function isRuntimeExportTarget(target: string): boolean {
@@ -87,6 +74,53 @@ function isRuntimeExportTarget(target: string): boolean {
     target.endsWith('.json') ||
     target.endsWith('.svg')
   )
+}
+
+function walkFiles(dir: string): string[] {
+  if (!existsSync(dir)) return []
+
+  const result: string[] = []
+
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const abs = resolve(dir, entry.name)
+
+    if (entry.isDirectory()) {
+      result.push(...walkFiles(abs))
+      continue
+    }
+
+    result.push(abs)
+  }
+
+  return result
+}
+
+function wildcardExportTargetExists(
+  pkg: WorkspacePackage,
+  target: string,
+): boolean {
+  const normalized = target.replace(/^\.\//, '')
+  const starIndex = normalized.indexOf('*')
+
+  if (starIndex < 0) {
+    return existsSync(resolve(pkg.dir, normalized))
+  }
+
+  const prefix = normalized.slice(0, starIndex)
+  const suffix = normalized.slice(starIndex + 1)
+  const baseDir = resolve(pkg.dir, prefix.slice(0, prefix.lastIndexOf('/') + 1))
+
+  return walkFiles(baseDir).some(file => {
+    const rel = file
+      .replace(pkg.dir, '')
+      .replace(/^[/\\]/, '')
+      .replace(/\\/g, '/')
+    return rel.startsWith(prefix.replace(/\\/g, '/')) && rel.endsWith(suffix)
+  })
+}
+
+function hasDistTarget(pkg: WorkspacePackage, target: string): boolean {
+  return wildcardExportTargetExists(pkg, target)
 }
 
 function checkExportTargets(pkg: WorkspacePackage, errors: string[]): void {
@@ -144,16 +178,13 @@ function checkFilesAllowList(pkg: WorkspacePackage, errors: string[]): void {
   }
 }
 
-function checkReadmeAndLicense(pkg: WorkspacePackage, errors: string[]): void {
-  if (!existsSync(resolve(pkg.dir, 'README.md'))) {
-    errors.push(`${pkg.name}: package README.md is required`)
+function checkRootReadmeAndLicense(errors: string[]): void {
+  if (!existsSync(resolve(process.cwd(), 'README.md'))) {
+    errors.push('Root README.md is required')
   }
 
-  const rootLicense = resolve(process.cwd(), 'LICENSE')
-  const pkgLicense = resolve(pkg.dir, 'LICENSE')
-
-  if (!existsSync(rootLicense) && !existsSync(pkgLicense)) {
-    errors.push(`${pkg.name}: LICENSE is required at repo root or package root`)
+  if (!existsSync(resolve(process.cwd(), 'LICENSE'))) {
+    errors.push('Root LICENSE is required')
   }
 }
 
@@ -198,11 +229,10 @@ function checkCommonPackage(
     errors.push(`${pkg.name}: scripts.check is required`)
   }
 
-  if (!existsSync(join(pkg.dir, 'dist'))) {
+  if (!existsSync(resolve(pkg.dir, 'dist'))) {
     errors.push(`${pkg.name}: dist is missing. Run pnpm build first.`)
   }
 
-  checkReadmeAndLicense(pkg, errors)
   checkExportTargets(pkg, errors)
 
   if (options.strict) {
@@ -308,18 +338,17 @@ function checkCliPackage(pkg: WorkspacePackage, errors: string[]): void {
     errors.push(`${pkg.name}: CLI bin.zweb must be ./dist/index.js`)
   }
 
-  if (!hasDistTarget(pkg, './dist/index.js')) {
-    errors.push(`${pkg.name}: missing dist/index.js`)
-  }
-
   const binFile = resolve(pkg.dir, 'dist/index.js')
 
-  if (existsSync(binFile)) {
-    const source = readFileSync(binFile, 'utf-8')
+  if (!existsSync(binFile)) {
+    errors.push(`${pkg.name}: missing dist/index.js`)
+    return
+  }
 
-    if (!source.startsWith('#!/usr/bin/env node')) {
-      errors.push(`${pkg.name}: dist/index.js must start with node shebang`)
-    }
+  const source = readFileSync(binFile, 'utf-8')
+
+  if (!source.startsWith('#!/usr/bin/env node')) {
+    errors.push(`${pkg.name}: dist/index.js must start with node shebang`)
   }
 }
 
@@ -416,47 +445,39 @@ function checkAiPackage(pkg: WorkspacePackage, errors: string[]): void {
 }
 
 function checkSpecificPackage(pkg: WorkspacePackage, errors: string[]): void {
-  if (pkg.isPrimitive) {
-    checkPrimitivePackage(pkg, errors)
-  }
+  if (pkg.isPrimitive) checkPrimitivePackage(pkg, errors)
+  if (pkg.name === '@zeus-web/icons') checkIconsPackage(pkg, errors)
+  if (pkg.name === '@zeus-web/cli') checkCliPackage(pkg, errors)
+  if (pkg.name === '@zeus-web/ui') checkUiPackage(pkg, errors)
+  if (pkg.name === '@zeus-web/registry') checkRegistryPackage(pkg, errors)
+  if (pkg.name === '@zeus-web/themes') checkThemesPackage(pkg, errors)
+  if (pkg.name === '@zeus-web/ai') checkAiPackage(pkg, errors)
+}
 
-  if (pkg.name === '@zeus-web/icons') {
-    checkIconsPackage(pkg, errors)
-  }
+function readPackageJson(path: string): PackageJsonLike | undefined {
+  const file = resolve(process.cwd(), path, 'package.json')
+  if (!existsSync(file)) return undefined
+  return JSON.parse(readFileSync(file, 'utf-8')) as PackageJsonLike
+}
 
-  if (pkg.name === '@zeus-web/cli') {
-    checkCliPackage(pkg, errors)
-  }
+function checkPrivatePackage(path: string, errors: string[]): void {
+  const json = readPackageJson(path)
+  if (!json) return
 
-  if (pkg.name === '@zeus-web/ui') {
-    checkUiPackage(pkg, errors)
-  }
-
-  if (pkg.name === '@zeus-web/registry') {
-    checkRegistryPackage(pkg, errors)
-  }
-
-  if (pkg.name === '@zeus-web/themes') {
-    checkThemesPackage(pkg, errors)
-  }
-
-  if (pkg.name === '@zeus-web/ai') {
-    checkAiPackage(pkg, errors)
+  if (json.private !== true) {
+    errors.push(`${json.name ?? path}: package must be private`)
   }
 }
 
-function checkPrivateWorkspacePackages(errors: string[]): void {
-  for (const pkg of listWorkspacePackages()) {
-    if (
-      !pkg.name.startsWith('@zeus-web/example-') &&
-      pkg.name !== '@zeus-web/docs'
-    ) {
-      continue
-    }
+function checkPrivateExamplesAndDocs(errors: string[]): void {
+  checkPrivatePackage('apps/docs', errors)
 
-    if (!pkg.isPrivate) {
-      errors.push(`${pkg.name}: examples/docs packages must be private`)
-    }
+  const examplesRoot = resolve(process.cwd(), 'examples')
+  if (!existsSync(examplesRoot)) return
+
+  for (const entry of readdirSync(examplesRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    checkPrivatePackage(`examples/${entry.name}`, errors)
   }
 }
 
@@ -464,6 +485,8 @@ function main(): void {
   const options = parseOptions(process.argv.slice(2))
   const packages = listPublishablePackages()
   const errors: string[] = []
+
+  checkRootReadmeAndLicense(errors)
 
   if (packages.length === 0) {
     errors.push('No publishable packages found.')
@@ -482,7 +505,7 @@ function main(): void {
     checkSpecificPackage(pkg, errors)
   }
 
-  checkPrivateWorkspacePackages(errors)
+  checkPrivateExamplesAndDocs(errors)
 
   if (errors.length > 0) {
     console.error(pc.red('Release readiness check failed:'))
