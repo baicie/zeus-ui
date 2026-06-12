@@ -1,20 +1,14 @@
+import type { AddPlan } from './add'
+import type { DiffEntry } from './diff'
+
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, resolve } from 'node:path'
 
 import pc from 'picocolors'
 
 import { readComponentsConfig } from '../config'
-import {
-  getLockedFile,
-  readLegacyLock,
-  updateLegacyLockFromPlans,
-} from '../lock'
-import {
-  createAddPlan,
-  listAvailableComponents,
-  loadRegistry,
-  resolveAddPlanTargets,
-} from './add'
+import { updateComponentsLockFromPlans } from '../lock'
+import { createAddPlan, listAvailableComponents, loadRegistry } from './add'
 import { createDiffEntries } from './diff'
 
 interface UpdateOptions {
@@ -23,9 +17,16 @@ interface UpdateOptions {
   dryRun: boolean
   overwrite: boolean
 }
+
 interface ParsedUpdateArgs {
   components: string[]
   options: UpdateOptions
+}
+
+interface UpdatePlan {
+  entry: DiffEntry
+  action: 'write' | 'skip'
+  reason?: string
 }
 
 function resolveCwdValue(base: string, value: string): string {
@@ -43,105 +44,210 @@ export function parseUpdateArgs(
     dryRun: false,
     overwrite: false,
   }
+
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index]
+
     if (arg === '--all') {
       options.all = true
       continue
     }
+
     if (arg === '--dry-run') {
       options.dryRun = true
       continue
     }
+
     if (arg === '--overwrite' || arg === '--force') {
       options.overwrite = true
       continue
     }
+
     if (arg === '--cwd') {
-      const v = args[++index]
-      if (!v) throw new Error('--cwd requires a directory path')
-      options.cwd = resolveCwdValue(cwd, v)
+      const value = args[index + 1]
+      if (!value) throw new Error('--cwd requires a directory path')
+      options.cwd = resolveCwdValue(cwd, value)
+      index += 1
       continue
     }
+
     if (arg.startsWith('--cwd=')) {
-      const v = arg.slice('--cwd='.length)
-      if (!v) throw new Error('--cwd requires a directory path')
-      options.cwd = resolveCwdValue(cwd, v)
+      const value = arg.slice('--cwd='.length)
+      if (!value) throw new Error('--cwd requires a directory path')
+      options.cwd = resolveCwdValue(cwd, value)
       continue
     }
-    if (arg.startsWith('-')) throw new Error(`Unknown option: ${arg}`)
+
+    if (arg.startsWith('-')) {
+      throw new Error(`Unknown option: ${arg}`)
+    }
+
     components.push(arg)
   }
-  return { components, options }
+
+  return {
+    components,
+    options,
+  }
+}
+
+function createUpdatePlans(params: {
+  entries: DiffEntry[]
+  overwrite: boolean
+}): UpdatePlan[] {
+  return params.entries
+    .filter(entry => entry.status !== 'unchanged')
+    .map(entry => {
+      if (params.overwrite) {
+        return {
+          entry,
+          action: 'write' as const,
+        }
+      }
+
+      if (entry.status === 'missing' || entry.status === 'registry-changed') {
+        return {
+          entry,
+          action: 'write' as const,
+        }
+      }
+
+      if (entry.status === 'locally-modified') {
+        return {
+          entry,
+          action: 'skip' as const,
+          reason: 'local changes detected',
+        }
+      }
+
+      if (entry.status === 'registry-and-local-changed') {
+        return {
+          entry,
+          action: 'skip' as const,
+          reason: 'registry and local changes detected',
+        }
+      }
+
+      if (entry.status === 'untracked-existing') {
+        return {
+          entry,
+          action: 'skip' as const,
+          reason: 'existing file is not tracked by zeus-ui.lock.json',
+        }
+      }
+
+      return {
+        entry,
+        action: 'skip' as const,
+        reason: `unsupported status ${entry.status}`,
+      }
+    })
+}
+
+function printUpdatePlan(params: {
+  plans: UpdatePlan[]
+  dryRun: boolean
+}): void {
+  if (params.plans.length === 0) {
+    console.log(pc.green('All registry files are up to date.'))
+    return
+  }
+
+  console.log(pc.bold(params.dryRun ? 'Update plan:' : 'Update result:'))
+
+  for (const plan of params.plans) {
+    if (plan.action === 'write') {
+      console.log(
+        `  ${pc.green(params.dryRun ? 'WOULD UPDATE' : 'UPDATED')} ${plan.entry.target}`,
+      )
+      continue
+    }
+
+    console.log(
+      `  ${pc.yellow('SKIP')} ${plan.entry.target}${plan.reason ? ` (${plan.reason})` : ''}`,
+    )
+  }
+}
+
+function createRegistryHashes(entries: DiffEntry[]): Record<string, string> {
+  const hashes: Record<string, string> = {}
+
+  for (const entry of entries) {
+    hashes[entry.target] = entry.registryHash
+  }
+
+  return hashes
+}
+
+async function writeUpdatePlans(plans: UpdatePlan[]): Promise<string[]> {
+  const written: string[] = []
+
+  for (const plan of plans) {
+    if (plan.action !== 'write') continue
+
+    await mkdir(dirname(plan.entry.resolvedTarget), {
+      recursive: true,
+    })
+
+    await writeFile(
+      plan.entry.resolvedTarget,
+      plan.entry.registrySource,
+      'utf-8',
+    )
+    written.push(plan.entry.target)
+  }
+
+  return written
 }
 
 export async function update(args: string[]): Promise<void> {
   try {
     const { components, options } = parseUpdateArgs(args)
     const registry = loadRegistry()
+    const config = readComponentsConfig(options.cwd)
     const finalComponents = options.all
       ? listAvailableComponents(registry)
       : components
-    if (finalComponents.length === 0)
+
+    if (finalComponents.length === 0) {
       throw new Error('Please provide components or use --all.')
-    const plans = createAddPlan({ components: finalComponents, registry })
-    const config = readComponentsConfig(options.cwd)
-    const resolvedPlans = resolveAddPlanTargets({
-      plans,
+    }
+
+    const plans: AddPlan[] = createAddPlan({
+      components: finalComponents,
+      registry,
       cwd: options.cwd,
       config,
+      overwrite: options.overwrite,
     })
-    const entries = await createDiffEntries({ cwd: options.cwd, plans })
-    const lock = readLegacyLock(options.cwd)
-    const changed = entries.filter(e => e.status !== 'unchanged')
-    const writtenTargets: string[] = []
 
-    if (changed.length === 0) {
-      console.log(pc.green('All registry files are up to date.'))
-      return
-    }
+    const entries = await createDiffEntries({
+      cwd: options.cwd,
+      plans,
+    })
 
-    for (const entry of changed) {
-      const locked = getLockedFile(lock, entry.target)
-      const hasLocalChanges =
-        entry.currentHash !== undefined &&
-        locked !== undefined &&
-        entry.currentHash !== locked.hash
-      if (hasLocalChanges && !options.overwrite) {
-        console.log(
-          pc.yellow(
-            `Skip modified file: ${entry.target}. Use --overwrite to replace it.`,
-          ),
-        )
-        continue
-      }
-      if (entry.currentHash !== undefined && !locked && !options.overwrite) {
-        console.log(
-          pc.yellow(
-            `Skip untracked existing file: ${entry.target}. Use --overwrite to replace it.`,
-          ),
-        )
-        continue
-      }
-      if (options.dryRun) {
-        console.log(pc.cyan(`Would update ${entry.target}`))
-        continue
-      }
-      await mkdir(dirname(entry.resolvedTarget), { recursive: true })
-      await writeFile(entry.resolvedTarget, entry.registrySource, 'utf-8')
-      writtenTargets.push(entry.target)
-      console.log(pc.green(`Updated ${entry.target}`))
-    }
+    const updatePlans = createUpdatePlans({
+      entries,
+      overwrite: options.overwrite,
+    })
 
-    if (!options.dryRun && writtenTargets.length > 0) {
-      await updateLegacyLockFromPlans({
-        cwd: options.cwd,
-        plans: resolvedPlans,
-        writtenTargets,
-      })
-    }
-    if (!options.dryRun && writtenTargets.length === 0)
-      console.log(pc.gray('No files were updated.'))
+    printUpdatePlan({
+      plans: updatePlans,
+      dryRun: options.dryRun,
+    })
+
+    if (options.dryRun) return
+
+    const writtenTargets = await writeUpdatePlans(updatePlans)
+
+    if (writtenTargets.length === 0) return
+
+    await updateComponentsLockFromPlans({
+      cwd: options.cwd,
+      plans,
+      writtenTargets,
+      registryHashes: createRegistryHashes(entries),
+    })
   } catch (error) {
     console.error(pc.red((error as Error).message))
     process.exitCode = 1

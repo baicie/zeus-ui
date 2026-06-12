@@ -69,12 +69,14 @@ const docs: RequiredDoc[] = [
       '| Phase 20 | Done',
       '| Phase 21 | Done',
       '| Phase 22 | Done',
-      'The showcase has fifteen layers of checks:',
+      '| Phase 23 | Done',
+      'The showcase has sixteen layers of checks:',
       'Product layer checks validate Zeus-UI package boundaries and usage entry decisions.',
       'Native styled Web-C checks validate @zeus-web/ui package exports, CSS entrypoints and primitive composition.',
       'Registry checks validate @zeus-web/registry schema, metadata, templates and primitive dependencies.',
       'CLI init checks validate zeus-ui.json initialization, project detection and base file generation.',
       'CLI add checks validate registry dependency expansion, framework-specific template filtering and lockfile tracking.',
+      'CLI update/diff checks validate registry drift detection, safe update behavior and lock hash tracking.',
       'Showcase registry checks validate React and Vue demos consume registry-synced local styled components.',
       'Native showcase checks validate @zeus-web/ui can be consumed without React or Vue.',
       'Public docs checks validate CLI registry, native styled Web-C and advanced primitive usage paths.',
@@ -83,10 +85,12 @@ const docs: RequiredDoc[] = [
       'pnpm check:registry',
       'pnpm check:cli-init',
       'pnpm check:cli-add',
+      'pnpm check:cli-update-diff',
       'pnpm check:showcase-registry',
       'pnpm check:native-showcase',
       'pnpm check:public-docs',
-      'Phase 23: Add CLI update and diff support for registry-installed components.',
+      'pnpm --filter @zeus-web/cli test:update-diff',
+      'Phase 24: Release readiness, package metadata audit and final verification.',
     ],
   },
 ]
@@ -164,7 +168,8 @@ function checkPhaseOrder(source: string): string[] {
   const phase20Index = source.indexOf('| Phase 20 |')
   const phase21Index = source.indexOf('| Phase 21 |')
   const phase22Index = source.indexOf('| Phase 22 |')
-  const phase23Index = source.indexOf('Phase 23:')
+  const phase23Index = source.indexOf('| Phase 23 |')
+  const phase24Index = source.indexOf('Phase 24:')
 
   if (phase15Index < 0) {
     errors.push('showcase-roadmap.md must contain Phase 15 status row')
@@ -199,7 +204,11 @@ function checkPhaseOrder(source: string): string[] {
   }
 
   if (phase23Index < 0) {
-    errors.push('showcase-roadmap.md must contain Phase 23 next work')
+    errors.push('showcase-roadmap.md must contain Phase 23 status row')
+  }
+
+  if (phase24Index < 0) {
+    errors.push('showcase-roadmap.md must contain Phase 24 next work')
   }
 
   if (phase15Index >= 0 && phase16Index >= 0 && phase16Index < phase15Index) {
@@ -231,7 +240,11 @@ function checkPhaseOrder(source: string): string[] {
   }
 
   if (phase22Index >= 0 && phase23Index >= 0 && phase23Index < phase22Index) {
-    errors.push('Phase 23 next work must appear after Phase 22 status')
+    errors.push('Phase 23 status must appear after Phase 22 status')
+  }
+
+  if (phase23Index >= 0 && phase24Index >= 0 && phase24Index < phase23Index) {
+    errors.push('Phase 24 next work must appear after Phase 23 status')
   }
 
   return errors

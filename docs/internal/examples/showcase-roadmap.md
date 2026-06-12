@@ -29,6 +29,7 @@ This document tracks the implementation status of the React and Vue showcase app
 | Phase 20 | Done   | React and Vue showcase consume registry-installed styled button and input components                             |
 | Phase 21 | Done   | Native showcase for @zeus-web/ui styled Web Components without React or Vue                                      |
 | Phase 22 | Done   | Public docs rewrite for CLI registry, native styled Web-C and advanced primitive usage paths                     |
+| Phase 23 | Done   | CLI update and diff support for registry-installed components with lock hash tracking                            |
 
 ## Implemented component pages
 
@@ -99,7 +100,7 @@ This document tracks the implementation status of the React and Vue showcase app
 
 ## Engineering guarantees
 
-The showcase has fifteen layers of checks:
+The showcase has sixteen layers of checks:
 
 1. Metadata checks validate component metadata coverage.
 2. Implementation checks validate that implemented demos have React and Vue files, dependencies and build dependency scripts.
@@ -113,9 +114,10 @@ The showcase has fifteen layers of checks:
 10. Registry checks validate @zeus-web/registry schema, metadata, templates and primitive dependencies.
 11. CLI init checks validate zeus-ui.json initialization, project detection and base file generation.
 12. CLI add checks validate registry dependency expansion, framework-specific template filtering and lockfile tracking.
-13. Showcase registry checks validate React and Vue demos consume registry-synced local styled components.
-14. Native showcase checks validate @zeus-web/ui can be consumed without React or Vue.
-15. Public docs checks validate CLI registry, native styled Web-C and advanced primitive usage paths.
+13. CLI update/diff checks validate registry drift detection, safe update behavior and lock hash tracking.
+14. Showcase registry checks validate React and Vue demos consume registry-synced local styled components.
+15. Native showcase checks validate @zeus-web/ui can be consumed without React or Vue.
+16. Public docs checks validate CLI registry, native styled Web-C and advanced primitive usage paths.
 
 ## Commands
 
@@ -125,6 +127,7 @@ pnpm check:ui-package
 pnpm check:registry
 pnpm check:cli-init
 pnpm check:cli-add
+pnpm check:cli-update-diff
 pnpm check:showcase-metadata
 pnpm check:showcase-implementation
 pnpm check:showcase-registry
@@ -134,6 +137,7 @@ pnpm docs:check
 pnpm docs:build
 pnpm --filter @zeus-web/cli test:init
 pnpm --filter @zeus-web/cli test:add
+pnpm --filter @zeus-web/cli test:update-diff
 pnpm showcase:registry:sync
 pnpm showcase:registry:check
 pnpm showcase:native
@@ -160,6 +164,6 @@ pnpm site:build
 
 ## Next work
 
-Future phases should improve registry maintenance:
+Future phases should prepare release readiness:
 
-- Phase 23: Add CLI update and diff support for registry-installed components.
+- Phase 24: Release readiness, package metadata audit and final verification.

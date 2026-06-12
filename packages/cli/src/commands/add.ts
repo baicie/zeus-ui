@@ -19,7 +19,7 @@ import {
   resolveRegistryTarget,
   toRelativeProjectPath,
 } from '../config'
-import { readComponentsLock, writeComponentsLock } from '../lock'
+import { hashString, updateComponentsLockFromPlans } from '../lock'
 import {
   createInstallCommands,
   formatInstallCommands,
@@ -518,31 +518,36 @@ async function writePlans(params: {
   }
 }
 
+function createRegistryHashes(params: {
+  config: ComponentsConfig
+  plans: AddPlan[]
+}): Record<string, string> {
+  const hashes: Record<string, string> = {}
+
+  for (const file of flattenFiles(params.plans)) {
+    const raw = readRegistryAsset(file.source)
+    const source = rewriteRegistrySource(raw, params.config)
+    hashes[file.target] = hashString(source)
+  }
+
+  return hashes
+}
+
 async function updateLock(params: {
   cwd: string
   plans: AddPlan[]
   writtenTargets: string[]
+  config: ComponentsConfig
 }): Promise<void> {
-  const lock = readComponentsLock(params.cwd)
-  const writtenTargets = new Set(params.writtenTargets)
-  const updatedAt = new Date().toISOString()
-
-  for (const plan of params.plans) {
-    const files = plan.files
-      .filter(file => writtenTargets.has(file.target))
-      .map(file => file.target)
-
-    if (files.length === 0) continue
-
-    lock.components[plan.component] = {
-      files,
-      dependencies: plan.dependencies,
-      registryDependencies: plan.registryDependencies,
-      updatedAt,
-    }
-  }
-
-  await writeComponentsLock(params.cwd, lock)
+  await updateComponentsLockFromPlans({
+    cwd: params.cwd,
+    plans: params.plans,
+    writtenTargets: params.writtenTargets,
+    registryHashes: createRegistryHashes({
+      config: params.config,
+      plans: params.plans,
+    }),
+  })
 }
 
 function printWriteResult(result: AddResult): void {
@@ -594,6 +599,7 @@ export async function add(args: string[]) {
       cwd: parsed.options.cwd,
       plans,
       writtenTargets: result.written,
+      config,
     })
 
     if (dependencies.length > 0) {
