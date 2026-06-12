@@ -1,6 +1,6 @@
 {
   "$schema": "https://zeus-web.dev/schema/zeus-ui.json",
-  "framework": "react",
+  "framework": "vue",
   "style": "default",
   "typescript": true,
   "srcDir": "src",

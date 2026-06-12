@@ -65,19 +65,23 @@ const docs: RequiredDoc[] = [
       '| Phase 16 | Done   | Native styled Web-C package with styled button and input entrypoints                                             |',
       '| Phase 17 | Done   | Registry foundation with React and Vue button/input templates                                                    |',
       '| Phase 18 | Done   | CLI init command with zeus-ui.json, project detection, cn utility and styles initialization                       |',
-      '| Phase 19 | Done   | CLI add command with registry dependency expansion, framework filtering, file writing and lockfile tracking       |',
-      'The showcase has twelve layers of checks:',
+      '| Phase 19 | Done   | CLI add command with registry dependency expansion, framework filtering, file writing and lockfile tracking        |',
+      '| Phase 20 | Done   | React and Vue showcase consume registry-installed styled button and input components                              |',
+      'The showcase has thirteen layers of checks:',
       'Product layer checks validate Zeus-UI package boundaries and usage entry decisions.',
       'Native styled Web-C checks validate @zeus-web/ui package exports, CSS entrypoints and primitive composition.',
       'Registry checks validate @zeus-web/registry schema, metadata, templates and primitive dependencies.',
       'CLI init checks validate zeus-ui.json initialization, project detection and base file generation.',
       'CLI add checks validate registry dependency expansion, framework-specific template filtering and lockfile tracking.',
+      'Showcase registry checks validate React and Vue demos consume registry-synced local styled components.',
       'pnpm check:product-layers',
       'pnpm check:ui-package',
       'pnpm check:registry',
       'pnpm check:cli-init',
       'pnpm check:cli-add',
-      'Phase 20: Switch React and Vue showcase to registry-installed styled usage.',
+      'pnpm check:showcase-registry',
+      'pnpm showcase:registry:check',
+      'Phase 21: Add native showcase for @zeus-web/ui.',
     ],
   },
 ]
@@ -152,7 +156,8 @@ function checkPhaseOrder(source: string): string[] {
   const phase17Index = source.indexOf('| Phase 17 |')
   const phase18Index = source.indexOf('| Phase 18 |')
   const phase19Index = source.indexOf('| Phase 19 |')
-  const phase20Index = source.indexOf('Phase 20:')
+  const phase20Index = source.indexOf('| Phase 20 |')
+  const phase21Index = source.indexOf('Phase 21:')
 
   if (phase15Index < 0) {
     errors.push('showcase-roadmap.md must contain Phase 15 status row')
@@ -175,7 +180,11 @@ function checkPhaseOrder(source: string): string[] {
   }
 
   if (phase20Index < 0) {
-    errors.push('showcase-roadmap.md must contain Phase 20 next work')
+    errors.push('showcase-roadmap.md must contain Phase 20 status row')
+  }
+
+  if (phase21Index < 0) {
+    errors.push('showcase-roadmap.md must contain Phase 21 next work')
   }
 
   if (phase15Index >= 0 && phase16Index >= 0 && phase16Index < phase15Index) {
@@ -195,7 +204,11 @@ function checkPhaseOrder(source: string): string[] {
   }
 
   if (phase19Index >= 0 && phase20Index >= 0 && phase20Index < phase19Index) {
-    errors.push('Phase 20 next work must appear after Phase 19 status')
+    errors.push('Phase 20 status must appear after Phase 19 status')
+  }
+
+  if (phase20Index >= 0 && phase21Index >= 0 && phase21Index < phase20Index) {
+    errors.push('Phase 21 next work must appear after Phase 20 status')
   }
 
   return errors

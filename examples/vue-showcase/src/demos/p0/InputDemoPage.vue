@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Input } from '@zeus-web/input/vue'
 import { ref } from 'vue'
+import Input from '@/components/ui/input.vue'
 
 import DemoGrid from '../../app/demo/DemoGrid.vue'
 import DemoPage from '../../app/demo/DemoPage.vue'
@@ -37,7 +37,7 @@ function handleFormattedValueChange(event: unknown) {
   >
     <template #meta>
       <span class="showcase-badge">input</span>
-      <span class="showcase-badge">@zeus-web/input/vue</span>
+      <span class="showcase-badge">@/components/ui/input.vue</span>
     </template>
 
     <DemoSection title="Basic">

@@ -34,7 +34,7 @@ describe('react showcase router', () => {
     expect(
       await screen.findByRole('heading', { name: /Button capability page/i }),
     ).toBeInTheDocument()
-    expect(screen.getByText('@zeus-web/button/react')).toBeInTheDocument()
+    expect(screen.getByText('@/components/ui/button')).toBeInTheDocument()
   })
 
   it('renders icons and themes routes', async () => {

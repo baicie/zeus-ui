@@ -1,10 +1,10 @@
-import { Button } from '@zeus-web/button/react'
 import {
   CheckIcon,
   LoaderIcon,
   PlusIcon,
   TrashIcon,
 } from '@zeus-web/icons/react'
+import { Button } from '@/components/ui/button'
 
 import { DemoGrid } from '../../app/demo/DemoGrid'
 import { DemoPage } from '../../app/demo/DemoPage'
@@ -24,7 +24,7 @@ export function ButtonDemoPage() {
       meta={
         <>
           <span className="showcase-badge">button</span>
-          <span className="showcase-badge">@zeus-web/button/react</span>
+          <span className="showcase-badge">@/components/ui/button</span>
         </>
       }
     >
