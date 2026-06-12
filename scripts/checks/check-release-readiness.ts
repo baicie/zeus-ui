@@ -1,12 +1,14 @@
 import type { PackageJsonLike, WorkspacePackage } from '../release/workspace'
-import { existsSync } from 'node:fs'
 
+import { existsSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
 import pc from 'picocolors'
+
 import {
   getUniqueVersions,
   listPublishablePackages,
+  listWorkspacePackages,
   repositoryUrl,
 } from '../release/workspace'
 
@@ -46,12 +48,113 @@ function hasExport(pkg: PackageJsonLike, key: string): boolean {
   return Boolean(pkg.exports && key in pkg.exports)
 }
 
-function hasFile(pkg: PackageJsonLike, file: string): boolean {
-  return Array.isArray(pkg.files) && pkg.files.includes(file)
-}
-
 function hasDistTarget(pkg: WorkspacePackage, target: string): boolean {
   return existsSync(resolve(pkg.dir, target.replace(/^\.\//, '')))
+}
+
+function toArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
+function toObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {}
+}
+
+function collectExportTargets(value: unknown): string[] {
+  if (typeof value === 'string') return [value]
+
+  if (Array.isArray(value)) {
+    return value.flatMap(collectExportTargets)
+  }
+
+  if (!value || typeof value !== 'object') return []
+
+  const result: string[] = []
+
+  for (const child of Object.values(value as Record<string, unknown>)) {
+    result.push(...collectExportTargets(child))
+  }
+
+  return result
+}
+
+function isRuntimeExportTarget(target: string): boolean {
+  return (
+    target.startsWith('./dist/') ||
+    target.endsWith('.css') ||
+    target.endsWith('.json') ||
+    target.endsWith('.svg')
+  )
+}
+
+function checkExportTargets(pkg: WorkspacePackage, errors: string[]): void {
+  const exports = toObject(pkg.packageJson.exports)
+
+  for (const [key, value] of Object.entries(exports)) {
+    const targets = collectExportTargets(value)
+
+    if (targets.length === 0) {
+      errors.push(`${pkg.name}: export ${key} must point to at least one file`)
+      continue
+    }
+
+    for (const target of targets) {
+      if (!target.startsWith('./')) {
+        errors.push(
+          `${pkg.name}: export ${key} target must be relative: ${target}`,
+        )
+        continue
+      }
+
+      if (!isRuntimeExportTarget(target)) {
+        errors.push(
+          `${pkg.name}: export ${key} target must point to dist/css/json/svg output: ${target}`,
+        )
+        continue
+      }
+
+      if (!hasDistTarget(pkg, target)) {
+        errors.push(
+          `${pkg.name}: export ${key} target does not exist: ${target}`,
+        )
+      }
+    }
+  }
+}
+
+function checkFilesAllowList(pkg: WorkspacePackage, errors: string[]): void {
+  const files = toArray(pkg.packageJson.files).map(String)
+
+  if (!files.includes('dist')) {
+    errors.push(`${pkg.name}: files must include dist`)
+  }
+
+  for (const forbidden of [
+    'src',
+    'tests',
+    '__tests__',
+    'examples',
+    'scripts',
+  ]) {
+    if (files.includes(forbidden)) {
+      errors.push(`${pkg.name}: files must not include ${forbidden}`)
+    }
+  }
+}
+
+function checkReadmeAndLicense(pkg: WorkspacePackage, errors: string[]): void {
+  if (!existsSync(resolve(pkg.dir, 'README.md'))) {
+    errors.push(`${pkg.name}: package README.md is required`)
+  }
+
+  const rootLicense = resolve(process.cwd(), 'LICENSE')
+  const pkgLicense = resolve(pkg.dir, 'LICENSE')
+
+  if (!existsSync(rootLicense) && !existsSync(pkgLicense)) {
+    errors.push(`${pkg.name}: LICENSE is required at repo root or package root`)
+  }
 }
 
 function checkCommonPackage(
@@ -85,9 +188,7 @@ function checkCommonPackage(
     errors.push(`${pkg.name}: exports is required`)
   }
 
-  if (!hasFile(json, 'dist')) {
-    errors.push(`${pkg.name}: files must include dist`)
-  }
+  checkFilesAllowList(pkg, errors)
 
   if (!json.scripts?.build) {
     errors.push(`${pkg.name}: scripts.build is required`)
@@ -100,6 +201,9 @@ function checkCommonPackage(
   if (!existsSync(join(pkg.dir, 'dist'))) {
     errors.push(`${pkg.name}: dist is missing. Run pnpm build first.`)
   }
+
+  checkReadmeAndLicense(pkg, errors)
+  checkExportTargets(pkg, errors)
 
   if (options.strict) {
     const repository = json.repository
@@ -207,6 +311,108 @@ function checkCliPackage(pkg: WorkspacePackage, errors: string[]): void {
   if (!hasDistTarget(pkg, './dist/index.js')) {
     errors.push(`${pkg.name}: missing dist/index.js`)
   }
+
+  const binFile = resolve(pkg.dir, 'dist/index.js')
+
+  if (existsSync(binFile)) {
+    const source = readFileSync(binFile, 'utf-8')
+
+    if (!source.startsWith('#!/usr/bin/env node')) {
+      errors.push(`${pkg.name}: dist/index.js must start with node shebang`)
+    }
+  }
+}
+
+function checkUiPackage(pkg: WorkspacePackage, errors: string[]): void {
+  for (const key of ['.', './styles.css', './button', './input']) {
+    if (!hasExport(pkg.packageJson, key)) {
+      errors.push(`${pkg.name}: ui package must export ${key}`)
+    }
+  }
+
+  for (const target of [
+    './dist/index.js',
+    './dist/index.d.ts',
+    './dist/styles.css',
+    './dist/button.js',
+    './dist/button.d.ts',
+    './dist/input.js',
+    './dist/input.d.ts',
+  ]) {
+    if (!hasDistTarget(pkg, target)) {
+      errors.push(`${pkg.name}: missing build output ${target}`)
+    }
+  }
+}
+
+function checkRegistryPackage(pkg: WorkspacePackage, errors: string[]): void {
+  for (const key of [
+    '.',
+    './registry.json',
+    './templates/react/button.tsx',
+    './templates/react/input.tsx',
+    './templates/vue/button.vue',
+    './templates/vue/input.vue',
+    './templates/lib/cn.ts',
+    './templates/css/globals.css',
+  ]) {
+    if (!hasExport(pkg.packageJson, key)) {
+      errors.push(`${pkg.name}: registry package must export ${key}`)
+    }
+  }
+
+  for (const target of [
+    './dist/index.js',
+    './dist/index.d.ts',
+    './dist/registry.json',
+    './dist/templates/react/button.tsx',
+    './dist/templates/react/input.tsx',
+    './dist/templates/vue/button.vue',
+    './dist/templates/vue/input.vue',
+    './dist/templates/lib/cn.ts',
+    './dist/templates/css/globals.css',
+  ]) {
+    if (!hasDistTarget(pkg, target)) {
+      errors.push(`${pkg.name}: missing build output ${target}`)
+    }
+  }
+}
+
+function checkThemesPackage(pkg: WorkspacePackage, errors: string[]): void {
+  for (const key of ['.', './default.css', './components.css']) {
+    if (!hasExport(pkg.packageJson, key)) {
+      errors.push(`${pkg.name}: themes package must export ${key}`)
+    }
+  }
+
+  for (const target of [
+    './dist/index.js',
+    './dist/index.d.ts',
+    './dist/default.css',
+    './dist/components.css',
+  ]) {
+    if (!hasDistTarget(pkg, target)) {
+      errors.push(`${pkg.name}: missing build output ${target}`)
+    }
+  }
+}
+
+function checkAiPackage(pkg: WorkspacePackage, errors: string[]): void {
+  for (const key of ['.', './metadata.json']) {
+    if (!hasExport(pkg.packageJson, key)) {
+      errors.push(`${pkg.name}: ai package must export ${key}`)
+    }
+  }
+
+  for (const target of [
+    './dist/index.js',
+    './dist/index.d.ts',
+    './dist/metadata.json',
+  ]) {
+    if (!hasDistTarget(pkg, target)) {
+      errors.push(`${pkg.name}: missing build output ${target}`)
+    }
+  }
 }
 
 function checkSpecificPackage(pkg: WorkspacePackage, errors: string[]): void {
@@ -220,6 +426,37 @@ function checkSpecificPackage(pkg: WorkspacePackage, errors: string[]): void {
 
   if (pkg.name === '@zeus-web/cli') {
     checkCliPackage(pkg, errors)
+  }
+
+  if (pkg.name === '@zeus-web/ui') {
+    checkUiPackage(pkg, errors)
+  }
+
+  if (pkg.name === '@zeus-web/registry') {
+    checkRegistryPackage(pkg, errors)
+  }
+
+  if (pkg.name === '@zeus-web/themes') {
+    checkThemesPackage(pkg, errors)
+  }
+
+  if (pkg.name === '@zeus-web/ai') {
+    checkAiPackage(pkg, errors)
+  }
+}
+
+function checkPrivateWorkspacePackages(errors: string[]): void {
+  for (const pkg of listWorkspacePackages()) {
+    if (
+      !pkg.name.startsWith('@zeus-web/example-') &&
+      pkg.name !== '@zeus-web/docs'
+    ) {
+      continue
+    }
+
+    if (!pkg.isPrivate) {
+      errors.push(`${pkg.name}: examples/docs packages must be private`)
+    }
   }
 }
 
@@ -245,6 +482,8 @@ function main(): void {
     checkSpecificPackage(pkg, errors)
   }
 
+  checkPrivateWorkspacePackages(errors)
+
   if (errors.length > 0) {
     console.error(pc.red('Release readiness check failed:'))
 
@@ -255,16 +494,8 @@ function main(): void {
     process.exit(1)
   }
 
-  console.log(
-    pc.green(
-      `Release readiness check passed for ${packages.length} publishable package(s).`,
-    ),
-  )
+  console.log(pc.green('Release readiness check passed.'))
+  console.log(`Checked ${packages.length} publishable packages.`)
 }
 
-try {
-  main()
-} catch (error) {
-  console.error(pc.red((error as Error).message))
-  process.exit(1)
-}
+main()

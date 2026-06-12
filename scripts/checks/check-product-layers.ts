@@ -70,7 +70,8 @@ const docs: RequiredDoc[] = [
       '| Phase 21 | Done',
       '| Phase 22 | Done',
       '| Phase 23 | Done',
-      'The showcase has sixteen layers of checks:',
+      '| Phase 24 | Done',
+      'The showcase has seventeen layers of checks:',
       'Product layer checks validate Zeus-UI package boundaries and usage entry decisions.',
       'Native styled Web-C checks validate @zeus-web/ui package exports, CSS entrypoints and primitive composition.',
       'Registry checks validate @zeus-web/registry schema, metadata, templates and primitive dependencies.',
@@ -80,6 +81,7 @@ const docs: RequiredDoc[] = [
       'Showcase registry checks validate React and Vue demos consume registry-synced local styled components.',
       'Native showcase checks validate @zeus-web/ui can be consumed without React or Vue.',
       'Public docs checks validate CLI registry, native styled Web-C and advanced primitive usage paths.',
+      'Release readiness checks validate publishable package metadata, build outputs and tarball contents.',
       'pnpm check:product-layers',
       'pnpm check:ui-package',
       'pnpm check:registry',
@@ -88,9 +90,13 @@ const docs: RequiredDoc[] = [
       'pnpm check:cli-update-diff',
       'pnpm check:showcase-registry',
       'pnpm check:native-showcase',
+      'pnpm check:phase24-release',
+      'pnpm release:verify:strict',
+      'pnpm release:verify:pack',
+      'pnpm release:final',
       'pnpm check:public-docs',
       'pnpm --filter @zeus-web/cli test:update-diff',
-      'Phase 24: Release readiness, package metadata audit and final verification.',
+      'Release candidate / beta publication.',
     ],
   },
 ]
@@ -169,7 +175,8 @@ function checkPhaseOrder(source: string): string[] {
   const phase21Index = source.indexOf('| Phase 21 |')
   const phase22Index = source.indexOf('| Phase 22 |')
   const phase23Index = source.indexOf('| Phase 23 |')
-  const phase24Index = source.indexOf('Phase 24:')
+  const phase24Index = source.indexOf('| Phase 24 |')
+  const nextIndex = source.indexOf('Release candidate / beta publication.')
 
   if (phase15Index < 0) {
     errors.push('showcase-roadmap.md must contain Phase 15 status row')
@@ -208,7 +215,11 @@ function checkPhaseOrder(source: string): string[] {
   }
 
   if (phase24Index < 0) {
-    errors.push('showcase-roadmap.md must contain Phase 24 next work')
+    errors.push('showcase-roadmap.md must contain Phase 24 status row')
+  }
+
+  if (nextIndex < 0) {
+    errors.push('showcase-roadmap.md must contain release candidate next work')
   }
 
   if (phase15Index >= 0 && phase16Index >= 0 && phase16Index < phase15Index) {
@@ -244,7 +255,11 @@ function checkPhaseOrder(source: string): string[] {
   }
 
   if (phase23Index >= 0 && phase24Index >= 0 && phase24Index < phase23Index) {
-    errors.push('Phase 24 next work must appear after Phase 23 status')
+    errors.push('Phase 24 status must appear after Phase 23 status')
+  }
+
+  if (phase24Index >= 0 && nextIndex >= 0 && nextIndex < phase24Index) {
+    errors.push('Release candidate next work must appear after Phase 24 status')
   }
 
   return errors

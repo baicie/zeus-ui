@@ -30,6 +30,7 @@ This document tracks the implementation status of the React and Vue showcase app
 | Phase 21 | Done   | Native showcase for @zeus-web/ui styled Web Components without React or Vue                                      |
 | Phase 22 | Done   | Public docs rewrite for CLI registry, native styled Web-C and advanced primitive usage paths                     |
 | Phase 23 | Done   | CLI update and diff support for registry-installed components with lock hash tracking                            |
+| Phase 24 | Done   | Release readiness, package metadata audit, build output audit and tarball dry-run verification                   |
 
 ## Implemented component pages
 
@@ -100,7 +101,7 @@ This document tracks the implementation status of the React and Vue showcase app
 
 ## Engineering guarantees
 
-The showcase has sixteen layers of checks:
+The showcase has seventeen layers of checks:
 
 1. Metadata checks validate component metadata coverage.
 2. Implementation checks validate that implemented demos have React and Vue files, dependencies and build dependency scripts.
@@ -108,7 +109,7 @@ The showcase has sixteen layers of checks:
 4. Foundation page tests validate icons, themes and playground interaction behavior.
 5. Shared unit tests validate metadata helpers, icon snippets, theme helpers and playground fixtures.
 6. Vitest-powered Playwright E2E tests validate React and Vue showcase routes and critical browser interactions.
-7. CI gates run showcase metadata, unit tests, builds and Vitest-powered Playwright E2E as separate jobs.
+7. CI gates run showcase metadata, unit tests, builds and browser E2E as separate jobs.
 8. Product layer checks validate Zeus-UI package boundaries and usage entry decisions.
 9. Native styled Web-C checks validate @zeus-web/ui package exports, CSS entrypoints and primitive composition.
 10. Registry checks validate @zeus-web/registry schema, metadata, templates and primitive dependencies.
@@ -118,6 +119,7 @@ The showcase has sixteen layers of checks:
 14. Showcase registry checks validate React and Vue demos consume registry-synced local styled components.
 15. Native showcase checks validate @zeus-web/ui can be consumed without React or Vue.
 16. Public docs checks validate CLI registry, native styled Web-C and advanced primitive usage paths.
+17. Release readiness checks validate publishable package metadata, build outputs and tarball contents.
 
 ## Commands
 
@@ -132,6 +134,10 @@ pnpm check:showcase-metadata
 pnpm check:showcase-implementation
 pnpm check:showcase-registry
 pnpm check:native-showcase
+pnpm check:phase24-release
+pnpm release:verify:strict
+pnpm release:verify:pack
+pnpm release:final
 pnpm check:public-docs
 pnpm docs:check
 pnpm docs:build
@@ -164,6 +170,6 @@ pnpm site:build
 
 ## Next work
 
-Future phases should prepare release readiness:
+Future work should move from implementation phases to release operation:
 
-- Phase 24: Release readiness, package metadata audit and final verification.
+- Release candidate / beta publication.
