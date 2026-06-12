@@ -7,13 +7,14 @@ import { dirname, join, resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { createAddPlan } from '../src/commands/add'
+import { createAddPlan, rewriteRegistrySource } from '../src/commands/add'
 import { createDiffEntries, parseDiffArgs } from '../src/commands/diff'
 import {
   createDefaultComponentsConfig,
   getComponentsConfigPath,
 } from '../src/config'
 import { hashString, updateComponentsLockFromPlans } from '../src/lock'
+import { readRegistryAsset } from '../src/registry-assets'
 
 async function createTempDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), 'zeus-web-cli-diff-'))
@@ -102,7 +103,7 @@ describe('@zeus-web/cli diff', () => {
     })
   })
 
-  it('reports missing files', async () => {
+  it('reports untracked-missing when no lock and file does not exist', async () => {
     const root = await createTempDir()
 
     try {
@@ -120,16 +121,16 @@ describe('@zeus-web/cli diff', () => {
       })
 
       expect(entries.map(entry => entry.status)).toEqual([
-        'missing',
-        'missing',
-        'missing',
+        'untracked-missing',
+        'untracked-missing',
+        'untracked-missing',
       ])
     } finally {
       await rm(root, { recursive: true, force: true })
     }
   })
 
-  it('reports unchanged files when lock hashes match', async () => {
+  it('reports unchanged files when local and registry hashes match lock', async () => {
     const root = await createTempDir()
 
     try {
@@ -145,9 +146,12 @@ describe('@zeus-web/cli diff', () => {
 
       for (const plan of plans) {
         for (const file of plan.files) {
+          const raw = readRegistryAsset(file.source)
+          const source = rewriteRegistrySource(raw, config)
+
           mkdirSync(dirname(file.absoluteTarget), { recursive: true })
-          writeFileSync(file.absoluteTarget, 'same', 'utf-8')
-          registryHashes[file.target] = hashString('same')
+          writeFileSync(file.absoluteTarget, source, 'utf-8')
+          registryHashes[file.target] = hashString(source)
         }
       }
 
@@ -165,13 +169,13 @@ describe('@zeus-web/cli diff', () => {
         plans,
       })
 
-      expect(entries.every(entry => entry.status !== 'missing')).toBe(true)
+      expect(entries.every(entry => entry.status === 'unchanged')).toBe(true)
     } finally {
       await rm(root, { recursive: true, force: true })
     }
   })
 
-  it('reports local modifications when current file differs from lock hash', async () => {
+  it('reports locally-modified when current file differs from lock hash', async () => {
     const root = await createTempDir()
 
     try {

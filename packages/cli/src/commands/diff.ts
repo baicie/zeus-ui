@@ -11,8 +11,7 @@ import {
   getLockedFileHash,
   getLockedRegistryHash,
   hashString,
-  migrateLegacyLockIfNeeded,
-  readComponentsLock,
+  readEffectiveComponentsLock,
 } from '../lock'
 import { readRegistryAsset } from '../registry-assets'
 import {
@@ -23,6 +22,7 @@ import {
 } from './add'
 
 export type DiffStatus =
+  | 'untracked-missing'
   | 'missing'
   | 'unchanged'
   | 'registry-changed'
@@ -153,7 +153,11 @@ function getDiffStatus(params: {
   lockedRegistryHash?: string
   registryHash: string
 }): DiffStatus {
-  if (!params.exists) return 'missing'
+  const tracked = Boolean(params.lockedFileHash || params.lockedRegistryHash)
+
+  if (!params.exists) {
+    return tracked ? 'missing' : 'untracked-missing'
+  }
 
   if (!params.lockedFileHash) return 'untracked-existing'
 
@@ -175,13 +179,11 @@ export async function createDiffEntries(params: {
   plans: AddPlan[]
 }): Promise<DiffEntry[]> {
   const config = readComponentsConfig(params.cwd)
-
-  await migrateLegacyLockIfNeeded({
+  const lock = readEffectiveComponentsLock({
     cwd: params.cwd,
     plans: params.plans,
   })
 
-  const lock = readComponentsLock(params.cwd)
   const entries: DiffEntry[] = []
 
   for (const plan of params.plans) {
@@ -262,7 +264,9 @@ function printDiff(entries: DiffEntry[]): void {
 
   for (const entry of changed) {
     const color =
-      entry.status === 'missing' || entry.status === 'untracked-existing'
+      entry.status === 'missing' ||
+      entry.status === 'untracked-missing' ||
+      entry.status === 'untracked-existing'
         ? pc.yellow
         : entry.status === 'locally-modified' ||
             entry.status === 'registry-and-local-changed'

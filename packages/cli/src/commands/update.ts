@@ -98,6 +98,14 @@ function createUpdatePlans(params: {
   return params.entries
     .filter(entry => entry.status !== 'unchanged')
     .map(entry => {
+      if (entry.status === 'untracked-missing') {
+        return {
+          entry,
+          action: 'skip' as const,
+          reason: 'component is not installed; run zweb add first',
+        }
+      }
+
       if (params.overwrite) {
         return {
           entry,

@@ -61,17 +61,13 @@ function main(): void {
   if (errors.length === 0) {
     checkSourceContains(
       'packages/cli/src/commands/diff.ts',
-      [
-        'registry-changed',
-        'locally-modified',
-        'registry-and-local-changed',
-        'untracked-existing',
-        'getLockedFileHash',
-        'getLockedRegistryHash',
-        'createAddPlan({',
-        'cwd: options.cwd',
-        'config',
-      ],
+      ['untracked-missing', 'readEffectiveComponentsLock'],
+      errors,
+    )
+
+    checkSourceNotContains(
+      'packages/cli/src/commands/diff.ts',
+      ['migrateLegacyLockIfNeeded'],
       errors,
     )
 
@@ -84,6 +80,8 @@ function main(): void {
         '--overwrite',
         '--dry-run',
         'writtenTargets',
+        'untracked-missing',
+        'component is not installed; run zweb add first',
       ],
       errors,
     )
@@ -102,6 +100,8 @@ function main(): void {
         'getLockedFileHash',
         'getLockedRegistryHash',
         'migrateLegacyLockIfNeeded',
+        'readEffectiveComponentsLock',
+        'createComponentsLockFromLegacy',
       ],
       errors,
     )
@@ -116,14 +116,15 @@ function main(): void {
 
     checkSourceContains(
       'packages/cli/__tests__/diff.spec.ts',
-      ['reports missing files', 'reports local modifications'],
+      ['reports untracked-missing', 'reports locally-modified'],
       errors,
     )
 
     checkSourceContains(
       'packages/cli/__tests__/update.spec.ts',
       [
-        'updates missing registry files',
+        'does not install untracked components through update',
+        'restores tracked missing files',
         'does not overwrite local modifications without --overwrite',
         'overwrites local modifications with --overwrite',
         'dry-run does not write missing files',

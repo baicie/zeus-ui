@@ -55,7 +55,7 @@ describe('@zeus-web/cli update', () => {
     })
   })
 
-  it('updates missing registry files and writes zeus-ui.lock.json', async () => {
+  it('does not install untracked components through update', async () => {
     const root = await createTempDir()
 
     try {
@@ -63,18 +63,46 @@ describe('@zeus-web/cli update', () => {
 
       await update(['button', '--cwd', root])
 
-      expect(existsSync(resolve(root, 'lib/cn.ts'))).toBe(true)
-      expect(existsSync(resolve(root, 'styles/zeus.css'))).toBe(true)
-      expect(existsSync(resolve(root, 'components/ui/button.tsx'))).toBe(true)
+      expect(existsSync(resolve(root, 'lib/cn.ts'))).toBe(false)
+      expect(existsSync(resolve(root, 'styles/zeus.css'))).toBe(false)
+      expect(existsSync(resolve(root, 'components/ui/button.tsx'))).toBe(false)
+      expect(existsSync(resolve(root, 'zeus-ui.lock.json'))).toBe(false)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
 
-      const lock = readComponentsLock(root)
-      expect(lock.components.button.files).toContain('components/ui/button.tsx')
-      expect(
-        lock.components.button.fileHashes?.['components/ui/button.tsx'],
-      ).toBeTruthy()
-      expect(
-        lock.components.button.registryHashes?.['components/ui/button.tsx'],
-      ).toBeTruthy()
+  it('restores tracked missing files', async () => {
+    const root = await createTempDir()
+
+    try {
+      const config = writeConfig(root)
+      const plans = createAddPlan({
+        components: ['button'],
+        cwd: root,
+        config,
+      })
+
+      const buttonPlan = plans.find(plan => plan.component === 'button')!
+      const file = buttonPlan.files[0]
+
+      mkdirSync(dirname(file.absoluteTarget), { recursive: true })
+      writeFileSync(file.absoluteTarget, 'installed', 'utf-8')
+
+      await updateComponentsLockFromPlans({
+        cwd: root,
+        plans: [buttonPlan],
+        writtenTargets: [file.target],
+        registryHashes: {
+          [file.target]: hashString('installed'),
+        },
+      })
+
+      await rm(file.absoluteTarget, { force: true })
+
+      await update(['button', '--cwd', root])
+
+      expect(existsSync(file.absoluteTarget)).toBe(true)
     } finally {
       await rm(root, { recursive: true, force: true })
     }
@@ -85,8 +113,26 @@ describe('@zeus-web/cli update', () => {
 
     try {
       const config = writeConfig(root)
+      const plans = createAddPlan({
+        components: ['button'],
+        cwd: root,
+        config,
+      })
 
-      await update(['button', '--cwd', root])
+      const buttonPlan = plans.find(plan => plan.component === 'button')!
+      const file = buttonPlan.files[0]
+
+      mkdirSync(dirname(file.absoluteTarget), { recursive: true })
+      writeFileSync(file.absoluteTarget, 'installed', 'utf-8')
+
+      await updateComponentsLockFromPlans({
+        cwd: root,
+        plans: [buttonPlan],
+        writtenTargets: [file.target],
+        registryHashes: {
+          [file.target]: hashString('installed'),
+        },
+      })
 
       const buttonPath = resolve(root, 'components/ui/button.tsx')
       writeFileSync(buttonPath, 'local edit', 'utf-8')
@@ -94,9 +140,6 @@ describe('@zeus-web/cli update', () => {
       await update(['button', '--cwd', root])
 
       expect(readFileSync(buttonPath, 'utf-8')).toBe('local edit')
-
-      const lock = readComponentsLock(root)
-      expect(lock.components.button.files).toContain('components/ui/button.tsx')
       expect(config.framework).toBe('react')
     } finally {
       await rm(root, { recursive: true, force: true })
@@ -107,9 +150,27 @@ describe('@zeus-web/cli update', () => {
     const root = await createTempDir()
 
     try {
-      writeConfig(root)
+      const config = writeConfig(root)
+      const plans = createAddPlan({
+        components: ['button'],
+        cwd: root,
+        config,
+      })
 
-      await update(['button', '--cwd', root])
+      const buttonPlan = plans.find(plan => plan.component === 'button')!
+      const file = buttonPlan.files[0]
+
+      mkdirSync(dirname(file.absoluteTarget), { recursive: true })
+      writeFileSync(file.absoluteTarget, 'installed', 'utf-8')
+
+      await updateComponentsLockFromPlans({
+        cwd: root,
+        plans: [buttonPlan],
+        writtenTargets: [file.target],
+        registryHashes: {
+          [file.target]: hashString('installed'),
+        },
+      })
 
       const buttonPath = resolve(root, 'components/ui/button.tsx')
       writeFileSync(buttonPath, 'local edit', 'utf-8')
@@ -126,11 +187,33 @@ describe('@zeus-web/cli update', () => {
     const root = await createTempDir()
 
     try {
-      writeConfig(root)
+      const config = writeConfig(root)
+      const plans = createAddPlan({
+        components: ['button'],
+        cwd: root,
+        config,
+      })
+
+      const buttonPlan = plans.find(plan => plan.component === 'button')!
+      const file = buttonPlan.files[0]
+
+      mkdirSync(dirname(file.absoluteTarget), { recursive: true })
+      writeFileSync(file.absoluteTarget, 'installed', 'utf-8')
+
+      await updateComponentsLockFromPlans({
+        cwd: root,
+        plans: [buttonPlan],
+        writtenTargets: [file.target],
+        registryHashes: {
+          [file.target]: hashString('installed'),
+        },
+      })
+
+      await rm(file.absoluteTarget, { force: true })
 
       await update(['button', '--cwd', root, '--dry-run'])
 
-      expect(existsSync(resolve(root, 'components/ui/button.tsx'))).toBe(false)
+      expect(existsSync(file.absoluteTarget)).toBe(false)
     } finally {
       await rm(root, { recursive: true, force: true })
     }

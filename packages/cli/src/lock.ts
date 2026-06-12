@@ -154,7 +154,7 @@ export async function updateComponentsLockFromPlans(params: {
     const existing = lock.components[plan.component]
 
     lock.components[plan.component] = {
-      files,
+      files: Array.from(new Set([...(existing?.files ?? []), ...files])),
       dependencies: plan.dependencies,
       registryDependencies: plan.registryDependencies,
       updatedAt,
@@ -262,6 +262,55 @@ export async function migrateLegacyLockIfNeeded(params: {
   }
 
   await writeComponentsLock(params.cwd, next)
+}
+
+export function createComponentsLockFromLegacy(params: {
+  cwd: string
+  plans: AddPlan[]
+}): ComponentsLockFile {
+  const legacy = readLegacyLock(params.cwd)
+  const next = createEmptyComponentsLock()
+
+  for (const plan of params.plans) {
+    const files: string[] = []
+    const fileHashes: Record<string, string> = {}
+
+    for (const file of plan.files) {
+      const legacyFile = getLegacyLockedFile(legacy, file.target)
+      if (!legacyFile) continue
+
+      files.push(file.target)
+      fileHashes[file.target] = legacyFile.hash
+    }
+
+    if (files.length === 0) continue
+
+    next.components[plan.component] = {
+      files,
+      dependencies: plan.dependencies,
+      registryDependencies: plan.registryDependencies,
+      updatedAt: new Date(0).toISOString(),
+      fileHashes,
+      registryHashes: {},
+    }
+  }
+
+  return next
+}
+
+export function readEffectiveComponentsLock(params: {
+  cwd: string
+  plans: AddPlan[]
+}): ComponentsLockFile {
+  if (existsSync(getComponentsLockPath(params.cwd))) {
+    return readComponentsLock(params.cwd)
+  }
+
+  if (existsSync(getLegacyLockPath(params.cwd))) {
+    return createComponentsLockFromLegacy(params)
+  }
+
+  return createEmptyComponentsLock()
 }
 
 export function toLockTarget(cwd: string, file: string): string {
