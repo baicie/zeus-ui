@@ -37,13 +37,13 @@ describe('@zeus-web/ui package contract', () => {
       "import '@zeus-web/themes/default.css'",
     )
     expect(read('src/button.ts')).toContain("import './button.css'")
-    expect(read('src/button.ts')).toContain("import '@zeus-web/button/wc'")
+    expect(read('src/button.ts')).toContain("import '@zeus-web/button/wc/auto'")
 
     expect(read('src/input.ts')).toContain(
       "import '@zeus-web/themes/default.css'",
     )
     expect(read('src/input.ts')).toContain("import './input.css'")
-    expect(read('src/input.ts')).toContain("import '@zeus-web/input/wc'")
+    expect(read('src/input.ts')).toContain("import '@zeus-web/input/wc/auto'")
   })
 
   it('ships aggregate styles', () => {
@@ -70,6 +70,6 @@ describe('@zeus-web/ui package contract', () => {
   })
 
   it('has a css copy build helper', () => {
-    expect(existsSync(resolve(packageRoot, 'scripts/copy-css.mjs'))).toBe(true)
+    expect(existsSync(resolve(packageRoot, 'scripts/copy-css.ts'))).toBe(true)
   })
 })
