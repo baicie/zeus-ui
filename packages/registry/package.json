@@ -2,7 +2,7 @@
   "name": "@zeus-web/registry",
   "type": "module",
   "version": "0.0.0",
-  "description": "Registry for Zeus Web shadcn-like components.",
+  "description": "Source component registry templates for Zeus Web.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -19,19 +19,30 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./registry.json": {
-      "default": "./registry.json"
-    }
+    "./schema": {
+      "types": "./dist/schema.d.ts",
+      "import": "./dist/schema.js"
+    },
+    "./registry.json": "./dist/registry.json",
+    "./templates/react/button.tsx": "./dist/templates/react/button.tsx",
+    "./templates/react/input.tsx": "./dist/templates/react/input.tsx",
+    "./templates/vue/button.vue": "./dist/templates/vue/button.vue",
+    "./templates/vue/input.vue": "./dist/templates/vue/input.vue",
+    "./templates/css/globals.css": "./dist/templates/css/globals.css",
+    "./templates/lib/cn.ts": "./dist/templates/lib/cn.ts"
   },
   "files": [
-    "default",
-    "dist",
-    "registry.json"
+    "dist"
   ],
   "scripts": {
-    "dev": "tsup src/index.ts --format esm --dts --clean --watch",
-    "build": "tsup src/index.ts --format esm --dts --clean",
+    "dev": "tsup src/index.ts src/schema.ts --format esm --dts --clean --watch",
+    "build": "tsup src/index.ts src/schema.ts --format esm --dts --clean && node scripts/copy-registry-assets.mjs",
     "check": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest --root ../.. --project unit packages/registry/__tests__/registry.spec.ts packages/registry/__tests__/phase11-registry.spec.ts packages/registry/__tests__/phase12-registry.spec.ts"
+    "test": "vitest --root ../.. --project unit packages/registry/__tests__/registry-package.spec.ts"
+  },
+  "devDependencies": {
+    "tsup": "8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
   }
 }

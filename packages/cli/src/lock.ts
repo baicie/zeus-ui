@@ -12,7 +12,7 @@ export const componentsLockFileName = 'components.lock.json'
 export interface ComponentsLockFile {
   target: string
   source: string
-  type: 'registry:ui' | 'registry:lib' | 'registry:style'
+  type?: string
   hash: string
 }
 

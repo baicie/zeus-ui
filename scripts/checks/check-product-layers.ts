@@ -63,12 +63,15 @@ const docs: RequiredDoc[] = [
     mustContain: [
       '| Phase 15 | Done   | Product layering contract for primitives, themes, native styled Web-C, registry, CLI and showcase usage          |',
       '| Phase 16 | Done   | Native styled Web-C package with styled button and input entrypoints                                             |',
-      'The showcase has nine layers of checks:',
+      '| Phase 17 | Done   | Registry foundation with React and Vue button/input templates                                                    |',
+      'The showcase has ten layers of checks:',
       'Product layer checks validate Zeus-UI package boundaries and usage entry decisions.',
       'Native styled Web-C checks validate @zeus-web/ui package exports, CSS entrypoints and primitive composition.',
+      'Registry checks validate @zeus-web/registry schema, metadata, templates and primitive dependencies.',
       'pnpm check:product-layers',
       'pnpm check:ui-package',
-      'Phase 17: Add registry foundation with React and Vue button/input templates.',
+      'pnpm check:registry',
+      'Phase 18: Add CLI init command and project configuration.',
     ],
   },
 ]
@@ -140,7 +143,8 @@ function checkPhaseOrder(source: string): string[] {
   const errors: string[] = []
   const phase15Index = source.indexOf('| Phase 15 |')
   const phase16Index = source.indexOf('| Phase 16 |')
-  const phase17Index = source.indexOf('Phase 17:')
+  const phase17Index = source.indexOf('| Phase 17 |')
+  const phase18Index = source.indexOf('Phase 18:')
 
   if (phase15Index < 0) {
     errors.push('showcase-roadmap.md must contain Phase 15 status row')
@@ -151,7 +155,11 @@ function checkPhaseOrder(source: string): string[] {
   }
 
   if (phase17Index < 0) {
-    errors.push('showcase-roadmap.md must contain Phase 17 next work')
+    errors.push('showcase-roadmap.md must contain Phase 17 status row')
+  }
+
+  if (phase18Index < 0) {
+    errors.push('showcase-roadmap.md must contain Phase 18 next work')
   }
 
   if (phase15Index >= 0 && phase16Index >= 0 && phase16Index < phase15Index) {
@@ -159,7 +167,11 @@ function checkPhaseOrder(source: string): string[] {
   }
 
   if (phase16Index >= 0 && phase17Index >= 0 && phase17Index < phase16Index) {
-    errors.push('Phase 17 next work must appear after Phase 16 status')
+    errors.push('Phase 17 status must appear after Phase 16 status')
+  }
+
+  if (phase17Index >= 0 && phase18Index >= 0 && phase18Index < phase17Index) {
+    errors.push('Phase 18 next work must appear after Phase 17 status')
   }
 
   return errors

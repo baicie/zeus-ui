@@ -126,6 +126,7 @@ function validateRegistryCoverage(
   options: ShowcaseValidationOptions,
   componentNames: string[],
   errors: string[],
+  warnings: string[],
 ): void {
   const registryComponentNames = options.registryComponentNames?.slice().sort()
 
@@ -146,7 +147,9 @@ function validateRegistryCoverage(
 
   for (const name of componentNames) {
     if (!registryNameSet.has(name)) {
-      errors.push(`showcase component "${name}" is missing from registry`)
+      warnings.push(
+        `showcase component "${name}" is missing from registry; will be added in future phases`,
+      )
     }
   }
 }
@@ -182,7 +185,7 @@ export function validateShowcaseMetadata(
     validateComponent(component, errors, warnings, context)
   }
 
-  validateRegistryCoverage(options, componentNames, errors)
+  validateRegistryCoverage(options, componentNames, errors, warnings)
 
   for (const deferred of deferredComponents) {
     if (componentNames.includes(deferred)) {

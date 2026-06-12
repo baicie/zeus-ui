@@ -23,6 +23,7 @@ This document tracks the implementation status of the React and Vue showcase app
 | Phase 14 | Done   | CI workflow gates for showcase metadata, unit tests, builds and Vitest-powered Playwright E2E                    |
 | Phase 15 | Done   | Product layering contract for primitives, themes, native styled Web-C, registry, CLI and showcase usage          |
 | Phase 16 | Done   | Native styled Web-C package with styled button and input entrypoints                                             |
+| Phase 17 | Done   | Registry foundation with React and Vue button/input templates                                                    |
 
 ## Implemented component pages
 
@@ -93,7 +94,7 @@ This document tracks the implementation status of the React and Vue showcase app
 
 ## Engineering guarantees
 
-The showcase has nine layers of checks:
+The showcase has ten layers of checks:
 
 1. Metadata checks validate component metadata coverage.
 2. Implementation checks validate that implemented demos have React and Vue files, dependencies and build dependency scripts.
@@ -104,17 +105,22 @@ The showcase has nine layers of checks:
 7. CI gates run showcase metadata, unit tests, builds and browser E2E as separate jobs.
 8. Product layer checks validate Zeus-UI package boundaries and usage entry decisions.
 9. Native styled Web-C checks validate @zeus-web/ui package exports, CSS entrypoints and primitive composition.
+10. Registry checks validate @zeus-web/registry schema, metadata, templates and primitive dependencies.
 
 ## Commands
 
 ```bash
 pnpm check:product-layers
 pnpm check:ui-package
+pnpm check:registry
 pnpm check:showcase-metadata
 pnpm check:showcase-implementation
 pnpm --filter @zeus-web/ui build
 pnpm --filter @zeus-web/ui check
 pnpm --filter @zeus-web/ui test
+pnpm --filter @zeus-web/registry build
+pnpm --filter @zeus-web/registry check
+pnpm --filter @zeus-web/registry test
 pnpm showcase:test
 pnpm showcase:build
 pnpm showcase:e2e
@@ -130,9 +136,8 @@ pnpm site:build
 
 ## Next work
 
-Future phases should continue with registry and CLI usage:
+Future phases should continue with CLI usage:
 
-- Phase 17: Add registry foundation with React and Vue button/input templates.
 - Phase 18: Add CLI init command and project configuration.
 - Phase 19: Add CLI add command for registry component installation.
 - Phase 20: Switch React and Vue showcase to registry-installed styled usage.

@@ -92,8 +92,8 @@ Dependencies:
 
 Files:
 
-- `default/lib/utils.ts` → `lib/utils.ts` (`registry:lib`)
-- `default/input.tsx` → `components/ui/input.tsx` (`registry:ui`)
+- `templates/react/input.tsx` → `components/ui/input.tsx` (`registry:ui`)
+- `templates/vue/input.vue` → `components/ui/input.vue` (`registry:ui`)
 
 ## AI usage rules
 

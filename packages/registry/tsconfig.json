@@ -2,9 +2,10 @@
   "extends": "../../scripts/config/tsconfig.base.json",
   "compilerOptions": {
     "composite": false,
-    "rootDir": "src",
+    "rootDir": ".",
     "outDir": "dist",
-    "isolatedDeclarations": false
+    "isolatedDeclarations": false,
+    "types": ["@types/node"]
   },
-  "include": ["src"]
+  "include": ["src", "__tests__"]
 }

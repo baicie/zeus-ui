@@ -90,8 +90,8 @@ Dependencies:
 
 Files:
 
-- `default/lib/utils.ts` → `lib/utils.ts` (`registry:lib`)
-- `default/button.tsx` → `components/ui/button.tsx` (`registry:ui`)
+- `templates/react/button.tsx` → `components/ui/button.tsx` (`registry:ui`)
+- `templates/vue/button.vue` → `components/ui/button.vue` (`registry:ui`)
 
 ## AI usage rules
 

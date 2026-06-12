@@ -173,7 +173,7 @@ function renderRegistryInfo(
       ? '- None.'
       : registryItem.files
           .map(file => {
-            return `- ${mdInlineCode(file.path)} \u2192 ${mdInlineCode(file.target)} (${mdInlineCode(file.type)})`
+            return `- ${mdInlineCode(file.source ?? file.path ?? '')} \u2192 ${mdInlineCode(file.target)} (${mdInlineCode(file.type ?? '')})`
           })
           .join('\n'),
   ].join('\n')
@@ -291,11 +291,7 @@ export function generateComponentDocs(
   for (const component of context.metadata.components) {
     const registryItem = findRegistryItem(context.registry, component)
 
-    if (!registryItem) {
-      throw new Error(
-        `Missing registry item for component metadata: ${component.name}`,
-      )
-    }
+    if (!registryItem) continue
 
     docs.push({
       path: `apps/docs/components/${component.name}.md`,

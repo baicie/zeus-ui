@@ -30,7 +30,7 @@ export interface RegistryFilePlan {
   source: string
   target: string
   resolvedTarget?: string
-  type: 'registry:ui' | 'registry:lib' | 'registry:style'
+  type?: string
 }
 
 export interface AddPlan {
@@ -102,7 +102,7 @@ export function loadRegistry(): Registry {
 
 function toFilePlan(file: RegistryItemFile): RegistryFilePlan {
   return {
-    source: file.path,
+    source: file.source ?? file.path ?? '',
     target: file.target,
     type: file.type,
   }

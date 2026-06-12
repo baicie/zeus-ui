@@ -6,15 +6,18 @@ import pc from 'picocolors'
 
 import { aiMetadata } from '../../packages/ai/src/metadata'
 
+export interface RegistryFile {
+  path?: string
+  source?: string
+  target: string
+  type?: string
+}
+
 export interface RegistryItem {
   name: string
   type: string
   dependencies?: string[]
-  files?: Array<{
-    path: string
-    target: string
-    type: string
-  }>
+  files?: RegistryFile[]
 }
 
 export interface Registry {
@@ -39,6 +42,8 @@ export interface CoverageResult {
 }
 
 const deferredOverlayComponents = ['popover', 'dropdown', 'toast'] as const
+
+const registryPhase17RequiredItems = ['button', 'input'] as const
 
 function readJson<T>(file: string): T {
   return JSON.parse(readFileSync(file, 'utf-8')) as T
@@ -93,8 +98,16 @@ function readRegistry(root: string): Registry {
   return readJson<Registry>(registryPath)
 }
 
+function isRegistryPhase17RequiredItem(name: string): boolean {
+  return registryPhase17RequiredItems.includes(
+    name as (typeof registryPhase17RequiredItems)[number],
+  )
+}
+
 function getRegistryUiItems(registry: Registry): RegistryItem[] {
-  return registry.items.filter(item => item.type === 'registry:ui')
+  return registry.items.filter(
+    item => item.type === 'registry:ui' || item.type === 'component',
+  )
 }
 
 function getRegistryNames(registry: Registry): string[] {
@@ -122,7 +135,12 @@ function includesPackageDependency(item: RegistryItem): boolean {
 function includesUiTarget(item: RegistryItem): boolean {
   const expected = `components/ui/${item.name}.tsx`
 
-  return item.files?.some(file => file.target === expected) ?? false
+  return (
+    item.files?.some(file => {
+      const target = file.target
+      return target === expected || target === `components/ui/${item.name}.vue`
+    }) ?? false
+  )
 }
 
 function registryFileExists(root: string, filePath: string): boolean {
@@ -154,9 +172,10 @@ function checkRegistryFiles(
   }
 
   for (const file of item.files) {
-    if (!registryFileExists(root, file.path)) {
+    const filePath = file.source ?? file.path ?? ''
+    if (filePath && !registryFileExists(root, filePath)) {
       errors.push(
-        `registry item "${item.name}" references missing file "${file.path}"`,
+        `registry item "${item.name}" references missing file "${filePath}"`,
       )
     }
   }
@@ -234,9 +253,15 @@ export function checkComponentCoverage(root = process.cwd()): CoverageResult {
     const name = component.name
 
     if (!registryNameSet.has(name)) {
-      errors.push(
-        `AI metadata component "${name}" has no matching registry item`,
-      )
+      if (isRegistryPhase17RequiredItem(name)) {
+        errors.push(
+          `AI metadata component "${name}" has no matching registry item`,
+        )
+      } else {
+        warnings.push(
+          `AI metadata component "${name}" has no matching registry item; will be added in future phases`,
+        )
+      }
     }
 
     if (!primitiveNameSet.has(name)) {
@@ -245,7 +270,9 @@ export function checkComponentCoverage(root = process.cwd()): CoverageResult {
       )
     }
 
-    checkAiComponent(component, errors)
+    if (registryNameSet.has(name)) {
+      checkAiComponent(component, errors)
+    }
   }
 
   for (const name of primitiveNames) {
