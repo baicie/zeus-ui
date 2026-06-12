@@ -36,7 +36,7 @@ describe('@zeus-web/cli config', () => {
     })
   })
 
-  it('writes components.json', async () => {
+  it('writes zeus-ui.json', async () => {
     const cwd = await createTempDir()
 
     try {
@@ -47,7 +47,7 @@ describe('@zeus-web/cli config', () => {
       })
 
       expect(result).toBe('created')
-      expect(existsSync(resolve(cwd, 'components.json'))).toBe(true)
+      expect(existsSync(resolve(cwd, 'zeus-ui.json'))).toBe(true)
     } finally {
       await rm(cwd, { recursive: true, force: true })
     }
@@ -105,10 +105,10 @@ describe('@zeus-web/cli config', () => {
       expect(result).toBe('created')
       expect(
         readFileSync(resolve(cwd, 'src/styles/globals.css'), 'utf-8'),
-      ).toContain("@import '@zeus-web/themes/zinc.css';")
+      ).toContain('/* zeus-web registry globals:start */')
       expect(
         readFileSync(resolve(cwd, 'src/styles/globals.css'), 'utf-8'),
-      ).toContain("@import '@zeus-web/themes/components.css';")
+      ).toContain('/* zeus-web theme overrides:start */')
     } finally {
       await rm(cwd, { recursive: true, force: true })
     }
@@ -132,10 +132,10 @@ describe('@zeus-web/cli config', () => {
       expect(result).toBe('created')
       expect(
         readFileSync(resolve(cwd, 'src/styles/globals.css'), 'utf-8'),
-      ).toContain("@import '@zeus-web/themes/slate.css';")
+      ).toContain('/* zeus-web registry globals:start */')
       expect(
         readFileSync(resolve(cwd, 'src/styles/globals.css'), 'utf-8'),
-      ).toContain("@import '@zeus-web/themes/components.css';")
+      ).toContain('/* zeus-web theme overrides:start */')
     } finally {
       await rm(cwd, { recursive: true, force: true })
     }

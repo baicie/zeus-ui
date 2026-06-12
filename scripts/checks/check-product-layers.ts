@@ -64,14 +64,17 @@ const docs: RequiredDoc[] = [
       '| Phase 15 | Done   | Product layering contract for primitives, themes, native styled Web-C, registry, CLI and showcase usage          |',
       '| Phase 16 | Done   | Native styled Web-C package with styled button and input entrypoints                                             |',
       '| Phase 17 | Done   | Registry foundation with React and Vue button/input templates                                                    |',
-      'The showcase has ten layers of checks:',
+      '| Phase 18 | Done   | CLI init command with zeus-ui.json, project detection, cn utility and styles initialization                       |',
+      'The showcase has eleven layers of checks:',
       'Product layer checks validate Zeus-UI package boundaries and usage entry decisions.',
       'Native styled Web-C checks validate @zeus-web/ui package exports, CSS entrypoints and primitive composition.',
       'Registry checks validate @zeus-web/registry schema, metadata, templates and primitive dependencies.',
+      'CLI init checks validate zeus-ui.json initialization, project detection and base file generation.',
       'pnpm check:product-layers',
       'pnpm check:ui-package',
       'pnpm check:registry',
-      'Phase 18: Add CLI init command and project configuration.',
+      'pnpm check:cli-init',
+      'Phase 19: Add CLI add command for registry component installation.',
     ],
   },
 ]
@@ -144,7 +147,8 @@ function checkPhaseOrder(source: string): string[] {
   const phase15Index = source.indexOf('| Phase 15 |')
   const phase16Index = source.indexOf('| Phase 16 |')
   const phase17Index = source.indexOf('| Phase 17 |')
-  const phase18Index = source.indexOf('Phase 18:')
+  const phase18Index = source.indexOf('| Phase 18 |')
+  const phase19Index = source.indexOf('Phase 19:')
 
   if (phase15Index < 0) {
     errors.push('showcase-roadmap.md must contain Phase 15 status row')
@@ -159,7 +163,11 @@ function checkPhaseOrder(source: string): string[] {
   }
 
   if (phase18Index < 0) {
-    errors.push('showcase-roadmap.md must contain Phase 18 next work')
+    errors.push('showcase-roadmap.md must contain Phase 18 status row')
+  }
+
+  if (phase19Index < 0) {
+    errors.push('showcase-roadmap.md must contain Phase 19 next work')
   }
 
   if (phase15Index >= 0 && phase16Index >= 0 && phase16Index < phase15Index) {
@@ -171,7 +179,11 @@ function checkPhaseOrder(source: string): string[] {
   }
 
   if (phase17Index >= 0 && phase18Index >= 0 && phase18Index < phase17Index) {
-    errors.push('Phase 18 next work must appear after Phase 17 status')
+    errors.push('Phase 18 status must appear after Phase 17 status')
+  }
+
+  if (phase18Index >= 0 && phase19Index >= 0 && phase19Index < phase18Index) {
+    errors.push('Phase 19 next work must appear after Phase 18 status')
   }
 
   return errors
