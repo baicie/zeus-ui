@@ -1,0 +1,94 @@
+zw-input {
+  display: inline-flex;
+  width: 100%;
+  vertical-align: middle;
+}
+
+zw-input [data-slot='input'],
+zw-input::part(input) {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  height: 2.25rem;
+  border: 1px solid hsl(var(--zw-input));
+  border-radius: var(--zw-radius-md);
+  background: hsl(var(--zw-background));
+  color: hsl(var(--zw-foreground));
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  outline: none;
+  padding-block: 0.375rem;
+  padding-inline: 0.75rem;
+  transition:
+    border-color var(--zw-duration-fast) var(--zw-easing-standard),
+    box-shadow var(--zw-duration-fast) var(--zw-easing-standard),
+    background-color var(--zw-duration-fast) var(--zw-easing-standard),
+    opacity var(--zw-duration-fast) var(--zw-easing-standard);
+}
+
+zw-input [data-slot='input']::placeholder,
+zw-input::part(input)::placeholder {
+  color: hsl(var(--zw-foreground) / 0.48);
+}
+
+zw-input [data-slot='input']:hover,
+zw-input::part(input):hover {
+  border-color: hsl(var(--zw-ring) / 0.45);
+}
+
+zw-input [data-slot='input']:focus,
+zw-input [data-slot='input']:focus-visible,
+zw-input::part(input):focus,
+zw-input::part(input):focus-visible {
+  border-color: hsl(var(--zw-ring));
+  box-shadow:
+    0 0 0 2px hsl(var(--zw-background)),
+    0 0 0 4px hsl(var(--zw-ring) / 0.35);
+}
+
+zw-input [data-slot='input'][data-invalid='true'],
+zw-input [data-slot='input'][aria-invalid='true'],
+zw-input[invalid]::part(input),
+zw-input[aria-invalid='true']::part(input) {
+  border-color: hsl(var(--destructive));
+}
+
+zw-input [data-slot='input'][data-invalid='true']:focus,
+zw-input [data-slot='input'][aria-invalid='true']:focus,
+zw-input[invalid]::part(input):focus,
+zw-input[aria-invalid='true']::part(input):focus {
+  box-shadow:
+    0 0 0 2px hsl(var(--zw-background)),
+    0 0 0 4px hsl(var(--destructive) / 0.35);
+}
+
+zw-input [data-slot='input'][data-disabled='true'],
+zw-input [data-slot='input'][aria-disabled='true'],
+zw-input [data-slot='input']:disabled,
+zw-input[disabled]::part(input),
+zw-input[aria-disabled='true']::part(input) {
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+zw-input [data-slot='input'][data-size='sm'],
+zw-input[size='sm']::part(input) {
+  height: 2rem;
+  padding-block: 0.25rem;
+  padding-inline: 0.625rem;
+  font-size: 0.8125rem;
+}
+
+zw-input [data-slot='input'][data-size='md'],
+zw-input[size='md']::part(input),
+zw-input:not([size])::part(input) {
+  height: 2.25rem;
+}
+
+zw-input [data-slot='input'][data-size='lg'],
+zw-input[size='lg']::part(input) {
+  height: 2.5rem;
+  padding-inline: 0.875rem;
+}

@@ -61,11 +61,14 @@ const docs: RequiredDoc[] = [
   {
     path: 'docs/internal/examples/showcase-roadmap.md',
     mustContain: [
-      '| Phase 15 | Done   | Product layering contract for primitives, themes, native styled Web-C, registry, CLI and showcase usage |',
-      'The showcase has eight layers of checks:',
+      '|| Phase 15 | Done   | Product layering contract for primitives, themes, native styled Web-C, registry, CLI and showcase usage          |',
+      '|| Phase 16 | Done   | Native styled Web-C package with styled button and input entrypoints |',
+      'The showcase has nine layers of checks:',
       'Product layer checks validate Zeus-UI package boundaries and usage entry decisions.',
+      'Native styled Web-C checks validate @zeus-web/ui package exports, CSS entrypoints and primitive composition.',
       'pnpm check:product-layers',
-      'Phase 16: Add @zeus-web/ui native styled Web-C package for button and input.',
+      'pnpm check:ui-package',
+      'Phase 17: Add registry foundation with React and Vue button/input templates.',
     ],
   },
 ]
@@ -135,19 +138,28 @@ function checkForbiddenPatterns(path: string, source: string): string[] {
 
 function checkPhaseOrder(source: string): string[] {
   const errors: string[] = []
-  const phase15Index = source.indexOf('| Phase 15 |')
-  const phase16Index = source.indexOf('Phase 16:')
+  const phase15Index = source.indexOf('|| Phase 15 |')
+  const phase16Index = source.indexOf('|| Phase 16 |')
+  const phase17Index = source.indexOf('Phase 17:')
 
   if (phase15Index < 0) {
     errors.push('showcase-roadmap.md must contain Phase 15 status row')
   }
 
   if (phase16Index < 0) {
-    errors.push('showcase-roadmap.md must contain Phase 16 next work')
+    errors.push('showcase-roadmap.md must contain Phase 16 status row')
+  }
+
+  if (phase17Index < 0) {
+    errors.push('showcase-roadmap.md must contain Phase 17 next work')
   }
 
   if (phase15Index >= 0 && phase16Index >= 0 && phase16Index < phase15Index) {
-    errors.push('Phase 16 next work must appear after Phase 15 status')
+    errors.push('Phase 16 status must appear after Phase 15 status')
+  }
+
+  if (phase16Index >= 0 && phase17Index >= 0 && phase17Index < phase16Index) {
+    errors.push('Phase 17 next work must appear after Phase 16 status')
   }
 
   return errors

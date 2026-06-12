@@ -1,0 +1,59 @@
+{
+  "name": "@zeus-web/ui",
+  "type": "module",
+  "version": "0.0.0",
+  "description": "Styled native Web Component entrypoints for Zeus Web.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baicie/zeus-ui.git",
+    "directory": "packages/ui"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "sideEffects": [
+    "./dist/*.css",
+    "./dist/**/*.css",
+    "./dist/index.js",
+    "./dist/button.js",
+    "./dist/input.js"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./button": {
+      "types": "./dist/button.d.ts",
+      "import": "./dist/button.js"
+    },
+    "./button.css": "./dist/button.css",
+    "./input": {
+      "types": "./dist/input.d.ts",
+      "import": "./dist/input.js"
+    },
+    "./input.css": "./dist/input.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsup src/index.ts src/button.ts src/input.ts --format esm --dts --clean --watch",
+    "build": "tsup src/index.ts src/button.ts src/input.ts --format esm --dts --clean && node scripts/copy-css.mjs",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest --root ../.. --project unit packages/ui/__tests__/ui-package.spec.ts"
+  },
+  "dependencies": {
+    "@zeus-web/button": "workspace:*",
+    "@zeus-web/input": "workspace:*",
+    "@zeus-web/themes": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  }
+}

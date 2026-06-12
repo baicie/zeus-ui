@@ -1,0 +1,158 @@
+zw-button {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+zw-button [data-slot='button'],
+zw-button::part(button) {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  border-radius: var(--zw-radius-md);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  transition:
+    color var(--zw-duration-fast) var(--zw-easing-standard),
+    background-color var(--zw-duration-fast) var(--zw-easing-standard),
+    border-color var(--zw-duration-fast) var(--zw-easing-standard),
+    box-shadow var(--zw-duration-fast) var(--zw-easing-standard),
+    opacity var(--zw-duration-fast) var(--zw-easing-standard);
+}
+
+zw-button [data-slot='button']:focus-visible,
+zw-button::part(button):focus-visible {
+  box-shadow:
+    0 0 0 2px hsl(var(--zw-background)),
+    0 0 0 4px hsl(var(--zw-ring) / 0.45);
+}
+
+zw-button [data-slot='button'][data-disabled='true'],
+zw-button [data-slot='button'][aria-disabled='true'],
+zw-button [data-slot='button']:disabled,
+zw-button[disabled]::part(button),
+zw-button[aria-disabled='true']::part(button) {
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Variants */
+
+zw-button [data-slot='button'],
+zw-button [data-slot='button'][data-variant='default'],
+zw-button:not([variant])::part(button),
+zw-button[variant='default']::part(button) {
+  border-color: hsl(var(--zw-border));
+  background: hsl(var(--zw-background));
+  color: hsl(var(--zw-foreground));
+}
+
+zw-button [data-slot='button'][data-variant='default']:hover,
+zw-button[variant='default']::part(button):hover,
+zw-button:not([variant])::part(button):hover {
+  background: hsl(var(--zw-primary) / 0.06);
+}
+
+zw-button [data-slot='button'][data-variant='primary'],
+zw-button[variant='primary']::part(button) {
+  border-color: hsl(var(--zw-primary));
+  background: hsl(var(--zw-primary));
+  color: hsl(var(--zw-primary-foreground));
+}
+
+zw-button [data-slot='button'][data-variant='primary']:hover,
+zw-button[variant='primary']::part(button):hover {
+  background: hsl(var(--zw-primary) / 0.9);
+}
+
+zw-button [data-slot='button'][data-variant='secondary'],
+zw-button[variant='secondary']::part(button) {
+  border-color: hsl(var(--zw-border));
+  background: hsl(var(--zw-primary) / 0.08);
+  color: hsl(var(--zw-foreground));
+}
+
+zw-button [data-slot='button'][data-variant='secondary']:hover,
+zw-button[variant='secondary']::part(button):hover {
+  background: hsl(var(--zw-primary) / 0.12);
+}
+
+zw-button [data-slot='button'][data-variant='outline'],
+zw-button[variant='outline']::part(button) {
+  border-color: hsl(var(--zw-border));
+  background: transparent;
+  color: hsl(var(--zw-foreground));
+}
+
+zw-button [data-slot='button'][data-variant='outline']:hover,
+zw-button[variant='outline']::part(button):hover {
+  background: hsl(var(--zw-primary) / 0.06);
+}
+
+zw-button [data-slot='button'][data-variant='ghost'],
+zw-button[variant='ghost']::part(button) {
+  border-color: transparent;
+  background: transparent;
+  color: hsl(var(--zw-foreground));
+}
+
+zw-button [data-slot='button'][data-variant='ghost']:hover,
+zw-button[variant='ghost']::part(button):hover {
+  background: hsl(var(--zw-primary) / 0.06);
+}
+
+zw-button [data-slot='button'][data-variant='danger'],
+zw-button[variant='danger']::part(button),
+zw-button [data-slot='button'][data-variant='destructive'],
+zw-button[variant='destructive']::part(button) {
+  border-color: hsl(var(--destructive));
+  background: hsl(var(--destructive));
+  color: hsl(var(--destructive-foreground));
+}
+
+zw-button [data-slot='button'][data-variant='danger']:hover,
+zw-button[variant='danger']::part(button):hover,
+zw-button [data-slot='button'][data-variant='destructive']:hover,
+zw-button[variant='destructive']::part(button):hover {
+  background: hsl(var(--destructive) / 0.9);
+}
+
+/* Sizes */
+
+zw-button [data-slot='button'],
+zw-button [data-slot='button'][data-size='md'],
+zw-button:not([size])::part(button),
+zw-button[size='md']::part(button) {
+  height: 2.25rem;
+  padding-inline: 1rem;
+}
+
+zw-button [data-slot='button'][data-size='sm'],
+zw-button[size='sm']::part(button) {
+  height: 2rem;
+  padding-inline: 0.75rem;
+  font-size: 0.8125rem;
+}
+
+zw-button [data-slot='button'][data-size='lg'],
+zw-button[size='lg']::part(button) {
+  height: 2.5rem;
+  padding-inline: 1.25rem;
+}
+
+zw-button [data-slot='button'][data-size='icon'],
+zw-button[size='icon']::part(button) {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding-inline: 0;
+}
