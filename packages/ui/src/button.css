@@ -115,16 +115,16 @@ zw-button [data-slot='button'][data-variant='danger'],
 zw-button[variant='danger']::part(button),
 zw-button [data-slot='button'][data-variant='destructive'],
 zw-button[variant='destructive']::part(button) {
-  border-color: hsl(var(--destructive));
-  background: hsl(var(--destructive));
-  color: hsl(var(--destructive-foreground));
+  border-color: hsl(var(--zw-destructive));
+  background: hsl(var(--zw-destructive));
+  color: hsl(var(--zw-destructive-foreground));
 }
 
 zw-button [data-slot='button'][data-variant='danger']:hover,
 zw-button[variant='danger']::part(button):hover,
 zw-button [data-slot='button'][data-variant='destructive']:hover,
 zw-button[variant='destructive']::part(button):hover {
-  background: hsl(var(--destructive) / 0.9);
+  background: hsl(var(--zw-destructive) / 0.9);
 }
 
 /* Sizes */

@@ -154,6 +154,8 @@ function checkCssSources(errors: string[]): void {
     'hsl(var(--zw-primary))',
     'hsl(var(--zw-primary-foreground))',
     'var(--zw-radius-md)',
+    'hsl(var(--zw-destructive))',
+    'hsl(var(--zw-destructive-foreground))',
   ]
 
   const inputRequired = [
@@ -162,6 +164,7 @@ function checkCssSources(errors: string[]): void {
     'hsl(var(--zw-input))',
     'hsl(var(--zw-ring))',
     'var(--zw-radius-md)',
+    'hsl(var(--zw-destructive))',
   ]
 
   for (const item of buttonRequired) {

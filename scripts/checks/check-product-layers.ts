@@ -61,8 +61,8 @@ const docs: RequiredDoc[] = [
   {
     path: 'docs/internal/examples/showcase-roadmap.md',
     mustContain: [
-      '|| Phase 15 | Done   | Product layering contract for primitives, themes, native styled Web-C, registry, CLI and showcase usage          |',
-      '|| Phase 16 | Done   | Native styled Web-C package with styled button and input entrypoints |',
+      '| Phase 15 | Done   | Product layering contract for primitives, themes, native styled Web-C, registry, CLI and showcase usage          |',
+      '| Phase 16 | Done   | Native styled Web-C package with styled button and input entrypoints                                             |',
       'The showcase has nine layers of checks:',
       'Product layer checks validate Zeus-UI package boundaries and usage entry decisions.',
       'Native styled Web-C checks validate @zeus-web/ui package exports, CSS entrypoints and primitive composition.',
@@ -138,8 +138,8 @@ function checkForbiddenPatterns(path: string, source: string): string[] {
 
 function checkPhaseOrder(source: string): string[] {
   const errors: string[] = []
-  const phase15Index = source.indexOf('|| Phase 15 |')
-  const phase16Index = source.indexOf('|| Phase 16 |')
+  const phase15Index = source.indexOf('| Phase 15 |')
+  const phase16Index = source.indexOf('| Phase 16 |')
   const phase17Index = source.indexOf('Phase 17:')
 
   if (phase15Index < 0) {

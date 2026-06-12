@@ -51,7 +51,7 @@ zw-input [data-slot='input'][data-invalid='true'],
 zw-input [data-slot='input'][aria-invalid='true'],
 zw-input[invalid]::part(input),
 zw-input[aria-invalid='true']::part(input) {
-  border-color: hsl(var(--destructive));
+  border-color: hsl(var(--zw-destructive));
 }
 
 zw-input [data-slot='input'][data-invalid='true']:focus,
@@ -60,7 +60,7 @@ zw-input[invalid]::part(input):focus,
 zw-input[aria-invalid='true']::part(input):focus {
   box-shadow:
     0 0 0 2px hsl(var(--zw-background)),
-    0 0 0 4px hsl(var(--destructive) / 0.35);
+    0 0 0 4px hsl(var(--zw-destructive) / 0.35);
 }
 
 zw-input [data-slot='input'][data-disabled='true'],

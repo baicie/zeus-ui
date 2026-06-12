@@ -4,25 +4,25 @@ This document tracks the implementation status of the React and Vue showcase app
 
 ## Status
 
-| Phase    | Status   | Scope                                                                                                            |
-| -------- | -------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Phase 0  | Done     | Shared metadata, component inventory and validation baseline                                                     |
-| Phase 1  | Done     | React showcase router shell                                                                                      |
-| Phase 2  | Done     | Vue showcase router shell                                                                                        |
-| Phase 3  | Done     | Shared page templates and scaffold components                                                                    |
-| Phase 4  | Done     | P0 component pages: button, input, checkbox, switch, tabs, dialog                                                |
-| Phase 5  | Done     | Form component pages: label, textarea, radio-group, select                                                       |
-| Phase 6  | Done     | Visual and feedback pages: card, badge, separator, skeleton, alert, progress, avatar                             |
-| Phase 7  | Done     | Disclosure and overlay pages: collapsible, accordion, tooltip                                                    |
-| Phase 8  | Done     | CI hardening, build dependency orchestration, route smoke tests and roadmap                                      |
-| Phase 9  | Done     | Icons page with grid, search, category filters, copy snippets and previews                                       |
-| Phase 10 | Done     | Themes page with theme switcher, light/dark mode, radius, motion, token palette and component preview            |
-| Phase 11 | Done     | Playground page with admin dashboard, settings form, project creation flow and interaction tests                 |
-| Phase 12 | Done     | Unit tests for shared metadata, route smoke, foundation pages, playground interactions and root test-unit wiring |
-| Phase 13 | Done     | Vitest-powered Playwright E2E smoke tests for React and Vue showcase routes and foundation interactions          |
-| Phase 14 | Done     | CI workflow gates for showcase metadata, unit tests, builds and Vitest-powered Playwright E2E                    |
-|          | Phase 15 | Done                                                                                                             | Product layering contract for primitives, themes, native styled Web-C, registry, CLI and showcase usage |
-|          | Phase 16 | Done                                                                                                             | Native styled Web-C package with styled button and input entrypoints                                    |
+| Phase    | Status | Scope                                                                                                            |
+| -------- | ------ | ---------------------------------------------------------------------------------------------------------------- |
+| Phase 0  | Done   | Shared metadata, component inventory and validation baseline                                                     |
+| Phase 1  | Done   | React showcase router shell                                                                                      |
+| Phase 2  | Done   | Vue showcase router shell                                                                                        |
+| Phase 3  | Done   | Shared page templates and scaffold components                                                                    |
+| Phase 4  | Done   | P0 component pages: button, input, checkbox, switch, tabs, dialog                                                |
+| Phase 5  | Done   | Form component pages: label, textarea, radio-group, select                                                       |
+| Phase 6  | Done   | Visual and feedback pages: card, badge, separator, skeleton, alert, progress, avatar                             |
+| Phase 7  | Done   | Disclosure and overlay pages: collapsible, accordion, tooltip                                                    |
+| Phase 8  | Done   | CI hardening, build dependency orchestration, route smoke tests and roadmap                                      |
+| Phase 9  | Done   | Icons page with grid, search, category filters, copy snippets and previews                                       |
+| Phase 10 | Done   | Themes page with theme switcher, light/dark mode, radius, motion, token palette and component preview            |
+| Phase 11 | Done   | Playground page with admin dashboard, settings form, project creation flow and interaction tests                 |
+| Phase 12 | Done   | Unit tests for shared metadata, route smoke, foundation pages, playground interactions and root test-unit wiring |
+| Phase 13 | Done   | Vitest-powered Playwright E2E smoke tests for React and Vue showcase routes and foundation interactions          |
+| Phase 14 | Done   | CI workflow gates for showcase metadata, unit tests, builds and Vitest-powered Playwright E2E                    |
+| Phase 15 | Done   | Product layering contract for primitives, themes, native styled Web-C, registry, CLI and showcase usage          |
+| Phase 16 | Done   | Native styled Web-C package with styled button and input entrypoints                                             |
 
 ## Implemented component pages
 
