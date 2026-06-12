@@ -10,18 +10,17 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
 
 import {
+  getThemeColors,
   isDarkModeStrategyName,
   isMotionPresetName,
   isRadiusPresetName,
   isThemeName,
   motionPresets,
   radiusPresets,
+  semanticColorTokens,
 } from '@zeus-web/themes'
 
-import {
-  readRegistryCnTemplate,
-  readRegistryGlobalsTemplate,
-} from './registry-assets'
+import { readRegistryCnTemplate } from './registry-assets'
 
 export type ComponentsFramework = 'react' | 'vue'
 
@@ -332,10 +331,28 @@ function createThemeOverrideCss(config: ComponentsConfig): string {
   return `${lines.join('\n')}\n`
 }
 
-function createRegistryGlobalsBlock(): string {
-  const globals = readRegistryGlobalsTemplate().trim()
+function createRegistryGlobalsBlock(config: ComponentsConfig): string {
+  const lightColors = getThemeColors(config.style, 'light')
+  const darkColors = getThemeColors(config.style, 'dark')
 
-  return [registryGlobalsStart, globals, registryGlobalsEnd, ''].join('\n')
+  const lightLines = [
+    registryGlobalsStart,
+    ':root {',
+    ...semanticColorTokens.map(
+      token => `  --zeus-${token}: ${lightColors[token]};`,
+    ),
+    '}',
+    '',
+    '.dark {',
+    ...semanticColorTokens.map(
+      token => `  --zeus-${token}: ${darkColors[token]};`,
+    ),
+    '}',
+    registryGlobalsEnd,
+    '',
+  ]
+
+  return lightLines.join('\n')
 }
 
 function replaceMarkedBlock(params: {
@@ -356,12 +373,15 @@ function replaceMarkedBlock(params: {
     : `${params.source}\n${params.block}`
 }
 
-function upsertRegistryGlobals(source: string): string {
+function upsertRegistryGlobals(
+  source: string,
+  config: ComponentsConfig,
+): string {
   return replaceMarkedBlock({
     source,
     start: registryGlobalsStart,
     end: registryGlobalsEnd,
-    block: createRegistryGlobalsBlock(),
+    block: createRegistryGlobalsBlock(config),
   })
 }
 
@@ -383,7 +403,7 @@ export async function ensureThemeCss(params: {
   validateComponentsConfig(config)
 
   const cssPath = resolve(params.cwd, config.tailwind.css)
-  const next = `${createRegistryGlobalsBlock()}${createThemeOverrideCss(config)}`
+  const next = `${createRegistryGlobalsBlock(config)}${createThemeOverrideCss(config)}`
 
   if (existsSync(cssPath)) {
     const current = readFileSync(cssPath, 'utf-8')
@@ -395,7 +415,7 @@ export async function ensureThemeCss(params: {
       return 'updated'
     }
 
-    const withGlobals = upsertRegistryGlobals(current)
+    const withGlobals = upsertRegistryGlobals(current, config)
     const withOverride = upsertThemeOverride(withGlobals, config)
 
     if (current === withOverride) return 'skipped'

@@ -5,6 +5,10 @@ import { resolve } from 'node:path'
 
 export type SupportedFramework = 'react' | 'vue'
 
+export interface ProjectDetectionOptions {
+  framework?: SupportedFramework
+}
+
 export interface ProjectDetectionResult {
   framework: SupportedFramework
   typescript: boolean
@@ -50,19 +54,23 @@ export function detectPackageManager(cwd: string): PackageManager | undefined {
   return undefined
 }
 
-export function detectProject(cwd: string): ProjectDetectionResult {
+export function detectProject(
+  cwd: string,
+  options: ProjectDetectionOptions = {},
+): ProjectDetectionResult {
   const packageJson = readPackageJson(cwd)
 
   const hasReact = hasDependency(packageJson, 'react')
   const hasVue = hasDependency(packageJson, 'vue')
 
-  if (hasReact && hasVue) {
+  if (hasReact && hasVue && !options.framework) {
     throw new Error(
       'Both React and Vue dependencies were detected. Pass --framework react or --framework vue.',
     )
   }
 
-  const framework: SupportedFramework = hasVue ? 'vue' : 'react'
+  const framework: SupportedFramework =
+    options.framework ?? (hasVue ? 'vue' : 'react')
 
   const typescript =
     existsSync(resolve(cwd, 'tsconfig.json')) ||

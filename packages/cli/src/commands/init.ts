@@ -25,6 +25,7 @@ import {
   ensureThemeCss,
   getComponentsConfigPath,
   readComponentsConfig,
+  resolveRegistryTarget,
   toRelativeProjectPath,
   writeComponentsConfig,
 } from '../config'
@@ -297,7 +298,9 @@ export function parseInitArgs(
 }
 
 function createInitPlan(options: InitOptions): InitPlan {
-  const detected = detectProject(options.cwd)
+  const detected = detectProject(options.cwd, {
+    framework: options.framework,
+  })
 
   const framework = options.framework ?? detected.framework
 
@@ -315,11 +318,6 @@ function createInitPlan(options: InitOptions): InitPlan {
     },
   })
 
-  const cnFile =
-    framework === 'react' || framework === 'vue'
-      ? 'src/lib/cn.ts'
-      : 'src/lib/cn.ts'
-
   return {
     cwd: options.cwd,
     configFile: toRelativeProjectPath(
@@ -329,7 +327,10 @@ function createInitPlan(options: InitOptions): InitPlan {
     framework,
     typescript: detected.typescript,
     cssFile: config.tailwind.css,
-    cnFile,
+    cnFile: toRelativeProjectPath(
+      options.cwd,
+      resolveRegistryTarget(options.cwd, config, 'lib/cn.ts'),
+    ),
     installDependencies: [],
   }
 }
@@ -367,7 +368,9 @@ function printInstallHint(options: InitOptions, dependencies: string[]): void {
 export async function init(args: string[]) {
   try {
     const { options } = parseInitArgs(args)
-    const detected = detectProject(options.cwd)
+    const detected = detectProject(options.cwd, {
+      framework: options.framework,
+    })
 
     const nextConfig = createDefaultComponentsConfig({
       framework: options.framework ?? detected.framework,

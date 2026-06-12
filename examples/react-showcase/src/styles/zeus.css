@@ -1,0 +1,59 @@
+/* zeus-web registry globals:start */
+:root {
+  --zeus-background: 0 0% 100%;
+  --zeus-foreground: 222.2 84% 4.9%;
+  --zeus-card: 0 0% 100%;
+  --zeus-card-foreground: 240 10% 3.9%;
+  --zeus-popover: 0 0% 100%;
+  --zeus-popover-foreground: 240 10% 3.9%;
+  --zeus-primary: 222.2 47.4% 11.2%;
+  --zeus-primary-foreground: 0 0% 98%;
+  --zeus-secondary: 240 4.8% 95.9%;
+  --zeus-secondary-foreground: 240 5.9% 10%;
+  --zeus-muted: 240 4.8% 95.9%;
+  --zeus-muted-foreground: 240 3.8% 46.1%;
+  --zeus-accent: 240 4.8% 95.9%;
+  --zeus-accent-foreground: 240 5.9% 10%;
+  --zeus-destructive: 0 84.2% 60.2%;
+  --zeus-destructive-foreground: 0 0% 98%;
+  --zeus-border: 214.3 31.8% 91.4%;
+  --zeus-input: 214.3 31.8% 91.4%;
+  --zeus-ring: 222.2 84% 4.9%;
+}
+
+.dark {
+  --zeus-background: 222.2 84% 4.9%;
+  --zeus-foreground: 210 40% 98%;
+  --zeus-card: 222.2 84% 4.9%;
+  --zeus-card-foreground: 210 40% 98%;
+  --zeus-popover: 222.2 84% 4.9%;
+  --zeus-popover-foreground: 210 40% 98%;
+  --zeus-primary: 210 40% 98%;
+  --zeus-primary-foreground: 222.2 47.4% 11.2%;
+  --zeus-secondary: 217.2 32.6% 17.5%;
+  --zeus-secondary-foreground: 210 40% 98%;
+  --zeus-muted: 217.2 32.6% 17.5%;
+  --zeus-muted-foreground: 215 20.2% 65.1%;
+  --zeus-accent: 217.2 32.6% 17.5%;
+  --zeus-accent-foreground: 210 40% 98%;
+  --zeus-destructive: 0 62.8% 30.6%;
+  --zeus-destructive-foreground: 0 0% 98%;
+  --zeus-border: 217.2 32.6% 17.5%;
+  --zeus-input: 217.2 32.6% 17.5%;
+  --zeus-ring: 212.7 26.8% 83.9%;
+}
+/* zeus-web registry globals:end */
+/* zeus-web theme overrides:start */
+:root {
+  --radius: 0.5rem;
+  --zeus-radius-sm: 0.25rem;
+  --zeus-radius-md: 0.5rem;
+  --zeus-radius-lg: 0.5rem;
+  --zw-duration-fast: 120ms;
+  --zw-duration-normal: 180ms;
+  --zw-duration-slow: 260ms;
+  --zw-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --zw-easing-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+  --zw-theme-dark-mode: class;
+}
+/* zeus-web theme overrides:end */

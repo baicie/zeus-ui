@@ -54,7 +54,8 @@ function main(): void {
         'ensureCnUtil',
         'ensureThemeCss',
         'readRegistryCnTemplate',
-        'readRegistryGlobalsTemplate',
+        'getThemeColors',
+        'semanticColorTokens',
       ],
       errors,
     )
@@ -78,7 +79,8 @@ function main(): void {
         'Created zeus-ui.json',
         'ensureCnUtil',
         'ensureThemeCss',
-        'detectProject',
+        'detectProject(options.cwd, {',
+        'framework: options.framework',
       ],
       errors,
     )
@@ -94,6 +96,8 @@ function main(): void {
       ],
       errors,
     )
+
+    checkSourceContains('packages/cli/package.json', ['"test:init"'], errors)
   }
 
   if (errors.length > 0) {

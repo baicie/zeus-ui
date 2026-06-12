@@ -172,8 +172,9 @@ describe('@zeus-web/cli init', () => {
 
       expect(result).toBe('created')
       expect(css).toContain('/* zeus-web registry globals:start */')
-      expect(css).toContain('--zeus-primary')
-      expect(css).toContain('--zeus-destructive')
+      expect(css).toContain(':root {')
+      expect(css).toContain('--zeus-destructive: 0 84.2% 60.2%;')
+      expect(css).toContain('.dark {')
       expect(css).toContain('/* zeus-web theme overrides:start */')
       expect(css).toContain('--zeus-radius-md: 0.75rem;')
       expect(css).toContain('--zeus-primary: 220 90% 56%;')
@@ -358,6 +359,8 @@ describe('@zeus-web/cli init', () => {
       expect(result).toBe('updated')
       expect(css).toContain('body { margin: 0; }')
       expect(css).toContain('/* zeus-web registry globals:start */')
+      expect(css).toContain(':root {')
+      expect(css).toContain('.dark {')
       expect(css).toContain('--zeus-radius-md: 1rem;')
       expect(
         css.match(/\/\* zeus-web theme overrides:start \*\//g),
