@@ -60,12 +60,20 @@ The example includes `zeus-ui.json`.
 
 ```json
 {
-  "$schema": "https://zweb.pages.dev/zeus-ui.schema.json",
+  "$schema": "https://zeus-web.dev/schema/zeus-ui.json",
   "framework": "react",
+  "style": "default",
+  "typescript": true,
+  "srcDir": "src",
+  "tailwind": {
+    "css": "src/styles/zeus.css",
+    "cssVariables": true
+  },
   "aliases": {
     "components": "@/components",
     "ui": "@/components/ui",
-    "lib": "@/lib"
+    "lib": "@/lib",
+    "styles": "@/styles"
   }
 }
 ```

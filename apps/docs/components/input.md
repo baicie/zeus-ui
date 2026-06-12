@@ -18,7 +18,7 @@ zweb add input
 
 ## Imports
 
-Styled component:
+Styled registry component:
 
 ```tsx
 import { Input } from '@/components/ui/input'
@@ -81,11 +81,20 @@ Internal selectors:
 
 ## Registry
 
+Registry source: available.
+
+Add command: `zweb add input`
+
 Type: `component`
 
 Dependencies:
 
 - `@zeus-web/input`
+
+Registry dependencies:
+
+- `cn`
+- `globals`
 
 Files:
 

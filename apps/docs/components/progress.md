@@ -6,23 +6,25 @@ Styled progress component built on the zw-progress primitive.
 
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/progress</span>
-  <span class="zw-badge">zweb add progress</span>
+  <span class="zw-badge">primitive-only</span>
   <span class="zw-badge">Generated</span>
 </div>
 
-## Add
+## Install
+
+This component does not have a registry template yet.
+
+Install the primitive package instead:
 
 ```bash
-zweb add progress
+pnpm add @zeus-web/progress
 ```
 
 ## Imports
 
-Styled component:
+Styled registry component:
 
-```tsx
-import { Progress } from '@/components/ui/progress'
-```
+Not available yet.
 
 Primitive React wrapper:
 
@@ -71,19 +73,11 @@ Internal selectors:
 
 ## Registry
 
-Type: `registry:ui`
+Registry source: not available yet.
 
-Dependencies:
+The `progress` primitive is available through `@zeus-web/progress`, but it is not currently installable through `zweb add progress`.
 
-- `@zeus-web/progress`
-- `class-variance-authority`
-- `clsx`
-- `tailwind-merge`
-
-Files:
-
-- `default/lib/utils.ts` → `lib/utils.ts` (`registry:lib`)
-- `default/progress.tsx` → `components/ui/progress.tsx` (`registry:ui`)
+Use the primitive package directly until a registry template is added.
 
 ## AI usage rules
 

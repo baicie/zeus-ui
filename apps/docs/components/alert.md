@@ -6,23 +6,25 @@ Styled alert component family built on zw-alert primitives.
 
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/alert</span>
-  <span class="zw-badge">zweb add alert</span>
+  <span class="zw-badge">primitive-only</span>
   <span class="zw-badge">Generated</span>
 </div>
 
-## Add
+## Install
+
+This component does not have a registry template yet.
+
+Install the primitive package instead:
 
 ```bash
-zweb add alert
+pnpm add @zeus-web/alert
 ```
 
 ## Imports
 
-Styled component:
+Styled registry component:
 
-```tsx
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
-```
+Not available yet.
 
 Primitive React wrapper:
 
@@ -71,19 +73,11 @@ Internal selectors:
 
 ## Registry
 
-Type: `registry:ui`
+Registry source: not available yet.
 
-Dependencies:
+The `alert` primitive is available through `@zeus-web/alert`, but it is not currently installable through `zweb add alert`.
 
-- `@zeus-web/alert`
-- `class-variance-authority`
-- `clsx`
-- `tailwind-merge`
-
-Files:
-
-- `default/lib/utils.ts` → `lib/utils.ts` (`registry:lib`)
-- `default/alert.tsx` → `components/ui/alert.tsx` (`registry:ui`)
+Use the primitive package directly until a registry template is added.
 
 ## AI usage rules
 

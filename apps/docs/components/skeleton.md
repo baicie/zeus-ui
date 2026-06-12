@@ -6,23 +6,25 @@ Styled skeleton component built on the zw-skeleton primitive.
 
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/skeleton</span>
-  <span class="zw-badge">zweb add skeleton</span>
+  <span class="zw-badge">primitive-only</span>
   <span class="zw-badge">Generated</span>
 </div>
 
-## Add
+## Install
+
+This component does not have a registry template yet.
+
+Install the primitive package instead:
 
 ```bash
-zweb add skeleton
+pnpm add @zeus-web/skeleton
 ```
 
 ## Imports
 
-Styled component:
+Styled registry component:
 
-```tsx
-import { Skeleton } from '@/components/ui/skeleton'
-```
+Not available yet.
 
 Primitive React wrapper:
 
@@ -65,19 +67,11 @@ Internal selectors:
 
 ## Registry
 
-Type: `registry:ui`
+Registry source: not available yet.
 
-Dependencies:
+The `skeleton` primitive is available through `@zeus-web/skeleton`, but it is not currently installable through `zweb add skeleton`.
 
-- `@zeus-web/skeleton`
-- `class-variance-authority`
-- `clsx`
-- `tailwind-merge`
-
-Files:
-
-- `default/lib/utils.ts` → `lib/utils.ts` (`registry:lib`)
-- `default/skeleton.tsx` → `components/ui/skeleton.tsx` (`registry:ui`)
+Use the primitive package directly until a registry template is added.
 
 ## AI usage rules
 

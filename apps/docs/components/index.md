@@ -4,33 +4,40 @@
 
 This section is generated from `@zeus-web/ai` metadata and `@zeus-web/registry`.
 
-| Component                              | Package                 | Add command            | Description                                                             |
-| -------------------------------------- | ----------------------- | ---------------------- | ----------------------------------------------------------------------- |
-| [button](/components/button)           | `@zeus-web/button`      | `zweb add button`      | Styled button component built on the zw-button primitive.               |
-| [input](/components/input)             | `@zeus-web/input`       | `zweb add input`       | Styled text input component built on the zw-input primitive.            |
-| [checkbox](/components/checkbox)       | `@zeus-web/checkbox`    | `zweb add checkbox`    | Styled checkbox component built on the zw-checkbox primitive.           |
-| [switch](/components/switch)           | `@zeus-web/switch`      | `zweb add switch`      | Styled switch component built on the zw-switch primitive.               |
-| [tabs](/components/tabs)               | `@zeus-web/tabs`        | `zweb add tabs`        | Styled tabs component family built on zw-tabs primitives.               |
-| [dialog](/components/dialog)           | `@zeus-web/dialog`      | `zweb add dialog`      | Styled dialog component family built on zw-dialog primitives.           |
-| [label](/components/label)             | `@zeus-web/label`       | `zweb add label`       | Styled label component built on the zw-label primitive.                 |
-| [textarea](/components/textarea)       | `@zeus-web/textarea`    | `zweb add textarea`    | Styled textarea component built on the zw-textarea primitive.           |
-| [radio-group](/components/radio-group) | `@zeus-web/radio-group` | `zweb add radio-group` | Styled radio group component built on zw-radio-group primitives.        |
-| [select](/components/select)           | `@zeus-web/select`      | `zweb add select`      | Styled native select component built on the zw-select primitive.        |
-| [card](/components/card)               | `@zeus-web/card`        | `zweb add card`        | Styled card component family built on zw-card primitives.               |
-| [badge](/components/badge)             | `@zeus-web/badge`       | `zweb add badge`       | Styled badge component built on the zw-badge primitive.                 |
-| [separator](/components/separator)     | `@zeus-web/separator`   | `zweb add separator`   | Styled separator component built on the zw-separator primitive.         |
-| [skeleton](/components/skeleton)       | `@zeus-web/skeleton`    | `zweb add skeleton`    | Styled skeleton component built on the zw-skeleton primitive.           |
-| [alert](/components/alert)             | `@zeus-web/alert`       | `zweb add alert`       | Styled alert component family built on zw-alert primitives.             |
-| [collapsible](/components/collapsible) | `@zeus-web/collapsible` | `zweb add collapsible` | Styled collapsible component family built on zw-collapsible primitives. |
-| [accordion](/components/accordion)     | `@zeus-web/accordion`   | `zweb add accordion`   | Styled accordion component family built on zw-accordion primitives.     |
-| [tooltip](/components/tooltip)         | `@zeus-web/tooltip`     | `zweb add tooltip`     | Styled tooltip component family built on zw-tooltip primitives.         |
-| [progress](/components/progress)       | `@zeus-web/progress`    | `zweb add progress`    | Styled progress component built on the zw-progress primitive.           |
-| [avatar](/components/avatar)           | `@zeus-web/avatar`      | `zweb add avatar`      | Styled avatar component family built on zw-avatar primitives.           |
+| Component                              | Package                 | Registry status | Recommended command              | Description                                                             |
+| -------------------------------------- | ----------------------- | --------------- | -------------------------------- | ----------------------------------------------------------------------- |
+| [button](/components/button)           | `@zeus-web/button`      | Available       | `zweb add button`                | Styled button component built on the zw-button primitive.               |
+| [input](/components/input)             | `@zeus-web/input`       | Available       | `zweb add input`                 | Styled text input component built on the zw-input primitive.            |
+| [checkbox](/components/checkbox)       | `@zeus-web/checkbox`    | Planned         | `pnpm add @zeus-web/checkbox`    | Styled checkbox component built on the zw-checkbox primitive.           |
+| [switch](/components/switch)           | `@zeus-web/switch`      | Planned         | `pnpm add @zeus-web/switch`      | Styled switch component built on the zw-switch primitive.               |
+| [tabs](/components/tabs)               | `@zeus-web/tabs`        | Planned         | `pnpm add @zeus-web/tabs`        | Styled tabs component family built on zw-tabs primitives.               |
+| [dialog](/components/dialog)           | `@zeus-web/dialog`      | Planned         | `pnpm add @zeus-web/dialog`      | Styled dialog component family built on zw-dialog primitives.           |
+| [label](/components/label)             | `@zeus-web/label`       | Planned         | `pnpm add @zeus-web/label`       | Styled label component built on the zw-label primitive.                 |
+| [textarea](/components/textarea)       | `@zeus-web/textarea`    | Planned         | `pnpm add @zeus-web/textarea`    | Styled textarea component built on the zw-textarea primitive.           |
+| [radio-group](/components/radio-group) | `@zeus-web/radio-group` | Planned         | `pnpm add @zeus-web/radio-group` | Styled radio group component built on zw-radio-group primitives.        |
+| [select](/components/select)           | `@zeus-web/select`      | Planned         | `pnpm add @zeus-web/select`      | Styled native select component built on the zw-select primitive.        |
+| [card](/components/card)               | `@zeus-web/card`        | Planned         | `pnpm add @zeus-web/card`        | Styled card component family built on zw-card primitives.               |
+| [badge](/components/badge)             | `@zeus-web/badge`       | Planned         | `pnpm add @zeus-web/badge`       | Styled badge component built on the zw-badge primitive.                 |
+| [separator](/components/separator)     | `@zeus-web/separator`   | Planned         | `pnpm add @zeus-web/separator`   | Styled separator component built on the zw-separator primitive.         |
+| [skeleton](/components/skeleton)       | `@zeus-web/skeleton`    | Planned         | `pnpm add @zeus-web/skeleton`    | Styled skeleton component built on the zw-skeleton primitive.           |
+| [alert](/components/alert)             | `@zeus-web/alert`       | Planned         | `pnpm add @zeus-web/alert`       | Styled alert component family built on zw-alert primitives.             |
+| [collapsible](/components/collapsible) | `@zeus-web/collapsible` | Planned         | `pnpm add @zeus-web/collapsible` | Styled collapsible component family built on zw-collapsible primitives. |
+| [accordion](/components/accordion)     | `@zeus-web/accordion`   | Planned         | `pnpm add @zeus-web/accordion`   | Styled accordion component family built on zw-accordion primitives.     |
+| [tooltip](/components/tooltip)         | `@zeus-web/tooltip`     | Planned         | `pnpm add @zeus-web/tooltip`     | Styled tooltip component family built on zw-tooltip primitives.         |
+| [progress](/components/progress)       | `@zeus-web/progress`    | Planned         | `pnpm add @zeus-web/progress`    | Styled progress component built on the zw-progress primitive.           |
+| [avatar](/components/avatar)           | `@zeus-web/avatar`      | Planned         | `pnpm add @zeus-web/avatar`      | Styled avatar component family built on zw-avatar primitives.           |
 
 ## Recommended workflow
 
-- Run `zweb init` before adding styled components.
-- Run `zweb add <component>` to copy shadcn-like styled source into the user project.
+- Run `zweb init` before adding registry-backed styled components.
+- Run `zweb add button input` to copy currently available registry source into the user project.
 - Import styled components from the copied local path, usually `@/components/ui/<component>`.
-- Do not import aggregate framework packages directly in generated app code unless the user explicitly wants the wrapper package.
-- Prefer per-component packages such as `@zeus-web/button/react` inside registry source.
+- Use `@zeus-web/ui` for package-owned styled native Web Components.
+- Use per-component packages such as `@zeus-web/button/react` when building advanced primitive-based design systems.
+
+## Current registry components
+
+- `button`
+- `input`
+
+Components marked as `Planned` currently expose primitive package documentation only.

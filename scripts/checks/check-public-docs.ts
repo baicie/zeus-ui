@@ -15,6 +15,11 @@ const requiredFiles = [
   'apps/docs/guide/theming.md',
   'apps/docs/examples/native-wc.md',
   'apps/docs/.vitepress/data/site.ts',
+  'packages/ai/src/metadata.ts',
+  'apps/docs/components/index.md',
+  'apps/docs/components/button.md',
+  'apps/docs/components/input.md',
+  'apps/docs/components/checkbox.md',
 ]
 
 const requiredContent: Record<string, string[]> = {
@@ -79,6 +84,17 @@ const requiredContent: Record<string, string[]> = {
     "text: 'Usage Modes'",
     "link: '/guide/usage-modes'",
   ],
+  'packages/ai/src/metadata.ts': [
+    'Respect zeus-ui.json aliases',
+    'zweb add button input',
+    '@zeus-web/ui',
+  ],
+  'apps/docs/components/index.md': [
+    'Registry status',
+    'Current registry components',
+    'Components marked as `Planned` currently expose primitive package documentation only.',
+  ],
+  'apps/docs/components/checkbox.md': ['Registry source: not available yet.'],
 }
 
 const forbiddenContent: Record<string, string[]> = {
@@ -106,6 +122,22 @@ const forbiddenContent: Record<string, string[]> = {
   'apps/docs/guide/theming.md': [
     "@import '@zeus-web/themes/slate.css'",
     'components.css provides the default',
+  ],
+  'packages/ai/src/metadata.ts': [
+    'components.json',
+    'class-variance-authority',
+    'tailwind-merge',
+  ],
+  'apps/docs/components/index.md': [
+    'zweb add checkbox',
+    'zweb add switch',
+    'zweb add dialog',
+  ],
+  'apps/docs/components/checkbox.md': [
+    'registry:ui',
+    'default/lib/utils.ts',
+    'class-variance-authority',
+    'tailwind-merge',
   ],
 }
 

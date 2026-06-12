@@ -6,23 +6,25 @@ Styled label component built on the zw-label primitive.
 
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/label</span>
-  <span class="zw-badge">zweb add label</span>
+  <span class="zw-badge">primitive-only</span>
   <span class="zw-badge">Generated</span>
 </div>
 
-## Add
+## Install
+
+This component does not have a registry template yet.
+
+Install the primitive package instead:
 
 ```bash
-zweb add label
+pnpm add @zeus-web/label
 ```
 
 ## Imports
 
-Styled component:
+Styled registry component:
 
-```tsx
-import { Label } from '@/components/ui/label'
-```
+Not available yet.
 
 Primitive React wrapper:
 
@@ -71,19 +73,11 @@ Internal selectors:
 
 ## Registry
 
-Type: `registry:ui`
+Registry source: not available yet.
 
-Dependencies:
+The `label` primitive is available through `@zeus-web/label`, but it is not currently installable through `zweb add label`.
 
-- `@zeus-web/label`
-- `class-variance-authority`
-- `clsx`
-- `tailwind-merge`
-
-Files:
-
-- `default/lib/utils.ts` → `lib/utils.ts` (`registry:lib`)
-- `default/label.tsx` → `components/ui/label.tsx` (`registry:ui`)
+Use the primitive package directly until a registry template is added.
 
 ## AI usage rules
 

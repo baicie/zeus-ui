@@ -1,3 +1,5 @@
+import type { Registry } from '../../packages/registry/src'
+
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
@@ -33,6 +35,20 @@ const componentDocs = [
   'progress',
   'avatar',
 ]
+
+function loadRegistry(): Registry {
+  return JSON.parse(
+    readFileSync(resolve(root, 'packages/registry/registry.json'), 'utf-8'),
+  ) as Registry
+}
+
+function getRegistryComponentNames(): Set<string> {
+  return new Set(
+    loadRegistry()
+      .items.filter(item => item.type === 'component')
+      .map(item => item.name),
+  )
+}
 
 const requiredDocs: RequiredDoc[] = [
   {
@@ -129,6 +145,8 @@ const requiredDocs: RequiredDoc[] = [
       '# Components',
       '@zeus-web/ai',
       '@zeus-web/registry',
+      'Current registry components',
+      'Components marked as `Planned` currently expose primitive package documentation only.',
     ],
   },
   {
@@ -142,6 +160,7 @@ const requiredDocs: RequiredDoc[] = [
       '@zeus-web/example-next-app',
       '@zeus-web/button/react',
       "'use client'",
+      'zeus-ui.json',
     ],
   },
   {
@@ -194,6 +213,18 @@ const forbiddenPatterns = [
     message:
       'old utils.ts registry utility path must not appear in public docs',
   },
+  {
+    pattern: 'registry:ui',
+    message: 'old registry:ui schema must not appear in public docs',
+  },
+  {
+    pattern: 'registry:lib',
+    message: 'old registry:lib schema must not appear in public docs',
+  },
+  {
+    pattern: 'default/lib/utils.ts',
+    message: 'old default/lib/utils.ts path must not appear in public docs',
+  },
 ]
 
 function filePath(relativePath: string): string {
@@ -208,20 +239,26 @@ function checkFileExists(relativePath: string): string[] {
 
 function checkForbiddenPatterns(path: string, source: string): string[] {
   const errors: string[] = []
+
   for (const item of forbiddenPatterns) {
-    if (source.includes(item.pattern))
+    if (source.includes(item.pattern)) {
       errors.push(`apps/docs/${path}: ${item.message}`)
+    }
   }
+
   return errors
 }
 
 function checkRequiredContent(doc: RequiredDoc): string[] {
   const errors: string[] = []
   const source = readFileSync(filePath(doc.path), 'utf-8')
+
   for (const text of doc.mustContain) {
-    if (!source.includes(text))
+    if (!source.includes(text)) {
       errors.push(`apps/docs/${doc.path} must contain "${text}"`)
+    }
   }
+
   errors.push(...checkForbiddenPatterns(doc.path, source))
   return errors
 }
@@ -232,8 +269,9 @@ function checkVitePressConfig(): string[] {
   const errors: string[] = []
 
   if (!existsSync(configPath)) return ['Missing apps/docs/.vitepress/config.ts']
-  if (!existsSync(siteDataPath))
+  if (!existsSync(siteDataPath)) {
     return ['Missing apps/docs/.vitepress/data/site.ts']
+  }
 
   const configSource = readFileSync(configPath, 'utf-8')
   const siteSource = readFileSync(siteDataPath, 'utf-8')
@@ -244,8 +282,9 @@ function checkVitePressConfig(): string[] {
     'nav: topNav',
     'sidebar',
   ]) {
-    if (!configSource.includes(text))
+    if (!configSource.includes(text)) {
       errors.push(`VitePress config must contain "${text}"`)
+    }
   }
 
   for (const route of [
@@ -261,8 +300,9 @@ function checkVitePressConfig(): string[] {
     '/examples/next-app',
     '/examples/native-wc',
   ]) {
-    if (!siteSource.includes(route))
+    if (!siteSource.includes(route)) {
       errors.push(`data/site.ts must contain route "${route}"`)
+    }
   }
 
   return errors
@@ -278,6 +318,7 @@ function checkDocsTheme(): string[] {
 
 function checkComponentDocsErrors(components: string[]): string[] {
   const errors: string[] = []
+  const registryComponents = getRegistryComponentNames()
 
   for (const component of components) {
     const relativePath = `components/${component}.md`
@@ -298,10 +339,6 @@ function checkComponentDocsErrors(components: string[]): string[] {
       errors.push(`${relativePath} must be generated`)
     }
 
-    if (!source.includes(`zweb add ${component}`)) {
-      errors.push(`${relativePath} must document zweb add ${component}`)
-    }
-
     if (!source.includes(`@zeus-web/${component}/react`)) {
       errors.push(`${relativePath} must document @zeus-web/${component}/react`)
     }
@@ -310,8 +347,24 @@ function checkComponentDocsErrors(components: string[]): string[] {
       errors.push(`${relativePath} must document @zeus-web/${component}/wc`)
     }
 
-    if (!source.includes(`@/components/ui/${component}`)) {
-      errors.push(`${relativePath} must document @/components/ui/${component}`)
+    if (registryComponents.has(component)) {
+      if (!source.includes(`zweb add ${component}`)) {
+        errors.push(`${relativePath} must document zweb add ${component}`)
+      }
+
+      if (!source.includes(`@/components/ui/${component}`)) {
+        errors.push(
+          `${relativePath} must document @/components/ui/${component}`,
+        )
+      }
+
+      if (!source.includes('Registry source: available.')) {
+        errors.push(`${relativePath} must document registry availability`)
+      }
+    } else {
+      if (!source.includes('Registry source: not available yet.')) {
+        errors.push(`${relativePath} must document missing registry source`)
+      }
     }
 
     errors.push(...checkForbiddenPatterns(relativePath, source))
@@ -320,30 +373,29 @@ function checkComponentDocsErrors(components: string[]): string[] {
   return errors
 }
 
-function checkGeneratedComponentDocs(): string[] {
-  return checkComponentDocsErrors(componentDocs)
-}
-
 function main(): void {
   const errors: string[] = []
 
   for (const doc of requiredDocs) {
     errors.push(...checkFileExists(doc.path))
-    if (existsSync(filePath(doc.path)))
+    if (errors.length === 0 || existsSync(filePath(doc.path))) {
       errors.push(...checkRequiredContent(doc))
+    }
   }
 
-  errors.push(...checkVitePressConfig())
   errors.push(...checkDocsTheme())
-  errors.push(...checkGeneratedComponentDocs())
+  errors.push(...checkVitePressConfig())
+  errors.push(...checkComponentDocsErrors(componentDocs))
 
   if (errors.length > 0) {
-    console.error(pc.red('Docs contract check failed:'))
+    console.error(pc.red('Docs check failed:'))
+
     for (const error of errors) console.error(`- ${error}`)
+
     process.exit(1)
   }
 
-  console.log(pc.green('Docs contract check passed.'))
+  console.log(pc.green('Docs check passed.'))
 }
 
 main()

@@ -6,23 +6,25 @@ Styled tabs component family built on zw-tabs primitives.
 
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/tabs</span>
-  <span class="zw-badge">zweb add tabs</span>
+  <span class="zw-badge">primitive-only</span>
   <span class="zw-badge">Generated</span>
 </div>
 
-## Add
+## Install
+
+This component does not have a registry template yet.
+
+Install the primitive package instead:
 
 ```bash
-zweb add tabs
+pnpm add @zeus-web/tabs
 ```
 
 ## Imports
 
-Styled component:
+Styled registry component:
 
-```tsx
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-```
+Not available yet.
 
 Primitive React wrapper:
 
@@ -75,19 +77,11 @@ Internal selectors:
 
 ## Registry
 
-Type: `registry:ui`
+Registry source: not available yet.
 
-Dependencies:
+The `tabs` primitive is available through `@zeus-web/tabs`, but it is not currently installable through `zweb add tabs`.
 
-- `@zeus-web/tabs`
-- `class-variance-authority`
-- `clsx`
-- `tailwind-merge`
-
-Files:
-
-- `default/lib/utils.ts` → `lib/utils.ts` (`registry:lib`)
-- `default/tabs.tsx` → `components/ui/tabs.tsx` (`registry:ui`)
+Use the primitive package directly until a registry template is added.
 
 ## AI usage rules
 

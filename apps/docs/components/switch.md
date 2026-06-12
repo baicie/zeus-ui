@@ -6,23 +6,25 @@ Styled switch component built on the zw-switch primitive.
 
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/switch</span>
-  <span class="zw-badge">zweb add switch</span>
+  <span class="zw-badge">primitive-only</span>
   <span class="zw-badge">Generated</span>
 </div>
 
-## Add
+## Install
+
+This component does not have a registry template yet.
+
+Install the primitive package instead:
 
 ```bash
-zweb add switch
+pnpm add @zeus-web/switch
 ```
 
 ## Imports
 
-Styled component:
+Styled registry component:
 
-```tsx
-import { Switch } from '@/components/ui/switch'
-```
+Not available yet.
 
 Primitive React wrapper:
 
@@ -75,19 +77,11 @@ Internal selectors:
 
 ## Registry
 
-Type: `registry:ui`
+Registry source: not available yet.
 
-Dependencies:
+The `switch` primitive is available through `@zeus-web/switch`, but it is not currently installable through `zweb add switch`.
 
-- `@zeus-web/switch`
-- `class-variance-authority`
-- `clsx`
-- `tailwind-merge`
-
-Files:
-
-- `default/lib/utils.ts` → `lib/utils.ts` (`registry:lib`)
-- `default/switch.tsx` → `components/ui/switch.tsx` (`registry:ui`)
+Use the primitive package directly until a registry template is added.
 
 ## AI usage rules
 
