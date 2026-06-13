@@ -4,10 +4,12 @@ import { validatePackageRules } from '../package-rules'
 
 const root = process.cwd()
 
+const packageRoots = ['packages', 'packages/primitives', 'packages/advanced']
+
 function listPackageJsonFiles() {
   const files: string[] = []
 
-  for (const rel of ['packages', 'packages/primitives']) {
+  for (const rel of packageRoots) {
     const abs = join(root, rel)
     if (!existsSync(abs)) continue
 
