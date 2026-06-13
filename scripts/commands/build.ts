@@ -104,7 +104,7 @@ function discoverPackages(): PkgInfo[] {
 
 async function buildFull(pkg: PkgInfo): Promise<void> {
   if (isComponentPackage(pkg)) {
-    const indexPath = join(pkg.dir, 'dist', 'index.js')
+    const indexPath = join(pkg.dir, 'dist', 'wc', 'index.js')
     if (existsSync(indexPath)) {
       return
     }

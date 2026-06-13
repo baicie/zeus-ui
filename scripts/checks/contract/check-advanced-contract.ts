@@ -28,6 +28,7 @@ const requiredWorkspaceFiles = [
   'tsconfig.json',
   'packages/advanced/README.md',
   'docs/design/zeus-ui-advanced-components.md',
+  'docs/design/advanced-package-template.md',
   'scripts/commands/build.ts',
   'scripts/checks/build/check-package-exports.ts',
   'scripts/checks/build/check-build-output.ts',
@@ -108,13 +109,22 @@ function checkWorkspaceRegistration(errors: string[]): void {
       "{ dir: 'packages/advanced', kind: 'advanced' }",
       "return pkg.kind === 'primitive' || pkg.kind === 'advanced'",
       "'advanced': 1",
+      "'dist', 'wc', 'index.js'",
     ],
     errors,
   )
 
   mustContain(
     'scripts/checks/build/check-build-output.ts',
-    ["'packages/advanced'"],
+    [
+      "'packages/advanced'",
+      "'dist/wc/index.js'",
+      "'dist/wc/auto.js'",
+      "'dist/react/index.js'",
+      "'dist/vue/index.js'",
+      "'dist/custom-elements.json'",
+      "'dist/zeus.components.json'",
+    ],
     errors,
   )
 
@@ -161,6 +171,7 @@ function checkWorkspaceRegistration(errors: string[]): void {
     [
       "type ComponentPackageKind = 'primitive' | 'advanced'",
       "const isAdvanced = rel.startsWith('packages/advanced/')",
+      "'./wc/auto'",
       'validateAdvancedPackageStructure',
       'advanced package must contain src/core/',
       'advanced package must contain src/components/',
@@ -173,7 +184,7 @@ function checkDocs(errors: string[]): void {
   mustContain(
     'packages/advanced/README.md',
     [
-      '# Advanced Components',
+      '# Zeus Web 高级组件',
       'packages/advanced/*',
       'headless-first',
       '@zeus-web/virtual',
@@ -181,6 +192,12 @@ function checkDocs(errors: string[]): void {
       '@zeus-web/data-grid',
       '@zeus-web/agent-console',
     ],
+    errors,
+  )
+
+  mustNotContain(
+    'packages/advanced/README.md',
+    ['# Advanced Components'],
     errors,
   )
 
@@ -196,6 +213,19 @@ function checkDocs(errors: string[]): void {
       'AG Grid',
       'RevoGrid',
       'ChatGPT',
+      'Web Component 是第一等产物',
+    ],
+    errors,
+  )
+
+  mustContain(
+    'docs/design/advanced-package-template.md',
+    [
+      '# 高级组件包模板',
+      'packages/advanced/<name>/',
+      './wc/auto',
+      'src/core',
+      'src/components',
       'Web Component 是第一等产物',
     ],
     errors,
@@ -287,6 +317,7 @@ function checkAdvancedPackages(errors: string[]): void {
     for (const key of [
       '.',
       './wc',
+      './wc/auto',
       './react',
       './vue',
       './vue/global',

@@ -1,15 +1,11 @@
-# Advanced Components
-
-`packages/advanced/*` 存放 Zeus Web 的产品级、高复杂度 headless 组件，例如虚拟滚动、AI Chat、数据表格、Agent Console 等。
-
 # Zeus Web 高级组件
 
-`packages/advanced/*` 用于存放 Zeus Web 的产品级、高复杂度组件。
+`packages/advanced/*` 用于存放 Zeus Web 的产品级、高复杂度组件，例如虚拟滚动、AI Chat、数据表格、Agent Console 等。
 
 高级组件与 `packages/primitives/*` 的边界如下：
 
 - `packages/primitives/*` 存放小型 headless 行为原语，例如 button、input、dialog、switch、tabs。
-- `packages/advanced/*` 存放高性能或产品级组件，例如虚拟滚动、AI Chat、数据表格、Agent Console。
+- `packages/advanced/*` 存放高性能或产品级组件，例如 virtual、chat、data-grid、agent-console。
 
 高级组件必须坚持 **headless-first**：组件包只负责结构、行为、状态、事件、方法、可访问性与性能契约，不负责最终产品视觉设计。
 
@@ -19,6 +15,8 @@
 - **Web Component 是第一等产物**：所有 advanced 包必须以 `packages/advanced/<name>` 形式发布 Web Component 产物。
 - **core / components 分层**：`src/core` 放框架无关的 TypeScript engine，`src/components` 放 Zeus defineElement Web Component 适配层。
 - **薄 wrapper**：React / Vue wrapper 只能做薄适配，不持有业务状态。
+- **高性能优先**：大型 DOM 表面只渲染 viewport 与 overscan，高频更新必须合并调度。
+- **无框架优先**：原生 Web Component 使用方式必须是一等支持，React / Vue 只作为适配层。
 
 ## 规划中的包
 
@@ -31,7 +29,7 @@ packages/advanced/
   agent-console/  @zeus-web/agent-console
 ```
 
-## 组件包规则
+## 组件包输出规则
 
 每个 advanced 包都应提供与 primitive 包一致的输出模型：
 
@@ -41,9 +39,12 @@ packages/advanced/
 @zeus-web/<advanced>/wc/auto
 @zeus-web/<advanced>/react
 @zeus-web/<advanced>/vue
+@zeus-web/<advanced>/vue/global
 @zeus-web/<advanced>/custom-elements.json
 @zeus-web/<advanced>/zeus.components.json
 ```
+
+## 内部分层
 
 advanced 包内部必须拆成两层：
 

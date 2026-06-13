@@ -159,6 +159,7 @@ function validateComponentPackage(
   for (const key of [
     '.',
     './wc',
+    './wc/auto',
     './react',
     './vue',
     './vue/global',
