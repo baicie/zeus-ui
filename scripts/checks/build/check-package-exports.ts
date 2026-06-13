@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { validatePackageRules } from '../package-rules'
 
 const root = process.cwd()
+const packageRoots = ['packages', 'packages/primitives', 'packages/advanced']
 
 const packageRoots = ['packages', 'packages/primitives', 'packages/advanced']
 
