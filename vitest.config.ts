@@ -76,6 +76,8 @@ export default defineConfig({
             '**/e2e/**',
             // zeus-compat imports DOM runtime APIs and runs in jsdom.
             'packages/zeus-compat/**',
+            // radio-group WC tests require jsdom, run in unit-jsdom instead.
+            'packages/primitives/radio-group/__tests__/**',
           ],
         },
       },

@@ -1,12 +1,12 @@
+import type { Context } from '@zeus-js/runtime-dom'
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
+import { provideDOMContext, resolveDOMContext } from '@zeus-js/runtime-dom'
 import {
   createContext,
   defineElement,
   event,
   Host,
-  inject,
   prop,
-  provide,
   Slot,
 } from '@zeus-js/zeus'
 
@@ -44,7 +44,8 @@ interface DialogContextValue {
   returnFocus: () => void
 }
 
-const DialogContext = createContext<DialogContextValue>()
+const DialogContext =
+  createContext<DialogContextValue>() as Context<DialogContextValue>
 
 let dialogId = 0
 
@@ -161,7 +162,7 @@ function setupDialog(
     },
   }
 
-  provide(DialogContext, context)
+  provideDOMContext(ctx.host, DialogContext, context)
 
   ctx.expose({
     show(): void {
@@ -224,7 +225,9 @@ function setupDialogTrigger(
   props: DialogTriggerProps,
   ctx: DefineElementContext<DialogTriggerElement>,
 ) {
-  const dialog = inject(DialogContext)
+  const result = resolveDOMContext(ctx.host, DialogContext)
+  const dialog = result.found ? result.value : undefined
+
   let control!: HTMLButtonElement
 
   ctx.expose({
@@ -292,7 +295,9 @@ function setupDialogContent(
   props: DialogContentProps,
   ctx: DefineElementContext<DialogContentElement>,
 ) {
-  const dialog = inject(DialogContext)
+  const result = resolveDOMContext(ctx.host, DialogContext)
+  const dialog = result.found ? result.value : undefined
+
   let panel!: HTMLDivElement
 
   const isOpen = () => Boolean(dialog?.getOpen())
@@ -374,7 +379,9 @@ function setupDialogClose(
   props: DialogCloseProps,
   ctx: DefineElementContext<DialogCloseElement>,
 ) {
-  const dialog = inject(DialogContext)
+  const result = resolveDOMContext(ctx.host, DialogContext)
+  const dialog = result.found ? result.value : undefined
+
   let control!: HTMLButtonElement
 
   ctx.expose({
@@ -431,8 +438,9 @@ export const DialogTitle = defineElement<object, DialogTitleElement>(
       description: 'Headless dialog title primitive.',
     },
   },
-  () => {
-    const dialog = inject(DialogContext)
+  (_props: object, ctx: DefineElementContext<DialogTitleElement>) => {
+    const result = resolveDOMContext(ctx.host, DialogContext)
+    const dialog = result.found ? result.value : undefined
 
     return (
       <Host
@@ -459,8 +467,9 @@ export const DialogDescription = defineElement<
       description: 'Headless dialog description primitive.',
     },
   },
-  () => {
-    const dialog = inject(DialogContext)
+  (_props: object, ctx: DefineElementContext<DialogDescriptionElement>) => {
+    const result = resolveDOMContext(ctx.host, DialogContext)
+    const dialog = result.found ? result.value : undefined
 
     return (
       <Host

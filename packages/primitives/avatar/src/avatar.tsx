@@ -1,12 +1,12 @@
+import type { Context } from '@zeus-js/runtime-dom'
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
+import { provideDOMContext, resolveDOMContext } from '@zeus-js/runtime-dom'
 import {
   createContext,
   defineElement,
   event,
   Host,
-  inject,
   prop,
-  provide,
   Slot,
 } from '@zeus-js/zeus'
 
@@ -29,7 +29,8 @@ interface AvatarContextValue {
   setImageStatus: (status: AvatarImageStatus) => void
 }
 
-const AvatarContext = createContext<AvatarContextValue>()
+const AvatarContext =
+  createContext<AvatarContextValue>() as Context<AvatarContextValue>
 
 function resolveImageStatus(
   props: AvatarProps,
@@ -49,7 +50,7 @@ function setupAvatar(
     },
   }
 
-  provide(AvatarContext, context)
+  provideDOMContext(ctx.host, AvatarContext, context)
 
   return (
     <Host
@@ -105,7 +106,9 @@ function setupAvatarImage(
   props: AvatarImageProps,
   ctx: DefineElementContext<AvatarImageElement, AvatarImageEmits>,
 ) {
-  const avatar = inject(AvatarContext)
+  const result = resolveDOMContext(ctx.host, AvatarContext)
+  const avatar = result.found ? result.value : undefined
+
   return (
     <Host part="image" data-slot="avatar-image-root">
       <img
@@ -156,9 +159,15 @@ export interface AvatarFallbackProps {
 }
 export interface AvatarFallbackElement extends HTMLElement {}
 
-function setupAvatarFallback(props: AvatarFallbackProps) {
-  const avatar = inject(AvatarContext)
+function setupAvatarFallback(
+  props: AvatarFallbackProps,
+  ctx: DefineElementContext<AvatarFallbackElement>,
+) {
+  const result = resolveDOMContext(ctx.host, AvatarContext)
+  const avatar = result.found ? result.value : undefined
+
   const shouldShow = () => avatar?.getImageStatus() !== 'loaded'
+
   return (
     <Host
       part="fallback"

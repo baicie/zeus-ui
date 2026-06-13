@@ -2,13 +2,20 @@ import { resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-const workspaceRoot = resolve(process.cwd(), '../../..')
+// process.cwd() is workspace root in vitest (--root ../../.. sets cwd there)
+// dist is at: workspaceRoot + packages/primitives/radio-group/dist/wc/auto.js
+const workspaceRoot = process.cwd()
+const distPath = resolve(
+  workspaceRoot,
+  'packages',
+  'primitives',
+  'radio-group',
+  'dist',
+  'wc',
+  'auto.js',
+)
 
 beforeAll(async () => {
-  const distPath = resolve(
-    workspaceRoot,
-    'packages/primitives/radio-group/dist/wc/auto.js',
-  )
   await import(distPath)
 })
 
@@ -42,13 +49,10 @@ describe('radio-group primitive', () => {
       document.querySelectorAll<HTMLElement>('zw-radio-group-item'),
     )
 
-    // Initialize items (with fallback context), then group, then re-init items
-    // to pick up DOM context bridge from group.
     await triggerConnectedCallbacks(items)
     await triggerConnectedCallbacks([group])
     await triggerConnectedCallbacks(items)
 
-    // DOM structure should be intact after all init cycles
     expect(group).toBeTruthy()
     expect(items).toHaveLength(2)
     expect(items[0].textContent?.trim()).toBe('Small')
@@ -61,8 +65,6 @@ describe('radio-group primitive', () => {
     await customElements.whenDefined('zw-radio-group-item')
 
     const item = document.querySelector<HTMLElement>('zw-radio-group-item')!
-
-    // Should not throw during initialization - uses fallback context
     await triggerConnectedCallbacks([item])
 
     expect(item).toBeTruthy()

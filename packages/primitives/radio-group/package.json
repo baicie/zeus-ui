@@ -52,7 +52,7 @@
     "dev": "rolldown -c ../../../rolldown.config.ts --watch",
     "build": "rimraf dist && rolldown -c ../../../rolldown.config.ts",
     "check": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest --root ../../.. --project unit-jsdom packages/primitives/radio-group/__tests__/radio-group.spec.ts --run"
+    "test": "vitest --root ../../.. --project unit-jsdom packages/primitives/radio-group/__tests__/radio-group.test.ts --run"
   },
   "peerDependencies": {
     "@zeus-js/zeus": ">=0.1.0-beta.5 <0.2.0",

@@ -1,12 +1,12 @@
+import type { Context } from '@zeus-js/runtime-dom'
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
+import { provideDOMContext, resolveDOMContext } from '@zeus-js/runtime-dom'
 import {
   createContext,
   defineElement,
   event,
   Host,
-  inject,
   prop,
-  provide,
   Slot,
 } from '@zeus-js/zeus'
 
@@ -42,7 +42,9 @@ interface TooltipContextValue {
   getDelayDuration: () => number
 }
 
-const TooltipContext = createContext<TooltipContextValue>()
+const TooltipContext =
+  createContext<TooltipContextValue>() as Context<TooltipContextValue>
+
 let tooltipId = 0
 
 function createTooltipId(): string {
@@ -72,7 +74,7 @@ function setupTooltip(
     getContentId: () => contentId,
     getDelayDuration: () => props.delayDuration ?? 300,
   }
-  provide(TooltipContext, context)
+  provideDOMContext(ctx.host, TooltipContext, context)
   ctx.expose({
     show() {
       context.setOpen(true)
@@ -120,7 +122,9 @@ function setupTooltipTrigger(
   _props: object,
   ctx: DefineElementContext<TooltipTriggerElement>,
 ) {
-  const tooltip = inject(TooltipContext)
+  const result = resolveDOMContext(ctx.host, TooltipContext)
+  const tooltip = result.found ? result.value : undefined
+
   let control!: HTMLSpanElement
   let openTimer: ReturnType<typeof setTimeout> | undefined
   const clearOpenTimer = () => {
@@ -193,9 +197,15 @@ export interface TooltipContentProps {
 }
 export interface TooltipContentElement extends HTMLElement {}
 
-function setupTooltipContent(props: TooltipContentProps) {
-  const tooltip = inject(TooltipContext)
+function setupTooltipContent(
+  props: TooltipContentProps,
+  ctx: DefineElementContext<TooltipContentElement>,
+) {
+  const result = resolveDOMContext(ctx.host, TooltipContext)
+  const tooltip = result.found ? result.value : undefined
+
   const isOpen = () => Boolean(tooltip?.getOpen())
+
   return (
     <Host
       id={() => tooltip?.getContentId()}

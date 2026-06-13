@@ -1,12 +1,12 @@
+import type { Context } from '@zeus-js/runtime-dom'
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
+import { provideDOMContext, resolveDOMContext } from '@zeus-js/runtime-dom'
 import {
   createContext,
   defineElement,
   event,
   Host,
-  inject,
   prop,
-  provide,
   Slot,
 } from '@zeus-js/zeus'
 
@@ -52,8 +52,10 @@ interface AccordionContextValue {
   getContentId: (value: string) => string
 }
 
-const AccordionContext = createContext<AccordionContextValue>()
-const AccordionItemContext = createContext<AccordionItemContextValue>()
+const AccordionContext =
+  createContext<AccordionContextValue>() as Context<AccordionContextValue>
+const AccordionItemContext =
+  createContext<AccordionItemContextValue>() as Context<AccordionItemContextValue>
 
 let accordionId = 0
 
@@ -112,7 +114,14 @@ function setupAccordion(
     getTriggerId: value => `${baseId}-trigger-${value}`,
     getContentId: value => `${baseId}-content-${value}`,
   }
-  provide(AccordionContext, context)
+  /**
+   * Web Component children are independent custom elements.
+   *
+   * Owner-tree provide/inject does not cross from <zw-accordion> into
+   * <zw-accordion-item>. Use the DOM bridge instead.
+   */
+  provideDOMContext(ctx.host, AccordionContext, context)
+
   return (
     <Host
       data-slot="accordion-root"
@@ -162,13 +171,17 @@ export interface AccordionItemProps {
 }
 export interface AccordionItemElement extends HTMLElement {}
 
-function setupAccordionItem(props: AccordionItemProps) {
-  const accordion = inject(AccordionContext)
+function setupAccordionItem(
+  props: AccordionItemProps,
+  ctx: DefineElementContext<AccordionItemElement>,
+) {
+  const accordionResult = resolveDOMContext(ctx.host, AccordionContext)
+  const accordion = accordionResult.found ? accordionResult.value! : undefined
   const item: AccordionItemContextValue = {
     getValue: () => props.value,
     isDisabled: () => Boolean(props.disabled || accordion?.isDisabled()),
   }
-  provide(AccordionItemContext, item)
+  provideDOMContext(ctx.host, AccordionItemContext, item)
   return (
     <Host
       part="item"
@@ -205,8 +218,10 @@ function setupAccordionTrigger(
   _props: object,
   ctx: DefineElementContext<AccordionTriggerElement>,
 ) {
-  const accordion = inject(AccordionContext)
-  const item = inject(AccordionItemContext)
+  const accordionResult = resolveDOMContext(ctx.host, AccordionContext)
+  const accordion = accordionResult.found ? accordionResult.value! : undefined
+  const itemResult = resolveDOMContext(ctx.host, AccordionItemContext)
+  const item = itemResult.found ? itemResult.value! : undefined
   let control!: HTMLButtonElement
   const value = () => item?.getValue()
   const isOpen = () => accordion?.isItemOpen(value())
@@ -261,9 +276,14 @@ export interface AccordionContentProps {
 }
 export interface AccordionContentElement extends HTMLElement {}
 
-function setupAccordionContent(props: AccordionContentProps) {
-  const accordion = inject(AccordionContext)
-  const item = inject(AccordionItemContext)
+function setupAccordionContent(
+  props: AccordionContentProps,
+  ctx: DefineElementContext<AccordionContentElement>,
+) {
+  const accordionResult = resolveDOMContext(ctx.host, AccordionContext)
+  const accordion = accordionResult.found ? accordionResult.value! : undefined
+  const itemResult = resolveDOMContext(ctx.host, AccordionItemContext)
+  const item = itemResult.found ? itemResult.value! : undefined
   const value = () => item?.getValue()
   const isOpen = () => accordion?.isItemOpen(value())
   return (

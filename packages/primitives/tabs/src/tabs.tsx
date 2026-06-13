@@ -1,12 +1,12 @@
+import type { Context } from '@zeus-js/runtime-dom'
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
+import { provideDOMContext, resolveDOMContext } from '@zeus-js/runtime-dom'
 import {
   createContext,
   defineElement,
   event,
   Host,
-  inject,
   prop,
-  provide,
   Slot,
 } from '@zeus-js/zeus'
 
@@ -54,7 +54,8 @@ interface TabsContextValue {
   ) => void
 }
 
-const TabsContext = createContext<TabsContextValue>()
+const TabsContext =
+  createContext<TabsContextValue>() as Context<TabsContextValue>
 
 let tabsId = 0
 
@@ -158,7 +159,7 @@ function setupTabs(
     },
   }
 
-  provide(TabsContext, context)
+  provideDOMContext(ctx.host, TabsContext, context)
 
   return (
     <Host
@@ -205,8 +206,12 @@ export const Tabs = defineElement<TabsProps, TabsElement, TabsEmits>(
 
 export interface TabsListElement extends HTMLElement {}
 
-function setupTabsList() {
-  const tabs = inject(TabsContext)
+function setupTabsList(
+  _props: object,
+  ctx: DefineElementContext<TabsListElement>,
+) {
+  const result = resolveDOMContext(ctx.host, TabsContext)
+  const tabs = result.found ? result.value : undefined
 
   return (
     <Host
@@ -245,7 +250,9 @@ function setupTabsTrigger(
   props: TabsTriggerProps,
   ctx: DefineElementContext<TabsTriggerElement>,
 ) {
-  const tabs = inject(TabsContext)
+  const result = resolveDOMContext(ctx.host, TabsContext)
+  const tabs = result.found ? result.value : undefined
+
   let control!: HTMLButtonElement
 
   const isSelected = () =>
@@ -336,8 +343,13 @@ export interface TabsContentProps {
 
 export interface TabsContentElement extends HTMLElement {}
 
-function setupTabsContent(props: TabsContentProps) {
-  const tabs = inject(TabsContext)
+function setupTabsContent(
+  props: TabsContentProps,
+  ctx: DefineElementContext<TabsContentElement>,
+) {
+  const result = resolveDOMContext(ctx.host, TabsContext)
+  const tabs = result.found ? result.value : undefined
+
   const isActive = () =>
     Boolean(props.value && tabs?.getValue() === props.value)
 
