@@ -143,6 +143,28 @@ import '@zeus-web/button/wc'
 <zw-button>Save</zw-button>
 ```
 
+## Advanced component workspace
+
+Product-level advanced components live in `packages/advanced/*`.
+
+This workspace is reserved for high-performance and high-complexity components such as:
+
+```txt
+@zeus-web/virtual
+@zeus-web/chat
+@zeus-web/revogrid
+@zeus-web/data-grid
+@zeus-web/agent-console
+```
+
+Advanced components are headless-first. They own behavior, state, events, methods, accessibility and performance contracts. Final product styles are layered through `packages/registry` and `packages/ui`.
+
+See the detailed design and roadmap:
+
+```txt
+docs/design/zeus-ui-advanced-components.md
+```
+
 ## Package map
 
 | Package              | Purpose                                                 |
@@ -154,6 +176,9 @@ import '@zeus-web/button/wc'
 | `@zeus-web/icons`    | Icon assets and generated wrappers.                     |
 | `@zeus-web/button`   | Headless button primitive with WC/React/Vue entries.    |
 | `@zeus-web/input`    | Headless input primitive with WC/React/Vue entries.     |
+| `@zeus-web/virtual`  | Planned advanced virtual scrolling foundation.          |
+| `@zeus-web/chat`     | Planned ChatGPT-style headless chat component family.   |
+| `@zeus-web/data-grid` | Planned high-performance headless data grid.           |
 
 ## Local development
 
