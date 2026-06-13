@@ -10,14 +10,20 @@ const ROOT = process.cwd()
 /*  types & discovery                                                 */
 /* ------------------------------------------------------------------ */
 
+type PackageKind = 'package' | 'primitive' | 'advanced'
+
 interface PkgInfo {
   shortName: string
   fullName: string
   dir: string
-  /** Primitives are built via `rolldown` from the top-level config. */
-  isPrimitive: boolean
-  /** All non-primitive export target paths relative to package dir. */
+  /** Component packages are built via `rolldown` from the top-level config. */
+  kind: PackageKind
+  /** All non-component export target paths relative to package dir. */
   exportTargets: string[]
+}
+
+function isComponentPackage(pkg: PkgInfo): boolean {
+  return pkg.kind === 'primitive' || pkg.kind === 'advanced'
 }
 
 function collectExportTargets(value: unknown, targets: Set<string>): void {
@@ -40,12 +46,13 @@ function collectExportTargets(value: unknown, targets: Set<string>): void {
 function discoverPackages(): PkgInfo[] {
   const pkgs: PkgInfo[] = []
 
-  const roots: Array<{ dir: string; isPrimitive: boolean }> = [
-    { dir: 'packages', isPrimitive: false },
-    { dir: 'packages/primitives', isPrimitive: true },
+  const roots: Array<{ dir: string; kind: PackageKind }> = [
+    { dir: 'packages', kind: 'package' },
+    { dir: 'packages/primitives', kind: 'primitive' },
+    { dir: 'packages/advanced', kind: 'advanced' },
   ]
 
-  for (const { dir, isPrimitive } of roots) {
+  for (const { dir, kind } of roots) {
     const abs = join(ROOT, dir)
     if (!existsSync(abs)) continue
     for (const entry of readdirSync(abs, { withFileTypes: true })) {
@@ -71,17 +78,22 @@ function discoverPackages(): PkgInfo[] {
         shortName,
         fullName: pkgJson.name,
         dir: join(abs, entry.name),
-        isPrimitive,
+        kind,
         exportTargets: Array.from(exportTargets),
       })
     }
   }
 
   return pkgs.sort((a, b) => {
-    // Primitives first (they are dependencies of non-primitive packages)
-    if (a.isPrimitive !== b.isPrimitive) {
-      return a.isPrimitive ? -1 : 1
+    const weight: Record<PackageKind, number> = {
+      primitive: 0,
+      advanced: 1,
+      package: 2,
     }
+
+    const kindCompare = weight[a.kind] - weight[b.kind]
+    if (kindCompare !== 0) return kindCompare
+
     return a.shortName.localeCompare(b.shortName)
   })
 }
@@ -91,7 +103,7 @@ function discoverPackages(): PkgInfo[] {
 /* ------------------------------------------------------------------ */
 
 async function buildFull(pkg: PkgInfo): Promise<void> {
-  if (pkg.isPrimitive) {
+  if (isComponentPackage(pkg)) {
     const indexPath = join(pkg.dir, 'dist', 'index.js')
     if (existsSync(indexPath)) {
       return
@@ -101,7 +113,7 @@ async function buildFull(pkg: PkgInfo): Promise<void> {
       stdio: 'inherit',
     })
   } else {
-    // For non-primitive packages, check that ALL export targets exist
+    // For non-component packages, check that ALL export targets exist
     // (e.g. ai exports both ./index and ./metadata.json)
     const missingTargets = pkg.exportTargets.filter(target => {
       return !existsSync(join(pkg.dir, target))
@@ -117,7 +129,7 @@ async function buildFull(pkg: PkgInfo): Promise<void> {
 }
 
 async function buildDeclarations(pkg: PkgInfo): Promise<void> {
-  if (pkg.isPrimitive) {
+  if (isComponentPackage(pkg)) {
     await execa(
       'tsc',
       [
@@ -204,8 +216,7 @@ async function main(): Promise<void> {
   logSection(`${label} (${targets.length} 个包)`)
 
   for (const pkg of targets) {
-    const kindLabel = pkg.isPrimitive ? 'primitive' : 'package'
-    process.stdout.write(`\n  [${kindLabel}] ${pc.bold(pkg.shortName)} ... `)
+    process.stdout.write(`\n  [${pkg.kind}] ${pc.bold(pkg.shortName)} ... `)
 
     try {
       if (targetType === 'dts') {
