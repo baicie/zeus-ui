@@ -11,8 +11,10 @@
     "scripts/config/jsx.d.ts",
     "packages/*/src",
     "packages/primitives/*/src",
+    "packages/advanced/*/src",
     "packages/*/__tests__",
     "packages/primitives/*/__tests__",
+    "packages/advanced/*/__tests__",
     "scripts/**/*",
     "apps/**/*",
     "examples/showcase-shared/src/**/*"
