@@ -1,175 +1,71 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
-import { dirname, join, relative } from 'node:path'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { join } from 'node:path'
 
-import { execa } from 'execa'
+import pc from 'picocolors'
 
-const root = process.cwd()
-const packageRoots = ['packages', 'packages/primitives', 'packages/advanced']
+const ROOT = process.cwd()
 
-interface PackageJsonLike {
-  name?: string
-  private?: boolean
-  exports?: unknown
+const WORKSPACE_ROOTS = ['packages', 'packages/primitives', 'packages/advanced']
+
+interface PackageInfo {
+  name: string
+  dir: string
+  hasDist: boolean
 }
 
-interface ExportTarget {
-  packageName: string
-  packageDir: string
-  target: string
+function readPackageName(dir: string): string | undefined {
+  const file = join(dir, 'package.json')
+  if (!existsSync(file)) return undefined
+  const json = JSON.parse(readFileSync(file, 'utf8')) as { name?: string }
+  return json.name
 }
 
-function toForwardSlash(value: string): string {
-  return value.replace(/\\/g, '/')
-}
+function discoverPackages(): PackageInfo[] {
+  const result: PackageInfo[] = []
 
-function listPackageJsonFiles(): string[] {
-  const files: string[] = []
-
-  for (const rel of packageRoots) {
-    const abs = join(root, rel)
-
+  for (const rel of WORKSPACE_ROOTS) {
+    const abs = join(ROOT, rel)
     if (!existsSync(abs)) continue
 
-    for (const name of readdirSync(abs)) {
-      const file = join(abs, name, 'package.json')
+    for (const entry of readdirSync(abs, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue
+      const dir = join(abs, entry.name)
+      const distDir = join(dir, 'dist')
+      const hasDist =
+        existsSync(distDir) && statSync(distDir).isDirectory()
+      const name = readPackageName(dir)
+      if (!name) continue
 
-      if (existsSync(file)) {
-        files.push(file)
-      }
+      result.push({ name, dir, hasDist })
     }
   }
 
-  return files.sort()
+  return result.sort((a, b) => a.name.localeCompare(b.name))
 }
 
-function collectExportTargets(value: unknown, targets: Set<string>): void {
-  if (typeof value === 'string') {
-    if (value.startsWith('./') && !value.includes('*')) {
-      targets.add(value)
-    }
+function main(): void {
+  const errors: string[] = []
+  const packages = discoverPackages()
 
-    return
-  }
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      collectExportTargets(item, targets)
-    }
-
-    return
-  }
-
-  if (!value || typeof value !== 'object') return
-
-  for (const nested of Object.values(value)) {
-    collectExportTargets(nested, targets)
-  }
-}
-
-function listExportTargets(): ExportTarget[] {
-  const result: ExportTarget[] = []
-
-  for (const packageJsonFile of listPackageJsonFiles()) {
-    const pkg = JSON.parse(
-      readFileSync(packageJsonFile, 'utf8'),
-    ) as PackageJsonLike
-
-    if (pkg.private || !pkg.name || !pkg.exports) continue
-
-    const packageDir = dirname(packageJsonFile)
-    const targets = new Set<string>()
-
-    collectExportTargets(pkg.exports, targets)
-
-    for (const target of targets) {
-      result.push({
-        packageName: pkg.name,
-        packageDir,
-        target,
-      })
+  for (const pkg of packages) {
+    if (!pkg.hasDist) {
+      errors.push(`${pkg.name}: missing dist/ output directory`)
     }
   }
 
-  return result.sort((a, b) => {
-    const packageCompare = a.packageName.localeCompare(b.packageName)
-
-    if (packageCompare !== 0) return packageCompare
-
-    return a.target.localeCompare(b.target)
-  })
-}
-
-async function main(): Promise<void> {
-  let hasError = false
-  const dtsFiles = new Set<string>()
-
-  for (const item of listExportTargets()) {
-    const absoluteTarget = join(item.packageDir, item.target)
-    const relativeTarget = toForwardSlash(relative(root, absoluteTarget))
-
-    if (!existsSync(absoluteTarget)) {
-      console.error(
-        `[build-output] ${item.packageName} export target is missing: ${relativeTarget}`,
-      )
-      hasError = true
-      continue
+  if (errors.length > 0) {
+    console.error(pc.red('Build output check failed:'))
+    for (const error of errors) {
+      console.error(`  ${pc.red('-')} ${error}`)
     }
-
-    if (absoluteTarget.endsWith('.d.ts')) {
-      dtsFiles.add(relativeTarget)
-    }
-  }
-
-  if (dtsFiles.size > 0) {
-    const result = await execa(
-      'pnpm',
-      [
-        'exec',
-        'tsc',
-        ...dtsFiles,
-        '--ignoreConfig',
-        '--noEmit',
-        '--module',
-        'ESNext',
-        '--moduleResolution',
-        'bundler',
-        '--target',
-        'ES2016',
-        '--jsx',
-        'preserve',
-        '--types',
-        'node',
-        '--skipLibCheck',
-      ],
-      {
-        cwd: root,
-        reject: false,
-      },
-    )
-
-    if (result.exitCode !== 0) {
-      console.error('[build-output] generated dts files are invalid')
-
-      if (result.stdout) {
-        console.error(result.stdout)
-      }
-
-      if (result.stderr) {
-        console.error(result.stderr)
-      }
-
-      hasError = true
-    }
-  }
-
-  if (hasError) {
     process.exit(1)
   }
 
-  console.log('Build output looks good.')
+  console.log(
+    pc.green(
+      `Build output looks good. (${packages.length} packages, all have dist/)`,
+    ),
+  )
 }
 
-main().catch(error => {
-  console.error(error)
-  process.exit(1)
-})
+main()

@@ -65,8 +65,8 @@ function readPackageJson(file: string): PackageJsonLike {
 function getWorkspacePackageKind(
   packageRoot: (typeof packageRoots)[number],
 ): WorkspacePackageKind {
-  if (packageRoot === 'packages/primitives') return 'primitive'
-  if (packageRoot === 'packages/advanced') return 'advanced'
+  if (packageRoot.dir === 'packages/primitives') return 'primitive'
+  if (packageRoot.dir === 'packages/advanced') return 'advanced'
   return 'package'
 }
 
@@ -76,7 +76,7 @@ export function listWorkspacePackages(
   const result: WorkspacePackage[] = []
 
   for (const packageRoot of packageRoots) {
-    const absoluteRoot = resolve(root, packageRoot)
+    const absoluteRoot = resolve(root, packageRoot.dir)
     const kind = getWorkspacePackageKind(packageRoot)
 
     if (!existsSync(absoluteRoot)) continue

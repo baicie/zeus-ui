@@ -1,3 +1,7 @@
+# Advanced Components
+
+`packages/advanced/*` 存放 Zeus Web 的产品级、高复杂度 headless 组件，例如虚拟滚动、AI Chat、数据表格、Agent Console 等。
+
 # Zeus Web 高级组件
 
 `packages/advanced/*` 用于存放 Zeus Web 的产品级、高复杂度组件。
@@ -9,11 +13,12 @@
 
 高级组件必须坚持 **headless-first**：组件包只负责结构、行为、状态、事件、方法、可访问性与性能契约，不负责最终产品视觉设计。
 
-最终样式与产品化输出应叠加在 headless 包之上：
+## 设计原则
 
-- `packages/registry` 提供 React / Vue 源码模板，用于 `zweb add <component>`。
-- `packages/ui` 提供原生带样式 Web Component 入口，例如 `@zeus-web/ui/chat`。
-- `packages/ai` 维护 AI 元数据与代码生成使用规则。
+- **headless-first**：组件包不绑定任何最终视觉设计。
+- **Web Component 是第一等产物**：所有 advanced 包必须以 `packages/advanced/<name>` 形式发布 Web Component 产物。
+- **core / components 分层**：`src/core` 放框架无关的 TypeScript engine，`src/components` 放 Zeus defineElement Web Component 适配层。
+- **薄 wrapper**：React / Vue wrapper 只能做薄适配，不持有业务状态。
 
 ## 规划中的包
 
@@ -40,7 +45,7 @@ packages/advanced/
 @zeus-web/<advanced>/zeus.components.json
 ```
 
-advanced 包内部建议拆成两层：
+advanced 包内部必须拆成两层：
 
 ```txt
 src/core/
@@ -68,6 +73,5 @@ src/components/
 
 详细设计与路线图见：
 
-```txt
-docs/design/zeus-ui-advanced-components.md
-```
+- `docs/design/zeus-ui-advanced-components.md`
+- `docs/design/advanced-package-template.md`

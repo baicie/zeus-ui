@@ -1,4 +1,4 @@
-# Zeus-UI 高级组件设计
+# Zeus UI 高级组件设计与路线图
 
 ## 状态
 
@@ -42,6 +42,8 @@ packages/advanced/
 ```
 
 `packages/advanced/*` 是与 `packages/primitives/*` 平级的一等工作区。
+
+Web Component 是第一等产物。React / Vue wrapper 只能做薄适配层。
 
 ```txt
 packages/primitives/*
@@ -569,17 +571,17 @@ zweb add data-grid
 
 ## 完整路线图
 
-| Phase | 名称 | 输出 |
-| --- | --- | --- |
-| 0 | Advanced workspace contract | `packages/advanced/*` 被 workspace、build、checks、release scripts 识别。 |
-| 1 | Virtual foundation | `@zeus-web/virtual` 固定高度与动态高度列表虚拟化。 |
-| 2 | Chat headless | `@zeus-web/chat` Web Component / React / Vue headless 组件族。 |
-| 3 | Chat product | `zweb add chat`、`@zeus-web/ui/chat`、docs、AI metadata、showcases。 |
-| 4 | RevoGrid adapter | `@zeus-web/revogrid`，用于大型 Web Component 互操作验证。 |
-| 5 | DataGrid Lite | `@zeus-web/data-grid` 行/列虚拟化、选择、键盘导航。 |
-| 6 | DataGrid product | `zweb add data-grid`、`@zeus-web/ui/data-grid`、sorting、filtering、resize、pinned columns。 |
-| 7 | DataGrid advanced | Server row model、tree data、grouping、plugin system、export。 |
-| 8 | Agent Console | `@zeus-web/agent-console`，面向 AI Ops / RUM / SQL Agent 产品工作流。 |
+| Phase | 名称                        | 输出                                                                                         |
+| ----- | --------------------------- | -------------------------------------------------------------------------------------------- |
+| 0     | Advanced workspace contract | `packages/advanced/*` 被 workspace、build、checks、release scripts 识别。                    |
+| 1     | Virtual foundation          | `@zeus-web/virtual` 固定高度与动态高度列表虚拟化。                                           |
+| 2     | Chat headless               | `@zeus-web/chat` Web Component / React / Vue headless 组件族。                               |
+| 3     | Chat product                | `zweb add chat`、`@zeus-web/ui/chat`、docs、AI metadata、showcases。                         |
+| 4     | RevoGrid adapter            | `@zeus-web/revogrid`，用于大型 Web Component 互操作验证。                                    |
+| 5     | DataGrid Lite               | `@zeus-web/data-grid` 行/列虚拟化、选择、键盘导航。                                          |
+| 6     | DataGrid product            | `zweb add data-grid`、`@zeus-web/ui/data-grid`、sorting、filtering、resize、pinned columns。 |
+| 7     | DataGrid advanced           | Server row model、tree data、grouping、plugin system、export。                               |
+| 8     | Agent Console               | `@zeus-web/agent-console`，面向 AI Ops / RUM / SQL Agent 产品工作流。                        |
 
 ## 推荐分支计划
 

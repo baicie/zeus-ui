@@ -17,6 +17,8 @@ export interface PackageRuleResult {
   errors: string[]
 }
 
+type ComponentPackageKind = 'primitive' | 'advanced'
+
 function toForwardSlash(p: string): string {
   return p.replace(/\\/g, '/')
 }
@@ -31,6 +33,7 @@ export function validatePackageRules(
   ) as PackageJsonLike
   const rel = toForwardSlash(relative(root, packageJsonPath))
   const isPrimitive = rel.startsWith('packages/primitives/')
+  const isAdvanced = rel.startsWith('packages/advanced/')
   const isCompat = rel.startsWith('packages/zeus-compat/')
 
   if (pkg.private) {
@@ -49,11 +52,16 @@ export function validatePackageRules(
   }
 
   validateZeusDependencyBoundary(pkg, errors, {
-    allowPrimitiveRuntimeDependencies: isPrimitive,
+    allowComponentRuntimeDependencies: isPrimitive || isAdvanced,
   })
 
   if (isPrimitive) {
-    validatePrimitivePackage(packageJsonPath, pkg, errors)
+    validateComponentPackage(packageJsonPath, pkg, 'primitive', errors)
+  }
+
+  if (isAdvanced) {
+    validateComponentPackage(packageJsonPath, pkg, 'advanced', errors)
+    validateAdvancedPackageStructure(packageJsonPath, pkg, errors)
   }
 
   if (isCompat) {
@@ -70,10 +78,10 @@ function validateZeusDependencyBoundary(
   pkg: PackageJsonLike,
   errors: string[],
   options: {
-    allowPrimitiveRuntimeDependencies: boolean
+    allowComponentRuntimeDependencies: boolean
   },
 ): void {
-  const allowedPrimitiveRuntimeDependencies = new Set([
+  const allowedComponentRuntimeDependencies = new Set([
     '@zeus-js/runtime-dom',
     '@zeus-js/web-c-runtime',
   ])
@@ -92,36 +100,38 @@ function validateZeusDependencyBoundary(
 
       const isAllowedPeer =
         field === 'peerDependencies' && name === '@zeus-js/zeus'
-      const isAllowedPrimitiveRuntimeDependency =
-        options.allowPrimitiveRuntimeDependencies &&
+      const isAllowedComponentRuntimeDependency =
+        options.allowComponentRuntimeDependencies &&
         field === 'dependencies' &&
-        allowedPrimitiveRuntimeDependencies.has(name)
+        allowedComponentRuntimeDependencies.has(name)
       const isAllowedToolingDependency =
         field === 'dependencies' && allowedToolingDependencies.has(name)
 
       if (
         isAllowedPeer ||
-        isAllowedPrimitiveRuntimeDependency ||
+        isAllowedComponentRuntimeDependency ||
         isAllowedToolingDependency
       ) {
         continue
       }
 
       errors.push(
-        `${pkg.name}: must not declare ${field}.${name}; consume Zeus through peerDependencies.@zeus-js/zeus or generated primitive runtime dependencies`,
+        `${pkg.name}: must not declare ${field}.${name}; consume Zeus through peerDependencies.@zeus-js/zeus or generated component runtime dependencies`,
       )
     }
   }
 }
 
-function validatePrimitivePackage(
+function validateComponentPackage(
   packageJsonPath: string,
   pkg: PackageJsonLike,
+  kind: ComponentPackageKind,
   errors: string[],
 ): void {
   const packageDir = packageJsonPath.replace(/[/\\]package\.json$/, '')
+  const label = kind === 'primitive' ? 'primitive package' : 'advanced package'
 
-  validatePrimitiveRolldownConfig(packageDir, pkg, errors)
+  validateSharedRolldownConfig(packageDir, pkg, label, errors)
 
   if (
     !pkg.scripts ||
@@ -129,14 +139,12 @@ function validatePrimitivePackage(
     !pkg.scripts.build.includes('rolldown -c ../../../rolldown.config.ts')
   ) {
     errors.push(
-      `${pkg.name}: primitive package build script must use shared rolldown.config.ts`,
+      `${pkg.name}: ${label} build script must use shared rolldown.config.ts`,
     )
   }
 
   if (!pkg.peerDependencies || !pkg.peerDependencies['@zeus-js/zeus']) {
-    errors.push(
-      `${pkg.name}: primitive package must peer depend on @zeus-js/zeus`,
-    )
+    errors.push(`${pkg.name}: ${label} must peer depend on @zeus-js/zeus`)
   }
 
   if (
@@ -144,7 +152,7 @@ function validatePrimitivePackage(
     pkg.dependencies['@zeus-web/zeus-compat'] !== 'workspace:*'
   ) {
     errors.push(
-      `${pkg.name}: primitive package must depend on @zeus-web/zeus-compat workspace:*`,
+      `${pkg.name}: ${label} must depend on @zeus-web/zeus-compat workspace:*`,
     )
   }
 
@@ -153,23 +161,25 @@ function validatePrimitivePackage(
     './wc',
     './react',
     './vue',
+    './vue/global',
     './custom-elements.json',
     './zeus.components.json',
   ]) {
     if (!pkg.exports || !(key in pkg.exports)) {
-      errors.push(`${pkg.name}: primitive package must export ${key}`)
+      errors.push(`${pkg.name}: ${label} must export ${key}`)
     }
   }
 
   if (!Array.isArray(pkg.sideEffects)) {
-    errors.push(`${pkg.name}: primitive package sideEffects must be string[]`)
+    errors.push(`${pkg.name}: ${label} sideEffects must be string[]`)
   } else {
     const hasWcSideEffect = pkg.sideEffects.some(item =>
       item.includes('dist/wc'),
     )
+
     if (!hasWcSideEffect) {
       errors.push(
-        `${pkg.name}: primitive package sideEffects must include dist/wc entry`,
+        `${pkg.name}: ${label} sideEffects must include dist/wc entry`,
       )
     }
   }
@@ -177,26 +187,57 @@ function validatePrimitivePackage(
   for (const forbidden of ['src/wc.ts', 'src/react.ts', 'src/vue.ts']) {
     if (existsSync(join(packageDir, forbidden))) {
       errors.push(
-        `${pkg.name}: primitive package must not hand-write ${forbidden}; use @zeus-js/output-* instead`,
+        `${pkg.name}: ${label} must not hand-write ${forbidden}; use @zeus-js/output-* instead`,
       )
     }
   }
 }
 
-function validatePrimitiveRolldownConfig(
+function validateAdvancedPackageStructure(
+  packageJsonPath: string,
+  pkg: PackageJsonLike,
+  errors: string[],
+): void {
+  const packageDir = packageJsonPath.replace(/[/\\]package\.json$/, '')
+
+  const srcDir = join(packageDir, 'src')
+  const indexFile = join(srcDir, 'index.ts')
+  const typesFile = join(srcDir, 'types.ts')
+  const coreDir = join(srcDir, 'core')
+  const componentsDir = join(srcDir, 'components')
+
+  if (!existsSync(indexFile)) {
+    errors.push(`${pkg.name}: advanced package must contain src/index.ts`)
+  }
+
+  if (!existsSync(typesFile)) {
+    errors.push(`${pkg.name}: advanced package must contain src/types.ts`)
+  }
+
+  if (!existsSync(coreDir)) {
+    errors.push(`${pkg.name}: advanced package must contain src/core/`)
+  }
+
+  if (!existsSync(componentsDir)) {
+    errors.push(`${pkg.name}: advanced package must contain src/components/`)
+  }
+}
+
+function validateSharedRolldownConfig(
   packageDir: string,
   pkg: PackageJsonLike,
+  label: string,
   errors: string[],
 ): void {
   if (existsSync(join(packageDir, 'rolldown.config.ts'))) {
     errors.push(
-      `${pkg.name}: primitive package must use root rolldown.config.ts instead of local rolldown.config.ts`,
+      `${pkg.name}: ${label} must use root rolldown.config.ts instead of local rolldown.config.ts`,
     )
   }
 
   if (existsSync(join(packageDir, 'rolldown.config.mjs'))) {
     errors.push(
-      `${pkg.name}: primitive package must use root rolldown.config.ts instead of local rolldown.config.mjs`,
+      `${pkg.name}: ${label} must use root rolldown.config.ts instead of local rolldown.config.mjs`,
     )
   }
 
@@ -217,7 +258,7 @@ function validatePrimitiveRolldownConfig(
 
   if (!usesSharedConfig && !usesZeusOutputs) {
     errors.push(
-      `${pkg.name}: primitive rolldown config must use Zeus web-c output pipeline`,
+      `${pkg.name}: ${label} rolldown config must use Zeus web-c output pipeline`,
     )
   }
 }
