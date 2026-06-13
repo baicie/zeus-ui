@@ -1,7 +1,11 @@
+import nodeProcess from 'node:process'
 import { defineConfig } from 'vitepress'
 import { sidebar, topNav } from './data/site'
 
+const siteBase = nodeProcess.env.DOCS_BASE ?? '/'
+
 export default defineConfig({
+  base: siteBase,
   title: 'Zeus Web',
   description:
     'Headless Web Components, shadcn-like registry and AI metadata built on Zeus.',
@@ -30,7 +34,7 @@ export default defineConfig({
     ],
   ],
   themeConfig: {
-    logo: '/logo.svg',
+    logo: 'logo.svg',
     nav: topNav,
     sidebar,
     outline: {

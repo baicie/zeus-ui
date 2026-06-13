@@ -53,6 +53,8 @@ jobs:
         run: pnpm docs:check
 
       - name: Build docs
+        env:
+          DOCS_BASE: /zeus-ui/
         run: pnpm docs:build
 
       - name: Upload artifact
