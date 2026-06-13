@@ -43,11 +43,9 @@ function loadRegistry(): Registry {
 }
 
 function getRegistryComponentNames(): Set<string> {
-  return new Set(
-    loadRegistry()
-      .items.filter(item => item.type === 'component')
-      .map(item => item.name),
-  )
+  const items = loadRegistry().items.filter(item => item.type === 'component')
+
+  return new Set(items.map(item => item.name))
 }
 
 const requiredDocs: RequiredDoc[] = [

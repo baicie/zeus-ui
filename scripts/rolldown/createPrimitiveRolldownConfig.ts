@@ -1,9 +1,19 @@
+import type { RolldownOptions, RolldownPlugin } from 'rolldown'
+
 import zeus from '@zeus-js/bundler-plugin/rolldown'
 import react from '@zeus-js/output-react-wrapper'
 import vue from '@zeus-js/output-vue-wrapper'
 import wc from '@zeus-js/output-wc'
 
-export function createPrimitiveRolldownConfig(options = {}) {
+interface CreatePrimitiveRolldownConfigOptions {
+  input?: string
+  tagPrefix?: string
+  external?: string[]
+}
+
+export function createPrimitiveRolldownConfig(
+  options: CreatePrimitiveRolldownConfigOptions = {},
+): RolldownOptions {
   const { input = 'src/index.ts', tagPrefix = 'zw-', external = [] } = options
 
   return {
@@ -56,7 +66,7 @@ export function createPrimitiveRolldownConfig(options = {}) {
   }
 }
 
-function fixWcEventListenerDts() {
+function fixWcEventListenerDts(): RolldownPlugin {
   return {
     name: 'zeus-ui-fix-wc-event-listener-dts',
     generateBundle(_, bundle) {

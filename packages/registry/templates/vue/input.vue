@@ -47,8 +47,8 @@ const classes = computed(() =>
     'placeholder:text-[hsl(var(--zeus-muted-foreground))]',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--zeus-ring)/0.35)]',
     'disabled:cursor-not-allowed disabled:opacity-50',
-    props.invalid
-    && 'border-[hsl(var(--zeus-destructive))] ring-2 ring-[hsl(var(--zeus-destructive)/0.35)]',
+    props.invalid &&
+      'border-[hsl(var(--zeus-destructive))] ring-2 ring-[hsl(var(--zeus-destructive)/0.35)]',
     inputSizeClasses[props.size],
     props.class,
   ),
