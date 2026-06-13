@@ -16,6 +16,25 @@ interface PkgInfo {
   dir: string
   /** Primitives are built via `rolldown` from the top-level config. */
   isPrimitive: boolean
+  /** All non-primitive export target paths relative to package dir. */
+  exportTargets: string[]
+}
+
+function collectExportTargets(value: unknown, targets: Set<string>): void {
+  if (typeof value === 'string') {
+    if (value.startsWith('./') && !value.includes('*')) {
+      targets.add(value)
+    }
+    return
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) collectExportTargets(item, targets)
+    return
+  }
+  if (!value || typeof value !== 'object') return
+  for (const nested of Object.values(value)) {
+    collectExportTargets(nested, targets)
+  }
 }
 
 function discoverPackages(): PkgInfo[] {
@@ -36,14 +55,24 @@ function discoverPackages(): PkgInfo[] {
 
       const pkgJson = JSON.parse(readFileSync(pkgFile, 'utf8')) as {
         name: string
+        exports?: unknown
+        private?: boolean
       }
+
+      if (pkgJson.private || !pkgJson.name) continue
+
       const shortName = pkgJson.name.replace(/^@zeus-web\//, '')
+      const exportTargets = new Set<string>()
+      if (pkgJson.exports) {
+        collectExportTargets(pkgJson.exports, exportTargets)
+      }
 
       pkgs.push({
         shortName,
         fullName: pkgJson.name,
         dir: join(abs, entry.name),
         isPrimitive,
+        exportTargets: Array.from(exportTargets),
       })
     }
   }
@@ -72,8 +101,12 @@ async function buildFull(pkg: PkgInfo): Promise<void> {
       stdio: 'inherit',
     })
   } else {
-    const indexPath = join(pkg.dir, 'dist', 'index.js')
-    if (existsSync(indexPath)) {
+    // For non-primitive packages, check that ALL export targets exist
+    // (e.g. ai exports both ./index and ./metadata.json)
+    const missingTargets = pkg.exportTargets.filter(target => {
+      return !existsSync(join(pkg.dir, target))
+    })
+    if (missingTargets.length === 0) {
       return
     }
     await execa('pnpm', ['run', 'build'], {

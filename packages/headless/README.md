@@ -15,8 +15,7 @@ import '@zeus-web/headless'
 ```
 
 ```html
-<zw-button>Save</zw-button>
-<zw-input placeholder="Email"></zw-input>
+<zw-button>Save</zw-button> <zw-input placeholder="Email"></zw-input>
 ```
 
 ## Components
