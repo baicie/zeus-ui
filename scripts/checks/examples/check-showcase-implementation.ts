@@ -184,7 +184,7 @@ function checkRootScripts(): string[] {
 
   if (
     rootPackage.scripts?.['check:showcase-implementation'] !==
-    'tsx scripts/checks/check-showcase-implementation.ts'
+    'tsx scripts/checks/examples/check-showcase-implementation.ts'
   ) {
     errors.push(
       'Root package.json must define "check:showcase-implementation".',

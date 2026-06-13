@@ -14,7 +14,7 @@ describe('release script contract', () => {
       'tsx scripts/commands/release-plan.ts',
     )
     expect(packageJson.scripts['release:verify']).toBe(
-      'tsx scripts/checks/check-release-readiness.ts',
+      'tsx scripts/checks/release/check-release-readiness.ts',
     )
     expect(packageJson.scripts['version:packages']).toBe(
       'tsx scripts/commands/version-packages.ts',
