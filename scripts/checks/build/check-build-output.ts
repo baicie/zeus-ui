@@ -22,9 +22,12 @@ const WORKSPACE_ROOTS: Array<{ dir: string; kind: PackageKind }> = [
 
 const componentRequiredOutputs = [
   'dist/wc/index.js',
+  'dist/wc/index.d.ts',
   'dist/wc/auto.js',
   'dist/react/index.js',
+  'dist/react/index.d.ts',
   'dist/vue/index.js',
+  'dist/vue/index.d.ts',
   'dist/vue/global.d.ts',
   'dist/custom-elements.json',
   'dist/zeus.components.json',

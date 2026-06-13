@@ -461,4 +461,181 @@ describe('package rules', () => {
       ),
     ).toBe(true)
   })
+
+  it('accepts an advanced package using zeus web-c pipeline', () => {
+    const root = createTempRoot()
+    const dir = join(root, 'packages/advanced/virtual')
+
+    mkdirSync(join(dir, 'src/core'), { recursive: true })
+    mkdirSync(join(dir, 'src/components'), { recursive: true })
+    writeFileSync(join(dir, 'src/index.ts'), 'export {}\n')
+    writeFileSync(join(dir, 'src/types.ts'), 'export {}\n')
+
+    writeZeusRolldownConfig(join(root, 'rolldown.config.ts'))
+
+    writeJson(join(dir, 'package.json'), {
+      name: '@zeus-web/virtual',
+      scripts: {
+        build: 'rolldown -c ../../../rolldown.config.ts',
+      },
+      sideEffects: ['./dist/wc/index.js', './dist/wc/*.js'],
+      exports: {
+        '.': {},
+        './wc': {},
+        './wc/auto': {},
+        './react': {},
+        './vue': {},
+        './vue/global': {},
+        './custom-elements.json': {},
+        './zeus.components.json': {},
+      },
+      peerDependencies: {
+        '@zeus-js/zeus': '>=0.1.0-beta.5 <0.2.0',
+      },
+      dependencies: {
+        '@zeus-js/runtime-dom': '0.1.0-beta.5',
+        '@zeus-js/web-c-runtime': '0.2.0',
+        '@zeus-web/zeus-compat': 'workspace:*',
+      },
+    })
+
+    const result = validatePackageRules(root, join(dir, 'package.json'))
+
+    expect(result.valid).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+
+  it('rejects advanced package without src/core', () => {
+    const root = createTempRoot()
+    const dir = join(root, 'packages/advanced/virtual')
+
+    mkdirSync(join(dir, 'src/components'), { recursive: true })
+    writeFileSync(join(dir, 'src/index.ts'), 'export {}\n')
+    writeFileSync(join(dir, 'src/types.ts'), 'export {}\n')
+
+    writeZeusRolldownConfig(join(root, 'rolldown.config.ts'))
+
+    writeJson(join(dir, 'package.json'), {
+      name: '@zeus-web/virtual',
+      scripts: {
+        build: 'rolldown -c ../../../rolldown.config.ts',
+      },
+      sideEffects: ['./dist/wc/index.js', './dist/wc/*.js'],
+      exports: {
+        '.': {},
+        './wc': {},
+        './wc/auto': {},
+        './react': {},
+        './vue': {},
+        './vue/global': {},
+        './custom-elements.json': {},
+        './zeus.components.json': {},
+      },
+      peerDependencies: {
+        '@zeus-js/zeus': '>=0.1.0-beta.5 <0.2.0',
+      },
+      dependencies: {
+        '@zeus-web/zeus-compat': 'workspace:*',
+      },
+    })
+
+    const result = validatePackageRules(root, join(dir, 'package.json'))
+
+    expect(result.valid).toBe(false)
+    expect(
+      result.errors.some(error =>
+        error.includes('advanced package must contain src/core/'),
+      ),
+    ).toBe(true)
+  })
+
+  it('rejects advanced package without src/components', () => {
+    const root = createTempRoot()
+    const dir = join(root, 'packages/advanced/virtual')
+
+    mkdirSync(join(dir, 'src/core'), { recursive: true })
+    writeFileSync(join(dir, 'src/index.ts'), 'export {}\n')
+    writeFileSync(join(dir, 'src/types.ts'), 'export {}\n')
+
+    writeZeusRolldownConfig(join(root, 'rolldown.config.ts'))
+
+    writeJson(join(dir, 'package.json'), {
+      name: '@zeus-web/virtual',
+      scripts: {
+        build: 'rolldown -c ../../../rolldown.config.ts',
+      },
+      sideEffects: ['./dist/wc/index.js', './dist/wc/*.js'],
+      exports: {
+        '.': {},
+        './wc': {},
+        './wc/auto': {},
+        './react': {},
+        './vue': {},
+        './vue/global': {},
+        './custom-elements.json': {},
+        './zeus.components.json': {},
+      },
+      peerDependencies: {
+        '@zeus-js/zeus': '>=0.1.0-beta.5 <0.2.0',
+      },
+      dependencies: {
+        '@zeus-web/zeus-compat': 'workspace:*',
+      },
+    })
+
+    const result = validatePackageRules(root, join(dir, 'package.json'))
+
+    expect(result.valid).toBe(false)
+    expect(
+      result.errors.some(error =>
+        error.includes('advanced package must contain src/components/'),
+      ),
+    ).toBe(true)
+  })
+
+  it('rejects advanced package with hand-written framework entries', () => {
+    const root = createTempRoot()
+    const dir = join(root, 'packages/advanced/virtual')
+
+    mkdirSync(join(dir, 'src/core'), { recursive: true })
+    mkdirSync(join(dir, 'src/components'), { recursive: true })
+    writeFileSync(join(dir, 'src/index.ts'), 'export {}\n')
+    writeFileSync(join(dir, 'src/types.ts'), 'export {}\n')
+    writeFileSync(join(dir, 'src/react.ts'), 'export {}\n')
+
+    writeZeusRolldownConfig(join(root, 'rolldown.config.ts'))
+
+    writeJson(join(dir, 'package.json'), {
+      name: '@zeus-web/virtual',
+      scripts: {
+        build: 'rolldown -c ../../../rolldown.config.ts',
+      },
+      sideEffects: ['./dist/wc/index.js', './dist/wc/*.js'],
+      exports: {
+        '.': {},
+        './wc': {},
+        './wc/auto': {},
+        './react': {},
+        './vue': {},
+        './vue/global': {},
+        './custom-elements.json': {},
+        './zeus.components.json': {},
+      },
+      peerDependencies: {
+        '@zeus-js/zeus': '>=0.1.0-beta.5 <0.2.0',
+      },
+      dependencies: {
+        '@zeus-web/zeus-compat': 'workspace:*',
+      },
+    })
+
+    const result = validatePackageRules(root, join(dir, 'package.json'))
+
+    expect(result.valid).toBe(false)
+    expect(
+      result.errors.some(error =>
+        error.includes('must not hand-write src/react.ts'),
+      ),
+    ).toBe(true)
+  })
 })

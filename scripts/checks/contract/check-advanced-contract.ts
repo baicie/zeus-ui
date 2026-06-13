@@ -26,6 +26,7 @@ const root = process.cwd()
 const requiredWorkspaceFiles = [
   'pnpm-workspace.yaml',
   'tsconfig.json',
+  'scripts/config/tsconfig.base.json',
   'packages/advanced/README.md',
   'docs/design/zeus-ui-advanced-components.md',
   'docs/design/advanced-package-template.md',
@@ -103,6 +104,16 @@ function checkWorkspaceRegistration(errors: string[]): void {
   )
 
   mustContain(
+    'scripts/config/tsconfig.base.json',
+    [
+      '"../../packages/advanced/*/src"',
+      '"../../packages/advanced/*/src/index"',
+      '"../../packages/advanced/*/__tests__"',
+    ],
+    errors,
+  )
+
+  mustContain(
     'scripts/commands/build.ts',
     [
       "type PackageKind = 'package' | 'primitive' | 'advanced'",
@@ -119,9 +130,13 @@ function checkWorkspaceRegistration(errors: string[]): void {
     [
       "'packages/advanced'",
       "'dist/wc/index.js'",
+      "'dist/wc/index.d.ts'",
       "'dist/wc/auto.js'",
       "'dist/react/index.js'",
+      "'dist/react/index.d.ts'",
       "'dist/vue/index.js'",
+      "'dist/vue/index.d.ts'",
+      "'dist/vue/global.d.ts'",
       "'dist/custom-elements.json'",
       "'dist/zeus.components.json'",
     ],
