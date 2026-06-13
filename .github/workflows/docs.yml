@@ -6,9 +6,13 @@ on:
     branches:
       - main
     paths:
-      - 'docs/**'
+      - 'apps/docs/**'
+      - 'packages/**'
+      - 'packages/primitives/**'
+      - 'scripts/**'
       - .github/workflows/docs.yml
       - package.json
+      - pnpm-lock.yaml
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -37,13 +41,19 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Build
+      - name: Build docs playground dependencies
+        run: pnpm showcase:e2e:deps
+
+      - name: Check docs
+        run: pnpm docs:check
+
+      - name: Build docs
         run: pnpm docs:build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/.vitepress/dist
+          path: apps/docs/.vitepress/dist
 
       - name: Deploy to GitHub Pages
         id: deployment
