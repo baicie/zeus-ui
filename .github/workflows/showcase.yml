@@ -115,10 +115,16 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
+      - name: Prepare showcase E2E artifacts directory
+        run: mkdir -p examples/showcase-e2e/.artifacts
+
+      - name: Build showcase E2E dependencies
+        run: pnpm showcase:e2e:deps 2>&1 | tee examples/showcase-e2e/.artifacts/deps.log
+
       - name: Run showcase browser E2E
         env:
           SHOWCASE_E2E_ARTIFACTS: 'true'
-        run: pnpm showcase:ci:e2e
+        run: pnpm exec vitest --project showcase-e2e --run --reporter=verbose 2>&1 | tee examples/showcase-e2e/.artifacts/e2e.log
 
       - name: Upload showcase E2E artifacts
         if: always()
