@@ -1,21 +1,21 @@
-# Zeus Web Advanced Components
+# Zeus Web 高级组件
 
-`packages/advanced/*` contains product-level, high-complexity Zeus Web components.
+`packages/advanced/*` 用于存放 Zeus Web 的产品级、高复杂度组件。
 
-Advanced components are different from `packages/primitives/*`:
+高级组件与 `packages/primitives/*` 的边界如下：
 
-- `packages/primitives/*` contains small headless behavior primitives such as button, input, dialog, switch and tabs.
-- `packages/advanced/*` contains high-performance or product-level components such as virtual scrolling, AI chat, data grid and agent console.
+- `packages/primitives/*` 存放小型 headless 行为原语，例如 button、input、dialog、switch、tabs。
+- `packages/advanced/*` 存放高性能或产品级组件，例如虚拟滚动、AI Chat、数据表格、Agent Console。
 
-Advanced components must remain **headless-first**. They own structure, behavior, state, events, methods, accessibility and performance contracts. They must not own the final product visual design.
+高级组件必须坚持 **headless-first**：组件包只负责结构、行为、状态、事件、方法、可访问性与性能契约，不负责最终产品视觉设计。
 
-Styled product output should be layered on top:
+最终样式与产品化输出应叠加在 headless 包之上：
 
-- `packages/registry` provides React / Vue source templates for `zweb add <component>`.
-- `packages/ui` provides native styled Web Component entries such as `@zeus-web/ui/chat`.
-- `packages/ai` documents AI metadata and usage rules for code generation.
+- `packages/registry` 提供 React / Vue 源码模板，用于 `zweb add <component>`。
+- `packages/ui` 提供原生带样式 Web Component 入口，例如 `@zeus-web/ui/chat`。
+- `packages/ai` 维护 AI 元数据与代码生成使用规则。
 
-## Planned packages
+## 规划中的包
 
 ```txt
 packages/advanced/
@@ -26,9 +26,9 @@ packages/advanced/
   agent-console/  @zeus-web/agent-console
 ```
 
-## Component package rules
+## 组件包规则
 
-Every advanced package should provide the same output model as primitive packages:
+每个 advanced 包都应提供与 primitive 包一致的输出模型：
 
 ```txt
 @zeus-web/<advanced>
@@ -40,33 +40,33 @@ Every advanced package should provide the same output model as primitive package
 @zeus-web/<advanced>/zeus.components.json
 ```
 
-Advanced package internals should be split into two layers:
+advanced 包内部建议拆成两层：
 
 ```txt
 src/core/
-  Framework-agnostic TypeScript engines.
-  No React, Vue or DOM ownership unless the feature is explicitly browser-only.
+  框架无关的 TypeScript engine。
+  除非功能明确依赖浏览器，否则不拥有 React、Vue 或 DOM 逻辑。
 
 src/components/
-  Zeus defineElement Web Components.
-  These adapt the core engine to Web Component props, events, slots and methods.
+  Zeus defineElement Web Components。
+  负责把 core engine 适配成 Web Component 的 props、events、slots 和 methods。
 ```
 
-## Performance rules
+## 性能规则
 
-Advanced components should follow these rules:
+高级组件应遵守以下规则：
 
-1. Web Components are the primary runtime target.
-2. React and Vue wrappers must stay thin.
-3. Object and array inputs use properties, not reflected attributes.
-4. High-frequency updates are batched with `requestAnimationFrame` or an equivalent scheduler.
-5. Large DOM surfaces render only visible viewport content plus overscan.
-6. Heavy features such as markdown, syntax highlighting, export and custom renderers should be lazy-loaded.
-7. Native, React and Vue showcases must validate the same behavior.
+1. Web Components 是第一等运行时目标。
+2. React 和 Vue wrapper 必须保持轻量。
+3. 对象和数组输入使用 property，不使用反射 attribute。
+4. 高频更新通过 `requestAnimationFrame` 或等价 scheduler 合并。
+5. 大型 DOM 表面只渲染可见 viewport 内容与 overscan。
+6. Markdown、语法高亮、导出、自定义渲染器等重功能应按需懒加载。
+7. Native、React、Vue showcase 必须验证同一套行为。
 
-## Roadmap
+## 路线图
 
-The detailed design and roadmap live in:
+详细设计与路线图见：
 
 ```txt
 docs/design/zeus-ui-advanced-components.md
