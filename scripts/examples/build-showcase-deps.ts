@@ -60,8 +60,11 @@ function createBuildTargetNames(options: Options): string[] {
    * @zeus-web/ui is not part of implemented showcase primitives, because it is
    * the package-owned styled Web-C entry layer. It must be built before native
    * showcase check/build/test can resolve its package exports.
+   *
+   * @zeus-web/zeus-compat is consumed by docs playground and must also be
+   * built so that vitepress can resolve its package exports during build.
    */
-  const nativeShowcasePackages = ['@zeus-web/ui']
+  const nativeShowcasePackages = ['@zeus-web/ui', '@zeus-web/zeus-compat']
 
   return [...foundationPackages, ...packages, ...nativeShowcasePackages]
 }
