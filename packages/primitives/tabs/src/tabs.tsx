@@ -1,6 +1,5 @@
-import type { Context } from '@zeus-js/runtime-dom'
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
-import { provideDOMContext, resolveDOMContext } from '@zeus-js/runtime-dom'
+import type { DOMContext } from '@zeus-web/zeus-compat'
 import {
   createContext,
   defineElement,
@@ -9,6 +8,7 @@ import {
   prop,
   Slot,
 } from '@zeus-js/zeus'
+import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export type TabsOrientation = 'horizontal' | 'vertical'
 
@@ -55,7 +55,7 @@ interface TabsContextValue {
 }
 
 const TabsContext =
-  createContext<TabsContextValue>() as Context<TabsContextValue>
+  createContext<TabsContextValue>() as DOMContext<TabsContextValue>
 
 let tabsId = 0
 

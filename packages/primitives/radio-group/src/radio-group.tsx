@@ -1,6 +1,5 @@
-import type { Context } from '@zeus-js/runtime-dom'
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
-import { provideDOMContext, resolveDOMContext } from '@zeus-js/runtime-dom'
+import type { DOMContext } from '@zeus-web/zeus-compat'
 import {
   createContext,
   defineElement,
@@ -9,6 +8,7 @@ import {
   prop,
   Slot,
 } from '@zeus-js/zeus'
+import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export type RadioGroupOrientation = 'horizontal' | 'vertical'
 export type RadioGroupSize = 'sm' | 'md' | 'lg'
@@ -50,7 +50,7 @@ interface RadioGroupContextValue {
 }
 
 const RadioGroupContext =
-  createContext<RadioGroupContextValue>() as Context<RadioGroupContextValue>
+  createContext<RadioGroupContextValue>() as DOMContext<RadioGroupContextValue>
 
 let radioGroupId = 0
 

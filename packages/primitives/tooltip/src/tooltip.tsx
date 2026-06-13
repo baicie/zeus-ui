@@ -1,6 +1,5 @@
-import type { Context } from '@zeus-js/runtime-dom'
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
-import { provideDOMContext, resolveDOMContext } from '@zeus-js/runtime-dom'
+import type { DOMContext } from '@zeus-web/zeus-compat'
 import {
   createContext,
   defineElement,
@@ -9,6 +8,7 @@ import {
   prop,
   Slot,
 } from '@zeus-js/zeus'
+import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export type TooltipSide = 'top' | 'right' | 'bottom' | 'left'
 
@@ -43,7 +43,7 @@ interface TooltipContextValue {
 }
 
 const TooltipContext =
-  createContext<TooltipContextValue>() as Context<TooltipContextValue>
+  createContext<TooltipContextValue>() as DOMContext<TooltipContextValue>
 
 let tooltipId = 0
 

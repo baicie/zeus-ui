@@ -1,6 +1,5 @@
-import type { Context } from '@zeus-js/runtime-dom'
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
-import { provideDOMContext, resolveDOMContext } from '@zeus-js/runtime-dom'
+import type { DOMContext } from '@zeus-web/zeus-compat'
 import {
   createContext,
   defineElement,
@@ -9,6 +8,7 @@ import {
   prop,
   Slot,
 } from '@zeus-js/zeus'
+import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export type AccordionType = 'single' | 'multiple'
 export type AccordionOrientation = 'vertical' | 'horizontal'
@@ -53,9 +53,9 @@ interface AccordionContextValue {
 }
 
 const AccordionContext =
-  createContext<AccordionContextValue>() as Context<AccordionContextValue>
+  createContext<AccordionContextValue>() as DOMContext<AccordionContextValue>
 const AccordionItemContext =
-  createContext<AccordionItemContextValue>() as Context<AccordionItemContextValue>
+  createContext<AccordionItemContextValue>() as DOMContext<AccordionItemContextValue>
 
 let accordionId = 0
 

@@ -18,7 +18,10 @@ const checkedRoots = [
 ]
 
 const allowedZeusImports = new Map<string, ReadonlySet<string>>([
-  ['packages/zeus-compat/src/index.ts', new Set(['@zeus-js/zeus'])],
+  [
+    'packages/zeus-compat/src/index.ts',
+    new Set(['@zeus-js/zeus', '@zeus-js/runtime-dom']),
+  ],
   [
     'packages/zeus-compat/src/capabilities.ts',
     new Set(['@zeus-js/zeus/capabilities']),

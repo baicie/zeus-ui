@@ -1,6 +1,5 @@
-import type { Context } from '@zeus-js/runtime-dom'
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
-import { provideDOMContext, resolveDOMContext } from '@zeus-js/runtime-dom'
+import type { DOMContext } from '@zeus-web/zeus-compat'
 import {
   createContext,
   defineElement,
@@ -9,6 +8,7 @@ import {
   prop,
   Slot,
 } from '@zeus-js/zeus'
+import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export interface CollapsibleProps {
   open?: boolean
@@ -40,7 +40,7 @@ interface CollapsibleContextValue {
 }
 
 const CollapsibleContext =
-  createContext<CollapsibleContextValue>() as Context<CollapsibleContextValue>
+  createContext<CollapsibleContextValue>() as DOMContext<CollapsibleContextValue>
 
 let collapsibleId = 0
 

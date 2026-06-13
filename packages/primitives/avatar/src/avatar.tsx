@@ -1,6 +1,5 @@
-import type { Context } from '@zeus-js/runtime-dom'
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
-import { provideDOMContext, resolveDOMContext } from '@zeus-js/runtime-dom'
+import type { DOMContext } from '@zeus-web/zeus-compat'
 import {
   createContext,
   defineElement,
@@ -9,6 +8,7 @@ import {
   prop,
   Slot,
 } from '@zeus-js/zeus'
+import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export type AvatarSize = 'sm' | 'md' | 'lg'
 export type AvatarShape = 'circle' | 'square'
@@ -30,7 +30,7 @@ interface AvatarContextValue {
 }
 
 const AvatarContext =
-  createContext<AvatarContextValue>() as Context<AvatarContextValue>
+  createContext<AvatarContextValue>() as DOMContext<AvatarContextValue>
 
 function resolveImageStatus(
   props: AvatarProps,
