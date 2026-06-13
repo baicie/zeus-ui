@@ -8,7 +8,7 @@ import {
   readComponentsConfig,
   resolveAliasToPath,
 } from '../config'
-import { componentsLockFileName, readComponentsLock } from '../lock'
+import { legacyLockFileName, readLegacyLock } from '../lock'
 import { loadRegistry } from './add'
 
 type DoctorLevel = 'pass' | 'warn' | 'fail'
@@ -94,6 +94,7 @@ export async function doctor(args: string[]): Promise<void> {
         const config = readComponentsConfig(options.cwd)
         const cssPath = resolve(options.cwd, config.tailwind.css)
         const themeImport = `@import '@zeus-web/themes/${config.style}.css';`
+        const componentsImport = "@import '@zeus-web/themes/components.css';"
         checks.push({ level: 'pass', message: 'components.json is valid.' })
         for (const [name, alias] of Object.entries(config.aliases)) {
           const aliasPath = resolveAliasToPath(options.cwd, alias)
@@ -122,6 +123,12 @@ export async function doctor(args: string[]): Promise<void> {
               ? 'Theme css import is configured.'
               : `Theme css import is missing: ${themeImport}`,
           })
+          checks.push({
+            level: css.includes(componentsImport) ? 'pass' : 'warn',
+            message: css.includes(componentsImport)
+              ? 'Component css import is configured.'
+              : `Component css import is missing: ${componentsImport}`,
+          })
         }
       } catch (e) {
         checks.push({ level: 'fail', message: (e as Error).message })
@@ -140,17 +147,17 @@ export async function doctor(args: string[]): Promise<void> {
       })
     }
 
-    const lock = readComponentsLock(options.cwd)
+    const lock = readLegacyLock(options.cwd)
     const lockedComponents = Object.keys(lock.components)
     if (lockedComponents.length === 0) {
       checks.push({
         level: 'warn',
-        message: `${componentsLockFileName} has no tracked components.`,
+        message: `${legacyLockFileName} has no tracked components.`,
       })
     } else {
       checks.push({
         level: 'pass',
-        message: `${componentsLockFileName} tracks ${lockedComponents.length} component(s).`,
+        message: `${legacyLockFileName} tracks ${lockedComponents.length} component(s).`,
       })
       for (const [component, item] of Object.entries(lock.components)) {
         for (const file of item.files) {

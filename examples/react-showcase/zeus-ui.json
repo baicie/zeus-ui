@@ -1,0 +1,22 @@
+{
+  "$schema": "https://zeus-web.dev/schema/zeus-ui.json",
+  "framework": "react",
+  "style": "default",
+  "typescript": true,
+  "srcDir": "src",
+  "theme": {
+    "radius": "md",
+    "motion": "normal",
+    "darkMode": "class"
+  },
+  "tailwind": {
+    "css": "src/styles/zeus.css",
+    "cssVariables": true
+  },
+  "aliases": {
+    "components": "@/components",
+    "ui": "@/components/ui",
+    "lib": "@/lib",
+    "styles": "@/styles"
+  }
+}

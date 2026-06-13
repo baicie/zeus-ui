@@ -1,14 +1,14 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
+import type { DOMContext } from '@zeus-web/zeus-compat'
 import {
   createContext,
   defineElement,
   event,
   Host,
-  inject,
   prop,
-  provide,
   Slot,
 } from '@zeus-js/zeus'
+import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export type RadioGroupOrientation = 'horizontal' | 'vertical'
 export type RadioGroupSize = 'sm' | 'md' | 'lg'
@@ -49,7 +49,8 @@ interface RadioGroupContextValue {
   getSize: () => RadioGroupSize
 }
 
-const RadioGroupContext = createContext<RadioGroupContextValue>()
+const RadioGroupContext =
+  createContext<RadioGroupContextValue>() as DOMContext<RadioGroupContextValue>
 
 let radioGroupId = 0
 
@@ -86,7 +87,13 @@ function setupRadioGroup(
     getSize: () => props.size || 'md',
   }
 
-  provide(RadioGroupContext, context)
+  /**
+   * Web Component children are independent custom elements.
+   *
+   * Owner-tree provide/inject does not cross from <zw-radio-group> into
+   * <zw-radio-group-item>. Use the DOM bridge instead.
+   */
+  provideDOMContext(ctx.host, RadioGroupContext, context)
 
   return (
     <Host
@@ -172,17 +179,41 @@ interface RadioGroupItemEmits extends Record<string, EventDefinition<unknown>> {
   focusChange: EventDefinition<RadioGroupItemFocusChangeDetail>
 }
 
+function createFallbackRadioGroupContext(
+  _props: RadioGroupItemProps,
+): RadioGroupContextValue {
+  const fallbackName = createRadioName()
+  let value: string | undefined
+
+  return {
+    getName: () => fallbackName,
+    getValue: () => value,
+    setValue: nextValue => {
+      value = nextValue
+    },
+    isDisabled: () => false,
+    isRequired: () => false,
+    isInvalid: () => false,
+    getSize: () => 'md',
+  }
+}
+
 function setupRadioGroupItem(
   props: RadioGroupItemProps,
   ctx: DefineElementContext<RadioGroupItemElement, RadioGroupItemEmits>,
 ) {
-  const group = inject(RadioGroupContext)
+  const result = resolveDOMContext(ctx.host, RadioGroupContext)
+
+  const group = result.found
+    ? result.value!
+    : createFallbackRadioGroupContext(props)
+
   let control!: HTMLInputElement
 
   const isChecked = () =>
-    Boolean(props.value && group?.getValue() === props.value)
+    Boolean(props.value && group.getValue() === props.value)
 
-  const isDisabled = () => Boolean(props.disabled || group?.isDisabled())
+  const isDisabled = () => Boolean(props.disabled || group.isDisabled())
 
   ctx.expose({
     focus(): void {
@@ -209,15 +240,15 @@ function setupRadioGroupItem(
           data-slot="radio-group-control"
           prop:type={() => 'radio'}
           prop:checked={() => isChecked()}
-          name={() => group?.getName()}
+          name={() => group.getName()}
           value={() => props.value}
           disabled={() => isDisabled()}
-          required={() => Boolean(group?.isRequired())}
+          required={() => Boolean(group.isRequired())}
           aria-checked={() => String(isChecked())}
-          aria-invalid={() => (group?.isInvalid() ? 'true' : undefined)}
+          aria-invalid={() => (group.isInvalid() ? 'true' : undefined)}
           onChange={nativeEvent => {
             if (props.value && !isDisabled()) {
-              group?.setValue(props.value, nativeEvent)
+              group.setValue(props.value, nativeEvent)
             }
           }}
           onFocus={nativeEvent => {

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "components": {
+    "cn": {
+      "files": ["src/lib/cn.ts"],
+      "dependencies": [],
+      "registryDependencies": [],
+      "updatedAt": "showcase-registry-sync"
+    },
+    "globals": {
+      "files": ["src/styles/zeus.css"],
+      "dependencies": [],
+      "registryDependencies": [],
+      "updatedAt": "showcase-registry-sync"
+    },
+    "button": {
+      "files": ["src/components/ui/button.vue"],
+      "dependencies": ["@zeus-web/button"],
+      "registryDependencies": ["cn", "globals"],
+      "updatedAt": "showcase-registry-sync"
+    },
+    "input": {
+      "files": ["src/components/ui/input.vue"],
+      "dependencies": ["@zeus-web/input"],
+      "registryDependencies": ["cn", "globals"],
+      "updatedAt": "showcase-registry-sync"
+    }
+  }
+}

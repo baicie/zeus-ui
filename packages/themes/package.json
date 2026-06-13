@@ -21,20 +21,20 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./tokens.css": "./src/tokens.css",
-    "./default.css": "./src/default.css",
-    "./slate.css": "./src/slate.css",
-    "./zinc.css": "./src/zinc.css",
-    "./neutral.css": "./src/neutral.css",
-    "./stone.css": "./src/stone.css"
+    "./tokens.css": "./dist/tokens.css",
+    "./default.css": "./dist/default.css",
+    "./slate.css": "./dist/slate.css",
+    "./zinc.css": "./dist/zinc.css",
+    "./neutral.css": "./dist/neutral.css",
+    "./stone.css": "./dist/stone.css",
+    "./components.css": "./dist/components.css"
   },
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "scripts": {
     "dev": "tsup src/index.ts --format esm --dts --clean --watch",
-    "build": "tsup src/index.ts --format esm --dts --clean",
+    "build": "tsup src/index.ts --format esm --dts --clean && tsx scripts/copy-css.ts",
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "vitest --root ../.. --project unit packages/themes/__tests__/themes.spec.ts"
   }

@@ -13,7 +13,7 @@ const source = readFileSync(
   'utf-8',
 )
 const primitiveBuildConfig = readFileSync(
-  resolve(workspaceRoot, 'scripts/rolldown/createPrimitiveRolldownConfig.mjs'),
+  resolve(workspaceRoot, 'scripts/rolldown/createPrimitiveRolldownConfig.ts'),
   'utf-8',
 )
 

@@ -68,7 +68,7 @@ Use these rules when generating examples with icons. For decorative icons, use `
 
 ## Alias aware
 
-When `components.json` exists, `zweb ai` should use your configured aliases so AI-generated imports match your project.
+When `zeus-ui.json` exists, `zweb ai` should use your configured aliases so AI-generated imports match your project.
 
 Example:
 

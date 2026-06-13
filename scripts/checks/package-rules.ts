@@ -223,7 +223,7 @@ function validatePrimitiveRolldownConfig(
 }
 
 function hasCreatePrimitiveRolldownConfigImport(config: string): boolean {
-  return /import\s*\{\s*createPrimitiveRolldownConfig\s*\}\s*from\s*['"](?:\.\/|(?:\.\.\/)+)scripts\/rolldown\/createPrimitiveRolldownConfig\.mjs['"]/.test(
+  return /import\s*\{\s*createPrimitiveRolldownConfig\s*\}\s*from\s*['"](?:\.\/|(?:\.\.\/)+)scripts\/rolldown\/createPrimitiveRolldownConfig(?:\.mjs|\.ts)['"]/.test(
     config,
   )
 }

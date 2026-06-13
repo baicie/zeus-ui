@@ -6,23 +6,25 @@ Styled badge component built on the zw-badge primitive.
 
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/badge</span>
-  <span class="zw-badge">zweb add badge</span>
+  <span class="zw-badge">primitive-only</span>
   <span class="zw-badge">Generated</span>
 </div>
 
-## Add
+## Install
+
+This component does not have a registry template yet.
+
+Install the primitive package instead:
 
 ```bash
-zweb add badge
+pnpm add @zeus-web/badge
 ```
 
 ## Imports
 
-Styled component:
+Styled registry component:
 
-```tsx
-import { Badge } from '@/components/ui/badge'
-```
+Not available yet.
 
 Primitive React wrapper:
 
@@ -69,19 +71,11 @@ Internal selectors:
 
 ## Registry
 
-Type: `registry:ui`
+Registry source: not available yet.
 
-Dependencies:
+The `badge` primitive is available through `@zeus-web/badge`, but it is not currently installable through `zweb add badge`.
 
-- `@zeus-web/badge`
-- `class-variance-authority`
-- `clsx`
-- `tailwind-merge`
-
-Files:
-
-- `default/lib/utils.ts` → `lib/utils.ts` (`registry:lib`)
-- `default/badge.tsx` → `components/ui/badge.tsx` (`registry:ui`)
+Use the primitive package directly until a registry template is added.
 
 ## AI usage rules
 

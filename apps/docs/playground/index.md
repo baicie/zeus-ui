@@ -11,7 +11,9 @@ It validates:
 4. Theme and density controls in a docs environment.
 ```
 
+<ClientOnly>
 <ZeusPlayground />
+</ClientOnly>
 
 ## Notes
 

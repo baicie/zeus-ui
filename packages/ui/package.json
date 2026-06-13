@@ -1,0 +1,56 @@
+{
+  "name": "@zeus-web/ui",
+  "type": "module",
+  "version": "0.0.0",
+  "description": "Styled native Web Component entrypoints for Zeus Web.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baicie/zeus-ui.git",
+    "directory": "packages/ui"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "sideEffects": [
+    "./dist/index.css",
+    "./dist/**/*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./button": {
+      "types": "./dist/button.d.ts",
+      "import": "./dist/button.js"
+    },
+    "./button.css": "./dist/button.css",
+    "./input": {
+      "types": "./dist/input.d.ts",
+      "import": "./dist/input.js"
+    },
+    "./input.css": "./dist/input.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsup src/button.ts src/input.ts --format esm --dts --clean --no-treeshake --watch",
+    "build": "tsup src/button.ts src/input.ts --format esm --dts --clean --no-treeshake && tsx scripts/copy-css.ts",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest --root ../.. --project unit packages/ui/__tests__/ui-package.spec.ts"
+  },
+  "dependencies": {
+    "@zeus-web/button": "workspace:*",
+    "@zeus-web/input": "workspace:*",
+    "@zeus-web/themes": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  }
+}

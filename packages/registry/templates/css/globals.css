@@ -1,0 +1,51 @@
+:root {
+  --zeus-background: 0 0% 100%;
+  --zeus-foreground: 240 10% 3.9%;
+
+  --zeus-primary: 240 5.9% 10%;
+  --zeus-primary-foreground: 0 0% 98%;
+
+  --zeus-secondary: 240 4.8% 95.9%;
+  --zeus-secondary-foreground: 240 5.9% 10%;
+
+  --zeus-muted: 240 4.8% 95.9%;
+  --zeus-muted-foreground: 240 3.8% 46.1%;
+
+  --zeus-accent: 240 4.8% 95.9%;
+  --zeus-accent-foreground: 240 5.9% 10%;
+
+  --zeus-destructive: 0 84.2% 60.2%;
+  --zeus-destructive-foreground: 0 0% 98%;
+
+  --zeus-border: 240 5.9% 90%;
+  --zeus-input: 240 5.9% 90%;
+  --zeus-ring: 240 5.9% 10%;
+
+  --zeus-radius-sm: 0.25rem;
+  --zeus-radius-md: 0.375rem;
+  --zeus-radius-lg: 0.5rem;
+}
+
+.dark {
+  --zeus-background: 240 10% 3.9%;
+  --zeus-foreground: 0 0% 98%;
+
+  --zeus-primary: 0 0% 98%;
+  --zeus-primary-foreground: 240 5.9% 10%;
+
+  --zeus-secondary: 240 3.7% 15.9%;
+  --zeus-secondary-foreground: 0 0% 98%;
+
+  --zeus-muted: 240 3.7% 15.9%;
+  --zeus-muted-foreground: 240 5% 64.9%;
+
+  --zeus-accent: 240 3.7% 15.9%;
+  --zeus-accent-foreground: 0 0% 98%;
+
+  --zeus-destructive: 0 62.8% 30.6%;
+  --zeus-destructive-foreground: 0 0% 98%;
+
+  --zeus-border: 240 3.7% 15.9%;
+  --zeus-input: 240 3.7% 15.9%;
+  --zeus-ring: 240 4.9% 83.9%;
+}

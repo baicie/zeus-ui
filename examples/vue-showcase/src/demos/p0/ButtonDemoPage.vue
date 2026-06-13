@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Button } from '@zeus-web/button/vue'
+import Button from '@/components/ui/button.vue'
 
 import DemoGrid from '../../app/demo/DemoGrid.vue'
 import DemoPage from '../../app/demo/DemoPage.vue'
@@ -31,7 +31,7 @@ const variants = [
   >
     <template #meta>
       <span class="showcase-badge">button</span>
-      <span class="showcase-badge">@zeus-web/button/vue</span>
+      <span class="showcase-badge">@/components/ui/button.vue</span>
     </template>
 
     <DemoSection title="Basic" description="Default button usage.">

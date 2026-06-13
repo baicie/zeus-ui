@@ -1,4 +1,4 @@
-import { checkComponentCoverage } from '../check-component-coverage'
+import { checkComponentCoverage } from '../registry/check-component-coverage'
 
 describe('component coverage contract', () => {
   it('keeps registry, primitives, and AI metadata aligned', () => {
@@ -8,28 +8,7 @@ describe('component coverage contract', () => {
     expect(result.valid).toBe(true)
 
     expect(result.registryNames).toEqual(
-      expect.arrayContaining([
-        'button',
-        'input',
-        'checkbox',
-        'switch',
-        'tabs',
-        'dialog',
-        'label',
-        'textarea',
-        'radio-group',
-        'select',
-        'card',
-        'badge',
-        'separator',
-        'skeleton',
-        'alert',
-        'collapsible',
-        'accordion',
-        'tooltip',
-        'progress',
-        'avatar',
-      ]),
+      expect.arrayContaining(['button', 'input']),
     )
 
     expect(result.aiNames).toEqual(expect.arrayContaining(result.registryNames))

@@ -1,11 +1,5 @@
 import type { ZeusWebAiMetadata } from './types'
 
-const sharedDependencies = [
-  'class-variance-authority',
-  'clsx',
-  'tailwind-merge',
-]
-
 export const aiMetadata: ZeusWebAiMetadata = {
   schemaVersion: 1,
   packageName: '@zeus-web/ai',
@@ -14,11 +8,11 @@ export const aiMetadata: ZeusWebAiMetadata = {
   cliPackage: '@zeus-web/cli',
   themes: ['default', 'slate', 'zinc', 'neutral', 'stone'],
   recommendedWorkflow: [
-    'Run `zweb init` before adding styled components.',
-    'Run `zweb add <component>` to copy shadcn-like styled source into the user project.',
+    'Run `zweb init` before adding registry-backed styled components.',
+    'Run `zweb add button input` to copy currently available registry source into the user project.',
     'Import styled components from the copied local path, usually `@/components/ui/<component>`.',
-    'Do not import `@zeus-web/react` directly in generated app code unless the user explicitly wants the aggregate wrapper package.',
-    'Prefer per-component packages such as `@zeus-web/button/react` inside registry source.',
+    'Use `@zeus-web/ui` for package-owned styled native Web Components.',
+    'Use per-component packages such as `@zeus-web/button/react` when building advanced primitive-based design systems.',
   ],
   icons: {
     packageName: '@zeus-web/icons',
@@ -72,11 +66,11 @@ export const aiMetadata: ZeusWebAiMetadata = {
   },
   globalRules: {
     do: [
-      'Use Zeus Web registry components for app-level UI code.',
-      'Use Tailwind semantic tokens such as bg-background, text-foreground, border-input, ring-ring, bg-primary and text-primary-foreground.',
-      'Respect components.json aliases when generating local imports.',
-      'Use `zweb add` to add components instead of manually copying package internals.',
-      'Use `zweb init --style <theme>` to set up theme CSS.',
+      'Use Zeus Web registry components for app-level React and Vue code when a registry template exists.',
+      'Use --zeus-* semantic variables inside registry-installed source components.',
+      'Respect zeus-ui.json aliases when generating local imports.',
+      'Use `zweb add button input` for currently available registry components.',
+      'Use `zweb init --style <theme>` to set up registry CSS variables.',
     ],
     dont: [
       'Do not hand-write Web Component registration code.',
@@ -92,13 +86,12 @@ export const aiMetadata: ZeusWebAiMetadata = {
       description: 'Styled button component built on the zw-button primitive.',
       primitivePackage: '@zeus-web/button',
       registryCommand: 'zweb add button',
-      installCommand:
-        'pnpm add @zeus-web/button class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/button',
       reactImport: "import { Button } from '@zeus-web/button/react'",
       webComponentImport: "import '@zeus-web/button/wc'",
       styledImport: "import { Button } from '@/components/ui/button'",
       sourceTarget: 'components/ui/button.tsx',
-      dependencies: ['@zeus-web/button', ...sharedDependencies],
+      dependencies: ['@zeus-web/button'],
       props: [
         {
           name: 'variant',
@@ -206,13 +199,12 @@ export const aiMetadata: ZeusWebAiMetadata = {
         'Styled text input component built on the zw-input primitive.',
       primitivePackage: '@zeus-web/input',
       registryCommand: 'zweb add input',
-      installCommand:
-        'pnpm add @zeus-web/input class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/input',
       reactImport: "import { Input } from '@zeus-web/input/react'",
       webComponentImport: "import '@zeus-web/input/wc'",
       styledImport: "import { Input } from '@/components/ui/input'",
       sourceTarget: 'components/ui/input.tsx',
-      dependencies: ['@zeus-web/input', ...sharedDependencies],
+      dependencies: ['@zeus-web/input'],
       props: [
         {
           name: 'value',
@@ -330,13 +322,12 @@ export const aiMetadata: ZeusWebAiMetadata = {
         'Styled checkbox component built on the zw-checkbox primitive.',
       primitivePackage: '@zeus-web/checkbox',
       registryCommand: 'zweb add checkbox',
-      installCommand:
-        'pnpm add @zeus-web/checkbox class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/checkbox',
       reactImport: "import { Checkbox } from '@zeus-web/checkbox/react'",
       webComponentImport: "import '@zeus-web/checkbox/wc'",
       styledImport: "import { Checkbox } from '@/components/ui/checkbox'",
       sourceTarget: 'components/ui/checkbox.tsx',
-      dependencies: ['@zeus-web/checkbox', ...sharedDependencies],
+      dependencies: ['@zeus-web/checkbox'],
       props: [
         {
           name: 'checked',
@@ -442,13 +433,12 @@ export const aiMetadata: ZeusWebAiMetadata = {
       description: 'Styled switch component built on the zw-switch primitive.',
       primitivePackage: '@zeus-web/switch',
       registryCommand: 'zweb add switch',
-      installCommand:
-        'pnpm add @zeus-web/switch class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/switch',
       reactImport: "import { Switch } from '@zeus-web/switch/react'",
       webComponentImport: "import '@zeus-web/switch/wc'",
       styledImport: "import { Switch } from '@/components/ui/switch'",
       sourceTarget: 'components/ui/switch.tsx',
-      dependencies: ['@zeus-web/switch', ...sharedDependencies],
+      dependencies: ['@zeus-web/switch'],
       props: [
         {
           name: 'checked',
@@ -535,15 +525,14 @@ export const aiMetadata: ZeusWebAiMetadata = {
       description: 'Styled tabs component family built on zw-tabs primitives.',
       primitivePackage: '@zeus-web/tabs',
       registryCommand: 'zweb add tabs',
-      installCommand:
-        'pnpm add @zeus-web/tabs class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/tabs',
       reactImport:
         "import { Tabs, TabsList, TabsTrigger, TabsContent } from '@zeus-web/tabs/react'",
       webComponentImport: "import '@zeus-web/tabs/wc'",
       styledImport:
         "import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'",
       sourceTarget: 'components/ui/tabs.tsx',
-      dependencies: ['@zeus-web/tabs', ...sharedDependencies],
+      dependencies: ['@zeus-web/tabs'],
       props: [
         {
           name: 'value',
@@ -629,15 +618,14 @@ export const aiMetadata: ZeusWebAiMetadata = {
         'Styled dialog component family built on zw-dialog primitives.',
       primitivePackage: '@zeus-web/dialog',
       registryCommand: 'zweb add dialog',
-      installCommand:
-        'pnpm add @zeus-web/dialog class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/dialog',
       reactImport:
         "import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription, DialogClose } from '@zeus-web/dialog/react'",
       webComponentImport: "import '@zeus-web/dialog/wc'",
       styledImport:
         "import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog'",
       sourceTarget: 'components/ui/dialog.tsx',
-      dependencies: ['@zeus-web/dialog', ...sharedDependencies],
+      dependencies: ['@zeus-web/dialog'],
       props: [
         {
           name: 'open',
@@ -721,13 +709,12 @@ export const aiMetadata: ZeusWebAiMetadata = {
       description: 'Styled label component built on the zw-label primitive.',
       primitivePackage: '@zeus-web/label',
       registryCommand: 'zweb add label',
-      installCommand:
-        'pnpm add @zeus-web/label class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/label',
       reactImport: "import { Label } from '@zeus-web/label/react'",
       webComponentImport: "import '@zeus-web/label/wc'",
       styledImport: "import { Label } from '@/components/ui/label'",
       sourceTarget: 'components/ui/label.tsx',
-      dependencies: ['@zeus-web/label', ...sharedDependencies],
+      dependencies: ['@zeus-web/label'],
       props: [
         {
           name: 'for',
@@ -786,13 +773,12 @@ export const aiMetadata: ZeusWebAiMetadata = {
         'Styled textarea component built on the zw-textarea primitive.',
       primitivePackage: '@zeus-web/textarea',
       registryCommand: 'zweb add textarea',
-      installCommand:
-        'pnpm add @zeus-web/textarea class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/textarea',
       reactImport: "import { Textarea } from '@zeus-web/textarea/react'",
       webComponentImport: "import '@zeus-web/textarea/wc'",
       styledImport: "import { Textarea } from '@/components/ui/textarea'",
       sourceTarget: 'components/ui/textarea.tsx',
-      dependencies: ['@zeus-web/textarea', ...sharedDependencies],
+      dependencies: ['@zeus-web/textarea'],
       props: [
         {
           name: 'value',
@@ -877,15 +863,14 @@ export const aiMetadata: ZeusWebAiMetadata = {
         'Styled radio group component built on zw-radio-group primitives.',
       primitivePackage: '@zeus-web/radio-group',
       registryCommand: 'zweb add radio-group',
-      installCommand:
-        'pnpm add @zeus-web/radio-group class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/radio-group',
       reactImport:
         "import { RadioGroup, RadioGroupItem } from '@zeus-web/radio-group/react'",
       webComponentImport: "import '@zeus-web/radio-group/wc'",
       styledImport:
         "import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'",
       sourceTarget: 'components/ui/radio-group.tsx',
-      dependencies: ['@zeus-web/radio-group', ...sharedDependencies],
+      dependencies: ['@zeus-web/radio-group'],
       props: [
         {
           name: 'value',
@@ -963,13 +948,12 @@ export const aiMetadata: ZeusWebAiMetadata = {
         'Styled native select component built on the zw-select primitive.',
       primitivePackage: '@zeus-web/select',
       registryCommand: 'zweb add select',
-      installCommand:
-        'pnpm add @zeus-web/select class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/select',
       reactImport: "import { Select } from '@zeus-web/select/react'",
       webComponentImport: "import '@zeus-web/select/wc'",
       styledImport: "import { Select } from '@/components/ui/select'",
       sourceTarget: 'components/ui/select.tsx',
-      dependencies: ['@zeus-web/select', ...sharedDependencies],
+      dependencies: ['@zeus-web/select'],
       props: [
         {
           name: 'value',
@@ -1038,15 +1022,14 @@ export const aiMetadata: ZeusWebAiMetadata = {
       description: 'Styled card component family built on zw-card primitives.',
       primitivePackage: '@zeus-web/card',
       registryCommand: 'zweb add card',
-      installCommand:
-        'pnpm add @zeus-web/card class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/card',
       reactImport:
         "import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@zeus-web/card/react'",
       webComponentImport: "import '@zeus-web/card/wc'",
       styledImport:
         "import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'",
       sourceTarget: 'components/ui/card.tsx',
-      dependencies: ['@zeus-web/card', ...sharedDependencies],
+      dependencies: ['@zeus-web/card'],
       props: [],
       events: [],
       slots: [{ name: 'default', description: 'Card child components.' }],
@@ -1098,13 +1081,12 @@ export const aiMetadata: ZeusWebAiMetadata = {
       description: 'Styled badge component built on the zw-badge primitive.',
       primitivePackage: '@zeus-web/badge',
       registryCommand: 'zweb add badge',
-      installCommand:
-        'pnpm add @zeus-web/badge class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/badge',
       reactImport: "import { Badge } from '@zeus-web/badge/react'",
       webComponentImport: "import '@zeus-web/badge/wc'",
       styledImport: "import { Badge } from '@/components/ui/badge'",
       sourceTarget: 'components/ui/badge.tsx',
-      dependencies: ['@zeus-web/badge', ...sharedDependencies],
+      dependencies: ['@zeus-web/badge'],
       props: [
         {
           name: 'variant',
@@ -1158,13 +1140,12 @@ export const aiMetadata: ZeusWebAiMetadata = {
         'Styled separator component built on the zw-separator primitive.',
       primitivePackage: '@zeus-web/separator',
       registryCommand: 'zweb add separator',
-      installCommand:
-        'pnpm add @zeus-web/separator class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/separator',
       reactImport: "import { Separator } from '@zeus-web/separator/react'",
       webComponentImport: "import '@zeus-web/separator/wc'",
       styledImport: "import { Separator } from '@/components/ui/separator'",
       sourceTarget: 'components/ui/separator.tsx',
-      dependencies: ['@zeus-web/separator', ...sharedDependencies],
+      dependencies: ['@zeus-web/separator'],
       props: [
         {
           name: 'orientation',
@@ -1204,13 +1185,12 @@ export const aiMetadata: ZeusWebAiMetadata = {
         'Styled skeleton component built on the zw-skeleton primitive.',
       primitivePackage: '@zeus-web/skeleton',
       registryCommand: 'zweb add skeleton',
-      installCommand:
-        'pnpm add @zeus-web/skeleton class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/skeleton',
       reactImport: "import { Skeleton } from '@zeus-web/skeleton/react'",
       webComponentImport: "import '@zeus-web/skeleton/wc'",
       styledImport: "import { Skeleton } from '@/components/ui/skeleton'",
       sourceTarget: 'components/ui/skeleton.tsx',
-      dependencies: ['@zeus-web/skeleton', ...sharedDependencies],
+      dependencies: ['@zeus-web/skeleton'],
       props: [
         {
           name: 'variant',
@@ -1256,15 +1236,14 @@ export const aiMetadata: ZeusWebAiMetadata = {
         'Styled alert component family built on zw-alert primitives.',
       primitivePackage: '@zeus-web/alert',
       registryCommand: 'zweb add alert',
-      installCommand:
-        'pnpm add @zeus-web/alert class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/alert',
       reactImport:
         "import { Alert, AlertTitle, AlertDescription } from '@zeus-web/alert/react'",
       webComponentImport: "import '@zeus-web/alert/wc'",
       styledImport:
         "import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'",
       sourceTarget: 'components/ui/alert.tsx',
-      dependencies: ['@zeus-web/alert', ...sharedDependencies],
+      dependencies: ['@zeus-web/alert'],
       props: [
         {
           name: 'variant',
@@ -1325,15 +1304,14 @@ export const aiMetadata: ZeusWebAiMetadata = {
         'Styled collapsible component family built on zw-collapsible primitives.',
       primitivePackage: '@zeus-web/collapsible',
       registryCommand: 'zweb add collapsible',
-      installCommand:
-        'pnpm add @zeus-web/collapsible class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/collapsible',
       reactImport:
         "import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@zeus-web/collapsible/react'",
       webComponentImport: "import '@zeus-web/collapsible/wc'",
       styledImport:
         "import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'",
       sourceTarget: 'components/ui/collapsible.tsx',
-      dependencies: ['@zeus-web/collapsible', ...sharedDependencies],
+      dependencies: ['@zeus-web/collapsible'],
       props: [
         {
           name: 'open',
@@ -1403,15 +1381,14 @@ export const aiMetadata: ZeusWebAiMetadata = {
         'Styled accordion component family built on zw-accordion primitives.',
       primitivePackage: '@zeus-web/accordion',
       registryCommand: 'zweb add accordion',
-      installCommand:
-        'pnpm add @zeus-web/accordion class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/accordion',
       reactImport:
         "import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@zeus-web/accordion/react'",
       webComponentImport: "import '@zeus-web/accordion/wc'",
       styledImport:
         "import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'",
       sourceTarget: 'components/ui/accordion.tsx',
-      dependencies: ['@zeus-web/accordion', ...sharedDependencies],
+      dependencies: ['@zeus-web/accordion'],
       props: [
         {
           name: 'type',
@@ -1490,15 +1467,14 @@ export const aiMetadata: ZeusWebAiMetadata = {
         'Styled tooltip component family built on zw-tooltip primitives.',
       primitivePackage: '@zeus-web/tooltip',
       registryCommand: 'zweb add tooltip',
-      installCommand:
-        'pnpm add @zeus-web/tooltip class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/tooltip',
       reactImport:
         "import { Tooltip, TooltipContent, TooltipTrigger } from '@zeus-web/tooltip/react'",
       webComponentImport: "import '@zeus-web/tooltip/wc'",
       styledImport:
         "import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'",
       sourceTarget: 'components/ui/tooltip.tsx',
-      dependencies: ['@zeus-web/tooltip', ...sharedDependencies],
+      dependencies: ['@zeus-web/tooltip'],
       props: [
         {
           name: 'open',
@@ -1568,13 +1544,12 @@ export const aiMetadata: ZeusWebAiMetadata = {
         'Styled progress component built on the zw-progress primitive.',
       primitivePackage: '@zeus-web/progress',
       registryCommand: 'zweb add progress',
-      installCommand:
-        'pnpm add @zeus-web/progress class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/progress',
       reactImport: "import { Progress } from '@zeus-web/progress/react'",
       webComponentImport: "import '@zeus-web/progress/wc'",
       styledImport: "import { Progress } from '@/components/ui/progress'",
       sourceTarget: 'components/ui/progress.tsx',
-      dependencies: ['@zeus-web/progress', ...sharedDependencies],
+      dependencies: ['@zeus-web/progress'],
       props: [
         {
           name: 'value',
@@ -1631,15 +1606,14 @@ export const aiMetadata: ZeusWebAiMetadata = {
         'Styled avatar component family built on zw-avatar primitives.',
       primitivePackage: '@zeus-web/avatar',
       registryCommand: 'zweb add avatar',
-      installCommand:
-        'pnpm add @zeus-web/avatar class-variance-authority clsx tailwind-merge',
+      installCommand: 'pnpm add @zeus-web/avatar',
       reactImport:
         "import { Avatar, AvatarFallback, AvatarImage } from '@zeus-web/avatar/react'",
       webComponentImport: "import '@zeus-web/avatar/wc'",
       styledImport:
         "import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'",
       sourceTarget: 'components/ui/avatar.tsx',
-      dependencies: ['@zeus-web/avatar', ...sharedDependencies],
+      dependencies: ['@zeus-web/avatar'],
       props: [
         {
           name: 'size',

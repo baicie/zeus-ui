@@ -18,7 +18,7 @@ zweb add input
 
 ## Imports
 
-Styled component:
+Styled registry component:
 
 ```tsx
 import { Input } from '@/components/ui/input'
@@ -81,19 +81,25 @@ Internal selectors:
 
 ## Registry
 
-Type: `registry:ui`
+Registry source: available.
+
+Add command: `zweb add input`
+
+Type: `component`
 
 Dependencies:
 
 - `@zeus-web/input`
-- `class-variance-authority`
-- `clsx`
-- `tailwind-merge`
+
+Registry dependencies:
+
+- `cn`
+- `globals`
 
 Files:
 
-- `default/lib/utils.ts` → `lib/utils.ts` (`registry:lib`)
-- `default/input.tsx` → `components/ui/input.tsx` (`registry:ui`)
+- `templates/react/input.tsx` → `components/ui/input.tsx`
+- `templates/vue/input.vue` → `components/ui/input.vue`
 
 ## AI usage rules
 

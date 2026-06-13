@@ -1,17 +1,17 @@
 import type {
   Registry,
+  RegistryFile,
+  RegistryFramework,
   RegistryItem,
-  RegistryItemFile,
 } from '@zeus-web/registry'
 import type { ComponentsConfig } from '../config'
 import type { PackageManager } from '../package-manager'
 
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { createRequire } from 'node:module'
-import { dirname, isAbsolute, relative, resolve } from 'node:path'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { dirname, isAbsolute, resolve } from 'node:path'
 
-import { validateRegistry } from '@zeus-web/registry'
+import { findRegistryItem, validateRegistry } from '@zeus-web/registry'
 import pc from 'picocolors'
 
 import {
@@ -19,43 +19,20 @@ import {
   resolveRegistryTarget,
   toRelativeProjectPath,
 } from '../config'
-import { updateComponentsLockFromPlans } from '../lock'
+import { hashString, updateComponentsLockFromPlans } from '../lock'
 import {
   createInstallCommands,
   formatInstallCommands,
   installDependencies,
 } from '../package-manager'
+import { readRegistryAsset } from '../registry-assets'
 
-export interface RegistryFilePlan {
-  source: string
-  target: string
-  resolvedTarget?: string
-  type: 'registry:ui' | 'registry:lib' | 'registry:style'
-}
-
-export interface AddPlan {
-  component: string
-  dependencies: string[]
-  devDependencies: string[]
-  files: RegistryFilePlan[]
-}
-
-export interface AddOptions {
+interface AddOptions {
   cwd: string
   dryRun: boolean
   overwrite: boolean
   install: boolean
-  all: boolean
-  yes: boolean
   packageManager?: PackageManager
-}
-
-export interface AddExecutionResult {
-  planned: string[]
-  written: string[]
-  skipped: string[]
-  dependencies: string[]
-  devDependencies: string[]
 }
 
 interface ParsedAddArgs {
@@ -63,152 +40,28 @@ interface ParsedAddArgs {
   options: AddOptions
 }
 
-type CopyResult = 'planned' | 'written' | 'skipped'
-
-const require = createRequire(import.meta.url)
-
-export function resolveRegistryJsonPath(): string {
-  return require.resolve('@zeus-web/registry/registry.json')
+interface RegistryFilePlan {
+  source: string
+  target: string
+  absoluteTarget: string
+  component: string
+  framework: RegistryFramework
+  action: 'create' | 'overwrite' | 'skip'
 }
 
-export function resolveRegistryRoot(): string {
-  return dirname(resolveRegistryJsonPath())
-}
-
-function createInvalidRegistryError(errors: string[]): Error {
-  return new Error(
-    [
-      'Invalid @zeus-web/registry/registry.json:',
-      ...errors.map(error => `- ${error}`),
-    ].join('\n'),
-  )
-}
-
-function assertValidRegistry(registry: Registry): void {
-  const result = validateRegistry(registry)
-
-  if (!result.valid) {
-    throw createInvalidRegistryError(result.errors)
-  }
-}
-
-export function loadRegistry(): Registry {
-  const registry = require('@zeus-web/registry/registry.json') as Registry
-
-  assertValidRegistry(registry)
-
-  return registry
-}
-
-function toFilePlan(file: RegistryItemFile): RegistryFilePlan {
-  return {
-    source: file.path,
-    target: file.target,
-    type: file.type,
-  }
-}
-
-function toAddPlan(item: RegistryItem): AddPlan {
-  return {
-    component: item.name,
-    dependencies: item.dependencies ?? [],
-    devDependencies: item.devDependencies ?? [],
-    files: item.files.map(toFilePlan),
-  }
-}
-
-function findRegistryItem(registry: Registry, component: string): RegistryItem {
-  const item = registry.items.find(entry => entry.name === component)
-
-  if (!item) {
-    throw new Error(`Unknown component: ${component}`)
-  }
-
-  return item
-}
-
-function uniqueSorted(values: string[]): string[] {
-  return Array.from(new Set(values)).sort()
-}
-
-function dedupePlans(plans: AddPlan[]): AddPlan[] {
-  return plans.map(plan => {
-    const files = new Map<string, RegistryFilePlan>()
-
-    for (const file of plan.files) {
-      files.set(file.target, file)
-    }
-
-    return {
-      ...plan,
-      dependencies: uniqueSorted(plan.dependencies),
-      devDependencies: uniqueSorted(plan.devDependencies),
-      files: Array.from(files.values()),
-    }
-  })
-}
-
-export function listAvailableComponents(registry = loadRegistry()): string[] {
-  assertValidRegistry(registry)
-
-  return registry.items
-    .filter(item => item.type === 'registry:ui')
-    .map(item => item.name)
-}
-
-export function createAddPlan(
-  components: string[],
-  registry = loadRegistry(),
-): AddPlan[] {
-  assertValidRegistry(registry)
-
-  const plans = components.map(component => {
-    const item = findRegistryItem(registry, component)
-
-    return toAddPlan(item)
-  })
-
-  return dedupePlans(plans)
-}
-
-export function resolveAddPlanTargets(
-  plans: AddPlan[],
-  cwd: string,
-  config: ComponentsConfig,
-): AddPlan[] {
-  return plans.map(plan => ({
-    ...plan,
-    files: plan.files.map(file => ({
-      ...file,
-      resolvedTarget: resolveRegistryTarget(cwd, config, file.target),
-    })),
-  }))
-}
-
-export function createCombinedInstallPlan(plans: AddPlan[]): {
+export interface AddPlan {
+  component: string
   dependencies: string[]
-  devDependencies: string[]
-} {
-  return {
-    dependencies: uniqueSorted(plans.flatMap(plan => plan.dependencies)),
-    devDependencies: uniqueSorted(plans.flatMap(plan => plan.devDependencies)),
-  }
+  registryDependencies: string[]
+  files: RegistryFilePlan[]
 }
 
-function normalizeImportAlias(alias: string): string {
-  return alias.replace(/\/$/, '')
+interface AddResult {
+  written: string[]
+  skipped: string[]
 }
 
-export function rewriteRegistrySource(
-  source: string,
-  config: ComponentsConfig,
-): string {
-  const libAlias = normalizeImportAlias(config.aliases.lib)
-
-  return source.replace(/@\/lib\/utils/g, `${libAlias}/utils`)
-}
-
-function parsePackageManagerValue(value: string): PackageManager {
+function parsePackageManager(value: string): PackageManager {
   if (
     value === 'pnpm' ||
     value === 'npm' ||
@@ -230,26 +83,15 @@ export function parseAddArgs(
     cwd,
     dryRun: false,
     overwrite: false,
-    install: true,
-    all: false,
-    yes: false,
+    install: false,
   }
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index]
 
-    if (arg === '--all') {
-      options.all = true
-      continue
-    }
-
-    if (arg === '--yes' || arg === '-y') {
-      options.yes = true
-      continue
-    }
-
     if (arg === '--dry-run') {
       options.dryRun = true
+      options.install = false
       continue
     }
 
@@ -258,18 +100,19 @@ export function parseAddArgs(
       continue
     }
 
-    if (arg === '--no-install' || arg === '--skip-deps') {
+    if (arg === '--install') {
+      options.install = true
+      continue
+    }
+
+    if (arg === '--no-install') {
       options.install = false
       continue
     }
 
     if (arg === '--cwd') {
       const value = args[index + 1]
-
-      if (!value) {
-        throw new Error('--cwd requires a directory path')
-      }
-
+      if (!value) throw new Error('--cwd requires a directory path')
       options.cwd = isAbsolute(value) ? value : resolve(cwd, value)
       index += 1
       continue
@@ -277,31 +120,23 @@ export function parseAddArgs(
 
     if (arg.startsWith('--cwd=')) {
       const value = arg.slice('--cwd='.length)
-
-      if (!value) {
-        throw new Error('--cwd requires a directory path')
-      }
-
+      if (!value) throw new Error('--cwd requires a directory path')
       options.cwd = isAbsolute(value) ? value : resolve(cwd, value)
       continue
     }
 
     if (arg === '--package-manager') {
       const value = args[index + 1]
-
-      if (!value) {
-        throw new Error('--package-manager requires a value')
-      }
-
-      options.packageManager = parsePackageManagerValue(value)
+      if (!value) throw new Error('--package-manager requires a value')
+      options.packageManager = parsePackageManager(value)
       index += 1
       continue
     }
 
     if (arg.startsWith('--package-manager=')) {
-      options.packageManager = parsePackageManagerValue(
-        arg.slice('--package-manager='.length),
-      )
+      const value = arg.slice('--package-manager='.length)
+      if (!value) throw new Error('--package-manager requires a value')
+      options.packageManager = parsePackageManager(value)
       continue
     }
 
@@ -318,229 +153,474 @@ export function parseAddArgs(
   }
 }
 
-function assertSafeTarget(cwd: string, target: string): string {
-  const absoluteTarget = resolve(cwd, target)
-  const relativeTarget = relative(cwd, absoluteTarget).replace(/\\/g, '/')
-
-  if (
-    relativeTarget === '..' ||
-    relativeTarget.startsWith('../') ||
-    isAbsolute(relativeTarget)
-  ) {
-    throw new Error(`Refusing to write outside cwd: ${target}`)
-  }
-
-  return absoluteTarget
+export function loadRegistry(): Registry {
+  const source = readRegistryAsset('registry.json')
+  return JSON.parse(source) as Registry
 }
 
-async function copyRegistryFile(params: {
-  registryRoot: string
-  cwd: string
-  file: RegistryFilePlan
-  config: ComponentsConfig
-  dryRun: boolean
-  overwrite: boolean
-}): Promise<CopyResult> {
-  const sourcePath = resolve(params.registryRoot, params.file.source)
-  const rawTarget = params.file.resolvedTarget ?? params.file.target
-  const targetPath = assertSafeTarget(params.cwd, rawTarget)
+function assertValidRegistry(registry: Registry): void {
+  const result = validateRegistry(registry)
 
-  if (!existsSync(sourcePath)) {
+  if (!result.valid) {
+    throw new Error(`Invalid registry:\n${result.errors.join('\n')}`)
+  }
+}
+
+function getComponentItems(registry: Registry): RegistryItem[] {
+  return registry.items.filter(item => item.type === 'component')
+}
+
+export function listAvailableComponents(registry = loadRegistry()): string[] {
+  assertValidRegistry(registry)
+
+  return getComponentItems(registry).map(item => item.name)
+}
+
+function assertComponentExists(registry: Registry, name: string): RegistryItem {
+  const item = findRegistryItem(registry, name)
+
+  if (!item) {
+    const available = listAvailableComponents(registry).join(', ')
     throw new Error(
-      `Registry source file does not exist: ${params.file.source}`,
+      `Unknown component "${name}". Available components: ${available}`,
     )
   }
 
-  if (existsSync(targetPath) && !params.overwrite) {
+  return item
+}
+
+function collectRegistryItems(params: {
+  registry: Registry
+  name: string
+  collected: Map<string, RegistryItem>
+  visiting: string[]
+}): void {
+  const { registry, name, collected, visiting } = params
+
+  if (collected.has(name)) return
+
+  if (visiting.includes(name)) {
+    throw new Error(
+      `Circular registry dependency: ${[...visiting, name].join(' -> ')}`,
+    )
+  }
+
+  const item = assertComponentExistsOrRegistryDependency(registry, name)
+
+  for (const dependency of item.registryDependencies) {
+    collectRegistryItems({
+      registry,
+      name: dependency,
+      collected,
+      visiting: [...visiting, name],
+    })
+  }
+
+  collected.set(item.name, item)
+}
+
+function assertComponentExistsOrRegistryDependency(
+  registry: Registry,
+  name: string,
+): RegistryItem {
+  const item = findRegistryItem(registry, name)
+
+  if (!item) {
+    const available = registry.items.map(entry => entry.name).join(', ')
+    throw new Error(
+      `Unknown registry item "${name}". Available items: ${available}`,
+    )
+  }
+
+  return item
+}
+
+function shouldIncludeFileForFramework(
+  file: RegistryFile,
+  framework: ComponentsConfig['framework'],
+): boolean {
+  return file.framework === 'shared' || file.framework === framework
+}
+
+function normalizeImportAlias(alias: string): string {
+  if (alias.endsWith('/')) return alias.slice(0, -1)
+  return alias
+}
+
+export function rewriteRegistrySource(
+  source: string,
+  config: ComponentsConfig,
+): string {
+  const libAlias = normalizeImportAlias(config.aliases.lib)
+  const uiAlias = normalizeImportAlias(config.aliases.ui)
+  const stylesAlias = normalizeImportAlias(config.aliases.styles)
+
+  return source
+    .replace(/@\/lib\/cn/g, `${libAlias}/cn`)
+    .replace(/@\/lib\/utils/g, `${libAlias}/utils`)
+    .replace(/@\/components\/ui/g, uiAlias)
+    .replace(/@\/styles/g, stylesAlias)
+}
+
+function createFilePlan(params: {
+  cwd: string
+  config: ComponentsConfig
+  item: RegistryItem
+  file: RegistryFile
+  overwrite: boolean
+}): RegistryFilePlan {
+  const absoluteTarget = resolveRegistryTarget(
+    params.cwd,
+    params.config,
+    params.file.target,
+  )
+
+  const exists = existsSync(absoluteTarget)
+
+  return {
+    source: params.file.source,
+    target: toRelativeProjectPath(params.cwd, absoluteTarget),
+    absoluteTarget,
+    component: params.item.name,
+    framework: params.file.framework,
+    action: exists ? (params.overwrite ? 'overwrite' : 'skip') : 'create',
+  }
+}
+
+function toAddPlan(params: {
+  cwd: string
+  config: ComponentsConfig
+  item: RegistryItem
+  overwrite: boolean
+}): AddPlan {
+  return {
+    component: params.item.name,
+    dependencies: [...params.item.dependencies],
+    registryDependencies: [...params.item.registryDependencies],
+    files: params.item.files
+      .filter(file =>
+        shouldIncludeFileForFramework(file, params.config.framework),
+      )
+      .map(file =>
+        createFilePlan({
+          cwd: params.cwd,
+          config: params.config,
+          item: params.item,
+          file,
+          overwrite: params.overwrite,
+        }),
+      ),
+  }
+}
+
+function dedupePlans(plans: AddPlan[]): AddPlan[] {
+  const byComponent = new Map<string, AddPlan>()
+
+  for (const plan of plans) {
+    const existing = byComponent.get(plan.component)
+
+    if (!existing) {
+      byComponent.set(plan.component, plan)
+      continue
+    }
+
+    byComponent.set(plan.component, {
+      component: plan.component,
+      dependencies: Array.from(
+        new Set([...existing.dependencies, ...plan.dependencies]),
+      ),
+      registryDependencies: Array.from(
+        new Set([
+          ...existing.registryDependencies,
+          ...plan.registryDependencies,
+        ]),
+      ),
+      files: dedupeFilePlans([...existing.files, ...plan.files]),
+    })
+  }
+
+  return Array.from(byComponent.values())
+}
+
+function dedupeFilePlans(files: RegistryFilePlan[]): RegistryFilePlan[] {
+  const byTarget = new Map<string, RegistryFilePlan>()
+
+  for (const file of files) {
+    byTarget.set(file.target, file)
+  }
+
+  return Array.from(byTarget.values())
+}
+
+export function resolveAddPlanTargets(params: {
+  plans: AddPlan[]
+  cwd: string
+  config: ComponentsConfig
+}): AddPlan[] {
+  return params.plans.map(plan => ({
+    ...plan,
+    files: plan.files.map(file => ({
+      ...file,
+      absoluteTarget: resolveRegistryTarget(
+        params.cwd,
+        params.config,
+        file.target,
+      ),
+    })),
+  }))
+}
+
+export function createAddPlan(params: {
+  components: string[]
+  registry?: Registry
+  cwd?: string
+  config?: ComponentsConfig
+  overwrite?: boolean
+}): AddPlan[] {
+  const registry = params.registry ?? loadRegistry()
+  assertValidRegistry(registry)
+
+  if (params.components.length === 0) {
+    throw new Error(
+      `No components provided. Available components: ${listAvailableComponents(registry).join(', ')}`,
+    )
+  }
+
+  const cwd = params.cwd ?? process.cwd()
+  const config = params.config ?? readComponentsConfig(cwd)
+  const overwrite = params.overwrite ?? false
+
+  const collected = new Map<string, RegistryItem>()
+
+  for (const component of params.components) {
+    const item = assertComponentExists(registry, component)
+
+    if (item.type !== 'component') {
+      throw new Error(`"${component}" is not a component registry item`)
+    }
+
+    collectRegistryItems({
+      registry,
+      name: component,
+      collected,
+      visiting: [],
+    })
+  }
+
+  return dedupePlans(
+    Array.from(collected.values()).map(item =>
+      toAddPlan({
+        cwd,
+        config,
+        item,
+        overwrite,
+      }),
+    ),
+  )
+}
+
+function flattenDependencies(plans: AddPlan[]): string[] {
+  const dependencies = new Set<string>()
+
+  for (const plan of plans) {
+    for (const dependency of plan.dependencies) {
+      dependencies.add(dependency)
+    }
+  }
+
+  return Array.from(dependencies)
+}
+
+function flattenFiles(plans: AddPlan[]): RegistryFilePlan[] {
+  return dedupeFilePlans(plans.flatMap(plan => plan.files))
+}
+
+function printAddPlan(params: {
+  plans: AddPlan[]
+  dependencies: string[]
+  options: AddOptions
+}): void {
+  console.log(pc.bold('Add plan:'))
+
+  for (const file of flattenFiles(params.plans)) {
+    const action =
+      file.action === 'create'
+        ? pc.green('CREATE')
+        : file.action === 'overwrite'
+          ? pc.yellow('OVERWRITE')
+          : pc.gray('SKIP')
+
+    console.log(`  ${action} ${file.target}`)
+  }
+
+  if (params.dependencies.length > 0) {
+    console.log(pc.bold('Dependencies:'))
+    for (const dependency of params.dependencies) {
+      console.log(`  ${dependency}`)
+    }
+
+    const commands = createInstallCommands({
+      cwd: params.options.cwd,
+      packageManager: params.options.packageManager,
+      dependencies: params.dependencies,
+    })
+
+    console.log(pc.bold('Install command:'))
+    for (const command of formatInstallCommands(commands)) {
+      console.log(`  ${command}`)
+    }
+  }
+}
+
+async function writeFilePlan(params: {
+  config: ComponentsConfig
+  file: RegistryFilePlan
+  overwrite: boolean
+}): Promise<'written' | 'skipped'> {
+  if (existsSync(params.file.absoluteTarget) && !params.overwrite) {
     return 'skipped'
   }
 
-  if (params.dryRun) {
-    return 'planned'
-  }
+  const raw = readRegistryAsset(params.file.source)
+  const source = rewriteRegistrySource(raw, params.config)
 
-  await mkdir(dirname(targetPath), { recursive: true })
+  await mkdir(dirname(params.file.absoluteTarget), {
+    recursive: true,
+  })
 
-  const source = await readFile(sourcePath, 'utf-8')
-  const nextSource = rewriteRegistrySource(source, params.config)
-
-  await writeFile(targetPath, nextSource, 'utf-8')
+  await writeFile(params.file.absoluteTarget, source, 'utf-8')
 
   return 'written'
 }
 
-export async function executeAddPlan(
-  plans: AddPlan[],
-  options: AddOptions,
-  registryRoot = resolveRegistryRoot(),
-): Promise<AddExecutionResult> {
-  const config = readComponentsConfig(options.cwd)
-  const resolvedPlans = resolveAddPlanTargets(plans, options.cwd, config)
-
-  const planned: string[] = []
+async function writePlans(params: {
+  config: ComponentsConfig
+  plans: AddPlan[]
+  overwrite: boolean
+}): Promise<AddResult> {
   const written: string[] = []
   const skipped: string[] = []
-  const seenTargets = new Set<string>()
 
-  for (const plan of resolvedPlans) {
-    for (const file of plan.files) {
-      const targetPath = file.resolvedTarget ?? file.target
-      const displayTarget = toRelativeProjectPath(options.cwd, targetPath)
-
-      if (seenTargets.has(targetPath)) {
-        continue
-      }
-
-      seenTargets.add(targetPath)
-
-      const result = await copyRegistryFile({
-        registryRoot,
-        cwd: options.cwd,
-        file,
-        config,
-        dryRun: options.dryRun,
-        overwrite: options.overwrite,
-      })
-
-      if (result === 'planned') {
-        planned.push(displayTarget)
-      } else if (result === 'written') {
-        written.push(displayTarget)
-      } else {
-        skipped.push(displayTarget)
-      }
-    }
-  }
-
-  const installPlan = createCombinedInstallPlan(plans)
-
-  return {
-    planned,
-    written,
-    skipped,
-    dependencies: installPlan.dependencies,
-    devDependencies: installPlan.devDependencies,
-  }
-}
-
-function printPlan(plans: AddPlan[], options: AddOptions): void {
-  for (const plan of plans) {
-    console.log(pc.green(`Add ${plan.component}`))
-
-    if (plan.dependencies.length > 0) {
-      console.log(`Dependencies: ${plan.dependencies.join(', ')}`)
-    }
-
-    if (plan.devDependencies.length > 0) {
-      console.log(`Dev dependencies: ${plan.devDependencies.join(', ')}`)
-    }
-
-    console.log('Files:')
-
-    for (const file of plan.files) {
-      console.log(`  ${file.source} -> ${file.target}`)
-    }
-  }
-
-  if (options.dryRun) {
-    console.log(pc.gray('Dry run enabled. No files will be written.'))
-  }
-
-  if (!options.overwrite) {
-    console.log(
-      pc.gray(
-        'Existing files will be skipped. Use --overwrite to replace them.',
-      ),
-    )
-  }
-}
-
-function printResult(result: AddExecutionResult, options: AddOptions): void {
-  if (result.planned.length > 0) {
-    console.log(pc.cyan('Planned files:'))
-
-    for (const file of result.planned) {
-      console.log(`  ${file}`)
-    }
-  }
-
-  if (result.written.length > 0) {
-    console.log(pc.green('Written files:'))
-
-    for (const file of result.written) {
-      console.log(`  ${file}`)
-    }
-  }
-
-  if (result.skipped.length > 0) {
-    console.log(pc.yellow('Skipped existing files:'))
-
-    for (const file of result.skipped) {
-      console.log(`  ${file}`)
-    }
-  }
-
-  if (!options.install || options.dryRun) {
-    const commands = createInstallCommands({
-      cwd: options.cwd,
-      packageManager: options.packageManager,
-      dependencies: result.dependencies,
-      devDependencies: result.devDependencies,
+  for (const file of flattenFiles(params.plans)) {
+    const result = await writeFilePlan({
+      config: params.config,
+      file,
+      overwrite: params.overwrite,
     })
 
-    if (commands.length > 0) {
-      console.log('')
-      console.log(pc.bold('Install dependencies:'))
+    if (result === 'written') written.push(file.target)
+    else skipped.push(file.target)
+  }
 
-      for (const command of formatInstallCommands(commands)) {
-        console.log(`  ${command}`)
-      }
-    }
+  return {
+    written,
+    skipped,
+  }
+}
+
+function createRegistryHashes(params: {
+  config: ComponentsConfig
+  plans: AddPlan[]
+}): Record<string, string> {
+  const hashes: Record<string, string> = {}
+
+  for (const file of flattenFiles(params.plans)) {
+    const raw = readRegistryAsset(file.source)
+    const source = rewriteRegistrySource(raw, params.config)
+    hashes[file.target] = hashString(source)
+  }
+
+  return hashes
+}
+
+async function updateLock(params: {
+  cwd: string
+  plans: AddPlan[]
+  writtenTargets: string[]
+  config: ComponentsConfig
+}): Promise<void> {
+  await updateComponentsLockFromPlans({
+    cwd: params.cwd,
+    plans: params.plans,
+    writtenTargets: params.writtenTargets,
+    registryHashes: createRegistryHashes({
+      config: params.config,
+      plans: params.plans,
+    }),
+  })
+}
+
+function printWriteResult(result: AddResult): void {
+  for (const file of result.written) {
+    console.log(pc.green(`Created ${file}`))
+  }
+
+  for (const file of result.skipped) {
+    console.log(
+      pc.yellow(`Skipped existing ${file}. Use --overwrite to replace it.`),
+    )
   }
 }
 
 export async function add(args: string[]) {
   try {
-    const { components, options } = parseAddArgs(args)
+    const parsed = parseAddArgs(args)
+    const config = readComponentsConfig(parsed.options.cwd)
     const registry = loadRegistry()
-    const finalComponents = options.all
-      ? listAvailableComponents(registry)
-      : components
 
-    if (finalComponents.length === 0) {
-      console.error(pc.red('Please provide at least one component.'))
-      console.log(
-        `Example: zweb add ${listAvailableComponents(registry).join(' ')}`,
-      )
-      process.exit(1)
+    const plans = createAddPlan({
+      components: parsed.components,
+      registry,
+      cwd: parsed.options.cwd,
+      config,
+      overwrite: parsed.options.overwrite,
+    })
+
+    const dependencies = flattenDependencies(plans)
+
+    if (parsed.options.dryRun) {
+      printAddPlan({
+        plans,
+        dependencies,
+        options: parsed.options,
+      })
+      return
     }
 
-    const plans = createAddPlan(finalComponents, registry)
+    const result = await writePlans({
+      config,
+      plans,
+      overwrite: parsed.options.overwrite,
+    })
 
-    printPlan(plans, options)
+    printWriteResult(result)
 
-    const result = await executeAddPlan(plans, options)
+    await updateLock({
+      cwd: parsed.options.cwd,
+      plans,
+      writtenTargets: result.written,
+      config,
+    })
 
-    printResult(result, options)
+    if (dependencies.length > 0) {
+      if (parsed.options.install) {
+        await installDependencies({
+          cwd: parsed.options.cwd,
+          packageManager: parsed.options.packageManager,
+          dependencies,
+        })
+      } else {
+        const commands = createInstallCommands({
+          cwd: parsed.options.cwd,
+          packageManager: parsed.options.packageManager,
+          dependencies,
+        })
 
-    if (!options.dryRun) {
-      const config = readComponentsConfig(options.cwd)
-      const resolvedPlans = resolveAddPlanTargets(plans, options.cwd, config)
-
-      await updateComponentsLockFromPlans({
-        cwd: options.cwd,
-        plans: resolvedPlans,
-        writtenTargets: result.written,
-      })
-    }
-
-    if (options.install && !options.dryRun) {
-      await installDependencies({
-        cwd: options.cwd,
-        packageManager: options.packageManager,
-        dependencies: result.dependencies,
-        devDependencies: result.devDependencies,
-      })
+        console.log(pc.bold('Install dependencies:'))
+        for (const command of formatInstallCommands(commands)) {
+          console.log(`  ${command}`)
+        }
+      }
     }
   } catch (error) {
     console.error(pc.red((error as Error).message))

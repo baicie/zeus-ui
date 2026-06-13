@@ -34,6 +34,8 @@
   --zw-foreground: var(--foreground);
   --zw-primary: var(--primary);
   --zw-primary-foreground: var(--primary-foreground);
+  --zw-destructive: var(--destructive);
+  --zw-destructive-foreground: var(--destructive-foreground);
   --zw-border: var(--border);
   --zw-input: var(--input);
   --zw-ring: var(--ring);
@@ -74,6 +76,8 @@
   --zw-foreground: var(--foreground);
   --zw-primary: var(--primary);
   --zw-primary-foreground: var(--primary-foreground);
+  --zw-destructive: var(--destructive);
+  --zw-destructive-foreground: var(--destructive-foreground);
   --zw-border: var(--border);
   --zw-input: var(--input);
   --zw-ring: var(--ring);

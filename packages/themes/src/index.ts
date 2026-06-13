@@ -19,6 +19,7 @@ export const themeCssImports: Record<ThemeName, string> = {
 
 export const themeCssExports = {
   tokens: '@zeus-web/themes/tokens.css',
+  components: '@zeus-web/themes/components.css',
   ...themeCssImports,
 } as const
 

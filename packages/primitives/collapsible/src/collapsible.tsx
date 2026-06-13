@@ -1,14 +1,14 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
+import type { DOMContext } from '@zeus-web/zeus-compat'
 import {
   createContext,
   defineElement,
   event,
   Host,
-  inject,
   prop,
-  provide,
   Slot,
 } from '@zeus-js/zeus'
+import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export interface CollapsibleProps {
   open?: boolean
@@ -39,7 +39,8 @@ interface CollapsibleContextValue {
   getContentId: () => string
 }
 
-const CollapsibleContext = createContext<CollapsibleContextValue>()
+const CollapsibleContext =
+  createContext<CollapsibleContextValue>() as DOMContext<CollapsibleContextValue>
 
 let collapsibleId = 0
 
@@ -71,7 +72,7 @@ function setupCollapsible(
     getContentId: () => contentId,
   }
 
-  provide(CollapsibleContext, context)
+  provideDOMContext(ctx.host, CollapsibleContext, context)
 
   ctx.expose({
     show(): void {
@@ -126,7 +127,9 @@ function setupCollapsibleTrigger(
   props: CollapsibleTriggerProps,
   ctx: DefineElementContext<CollapsibleTriggerElement>,
 ) {
-  const collapsible = inject(CollapsibleContext)
+  const result = resolveDOMContext(ctx.host, CollapsibleContext)
+  const collapsible = result.found ? result.value : undefined
+
   let control!: HTMLButtonElement
   const isDisabled = () => Boolean(props.disabled || collapsible?.isDisabled())
   ctx.expose({
@@ -179,9 +182,15 @@ export interface CollapsibleContentProps {
 }
 export interface CollapsibleContentElement extends HTMLElement {}
 
-function setupCollapsibleContent(props: CollapsibleContentProps) {
-  const collapsible = inject(CollapsibleContext)
+function setupCollapsibleContent(
+  props: CollapsibleContentProps,
+  ctx: DefineElementContext<CollapsibleContentElement>,
+) {
+  const result = resolveDOMContext(ctx.host, CollapsibleContext)
+  const collapsible = result.found ? result.value : undefined
+
   const isOpen = () => Boolean(collapsible?.getOpen())
+
   return (
     <Host
       id={() => collapsible?.getContentId()}

@@ -35,8 +35,8 @@ describe('vue showcase router', () => {
     const wrapper = await renderRoute('/components/button')
 
     expect(wrapper.text()).toContain('Button')
-    expect(wrapper.text()).toContain('@zeus-web/button')
-    expect(wrapper.text()).toContain('@zeus-web/button/vue')
+    expect(wrapper.text()).toContain('@/components/ui/button')
+    expect(wrapper.text()).toContain('@/components/ui/button.vue')
   })
 
   it('renders icons and themes routes', async () => {
@@ -58,7 +58,7 @@ describe('vue showcase router', () => {
     await buttonLink!.trigger('click')
     await flushPromises()
 
-    expect(wrapper.text()).toContain('@zeus-web/button')
+    expect(wrapper.text()).toContain('@/components/ui/button')
   })
 
   it('searches component from topbar using enter', async () => {
@@ -70,6 +70,6 @@ describe('vue showcase router', () => {
     await input.trigger('keydown.enter')
     await flushPromises()
 
-    expect(wrapper.text()).toContain('@zeus-web/input')
+    expect(wrapper.text()).toContain('@/components/ui/input')
   })
 })

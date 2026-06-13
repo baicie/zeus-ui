@@ -18,14 +18,15 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./metadata.json": "./dist/metadata.json"
   },
   "files": [
     "dist"
   ],
   "scripts": {
     "dev": "tsup src/index.ts --format esm --dts --clean --watch",
-    "build": "tsup src/index.ts --format esm --dts --clean",
+    "build": "tsup src/index.ts --format esm --dts --clean && tsx scripts/gen-metadata.ts",
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "vitest --root ../.. --project unit packages/ai/__tests__/ai.spec.ts"
   }

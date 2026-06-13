@@ -6,23 +6,25 @@ Styled radio group component built on zw-radio-group primitives.
 
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/radio-group</span>
-  <span class="zw-badge">zweb add radio-group</span>
+  <span class="zw-badge">primitive-only</span>
   <span class="zw-badge">Generated</span>
 </div>
 
-## Add
+## Install
+
+This component does not have a registry template yet.
+
+Install the primitive package instead:
 
 ```bash
-zweb add radio-group
+pnpm add @zeus-web/radio-group
 ```
 
 ## Imports
 
-Styled component:
+Styled registry component:
 
-```tsx
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-```
+Not available yet.
 
 Primitive React wrapper:
 
@@ -74,19 +76,11 @@ Internal selectors:
 
 ## Registry
 
-Type: `registry:ui`
+Registry source: not available yet.
 
-Dependencies:
+The `radio-group` primitive is available through `@zeus-web/radio-group`, but it is not currently installable through `zweb add radio-group`.
 
-- `@zeus-web/radio-group`
-- `class-variance-authority`
-- `clsx`
-- `tailwind-merge`
-
-Files:
-
-- `default/lib/utils.ts` → `lib/utils.ts` (`registry:lib`)
-- `default/radio-group.tsx` → `components/ui/radio-group.tsx` (`registry:ui`)
+Use the primitive package directly until a registry template is added.
 
 ## AI usage rules
 

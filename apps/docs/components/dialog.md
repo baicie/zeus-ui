@@ -6,30 +6,25 @@ Styled dialog component family built on zw-dialog primitives.
 
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/dialog</span>
-  <span class="zw-badge">zweb add dialog</span>
+  <span class="zw-badge">primitive-only</span>
   <span class="zw-badge">Generated</span>
 </div>
 
-## Add
+## Install
+
+This component does not have a registry template yet.
+
+Install the primitive package instead:
 
 ```bash
-zweb add dialog
+pnpm add @zeus-web/dialog
 ```
 
 ## Imports
 
-Styled component:
+Styled registry component:
 
-```tsx
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-  DialogClose,
-} from '@/components/ui/dialog'
-```
+Not available yet.
 
 Primitive React wrapper:
 
@@ -88,19 +83,11 @@ Internal selectors:
 
 ## Registry
 
-Type: `registry:ui`
+Registry source: not available yet.
 
-Dependencies:
+The `dialog` primitive is available through `@zeus-web/dialog`, but it is not currently installable through `zweb add dialog`.
 
-- `@zeus-web/dialog`
-- `class-variance-authority`
-- `clsx`
-- `tailwind-merge`
-
-Files:
-
-- `default/lib/utils.ts` → `lib/utils.ts` (`registry:lib`)
-- `default/dialog.tsx` → `components/ui/dialog.tsx` (`registry:ui`)
+Use the primitive package directly until a registry template is added.
 
 ## AI usage rules
 

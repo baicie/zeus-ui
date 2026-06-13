@@ -172,7 +172,8 @@ export function createShowcaseThemeSnippet(
 ): string {
   switch (kind) {
     case 'css':
-      return `import '${themeCssImports[options.themeName]}'`
+      return `import '${themeCssImports[options.themeName]}'
+import '@zeus-web/themes/components.css'`
 
     case 'html':
       return `<section

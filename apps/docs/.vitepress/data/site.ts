@@ -23,6 +23,10 @@ export const guideItems: DocsNavItem[] = [
     link: '/guide/getting-started',
   },
   {
+    text: 'Usage Modes',
+    link: '/guide/usage-modes',
+  },
+  {
     text: 'CLI',
     link: '/guide/cli',
   },

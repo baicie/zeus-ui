@@ -18,7 +18,7 @@ zweb add button
 
 ## Imports
 
-Styled component:
+Styled registry component:
 
 ```tsx
 import { Button } from '@/components/ui/button'
@@ -79,19 +79,25 @@ Internal selectors:
 
 ## Registry
 
-Type: `registry:ui`
+Registry source: available.
+
+Add command: `zweb add button`
+
+Type: `component`
 
 Dependencies:
 
 - `@zeus-web/button`
-- `class-variance-authority`
-- `clsx`
-- `tailwind-merge`
+
+Registry dependencies:
+
+- `cn`
+- `globals`
 
 Files:
 
-- `default/lib/utils.ts` → `lib/utils.ts` (`registry:lib`)
-- `default/button.tsx` → `components/ui/button.tsx` (`registry:ui`)
+- `templates/react/button.tsx` → `components/ui/button.tsx`
+- `templates/vue/button.vue` → `components/ui/button.vue`
 
 ## AI usage rules
 

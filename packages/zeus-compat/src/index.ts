@@ -6,6 +6,9 @@ export {
 
 export type { ZeusCapabilities, ZeusCompatRequirement } from './capabilities'
 
+export { provideDOMContext, resolveDOMContext } from '@zeus-js/runtime-dom'
+export type { Context as DOMContext } from '@zeus-js/runtime-dom'
+
 export {
   For,
   Host,

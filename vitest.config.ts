@@ -76,6 +76,8 @@ export default defineConfig({
             '**/e2e/**',
             // zeus-compat imports DOM runtime APIs and runs in jsdom.
             'packages/zeus-compat/**',
+            // radio-group WC tests require jsdom, run in unit-jsdom instead.
+            'packages/primitives/radio-group/__tests__/**',
           ],
         },
       },
@@ -194,7 +196,50 @@ export default defineConfig({
                 `packages/primitives/${pkg.replace('@zeus-web/', '')}/dist/vue/index.js`,
               ),
             })),
-            // Then workspace aliases required by local packages.
+            // Showcase demo pages import from @/components/ui/* which are synced registry files.
+            {
+              find: /^@\/components\/ui\/button$/,
+              replacement: resolve(
+                process.cwd(),
+                'examples/react-showcase/src/components/ui/button.tsx',
+              ),
+            },
+            {
+              find: /^@\/components\/ui\/input$/,
+              replacement: resolve(
+                process.cwd(),
+                'examples/react-showcase/src/components/ui/input.tsx',
+              ),
+            },
+            {
+              find: /^@\/lib\/cn$/,
+              replacement: resolve(
+                process.cwd(),
+                'examples/react-showcase/src/lib/cn.ts',
+              ),
+            },
+            // Vue showcase demo pages import from @/components/ui/*.
+            {
+              find: /^@\/components\/ui\/button\.vue$/,
+              replacement: resolve(
+                process.cwd(),
+                'examples/vue-showcase/src/components/ui/button.vue',
+              ),
+            },
+            {
+              find: /^@\/components\/ui\/input\.vue$/,
+              replacement: resolve(
+                process.cwd(),
+                'examples/vue-showcase/src/components/ui/input.vue',
+              ),
+            },
+            {
+              find: /^@\/lib\/cn$/,
+              replacement: resolve(
+                process.cwd(),
+                'examples/vue-showcase/src/lib/cn.ts',
+              ),
+            },
             ...Object.entries(entries).map(([find, replacement]) => ({
               find,
               replacement,

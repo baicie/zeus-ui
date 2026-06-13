@@ -8,20 +8,22 @@ import { describe, expect, it } from 'vitest'
 import { parseInitArgs } from '../src/commands/init'
 import {
   createDefaultComponentsConfig,
+  ensureCnUtil,
   ensureThemeCss,
+  getComponentsConfigPath,
   readComponentsConfig,
   updateComponentsConfig,
 } from '../src/config'
+import { detectProject } from '../src/project'
 
 async function createTempDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), 'zeus-web-cli-'))
 }
 
-function writeComponentsJson(root: string): void {
-  mkdirSync(resolve(root, 'src/styles'), { recursive: true })
+function writePackageJson(root: string, dependencies: Record<string, string>) {
   writeFileSync(
-    resolve(root, 'components.json'),
-    `${JSON.stringify(createDefaultComponentsConfig(), null, 2)}\n`,
+    resolve(root, 'package.json'),
+    `${JSON.stringify({ dependencies }, null, 2)}\n`,
     'utf-8',
   )
 }
@@ -32,12 +34,14 @@ describe('@zeus-web/cli init', () => {
       [
         '--cwd',
         'demo',
+        '--framework',
+        'vue',
         '--style',
         'slate',
         '--css',
-        'app/globals.css',
+        'app/zeus.css',
         '--overwrite',
-        '--no-install',
+        '--dry-run',
         '--package-manager',
         'npm',
       ],
@@ -46,12 +50,20 @@ describe('@zeus-web/cli init', () => {
 
     expect(parsed.options).toEqual({
       cwd: resolve('/repo', 'demo'),
+      framework: 'vue',
       style: 'slate',
-      css: 'app/globals.css',
+      css: 'app/zeus.css',
       overwrite: true,
+      dryRun: true,
       install: false,
       packageManager: 'npm',
     })
+  })
+
+  it('rejects unsupported framework', () => {
+    expect(() => parseInitArgs(['--framework', 'svelte'])).toThrow(
+      'Unsupported framework',
+    )
   })
 
   it('rejects unsupported style', () => {
@@ -60,43 +72,59 @@ describe('@zeus-web/cli init', () => {
     )
   })
 
-  it('rejects empty css option', () => {
-    expect(() => parseInitArgs(['--css='])).toThrow(
-      '--css requires a file path',
-    )
+  it('detects react projects', async () => {
+    const root = await createTempDir()
+
+    try {
+      writePackageJson(root, { react: '^19.0.0' })
+      writeFileSync(resolve(root, 'tsconfig.json'), '{}', 'utf-8')
+
+      expect(detectProject(root)).toMatchObject({
+        framework: 'react',
+        typescript: true,
+      })
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
   })
 
-  it('rejects empty style option', () => {
-    expect(() => parseInitArgs(['--style='])).toThrow(
-      '--style requires a theme name',
-    )
+  it('detects vue projects', async () => {
+    const root = await createTempDir()
+
+    try {
+      writePackageJson(root, { vue: '^3.0.0' })
+
+      expect(detectProject(root)).toMatchObject({
+        framework: 'vue',
+      })
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
   })
 
-  it('parses init theme options', () => {
-    const parsed = parseInitArgs([
-      '--style',
-      'slate',
-      '--radius',
-      'lg',
-      '--motion',
-      'reduced',
-      '--dark-mode',
-      'data',
-      '--accent',
-      '220 90% 56%',
-      '--no-install',
-    ])
-    expect(parsed.options.style).toBe('slate')
-    expect(parsed.options.radius).toBe('lg')
-    expect(parsed.options.motion).toBe('reduced')
-    expect(parsed.options.darkMode).toBe('data')
-    expect(parsed.options.accentColor).toBe('220 90% 56%')
-    expect(parsed.options.install).toBe(false)
+  it('asks for explicit framework when both React and Vue exist', async () => {
+    const root = await createTempDir()
+
+    try {
+      writePackageJson(root, {
+        react: '^19.0.0',
+        vue: '^3.0.0',
+      })
+
+      expect(() => detectProject(root)).toThrow(
+        'Both React and Vue dependencies were detected',
+      )
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
   })
 
-  it('creates default config with theme config', () => {
+  it('creates default zeus-ui config', () => {
     const config = createDefaultComponentsConfig({
+      framework: 'vue',
       style: 'zinc',
+      typescript: true,
+      srcDir: 'src',
       theme: {
         radius: 'xl',
         motion: 'expressive',
@@ -104,7 +132,14 @@ describe('@zeus-web/cli init', () => {
         accentColor: '240 5.9% 10%',
       },
     })
+
+    expect(config.$schema).toBe('https://zeus-web.dev/schema/zeus-ui.json')
+    expect(config.framework).toBe('vue')
     expect(config.style).toBe('zinc')
+    expect(config.typescript).toBe(true)
+    expect(config.srcDir).toBe('src')
+    expect(config.tailwind.css).toBe('src/styles/zeus.css')
+    expect(config.aliases.ui).toBe('@/components/ui')
     expect(config.theme).toEqual({
       radius: 'xl',
       motion: 'expressive',
@@ -113,8 +148,9 @@ describe('@zeus-web/cli init', () => {
     })
   })
 
-  it('writes managed theme override block', async () => {
+  it('writes managed registry globals and theme override block', async () => {
     const root = await createTempDir()
+
     try {
       const config = createDefaultComponentsConfig({
         style: 'slate',
@@ -125,175 +161,237 @@ describe('@zeus-web/cli init', () => {
           accentColor: '220 90% 56%',
         },
       })
+
       const result = await ensureThemeCss({
         cwd: root,
         config,
         overwrite: false,
       })
-      const css = readFileSync(resolve(root, 'src/styles/globals.css'), 'utf-8')
+
+      const css = readFileSync(resolve(root, 'src/styles/zeus.css'), 'utf-8')
+
       expect(result).toBe('created')
-      expect(css).toContain("@import '@zeus-web/themes/slate.css';")
+      expect(css).toContain('/* zeus-web registry globals:start */')
+      expect(css).toContain(':root {')
+      expect(css).toContain('--zeus-destructive: 0 84.2% 60.2%;')
+      expect(css).toContain('.dark {')
       expect(css).toContain('/* zeus-web theme overrides:start */')
-      expect(css).toContain('--radius: 0.75rem;')
-      expect(css).toContain('--zw-duration-normal: 120ms;')
-      expect(css).toContain('--primary: 220 90% 56%;')
+      expect(css).toContain('--zeus-radius-md: 0.75rem;')
+      expect(css).toContain('--zeus-primary: 220 90% 56%;')
       expect(css).toContain('--zw-theme-dark-mode: data;')
     } finally {
       await rm(root, { recursive: true, force: true })
     }
   })
 
-  it('updates existing theme import and override block', async () => {
+  it('creates cn utility from registry template', async () => {
     const root = await createTempDir()
+
     try {
-      mkdirSync(resolve(root, 'src/styles'), { recursive: true })
-      writeFileSync(
-        resolve(root, 'src/styles/globals.css'),
-        [
-          "@import '@zeus-web/themes/default.css';",
-          'body { margin: 0; }',
-          '/* zeus-web theme overrides:start */',
-          ':root {',
-          '  --radius: 0.5rem;',
-          '}',
-          '/* zeus-web theme overrides:end */',
-          '',
-        ].join('\n'),
-        'utf-8',
-      )
-      const config = createDefaultComponentsConfig({
-        style: 'stone',
-        theme: { radius: 'xl', motion: 'expressive', darkMode: 'class' },
+      mkdirSync(resolve(root, 'src/lib'), { recursive: true })
+
+      const config = createDefaultComponentsConfig()
+      const result = await ensureCnUtil({
+        cwd: root,
+        config,
+        overwrite: false,
       })
-      await ensureThemeCss({ cwd: root, config, overwrite: false })
-      const css = readFileSync(resolve(root, 'src/styles/globals.css'), 'utf-8')
-      expect(css).toContain("@import '@zeus-web/themes/stone.css';")
-      expect(css).toContain('body { margin: 0; }')
-      expect(css).toContain('--radius: 1rem;')
-      expect(css).toContain('--zw-duration-normal: 220ms;')
+
+      const cnPath = resolve(root, 'src/lib/cn.ts')
+      const cn = readFileSync(cnPath, 'utf-8')
+
+      expect(result).toBe('created')
+      expect(cn).toContain('export function cn')
+      expect(cn).toContain('ClassValue')
     } finally {
       await rm(root, { recursive: true, force: true })
     }
   })
 
-  it('updates components.json theme config', async () => {
+  it('writes zeus-ui.json and reads it back', async () => {
     const root = await createTempDir()
+
     try {
-      writeComponentsJson(root)
+      const config = createDefaultComponentsConfig({
+        framework: 'vue',
+        style: 'neutral',
+      })
+
+      writeFileSync(
+        getComponentsConfigPath(root),
+        `${JSON.stringify(config, null, 2)}\n`,
+        'utf-8',
+      )
+
+      const next = readComponentsConfig(root)
+
+      expect(next.framework).toBe('vue')
+      expect(next.style).toBe('neutral')
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('keeps legacy components.json readable', async () => {
+    const root = await createTempDir()
+
+    try {
+      const config = createDefaultComponentsConfig({
+        framework: 'react',
+        style: 'default',
+        typescript: true,
+        srcDir: 'src',
+        theme: {},
+      })
+
+      writeFileSync(
+        resolve(root, 'components.json'),
+        `${JSON.stringify(config, null, 2)}\n`,
+        'utf-8',
+      )
+
+      const next = readComponentsConfig(root)
+
+      expect(next.framework).toBe('react')
+      expect(next.style).toBe('default')
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('updates zeus-ui.json theme config', async () => {
+    const root = await createTempDir()
+
+    try {
+      const config = createDefaultComponentsConfig()
+      writeFileSync(
+        getComponentsConfigPath(root),
+        `${JSON.stringify(config, null, 2)}\n`,
+        'utf-8',
+      )
+
       await updateComponentsConfig({
         cwd: root,
-        updater: config => ({
-          ...config,
+        updater: current => ({
+          ...current,
           style: 'neutral',
           theme: {
-            ...config.theme,
+            ...current.theme,
             radius: 'sm',
             motion: 'none',
             darkMode: 'media',
           },
         }),
       })
-      const config = readComponentsConfig(root)
-      expect(config.style).toBe('neutral')
-      expect(config.theme.radius).toBe('sm')
-      expect(config.theme.motion).toBe('none')
-      expect(config.theme.darkMode).toBe('media')
+
+      const next = readComponentsConfig(root)
+
+      expect(next.style).toBe('neutral')
+      expect(next.theme.radius).toBe('sm')
+      expect(next.theme.motion).toBe('none')
+      expect(next.theme.darkMode).toBe('media')
     } finally {
       await rm(root, { recursive: true, force: true })
     }
   })
 
-  it('validates config when reading components.json', async () => {
+  it('validates zeus-ui.json when reading config', async () => {
     const root = await createTempDir()
+
     try {
-      mkdirSync(resolve(root, 'src/styles'), { recursive: true })
+      const config = createDefaultComponentsConfig()
       writeFileSync(
-        resolve(root, 'components.json'),
+        getComponentsConfigPath(root),
         JSON.stringify(
           {
-            ...createDefaultComponentsConfig(),
-            theme: {
-              radius: 'bad-radius',
-              motion: 'normal',
-              darkMode: 'class',
-            },
+            ...config,
+            framework: 'svelte',
           },
           null,
           2,
         ),
         'utf-8',
       )
+
       expect(() => readComponentsConfig(root)).toThrow(
-        'Unsupported radius preset',
+        'Only framework "react" and "vue" are supported.',
       )
     } finally {
       await rm(root, { recursive: true, force: true })
     }
   })
 
-  it('returns updated when only managed override block changes', async () => {
+  it('updates existing css without duplicating managed blocks', async () => {
     const root = await createTempDir()
+
     try {
       mkdirSync(resolve(root, 'src/styles'), { recursive: true })
       writeFileSync(
-        resolve(root, 'src/styles/globals.css'),
+        resolve(root, 'src/styles/zeus.css'),
         [
-          "@import '@zeus-web/themes/default.css';",
           'body { margin: 0; }',
           '/* zeus-web theme overrides:start */',
           ':root {',
-          '  --radius: 0.5rem;',
-          '  --zw-duration-normal: 180ms;',
+          '  --zeus-radius-md: 0.375rem;',
           '}',
           '/* zeus-web theme overrides:end */',
           '',
         ].join('\n'),
         'utf-8',
       )
+
       const config = createDefaultComponentsConfig({
-        style: 'default',
-        theme: { radius: 'lg', motion: 'normal', darkMode: 'class' },
+        theme: {
+          radius: 'xl',
+          motion: 'expressive',
+          darkMode: 'class',
+        },
       })
+
       const result = await ensureThemeCss({
         cwd: root,
         config,
         overwrite: false,
       })
-      const css = readFileSync(resolve(root, 'src/styles/globals.css'), 'utf-8')
+
+      const css = readFileSync(resolve(root, 'src/styles/zeus.css'), 'utf-8')
+
       expect(result).toBe('updated')
-      expect(css).toContain('--radius: 0.75rem;')
+      expect(css).toContain('body { margin: 0; }')
+      expect(css).toContain('/* zeus-web registry globals:start */')
+      expect(css).toContain(':root {')
+      expect(css).toContain('.dark {')
+      expect(css).toContain('--zeus-radius-md: 1rem;')
+      expect(
+        css.match(/\/\* zeus-web theme overrides:start \*\//g),
+      ).toHaveLength(1)
     } finally {
       await rm(root, { recursive: true, force: true })
     }
   })
 
-  it('does not duplicate theme import when overwrite is true', async () => {
+  it('does not overwrite cn utility by default', async () => {
     const root = await createTempDir()
+
     try {
-      mkdirSync(resolve(root, 'src/styles'), { recursive: true })
+      mkdirSync(resolve(root, 'src/lib'), { recursive: true })
       writeFileSync(
-        resolve(root, 'src/styles/globals.css'),
-        [
-          "@import '@zeus-web/themes/default.css';",
-          'body { margin: 0; }',
-          '',
-        ].join('\n'),
+        resolve(root, 'src/lib/cn.ts'),
+        'export const cn = () => "custom"\n',
         'utf-8',
       )
-      const config = createDefaultComponentsConfig({
-        style: 'zinc',
-        theme: { radius: 'md', motion: 'normal', darkMode: 'class' },
-      })
-      const result = await ensureThemeCss({
+
+      const config = createDefaultComponentsConfig()
+      const result = await ensureCnUtil({
         cwd: root,
         config,
-        overwrite: true,
+        overwrite: false,
       })
-      const css = readFileSync(resolve(root, 'src/styles/globals.css'), 'utf-8')
-      const imports = css.match(/@import '@zeus-web\/themes\/zinc\.css';/g)
-      expect(result).toBe('updated')
-      expect(imports).toHaveLength(1)
-      expect(css).not.toContain("@import '@zeus-web/themes/default.css';")
+
+      expect(result).toBe('skipped')
+      expect(readFileSync(resolve(root, 'src/lib/cn.ts'), 'utf-8')).toContain(
+        '"custom"',
+      )
     } finally {
       await rm(root, { recursive: true, force: true })
     }

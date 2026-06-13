@@ -6,23 +6,25 @@ Styled checkbox component built on the zw-checkbox primitive.
 
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/checkbox</span>
-  <span class="zw-badge">zweb add checkbox</span>
+  <span class="zw-badge">primitive-only</span>
   <span class="zw-badge">Generated</span>
 </div>
 
-## Add
+## Install
+
+This component does not have a registry template yet.
+
+Install the primitive package instead:
 
 ```bash
-zweb add checkbox
+pnpm add @zeus-web/checkbox
 ```
 
 ## Imports
 
-Styled component:
+Styled registry component:
 
-```tsx
-import { Checkbox } from '@/components/ui/checkbox'
-```
+Not available yet.
 
 Primitive React wrapper:
 
@@ -79,19 +81,11 @@ Internal selectors:
 
 ## Registry
 
-Type: `registry:ui`
+Registry source: not available yet.
 
-Dependencies:
+The `checkbox` primitive is available through `@zeus-web/checkbox`, but it is not currently installable through `zweb add checkbox`.
 
-- `@zeus-web/checkbox`
-- `class-variance-authority`
-- `clsx`
-- `tailwind-merge`
-
-Files:
-
-- `default/lib/utils.ts` → `lib/utils.ts` (`registry:lib`)
-- `default/checkbox.tsx` → `components/ui/checkbox.tsx` (`registry:ui`)
+Use the primitive package directly until a registry template is added.
 
 ## AI usage rules
 

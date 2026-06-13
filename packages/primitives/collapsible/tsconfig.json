@@ -2,7 +2,7 @@
   "extends": "../../../scripts/config/tsconfig.zeus-jsx.json",
   "compilerOptions": {
     "composite": false,
-    "rootDir": "src",
+    "rootDir": "../../",
     "outDir": "dist",
     "isolatedDeclarations": false
   },

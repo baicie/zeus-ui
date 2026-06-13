@@ -115,6 +115,7 @@ export default defineConfig(
     files: ['**/*.vue'],
     rules: {
       'style/brace-style': 'off',
+      'style/indent-binary-ops': 'off',
       'style/member-delimiter-style': 'off',
       'style/quotes': 'off',
       'vue/html-closing-bracket-newline': 'off',

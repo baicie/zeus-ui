@@ -6,28 +6,25 @@ Styled accordion component family built on zw-accordion primitives.
 
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/accordion</span>
-  <span class="zw-badge">zweb add accordion</span>
+  <span class="zw-badge">primitive-only</span>
   <span class="zw-badge">Generated</span>
 </div>
 
-## Add
+## Install
+
+This component does not have a registry template yet.
+
+Install the primitive package instead:
 
 ```bash
-zweb add accordion
+pnpm add @zeus-web/accordion
 ```
 
 ## Imports
 
-Styled component:
+Styled registry component:
 
-```tsx
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
-```
+Not available yet.
 
 Primitive React wrapper:
 
@@ -84,19 +81,11 @@ Internal selectors:
 
 ## Registry
 
-Type: `registry:ui`
+Registry source: not available yet.
 
-Dependencies:
+The `accordion` primitive is available through `@zeus-web/accordion`, but it is not currently installable through `zweb add accordion`.
 
-- `@zeus-web/accordion`
-- `class-variance-authority`
-- `clsx`
-- `tailwind-merge`
-
-Files:
-
-- `default/lib/utils.ts` → `lib/utils.ts` (`registry:lib`)
-- `default/accordion.tsx` → `components/ui/accordion.tsx` (`registry:ui`)
+Use the primitive package directly until a registry template is added.
 
 ## AI usage rules
 

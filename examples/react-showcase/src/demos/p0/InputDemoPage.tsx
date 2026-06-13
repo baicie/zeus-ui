@@ -1,6 +1,6 @@
 import { EyeIcon, SearchIcon } from '@zeus-web/icons/react'
-import { Input } from '@zeus-web/input/react'
 import { useState } from 'react'
+import { Input } from '@/components/ui/input'
 
 import { DemoGrid } from '../../app/demo/DemoGrid'
 import { DemoPage } from '../../app/demo/DemoPage'
@@ -21,7 +21,7 @@ export function InputDemoPage() {
       meta={
         <>
           <span className="showcase-badge">input</span>
-          <span className="showcase-badge">@zeus-web/input/react</span>
+          <span className="showcase-badge">@/components/ui/input</span>
         </>
       }
     >

@@ -1,0 +1,22 @@
+{
+  "name": "@zeus-web/example-native-showcase",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm build:deps && vite --host 0.0.0.0 --port 5175",
+    "build": "pnpm build:deps && vite build",
+    "build:deps": "pnpm -w exec tsx scripts/examples/build-showcase-deps.ts --force",
+    "check": "pnpm build:deps && tsc -p tsconfig.json --noEmit",
+    "test": "pnpm build:deps && vitest --run"
+  },
+  "dependencies": {
+    "@zeus-web/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8"
+  }
+}

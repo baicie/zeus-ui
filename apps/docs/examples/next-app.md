@@ -27,7 +27,7 @@ pnpm --filter @zeus-web/example-next-app check
 2. Per-component React wrapper imports such as @zeus-web/button/react.
 3. Client Component boundary with "use client".
 4. Theme import through @zeus-web/themes/default.css.
-5. components.json aliases.
+5. zeus-ui.json aliases.
 ```
 
 ## Client boundary
@@ -50,19 +50,30 @@ The example imports the default theme in `src/app/layout.tsx`.
 
 ```tsx
 import '@zeus-web/themes/default.css'
+import '@zeus-web/themes/components.css'
 import './globals.css'
 ```
 
 ## Alias config
 
-The example includes `components.json`.
+The example includes `zeus-ui.json`.
 
 ```json
 {
+  "$schema": "https://zeus-web.dev/schema/zeus-ui.json",
+  "framework": "react",
+  "style": "default",
+  "typescript": true,
+  "srcDir": "src",
+  "tailwind": {
+    "css": "src/styles/zeus.css",
+    "cssVariables": true
+  },
   "aliases": {
     "components": "@/components",
     "ui": "@/components/ui",
-    "lib": "@/lib"
+    "lib": "@/lib",
+    "styles": "@/styles"
   }
 }
 ```

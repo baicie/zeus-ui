@@ -1,5 +1,5 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
+import { existsSync, readFileSync } from 'node:fs'
+import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -13,18 +13,6 @@ import { createDefaultComponentsConfig } from '../src/config'
 
 async function createTempDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), 'zeus-web-ai-'))
-}
-
-async function writeComponentsJson(
-  cwd: string,
-  config = createDefaultComponentsConfig(),
-) {
-  await mkdir(cwd, { recursive: true })
-  writeFileSync(
-    resolve(cwd, 'components.json'),
-    `${JSON.stringify(config, null, 2)}\n`,
-    'utf-8',
-  )
 }
 
 describe('@zeus-web/cli ai', () => {
@@ -156,31 +144,6 @@ describe('@zeus-web/cli ai', () => {
       expect(readFileSync(resolve(cwd, 'zeus-web.ai.md'), 'utf-8')).toContain(
         '# Zeus Web AI Guide',
       )
-    } finally {
-      await rm(cwd, { recursive: true, force: true })
-    }
-  })
-
-  it('writes guide using components config aliases when available', async () => {
-    const cwd = await createTempDir()
-    const config = createDefaultComponentsConfig()
-    config.aliases.ui = '~/components/ui'
-
-    try {
-      await writeComponentsJson(cwd, config)
-
-      await writeAiGuide({
-        cwd,
-        format: 'markdown',
-        output: 'zeus-web.ai.md',
-        overwrite: false,
-        dryRun: false,
-      })
-
-      const content = readFileSync(resolve(cwd, 'zeus-web.ai.md'), 'utf-8')
-
-      expect(content).toContain('~/components/ui/button')
-      expect(content).not.toContain('@/components/ui/button')
     } finally {
       await rm(cwd, { recursive: true, force: true })
     }

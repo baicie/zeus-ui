@@ -1,5 +1,5 @@
 import { expect as expectPage } from '@playwright/test'
-import { describe, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { showcaseTargets, withShowcasePage } from './utils/browser'
 import { collectPageErrors } from './utils/page-errors'
@@ -65,6 +65,37 @@ describe.each(showcaseTargets)('$name showcase routes', target => {
         .then(() =>
           expectPage(page.locator('body')).toContainText(/not found/i),
         )
+        .then(() => errors.assertClean())
+    })
+  })
+
+  it('loads primitive presentation styles', () => {
+    return withShowcasePage(target, page => {
+      const errors = collectPageErrors(page)
+
+      return page
+        .goto('/components/button')
+        .then(() =>
+          page
+            .locator("zw-button[data-variant='primary'] [data-slot='button']")
+            .first()
+            .evaluate(element => {
+              const style = getComputedStyle(element)
+
+              return {
+                backgroundColor: style.backgroundColor,
+                borderRadius: style.borderRadius,
+                display: style.display,
+                minHeight: style.minHeight,
+              }
+            }),
+        )
+        .then(style => {
+          expect(style.display).toBe('flex')
+          expect(style.borderRadius).not.toBe('0px')
+          expect(style.minHeight).not.toBe('0px')
+          expect(style.backgroundColor).not.toBe('rgba(0, 0, 0, 0)')
+        })
         .then(() => errors.assertClean())
     })
   })

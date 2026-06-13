@@ -19,6 +19,7 @@ import {
   radiusPresetNames,
   radiusPresets,
   semanticColorTokens,
+  themeCssExports,
   themeCssImports,
   themeNames,
   themeRegistry,
@@ -39,6 +40,15 @@ describe('@zeus-web/themes', () => {
   it('resolves css import path by theme name', () => {
     expect(getThemeCssImport()).toBe('@zeus-web/themes/default.css')
     expect(getThemeCssImport('slate')).toBe('@zeus-web/themes/slate.css')
+  })
+
+  it('exposes package-level component presentation css', () => {
+    expect(themeCssExports.components).toBe('@zeus-web/themes/components.css')
+
+    const source = readThemeFile('components.css')
+    expect(source).toContain("zw-button[data-variant='primary']")
+    expect(source).toContain("zw-input [data-slot='input']")
+    expect(source).toContain("zw-dialog-content [part='content']")
   })
 
   it('checks theme name guard', () => {

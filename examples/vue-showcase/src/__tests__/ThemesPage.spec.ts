@@ -39,6 +39,7 @@ describe('vue ThemesPage', () => {
         .value,
     ).toBe('expressive')
     expect(wrapper.text()).toContain("import '@zeus-web/themes/slate.css'")
+    expect(wrapper.text()).toContain("import '@zeus-web/themes/components.css'")
   })
 
   it('switches snippets and copies the selected snippet', async () => {

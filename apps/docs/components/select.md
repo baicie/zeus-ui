@@ -6,23 +6,25 @@ Styled native select component built on the zw-select primitive.
 
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/select</span>
-  <span class="zw-badge">zweb add select</span>
+  <span class="zw-badge">primitive-only</span>
   <span class="zw-badge">Generated</span>
 </div>
 
-## Add
+## Install
+
+This component does not have a registry template yet.
+
+Install the primitive package instead:
 
 ```bash
-zweb add select
+pnpm add @zeus-web/select
 ```
 
 ## Imports
 
-Styled component:
+Styled registry component:
 
-```tsx
-import { Select } from '@/components/ui/select'
-```
+Not available yet.
 
 Primitive React wrapper:
 
@@ -74,19 +76,11 @@ Internal selectors:
 
 ## Registry
 
-Type: `registry:ui`
+Registry source: not available yet.
 
-Dependencies:
+The `select` primitive is available through `@zeus-web/select`, but it is not currently installable through `zweb add select`.
 
-- `@zeus-web/select`
-- `class-variance-authority`
-- `clsx`
-- `tailwind-merge`
-
-Files:
-
-- `default/lib/utils.ts` → `lib/utils.ts` (`registry:lib`)
-- `default/select.tsx` → `components/ui/select.tsx` (`registry:ui`)
+Use the primitive package directly until a registry template is added.
 
 ## AI usage rules
 

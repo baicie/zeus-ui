@@ -1,54 +1,161 @@
-# Zeus UI
+# Zeus Web
 
-Zeus UI is a shadcn-like, AI-ready UI system built on headless Web Components and Tailwind CSS.
+Zeus Web is a framework-neutral UI system built on Web Components, source registry templates and package-owned styled native entries.
 
-## Packages
+It supports three usage paths:
 
-### Primitive packages
+1. **CLI registry source** for React and Vue applications.
+2. **Native styled Web Components** through `@zeus-web/ui`.
+3. **Advanced primitives** through per-component packages.
 
-Each primitive can be installed independently.
+## Recommended path: CLI registry source
 
-```bash
-pnpm add @zeus-web/input
-```
-
-```ts
-import '@zeus-web/input/wc'
-```
-
-```html
-<zw-input placeholder="Email"></zw-input>
-```
-
-### Aggregated packages
-
-```bash
-pnpm add @zeus-web/react
-```
-
-```tsx
-import { Input } from '@zeus-web/react'
-```
-
-### CLI
+Use this when you are building a React or Vue app and want editable source components in your project.
 
 ```bash
 pnpm dlx @zeus-web/cli init
-pnpm dlx @zeus-web/cli add input
+pnpm dlx @zeus-web/cli add button input
 ```
 
-## Architecture
+This creates:
 
-- `@zeus-web/utils`: Shared utilities
-- `@zeus-web/input`: Single headless primitive package
-- `@zeus-web/headless`: Aggregated Web Component package
-- `@zeus-web/react`: Aggregated React wrapper package
-- `@zeus-web/vue`: Aggregated Vue wrapper package
-- `@zeus-web/themes`: Theme tokens and CSS variables
-- `@zeus-web/registry`: shadcn-like registry
-- `@zeus-web/cli`: CLI for init/add/update
+```txt
+zeus-ui.json
+zeus-ui.lock.json
+src/lib/cn.ts
+src/styles/zeus.css
+src/components/ui/button.tsx
+src/components/ui/input.tsx
+```
 
-## Commands
+For Vue projects, generated component files use `.vue`:
+
+```txt
+src/components/ui/button.vue
+src/components/ui/input.vue
+```
+
+Use the generated components:
+
+```tsx
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+
+export function Example() {
+  return (
+    <form className="space-y-4">
+      <Input type="email" placeholder="Email" />
+      <Button variant="primary">Submit</Button>
+    </form>
+  )
+}
+```
+
+Vue:
+
+```vue
+<script setup lang="ts">
+import Button from '@/components/ui/button.vue'
+import Input from '@/components/ui/input.vue'
+</script>
+
+<template>
+  <form class="space-y-4">
+    <Input placeholder="Email" />
+    <Button variant="primary">Submit</Button>
+  </form>
+</template>
+```
+
+## Native styled Web Components
+
+Use this when you want styled Web Components without React or Vue.
+
+```bash
+pnpm add @zeus-web/ui
+```
+
+Aggregate entry:
+
+```ts
+import '@zeus-web/ui'
+```
+
+HTML:
+
+```html
+<zw-button variant="primary">Save</zw-button>
+<zw-input placeholder="Email"></zw-input>
+```
+
+Per-component entries:
+
+```ts
+import '@zeus-web/ui/button'
+import '@zeus-web/ui/input'
+```
+
+CSS-only entry:
+
+```ts
+import '@zeus-web/ui/styles.css'
+import '@zeus-web/button/wc'
+import '@zeus-web/input/wc'
+```
+
+## Advanced primitive usage
+
+Use this when you are building your own design system on top of headless primitives.
+
+```bash
+pnpm add @zeus-web/button
+```
+
+React wrapper:
+
+```tsx
+import { Button } from '@zeus-web/button/react'
+
+export function Example() {
+  return <Button>Save</Button>
+}
+```
+
+Vue wrapper:
+
+```vue
+<script setup lang="ts">
+import { Button } from '@zeus-web/button/vue'
+</script>
+
+<template>
+  <Button>Save</Button>
+</template>
+```
+
+Native Web Component primitive:
+
+```ts
+import '@zeus-web/button/wc'
+```
+
+```html
+<zw-button>Save</zw-button>
+```
+
+## Package map
+
+| Package              | Purpose                                                 |
+| -------------------- | ------------------------------------------------------- |
+| `@zeus-web/cli`      | `zweb init`, `zweb add`, AI metadata and icon commands. |
+| `@zeus-web/registry` | Source templates consumed by the CLI.                   |
+| `@zeus-web/ui`       | Package-owned styled native Web Components.             |
+| `@zeus-web/themes`   | Design tokens and component-level CSS variables.        |
+| `@zeus-web/icons`    | Icon assets and generated wrappers.                     |
+| `@zeus-web/button`   | Headless button primitive with WC/React/Vue entries.    |
+| `@zeus-web/input`    | Headless input primitive with WC/React/Vue entries.     |
+
+## Local development
 
 ```bash
 pnpm install
@@ -56,7 +163,20 @@ pnpm build
 pnpm check
 pnpm lint
 pnpm test
-pnpm format-check
-pnpm check:exports
-pnpm release:dry
+pnpm site:check
+pnpm showcase:ci
+```
+
+## Showcase
+
+```bash
+pnpm showcase:react
+pnpm showcase:vue
+pnpm showcase:native
+```
+
+## Release validation
+
+```bash
+pnpm release:verify --allow-zero
 ```

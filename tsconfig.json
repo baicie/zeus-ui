@@ -4,7 +4,8 @@
     "types": ["vitest/globals", "node"],
     "noEmit": true,
     "outDir": "temp",
-    "isolatedDeclarations": false
+    "isolatedDeclarations": false,
+    "skipLibCheck": true
   },
   "include": [
     "scripts/config/jsx.d.ts",
