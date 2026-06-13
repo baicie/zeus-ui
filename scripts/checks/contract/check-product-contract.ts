@@ -679,9 +679,9 @@ function checkNativeShowcase(errors: string[]): void {
 
 function checkPhase24Release(errors: string[]): void {
   const required = [
-    'scripts/checks/check-release-readiness.ts',
-    'scripts/checks/check-release-tarballs.ts',
-    'scripts/checks/check-release-final.ts',
+    'scripts/checks/release/check-release-readiness.ts',
+    'scripts/checks/release/check-release-tarballs.ts',
+    'scripts/checks/release/check-release-final.ts',
     'docs/release/release-readiness.md',
     'docs/design/zeus-ui-release-readiness.md',
     'LICENSE',
@@ -698,7 +698,7 @@ function checkPhase24Release(errors: string[]): void {
     errors,
   )
   mustContain(
-    'scripts/checks/check-release-readiness.ts',
+    'scripts/checks/release/check-release-readiness.ts',
     [
       'checkUiPackage',
       'checkRegistryPackage',
@@ -713,17 +713,17 @@ function checkPhase24Release(errors: string[]): void {
     errors,
   )
   mustContain(
-    'scripts/checks/check-release-tarballs.ts',
+    'scripts/checks/release/check-release-tarballs.ts',
     ['pnpm', 'pack', '--dry-run', '--json', 'tarball must include dist/ files'],
     errors,
   )
   mustNotContain(
-    'scripts/checks/check-release-tarballs.ts',
+    'scripts/checks/release/check-release-tarballs.ts',
     ['tarball must include README.md'],
     errors,
   )
   mustContain(
-    'scripts/checks/check-release-final.ts',
+    'scripts/checks/release/check-release-final.ts',
     [
       'parseOptions',
       '--allow-zero',

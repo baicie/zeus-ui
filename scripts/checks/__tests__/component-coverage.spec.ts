@@ -1,4 +1,4 @@
-import { checkComponentCoverage } from '../check-component-coverage'
+import { checkComponentCoverage } from '../registry/check-component-coverage'
 
 describe('component coverage contract', () => {
   it('keeps registry, primitives, and AI metadata aligned', () => {

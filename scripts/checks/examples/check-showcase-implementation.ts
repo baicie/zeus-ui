@@ -8,7 +8,7 @@ import {
   getShowcaseDemoBatchName,
   implementedShowcaseComponentNames,
   showcaseDemoBatches,
-} from '../../examples/showcase-shared/src/implemented'
+} from '../../../examples/showcase-shared/src/implemented'
 
 const root = process.cwd()
 

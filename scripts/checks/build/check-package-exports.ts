@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { validatePackageRules } from './package-rules'
+import { validatePackageRules } from '../package-rules'
 
 const root = process.cwd()
 

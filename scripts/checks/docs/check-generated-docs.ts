@@ -3,8 +3,8 @@ import { basename, resolve } from 'node:path'
 
 import pc from 'picocolors'
 
-import { generateComponentDocs } from '../docs/component-docs'
-import { formatGeneratedDocs } from '../docs/format-generated-docs'
+import { generateComponentDocs } from '../../docs/component-docs'
+import { formatGeneratedDocs } from '../../docs/format-generated-docs'
 
 async function main(): Promise<void> {
   const errors: string[] = []

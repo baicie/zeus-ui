@@ -1,4 +1,4 @@
-import type { Registry } from '../../packages/registry/src'
+import type { Registry } from '../../../packages/registry/src'
 
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'

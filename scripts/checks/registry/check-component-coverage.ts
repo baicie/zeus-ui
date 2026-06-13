@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 import pc from 'picocolors'
 
-import { aiMetadata } from '../../packages/ai/src/metadata'
+import { aiMetadata } from '../../../packages/ai/src/metadata'
 
 export interface RegistryFile {
   path?: string

@@ -8,14 +8,14 @@ import {
   showcaseIcons,
   showcaseThemes,
   validateShowcaseMetadata,
-} from '../../examples/showcase-shared/src'
-import { iconMetadata, iconNames } from '../../packages/icons/src'
+} from '../../../examples/showcase-shared/src'
+import { iconMetadata, iconNames } from '../../../packages/icons/src'
 import {
   semanticColorTokens,
   themeModeNames,
   themeModeRegistry,
   themeNames,
-} from '../../packages/themes/src'
+} from '../../../packages/themes/src'
 
 interface RegistryItem {
   name: string

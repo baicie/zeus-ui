@@ -1,11 +1,11 @@
-import type { WorkspacePackage } from '../release/workspace'
+import type { WorkspacePackage } from '../../release/workspace'
 
 import { existsSync } from 'node:fs'
 
 import { execa } from 'execa'
 import pc from 'picocolors'
 
-import { listPublishablePackages } from '../release/workspace'
+import { listPublishablePackages } from '../../release/workspace'
 
 interface PackFile {
   path: string

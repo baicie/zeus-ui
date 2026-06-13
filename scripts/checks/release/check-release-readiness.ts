@@ -1,4 +1,4 @@
-import type { PackageJsonLike, WorkspacePackage } from '../release/workspace'
+import type { PackageJsonLike, WorkspacePackage } from '../../release/workspace'
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -9,7 +9,7 @@ import {
   getUniqueVersions,
   listPublishablePackages,
   repositoryUrl,
-} from '../release/workspace'
+} from '../../release/workspace'
 
 interface Options {
   allowZero: boolean

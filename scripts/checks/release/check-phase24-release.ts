@@ -6,9 +6,9 @@ import pc from 'picocolors'
 const root = process.cwd()
 
 const requiredFiles = [
-  'scripts/checks/check-release-readiness.ts',
-  'scripts/checks/check-release-tarballs.ts',
-  'scripts/checks/check-release-final.ts',
+  'scripts/checks/release/check-release-readiness.ts',
+  'scripts/checks/release/check-release-tarballs.ts',
+  'scripts/checks/release/check-release-final.ts',
   'docs/release/release-readiness.md',
   'docs/design/zeus-ui-release-readiness.md',
   'LICENSE',
@@ -67,7 +67,7 @@ function main(): void {
     )
 
     checkSourceContains(
-      'scripts/checks/check-release-readiness.ts',
+      'scripts/checks/release/check-release-readiness.ts',
       [
         'checkUiPackage',
         'checkRegistryPackage',
@@ -83,7 +83,7 @@ function main(): void {
     )
 
     checkSourceContains(
-      'scripts/checks/check-release-tarballs.ts',
+      'scripts/checks/release/check-release-tarballs.ts',
       [
         'pnpm',
         'pack',
@@ -95,13 +95,13 @@ function main(): void {
     )
 
     checkSourceNotContains(
-      'scripts/checks/check-release-tarballs.ts',
+      'scripts/checks/release/check-release-tarballs.ts',
       ['tarball must include README.md'],
       errors,
     )
 
     checkSourceContains(
-      'scripts/checks/check-release-final.ts',
+      'scripts/checks/release/check-release-final.ts',
       [
         'parseOptions',
         '--allow-zero',
