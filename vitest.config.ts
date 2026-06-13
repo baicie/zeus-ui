@@ -49,7 +49,11 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      include: ['packages/*/src/**', 'packages/primitives/*/src/**'],
+      include: [
+        'packages/*/src/**',
+        'packages/primitives/*/src/**',
+        'packages/advanced/*/src/**',
+      ],
       exclude: [],
     },
 
