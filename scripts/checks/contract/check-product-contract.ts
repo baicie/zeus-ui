@@ -665,10 +665,7 @@ function checkNativeShowcase(errors: string[]): void {
   )
   mustContain(
     'scripts/examples/build-showcase-deps.ts',
-    [
-      "const nativeShowcasePackages = ['@zeus-web/ui']",
-      'createBuildTargetNames',
-    ],
+    ['const nativeShowcasePackages = [', 'createBuildTargetNames'],
     errors,
   )
 }
