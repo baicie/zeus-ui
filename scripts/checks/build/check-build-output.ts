@@ -4,6 +4,7 @@ import { dirname, join, relative } from 'node:path'
 import { execa } from 'execa'
 
 const root = process.cwd()
+const packageRoots = ['packages', 'packages/primitives', 'packages/advanced']
 
 interface PackageJsonLike {
   name?: string
@@ -24,7 +25,7 @@ function toForwardSlash(value: string): string {
 function listPackageJsonFiles(): string[] {
   const files: string[] = []
 
-  for (const rel of ['packages', 'packages/primitives']) {
+  for (const rel of packageRoots) {
     const abs = join(root, rel)
 
     if (!existsSync(abs)) continue
