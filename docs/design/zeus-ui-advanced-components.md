@@ -1,36 +1,36 @@
-# Zeus-UI Advanced Components
+# Zeus-UI 高级组件设计
 
-## Status
+## 状态
 
-Final design contract for `packages/advanced/*`.
+本文档是 `packages/advanced/*` 的最终设计契约。
 
-This document defines the design, package boundaries and roadmap for Zeus Web advanced components: virtual scrolling, AI chat, high-performance data grid, RevoGrid adapter and agent console.
+它定义 Zeus Web 高级组件的设计原则、包边界与路线图，覆盖虚拟滚动、AI Chat、高性能 Data Grid、RevoGrid 适配器与 Agent Console。
 
-## Goals
+## 目标
 
-Advanced components should make Zeus Web usable for product-level UI, not just small primitives.
+高级组件的目标是让 Zeus Web 不只适用于小型基础组件，也能支撑产品级复杂界面。
 
-They must support:
+高级组件必须支持：
 
-- High performance with large data or high-frequency updates.
-- Native Web Component usage without React or Vue.
-- Thin React and Vue wrappers.
-- Headless-first behavior and accessibility contracts.
-- Styled product output through registry templates and `@zeus-web/ui` entries.
-- AI-friendly metadata and examples.
+- 面向大数据量或高频更新场景的高性能实现。
+- 不依赖 React 或 Vue 的原生 Web Component 使用方式。
+- 轻量 React / Vue wrapper。
+- headless-first 的行为、状态与可访问性契约。
+- 通过 registry 模板和 `@zeus-web/ui` 入口叠加最终产品样式。
+- 对 AI 友好的元数据、示例与使用规则。
 
-## Non-goals
+## 非目标
 
-Advanced components must not:
+高级组件不应该：
 
-- Depend on React or Vue for their core behavior.
-- Store API keys or bind to a specific AI provider.
-- Make the default implementation framework-only.
-- Reflect large object or array props as attributes.
-- Render unbounded DOM for large lists, tables or chat threads.
-- Put final product styles inside the headless package.
+- 在核心行为中依赖 React 或 Vue。
+- 绑定某个特定 AI 服务商。
+- 把默认实现做成 framework-only。
+- 把大型对象或数组 props 反射为 attributes。
+- 在大型列表、表格、聊天线程中渲染无边界 DOM。
+- 把最终产品视觉样式塞进 headless 包。
 
-## Workspace layout
+## 工作区布局
 
 ```txt
 packages/advanced/
@@ -41,43 +41,43 @@ packages/advanced/
   agent-console/  @zeus-web/agent-console
 ```
 
-`packages/advanced/*` is a first-class workspace next to `packages/primitives/*`.
+`packages/advanced/*` 是与 `packages/primitives/*` 平级的一等工作区。
 
 ```txt
 packages/primitives/*
-  Small headless primitives: button, input, dialog, tabs, switch.
+  小型 headless primitives：button、input、dialog、tabs、switch。
 
 packages/advanced/*
-  Product-level components: virtual, chat, data-grid, agent-console.
+  产品级高级组件：virtual、chat、data-grid、agent-console。
 ```
 
-## Layering model
+## 分层模型
 
-Every advanced component has four layers.
+每个高级组件都分为四层。
 
 ```txt
 Headless advanced package
   -> @zeus-web/chat
-  -> owns state, behavior, events, slots, methods and a11y
+  -> 负责状态、行为、事件、slots、methods 与 a11y
 
 Registry source template
   -> zweb add chat
-  -> React / Vue editable styled source
+  -> React / Vue 可编辑带样式源码
 
 Native styled UI entry
   -> @zeus-web/ui/chat
-  -> styled Web Components for no-framework usage
+  -> 面向无框架使用的带样式 Web Components
 
 AI metadata
   -> @zeus-web/ai
-  -> usage rules, examples, props, events and anti-patterns
+  -> 使用规则、示例、props、events 与反模式约束
 ```
 
-The same rule applies to data grid and future agent console packages.
+同一规则也适用于 data-grid 以及未来的 agent-console。
 
-## Package output contract
+## 包输出契约
 
-Each advanced package should eventually expose:
+每个高级组件包最终都应暴露：
 
 ```txt
 @zeus-web/<name>
@@ -89,9 +89,9 @@ Each advanced package should eventually expose:
 @zeus-web/<name>/zeus.components.json
 ```
 
-Advanced packages should not be added to aggregate packages by default. Large or optional packages such as `data-grid`, `revogrid` and `agent-console` should remain explicit imports.
+高级组件默认不加入聚合包。`data-grid`、`revogrid`、`agent-console` 这类大型或可选包应保持显式导入，避免污染轻量聚合包体积。
 
-## Internal package structure
+## 包内部结构
 
 ```txt
 packages/advanced/<name>/
@@ -100,28 +100,28 @@ packages/advanced/<name>/
     index.ts
     types.ts
     core/
-      Framework-agnostic engines.
+      框架无关 engine。
     components/
-      Zeus defineElement Web Components.
+      Zeus defineElement Web Components。
   __tests__/
 ```
 
-The `core` layer should avoid React, Vue and final product style ownership. The `components` layer adapts the core engine to Web Component props, properties, events, slots and exposed methods.
+`core` 层应避免依赖 React、Vue，也不拥有最终产品样式。`components` 层负责把 core engine 适配成 Web Component 的 props、properties、events、slots 与暴露方法。
 
-## Cross-framework contract
+## 跨框架契约
 
-Web Components are the primary runtime target.
+Web Components 是第一等运行时目标。
 
-React and Vue wrappers should only adapt:
+React 和 Vue wrapper 只应负责适配：
 
-- props to properties,
-- custom events to framework callbacks,
-- slots to children or named slots,
-- refs to the underlying HTMLElement.
+- props 到 properties，
+- custom events 到框架回调，
+- slots 到 children 或 named slots，
+- refs 到底层 HTMLElement。
 
-Wrappers must not own the advanced component state machine.
+wrapper 不能拥有高级组件的状态机。
 
-Large inputs must be set as properties:
+大型输入必须通过 property 设置：
 
 ```txt
 messages
@@ -132,7 +132,7 @@ plugins
 renderers
 ```
 
-Only small scalar state should reflect to attributes:
+只有小型标量状态可以反射为 attributes：
 
 ```txt
 disabled
@@ -143,33 +143,33 @@ size
 variant
 ```
 
-## Shared performance rules
+## 通用性能规则
 
-Advanced components must follow these rules:
+高级组件必须遵守以下规则：
 
-1. Render only visible viewport content plus overscan for large surfaces.
-2. Batch high-frequency state and DOM updates with `requestAnimationFrame` or an equivalent scheduler.
-3. Use stable keys for rows, messages and cells.
-4. Keep DOM nodes stable when possible.
-5. Avoid per-cell or per-message heavy event listeners; prefer event delegation.
-6. Lazy-load heavy optional features such as markdown, syntax highlighting, export and custom renderers.
-7. Avoid full re-render during streaming, scrolling or batch row updates.
-8. Provide native, React and Vue showcases for every stable advanced component.
+1. 大型渲染表面只渲染可见 viewport 内容与 overscan。
+2. 高频状态与 DOM 更新通过 `requestAnimationFrame` 或等价 scheduler 合并。
+3. rows、messages、cells 必须使用稳定 key。
+4. 尽量保持 DOM 节点稳定，避免不必要的全量替换。
+5. 避免给每个 cell 或 message 挂载重事件监听，优先使用事件委托。
+6. Markdown、语法高亮、导出、自定义渲染器等重功能必须懒加载。
+7. streaming、scrolling、batch row updates 过程中避免全量重渲染。
+8. 每个稳定高级组件都必须提供 native、React、Vue showcase。
 
-## Styling contract
+## 样式契约
 
-Headless advanced packages expose styling hooks, not final visual design.
+Headless advanced packages 只暴露样式钩子，不拥有最终视觉设计。
 
-Required styling hooks:
+必须暴露的样式钩子：
 
 - `data-slot`
 - `data-state`
-- role-specific attributes such as `data-role`
-- state attributes such as `data-selected`, `data-active`, `data-loading`
-- `part` names
-- CSS variables where a layout or measurement value needs styling control
+- 角色相关属性，例如 `data-role`
+- 状态属性，例如 `data-selected`、`data-active`、`data-loading`
+- `part` 名称
+- 当布局或测量值需要外部控制时提供 CSS variables
 
-Final styles live in:
+最终样式放在：
 
 ```txt
 packages/registry/templates/<framework>/<component>
@@ -178,18 +178,18 @@ packages/ui/src/<component>.css
 
 ## @zeus-web/virtual
 
-### Purpose
+### 目的
 
-`@zeus-web/virtual` is the shared virtual scrolling foundation for advanced components.
+`@zeus-web/virtual` 是高级组件共享的虚拟滚动基础设施。
 
-It should support:
+它应支持：
 
-- Chat message thread virtualization.
-- Data grid row and column virtualization.
-- Large select / command / log viewer lists.
-- Dynamic item measurement.
+- Chat message thread 虚拟化。
+- Data Grid 行虚拟化与列虚拟化。
+- 大型 select / command / log viewer 列表。
+- 动态 item 测量。
 
-### Package structure
+### 包结构
 
 ```txt
 packages/advanced/virtual/
@@ -231,56 +231,56 @@ export interface VirtualizerOptions {
 }
 ```
 
-### Components
+### 组件
 
 ```txt
 <zw-virtual-list>
 <zw-virtual-grid>
 ```
 
-### Roadmap
+### 路线图
 
 ```txt
 Phase V0
-  Fixed-size list virtualization.
-  range-change event.
-  scrollToIndex and scrollToOffset methods.
+  固定高度列表虚拟化。
+  range-change 事件。
+  scrollToIndex 与 scrollToOffset 方法。
 
 Phase V1
-  Dynamic-size list virtualization.
-  ResizeObserver measurement.
-  Size cache.
+  动态高度列表虚拟化。
+  ResizeObserver 测量。
+  size cache。
 
 Phase V2
-  Reverse mode for chat threads.
-  Sticky header / footer.
+  面向 Chat thread 的 reverse mode。
+  Sticky header / footer。
 
 Phase V3
-  Two-dimensional virtual grid.
+  二维 virtual grid。
 ```
 
 ## @zeus-web/chat
 
-### Purpose
+### 目的
 
-`@zeus-web/chat` is a ChatGPT-style headless chat component family.
+`@zeus-web/chat` 是一组 ChatGPT 风格的 headless chat 组件族。
 
-It should provide a high-quality AI chat experience without binding to an AI provider.
+它应提供高质量 AI Chat 交互体验，但不绑定任何 AI 服务商。
 
-The component may reference ChatGPT-style interaction patterns:
+组件可以参考 ChatGPT 网页版的交互模式：
 
-- Conversation thread.
-- Composer with Enter / Shift+Enter behavior.
-- Streaming assistant messages.
-- Message actions such as copy, retry, like and dislike.
-- Code blocks.
-- Attachments.
-- Tool call status.
-- Artifact / canvas panel.
+- Conversation thread。
+- Composer 支持 Enter / Shift+Enter 行为。
+- Streaming assistant messages。
+- Copy、retry、like、dislike 等 message actions。
+- Code blocks。
+- Attachments。
+- Tool call status。
+- Artifact / canvas panel。
 
-It must not copy provider internals or include API key / model request logic.
+组件不能复制任何服务商内部实现，也不能包含具体模型请求逻辑。
 
-### Components
+### 组件
 
 ```txt
 <zw-chat>
@@ -294,7 +294,7 @@ It must not copy provider internals or include API key / model request logic.
 <zw-chat-typing>
 ```
 
-### Message model
+### 消息模型
 
 ```ts
 export type ChatRole = 'system' | 'user' | 'assistant' | 'tool'
@@ -336,7 +336,7 @@ export interface ChatMessagePartArtifact {
 }
 ```
 
-### Events
+### 事件
 
 ```txt
 send
@@ -349,7 +349,7 @@ attachment-add
 attachment-remove
 ```
 
-### Methods
+### 方法
 
 ```txt
 appendMessage(message)
@@ -359,15 +359,15 @@ clear()
 scrollToBottom(options)
 ```
 
-### Performance requirements
+### 性能要求
 
-- Streaming chunks must be buffered and flushed at most once per frame.
-- Markdown and syntax highlighting should be lazy-loaded.
-- Long threads should use `@zeus-web/virtual`.
-- Auto-scroll should respect whether the user is already anchored at the bottom.
-- Code blocks should support collapsed rendering for large content.
+- Streaming chunks 必须先进入 buffer，每帧最多 flush 一次。
+- Markdown 与语法高亮应懒加载。
+- 长线程应使用 `@zeus-web/virtual`。
+- 自动滚动必须尊重用户是否停留在底部锚点。
+- 大型 code block 应支持折叠渲染。
 
-### Product output
+### 产品化输出
 
 ```txt
 @zeus-web/chat
@@ -378,18 +378,18 @@ zweb add chat
 
 ## @zeus-web/data-grid
 
-### Purpose
+### 目的
 
-`@zeus-web/data-grid` is a high-performance headless data grid.
+`@zeus-web/data-grid` 是一个高性能 headless data grid。
 
-It should take inspiration from AG Grid and RevoGrid:
+它应参考 AG Grid 和 RevoGrid 的设计方向：
 
-- AG Grid-style DOM virtualization, row buffer and viewport-only rendering.
-- RevoGrid-style Web Component usage, virtual scroll, keyboard support, copy / paste, sticky columns and plugin-minded extension points.
+- AG Grid 风格的 DOM virtualization、row buffer 与 viewport-only rendering。
+- RevoGrid 风格的 Web Component 使用方式、virtual scroll、键盘支持、copy / paste、sticky columns 与面向插件的扩展点。
 
-The first implementation must not try to match every AG Grid or RevoGrid feature.
+第一版实现不能试图覆盖 AG Grid 或 RevoGrid 的全部能力。
 
-### Package structure
+### 包结构
 
 ```txt
 packages/advanced/data-grid/
@@ -413,7 +413,7 @@ packages/advanced/data-grid/
       data-grid-overlay.tsx
 ```
 
-### Core types
+### 核心类型
 
 ```ts
 export type DataGridRowKey = string | number
@@ -451,7 +451,7 @@ export interface DataGridProps<T = unknown> {
 }
 ```
 
-### Events
+### 事件
 
 ```txt
 row-click
@@ -466,7 +466,7 @@ viewport-change
 row-request
 ```
 
-### Methods
+### 方法
 
 ```txt
 scrollToRow(index)
@@ -478,43 +478,43 @@ refresh()
 autosizeColumn(key)
 ```
 
-### P0 capabilities
+### P0 能力
 
-P0 must include:
+P0 必须包含：
 
-- Row virtualization.
-- Column virtualization.
-- Fixed header.
-- Column width.
-- Row selection.
-- Active cell.
-- Keyboard navigation.
-- Loading and empty overlays.
-- Text cell renderer fast path.
-- Native, React and Vue usage.
+- 行虚拟化。
+- 列虚拟化。
+- 固定表头。
+- 列宽。
+- 行选择。
+- Active cell。
+- 键盘导航。
+- Loading 与 empty overlay。
+- 文本 cell renderer 快路径。
+- Native、React、Vue 使用方式。
 
-P0 must not include:
+P0 不包含：
 
-- Tree data.
-- Row grouping.
-- Pivot.
-- Merged cells.
-- Formula engine.
-- Excel export.
-- Full spreadsheet copy / paste.
-- Complex cell editor framework.
+- Tree data。
+- Row grouping。
+- Pivot。
+- Merged cells。
+- Formula engine。
+- Excel export。
+- 完整 spreadsheet 级 copy / paste。
+- 复杂 cell editor framework。
 
-### Performance requirements
+### 性能要求
 
-- Render only visible rows and visible columns plus overscan.
-- Keep max rendered rows / cells safety limits.
-- Use stable `rowKey` for diffing.
-- Batch transactions and viewport updates.
-- Prefer event delegation for cell events.
-- Reuse a single editor overlay instead of mounting one editor per cell.
-- Use `role="grid"` and roving tabindex for accessibility.
+- 只渲染可见 rows、可见 columns 与 overscan。
+- 保留 max rendered rows / cells 安全阈值。
+- 使用稳定 `rowKey` 做 diff。
+- 批量合并 transactions 与 viewport updates。
+- cell 事件优先使用事件委托。
+- 复用单个 editor overlay，不为每个 cell 常驻 editor。
+- 使用 `role="grid"` 与 roving tabindex 支撑可访问性。
 
-### Product output
+### 产品化输出
 
 ```txt
 @zeus-web/data-grid
@@ -525,27 +525,27 @@ zweb add data-grid
 
 ## @zeus-web/revogrid
 
-### Purpose
+### 目的
 
-`@zeus-web/revogrid` is an adapter package, not the final Zeus data grid.
+`@zeus-web/revogrid` 是一个适配器包，不是 Zeus 最终自研 Data Grid。
 
-It should be used to validate:
+它用于验证：
 
-- Large third-party Web Component interop.
-- Object and array property forwarding.
-- Custom event bridging.
-- React / Vue wrapper behavior with complex components.
-- Data grid API learnings before implementing `@zeus-web/data-grid`.
+- 大型第三方 Web Component 互操作。
+- 对象与数组 property 透传。
+- Custom event 桥接。
+- React / Vue wrapper 在复杂组件上的行为。
+- 在实现 `@zeus-web/data-grid` 前沉淀 Data Grid API 经验。
 
-It should not be included in `@zeus-web/ui` by default because it is third-party-backed and has separate dependency / bundle concerns.
+它默认不应进入 `@zeus-web/ui`，因为它基于第三方包，依赖与 bundle 体积需要单独控制。
 
 ## @zeus-web/agent-console
 
-### Purpose
+### 目的
 
-`@zeus-web/agent-console` is the final composition layer for AI Ops, RUM, SQL Agent and observability workflows.
+`@zeus-web/agent-console` 是面向 AI Ops、RUM、SQL Agent 与可观测工作流的最终组合层。
 
-It should compose:
+它应组合：
 
 - `@zeus-web/chat`
 - `@zeus-web/data-grid`
@@ -554,7 +554,7 @@ It should compose:
 - button
 - input
 
-### Components
+### 组件
 
 ```txt
 <zw-agent-console>
@@ -565,23 +565,23 @@ It should compose:
 <zw-agent-inspector>
 ```
 
-It should be built only after Chat and DataGrid are stable.
+它只能在 Chat 与 DataGrid 稳定后开始建设。
 
-## Full roadmap
+## 完整路线图
 
-| Phase | Name | Output |
+| Phase | 名称 | 输出 |
 | --- | --- | --- |
-| 0 | Advanced workspace contract | `packages/advanced/*` is discovered by workspace, build, checks and release scripts. |
-| 1 | Virtual foundation | `@zeus-web/virtual` fixed and dynamic list virtualization. |
-| 2 | Chat headless | `@zeus-web/chat` Web Component / React / Vue headless component family. |
-| 3 | Chat product | `zweb add chat`, `@zeus-web/ui/chat`, docs, AI metadata and showcases. |
-| 4 | RevoGrid adapter | `@zeus-web/revogrid` for large Web Component interop validation. |
-| 5 | DataGrid Lite | `@zeus-web/data-grid` row / column virtualization, selection, keyboard navigation. |
-| 6 | DataGrid product | `zweb add data-grid`, `@zeus-web/ui/data-grid`, sorting, filtering, resize, pinned columns. |
-| 7 | DataGrid advanced | Server row model, tree data, grouping, plugin system and export. |
-| 8 | Agent Console | `@zeus-web/agent-console` for AI Ops / RUM / SQL Agent product workflows. |
+| 0 | Advanced workspace contract | `packages/advanced/*` 被 workspace、build、checks、release scripts 识别。 |
+| 1 | Virtual foundation | `@zeus-web/virtual` 固定高度与动态高度列表虚拟化。 |
+| 2 | Chat headless | `@zeus-web/chat` Web Component / React / Vue headless 组件族。 |
+| 3 | Chat product | `zweb add chat`、`@zeus-web/ui/chat`、docs、AI metadata、showcases。 |
+| 4 | RevoGrid adapter | `@zeus-web/revogrid`，用于大型 Web Component 互操作验证。 |
+| 5 | DataGrid Lite | `@zeus-web/data-grid` 行/列虚拟化、选择、键盘导航。 |
+| 6 | DataGrid product | `zweb add data-grid`、`@zeus-web/ui/data-grid`、sorting、filtering、resize、pinned columns。 |
+| 7 | DataGrid advanced | Server row model、tree data、grouping、plugin system、export。 |
+| 8 | Agent Console | `@zeus-web/agent-console`，面向 AI Ops / RUM / SQL Agent 产品工作流。 |
 
-## Recommended branch plan
+## 推荐分支计划
 
 ```txt
 feat/advanced-contract
@@ -594,9 +594,9 @@ feat/advanced-data-grid-product
 feat/advanced-agent-console
 ```
 
-## Validation checklist
+## 验证清单
 
-Every stable advanced component should pass:
+每个稳定高级组件都应通过：
 
 ```txt
 pnpm check
@@ -607,12 +607,12 @@ pnpm showcase:ci
 pnpm docs:check
 ```
 
-Each component must include at least:
+每个组件至少包含：
 
-- Unit tests for core engine behavior.
-- Web Component behavior tests.
-- Native showcase coverage.
-- React showcase coverage.
-- Vue showcase coverage.
-- AI metadata rules.
-- Registry template checks when productized.
+- core engine 行为单测。
+- Web Component 行为测试。
+- Native showcase 覆盖。
+- React showcase 覆盖。
+- Vue showcase 覆盖。
+- AI metadata 规则。
+- 产品化后需要 registry template 检查。
