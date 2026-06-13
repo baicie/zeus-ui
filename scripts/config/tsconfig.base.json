@@ -19,6 +19,7 @@
     "jsx": "preserve",
     "paths": {
       "@zeus-web/input": ["../../packages/primitives/input/src/index"],
+      "@zeus-web/zeus-compat": ["../../packages/zeus-compat/src"],
       "@zeus-web/input/wc": ["../../packages/primitives/input/src/index"],
       "@zeus-web/input/wc/auto": ["../../packages/primitives/input/src/index"],
       "@zeus-web/input/react": ["../../packages/primitives/input/src/index"],
