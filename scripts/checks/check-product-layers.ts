@@ -12,7 +12,7 @@ const root = process.cwd()
 
 const docs: RequiredDoc[] = [
   {
-    path: 'docs/internal/design/zeus-ui-product-layers.md',
+    path: 'docs/design/zeus-ui-product-layers.md',
     mustContain: [
       '# Zeus-UI Product Layers',
       'Zeus-UI primitives',
@@ -27,7 +27,7 @@ const docs: RequiredDoc[] = [
     ],
   },
   {
-    path: 'docs/internal/design/zeus-ui-usage-model.md',
+    path: 'docs/design/zeus-ui-usage-model.md',
     mustContain: [
       '# Zeus-UI Usage Model',
       'React / Vue application usage',
@@ -43,7 +43,7 @@ const docs: RequiredDoc[] = [
     ],
   },
   {
-    path: 'docs/internal/design/zeus-ui-package-boundaries.md',
+    path: 'docs/design/zeus-ui-package-boundaries.md',
     mustContain: [
       '# Zeus-UI Package Boundaries',
       '@zeus-web/<primitive>',
@@ -59,7 +59,7 @@ const docs: RequiredDoc[] = [
     ],
   },
   {
-    path: 'docs/internal/examples/showcase-roadmap.md',
+    path: 'docs/examples/showcase-roadmap.md',
     mustContain: [
       '| Phase 15 | Done',
       '| Phase 16 | Done',
@@ -275,7 +275,7 @@ function main(): void {
     errors.push(...checkMustContain(doc, source))
     errors.push(...checkForbiddenPatterns(doc.path, source))
 
-    if (doc.path === 'docs/internal/examples/showcase-roadmap.md') {
+    if (doc.path === 'docs/examples/showcase-roadmap.md') {
       errors.push(...checkPhaseOrder(source))
     }
   }

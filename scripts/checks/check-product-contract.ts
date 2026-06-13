@@ -682,8 +682,8 @@ function checkPhase24Release(errors: string[]): void {
     'scripts/checks/check-release-readiness.ts',
     'scripts/checks/check-release-tarballs.ts',
     'scripts/checks/check-release-final.ts',
-    'docs/internal/release/release-readiness.md',
-    'docs/internal/design/zeus-ui-release-readiness.md',
+    'docs/release/release-readiness.md',
+    'docs/design/zeus-ui-release-readiness.md',
     'LICENSE',
   ]
   let allExist = true
@@ -735,7 +735,7 @@ function checkPhase24Release(errors: string[]): void {
     errors,
   )
   mustContain(
-    'docs/internal/release/release-readiness.md',
+    'docs/release/release-readiness.md',
     [
       'pnpm release:final',
       'pnpm release:verify:strict',
