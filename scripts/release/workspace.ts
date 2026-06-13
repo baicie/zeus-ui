@@ -62,13 +62,22 @@ function readPackageJson(file: string): PackageJsonLike {
   return JSON.parse(readFileSync(file, 'utf-8')) as PackageJsonLike
 }
 
+function getWorkspacePackageKind(
+  packageRoot: (typeof packageRoots)[number],
+): WorkspacePackageKind {
+  if (packageRoot === 'packages/primitives') return 'primitive'
+  if (packageRoot === 'packages/advanced') return 'advanced'
+  return 'package'
+}
+
 export function listWorkspacePackages(
   root = process.cwd(),
 ): WorkspacePackage[] {
   const result: WorkspacePackage[] = []
 
   for (const packageRoot of packageRoots) {
-    const absoluteRoot = resolve(root, packageRoot.dir)
+    const absoluteRoot = resolve(root, packageRoot)
+    const kind = getWorkspacePackageKind(packageRoot)
 
     if (!existsSync(absoluteRoot)) continue
 
@@ -94,9 +103,9 @@ export function listWorkspacePackages(
         relativeDir: toForwardSlash(relative(root, dir)),
         packageJsonPath,
         packageJson,
-        kind: packageRoot.kind,
-        isPrimitive: packageRoot.kind === 'primitive',
-        isAdvanced: packageRoot.kind === 'advanced',
+        kind,
+        isPrimitive: kind === 'primitive',
+        isAdvanced: kind === 'advanced',
         isPrivate: Boolean(packageJson.private),
       })
     }
