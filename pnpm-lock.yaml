@@ -1174,9 +1174,6 @@ importers:
 
   packages/zeus-compat:
     dependencies:
-      '@zeus-js/runtime-dom':
-        specifier: '>=0.1.0-beta.5 <0.2.0'
-        version: 0.1.0-beta.5
       '@zeus-js/zeus':
         specifier: '>=0.1.0-beta.5 <0.2.0'
         version: 0.1.0-beta.5
