@@ -100,6 +100,14 @@ function mustNotContain(
   }
 }
 
+function mustMatch(path: string, pattern: RegExp, errors: string[]): void {
+  const source = readText(path)
+
+  if (!pattern.test(source)) {
+    errors.push(`${path} must match ${pattern}`)
+  }
+}
+
 function findDataGridItem(
   registry: RegistryManifest,
 ): RegistryItem | undefined {
@@ -212,6 +220,7 @@ function checkTemplates(errors: string[]): void {
   mustContain(
     'packages/registry/templates/react/data-grid.tsx',
     [
+      "from '@zeus-web/data-grid'",
       '@zeus-web/data-grid/react',
       "import { cn } from '@/lib/cn'",
       'DataGridPrimitive',
@@ -222,15 +231,38 @@ function checkTemplates(errors: string[]): void {
     errors,
   )
 
+  mustMatch(
+    'packages/registry/templates/react/data-grid.tsx',
+    /extends\s+ComponentProps<\s+typeof\s+DataGridPrimitive/,
+    errors,
+  )
+
+  mustNotContain(
+    'packages/registry/templates/react/data-grid.tsx',
+    [
+      'DataGridColumn,\n  DataGridProps as DataGridPrimitiveProps',
+      "DataGridColumn,\n  DataGridRowData,\n} from '@zeus-web/data-grid/react'",
+      "DataGridRowData,\n} from '@zeus-web/data-grid/react'",
+    ],
+    errors,
+  )
+
   mustContain(
     'packages/registry/templates/vue/data-grid.vue',
     [
+      "from '@zeus-web/data-grid'",
       '@zeus-web/data-grid/vue',
       "import { cn } from '@/lib/cn'",
       'DataGridPrimitive',
       'dataGridDemoColumns',
       'dataGridDemoRows',
     ],
+    errors,
+  )
+
+  mustNotContain(
+    'packages/registry/templates/vue/data-grid.vue',
+    ["DataGridColumn, DataGridRowData } from '@zeus-web/data-grid/vue'"],
     errors,
   )
 }

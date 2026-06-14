@@ -1,13 +1,13 @@
-import type {
-  DataGridColumn,
-  DataGridProps as DataGridPrimitiveProps,
-  DataGridRowData,
-} from '@zeus-web/data-grid/react'
+import type { DataGridColumn, DataGridRowData } from '@zeus-web/data-grid'
+
+import type { ComponentProps } from 'react'
 import { DataGrid as DataGridPrimitive } from '@zeus-web/data-grid/react'
 
 import { cn } from '@/lib/cn'
 
-export interface DataGridProps extends DataGridPrimitiveProps {
+export interface DataGridProps extends ComponentProps<
+  typeof DataGridPrimitive
+> {
   className?: string
 }
 

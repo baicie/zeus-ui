@@ -61,17 +61,28 @@ describe('data-grid product contract files', () => {
     expect(source).not.toContain('dataGridNativeSource')
   })
 
-  it('react and vue templates use generated wrappers and cn utility', () => {
+  it('react and vue templates use generated wrappers and root type imports', () => {
     const reactSource = read('packages/registry/templates/react/data-grid.tsx')
     const vueSource = read('packages/registry/templates/vue/data-grid.vue')
 
+    expect(reactSource).toContain("from '@zeus-web/data-grid'")
     expect(reactSource).toContain('@zeus-web/data-grid/react')
     expect(reactSource).toContain("import { cn } from '@/lib/cn'")
+    expect(reactSource).toMatch(
+      /extends\s+ComponentProps<\s+typeof\s+DataGridPrimitive/,
+    )
     expect(reactSource).toContain('DataGridPrimitive')
+    expect(reactSource).not.toContain(
+      "DataGridRowData,\n} from '@zeus-web/data-grid/react'",
+    )
 
+    expect(vueSource).toContain("from '@zeus-web/data-grid'")
     expect(vueSource).toContain('@zeus-web/data-grid/vue')
     expect(vueSource).toContain("import { cn } from '@/lib/cn'")
     expect(vueSource).toContain('DataGridPrimitive')
+    expect(vueSource).not.toContain(
+      "DataGridColumn, DataGridRowData } from '@zeus-web/data-grid/vue'",
+    )
   })
 
   it('adds data-grid to AI metadata', () => {

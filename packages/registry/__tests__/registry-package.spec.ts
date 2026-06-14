@@ -253,14 +253,25 @@ describe('@zeus-web/registry package contract', () => {
     expect(nativeSource).not.toContain('String.raw')
     expect(nativeSource).not.toContain('dataGridNativeSource')
 
+    expect(reactSource).toContain("from '@zeus-web/data-grid'")
     expect(reactSource).toContain('@zeus-web/data-grid/react')
     expect(reactSource).toContain("import { cn } from '@/lib/cn'")
+    expect(reactSource).toMatch(
+      /extends\s+ComponentProps<\s+typeof\s+DataGridPrimitive/,
+    )
     expect(reactSource).toContain('DataGridPrimitive')
     expect(reactSource).toContain('DataGridDemo')
+    expect(reactSource).not.toContain(
+      "DataGridRowData,\n} from '@zeus-web/data-grid/react'",
+    )
 
+    expect(vueSource).toContain("from '@zeus-web/data-grid'")
     expect(vueSource).toContain('@zeus-web/data-grid/vue')
     expect(vueSource).toContain("import { cn } from '@/lib/cn'")
     expect(vueSource).toContain('DataGridPrimitive')
+    expect(vueSource).not.toContain(
+      "DataGridColumn, DataGridRowData } from '@zeus-web/data-grid/vue'",
+    )
 
     for (const source of [nativeSource, reactSource, vueSource]) {
       expect(source).not.toContain('fetch(')

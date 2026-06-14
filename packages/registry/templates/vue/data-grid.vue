@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DataGridColumn, DataGridRowData } from '@zeus-web/data-grid/vue'
+import type { DataGridColumn, DataGridRowData } from '@zeus-web/data-grid'
 import { DataGrid as DataGridPrimitive } from '@zeus-web/data-grid/vue'
 import { computed } from 'vue'
 
