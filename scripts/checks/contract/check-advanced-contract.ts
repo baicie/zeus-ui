@@ -119,7 +119,7 @@ function checkWorkspaceRegistration(errors: string[]): void {
       "type PackageKind = 'package' | 'primitive' | 'advanced'",
       "{ dir: 'packages/advanced', kind: 'advanced' }",
       "return pkg.kind === 'primitive' || pkg.kind === 'advanced'",
-      "'advanced': 1",
+      'advanced: 1',
       "'dist', 'wc', 'index.js'",
     ],
     errors,

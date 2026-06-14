@@ -167,18 +167,18 @@ docs/design/zeus-ui-advanced-components.md
 
 ## 包地图
 
-| Package | 用途 |
-| --- | --- |
-| `@zeus-web/cli` | `zweb init`、`zweb add`、AI metadata、icon 命令。 |
-| `@zeus-web/registry` | CLI 使用的源码模板 registry。 |
-| `@zeus-web/ui` | 包内自带样式的原生 Web Components。 |
-| `@zeus-web/themes` | 设计 token 与组件级 CSS 变量。 |
-| `@zeus-web/icons` | 图标资源与生成的 wrapper。 |
-| `@zeus-web/button` | 带 WC/React/Vue 入口的 headless button primitive。 |
-| `@zeus-web/input` | 带 WC/React/Vue 入口的 headless input primitive。 |
-| `@zeus-web/virtual` | 规划中的高级虚拟滚动基础设施。 |
-| `@zeus-web/chat` | 规划中的 ChatGPT 风格 headless chat 组件族。 |
-| `@zeus-web/data-grid` | 规划中的高性能 headless data grid。 |
+| Package               | 用途                                               |
+| --------------------- | -------------------------------------------------- |
+| `@zeus-web/cli`       | `zweb init`、`zweb add`、AI metadata、icon 命令。  |
+| `@zeus-web/registry`  | CLI 使用的源码模板 registry。                      |
+| `@zeus-web/ui`        | 包内自带样式的原生 Web Components。                |
+| `@zeus-web/themes`    | 设计 token 与组件级 CSS 变量。                     |
+| `@zeus-web/icons`     | 图标资源与生成的 wrapper。                         |
+| `@zeus-web/button`    | 带 WC/React/Vue 入口的 headless button primitive。 |
+| `@zeus-web/input`     | 带 WC/React/Vue 入口的 headless input primitive。  |
+| `@zeus-web/virtual`   | 规划中的高级虚拟滚动基础设施。                     |
+| `@zeus-web/chat`      | 规划中的 ChatGPT 风格 headless chat 组件族。       |
+| `@zeus-web/data-grid` | 规划中的高性能 headless data grid。                |
 
 ## 本地开发
 
