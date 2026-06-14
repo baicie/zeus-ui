@@ -6,15 +6,16 @@ import type {
   ChatThreadVirtualItem,
   ChatThreadVirtualizer,
   ChatThreadVirtualRange,
+  ChatThreadVirtualSnapshot,
 } from '../types'
+
 import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
+import { createEmptyVirtualRange, createRafScheduler } from '@zeus-web/virtual'
 
 import {
-  areVirtualRangesEqual,
-  createEmptyVirtualRange,
-  createRafScheduler,
-} from '@zeus-web/virtual'
-import { createChatThreadVirtualizer } from '../core'
+  createChatThreadVirtualizer,
+  shouldUpdateChatThreadVirtualSnapshot,
+} from '../core'
 
 export interface ChatThreadProps {
   count?: number
@@ -40,6 +41,12 @@ export interface ChatThreadElement extends HTMLElement {
 interface ChatThreadEmits extends Record<string, EventDefinition<unknown>> {
   rangeChange: EventDefinition<ChatThreadRangeChangeDetail>
   scrollOffsetChange: EventDefinition<ChatThreadScrollOffsetChangeDetail>
+}
+
+const emptySnapshot: ChatThreadVirtualSnapshot = {
+  range: createEmptyVirtualRange(),
+  items: [],
+  totalSize: 0,
 }
 
 function resolveCount(props: ChatThreadProps): number {
@@ -101,6 +108,14 @@ function getVirtualizerSignature(props: ChatThreadProps): string {
   ].join(':')
 }
 
+function cloneEmptySnapshot(): ChatThreadVirtualSnapshot {
+  return {
+    range: createEmptyVirtualRange(),
+    items: [],
+    totalSize: 0,
+  }
+}
+
 function setup(
   props: ChatThreadProps,
   ctx: DefineElementContext<ChatThreadElement, ChatThreadEmits>,
@@ -108,8 +123,7 @@ function setup(
   let viewport: HTMLElement | undefined
   let virtualizer = createThreadVirtualizer(props)
   let signature = getVirtualizerSignature(props)
-  let currentRange: ChatThreadVirtualRange = createEmptyVirtualRange()
-  let currentItems: ChatThreadVirtualItem[] = []
+  let currentSnapshot: ChatThreadVirtualSnapshot = cloneEmptySnapshot()
 
   const scheduler = createRafScheduler()
 
@@ -120,37 +134,51 @@ function setup(
 
     signature = nextSignature
     virtualizer = createThreadVirtualizer(props)
-    currentRange = createEmptyVirtualRange()
-    currentItems = []
+    currentSnapshot = cloneEmptySnapshot()
+  }
+
+  const emitSnapshotIfChanged = (
+    nextSnapshot: ChatThreadVirtualSnapshot,
+    scrollOffset: number,
+    viewportSize: number,
+  ): void => {
+    if (!shouldUpdateChatThreadVirtualSnapshot(currentSnapshot, nextSnapshot)) {
+      return
+    }
+
+    currentSnapshot = nextSnapshot
+
+    ctx.emit.rangeChange({
+      range: currentSnapshot.range,
+      items: currentSnapshot.items,
+      scrollOffset,
+      viewportSize,
+      totalSize: currentSnapshot.totalSize,
+    })
   }
 
   const updateRange = (nativeEvent?: Event): void => {
     refreshVirtualizer()
 
+    const scrollOffset = getScrollOffset(viewport)
+    const viewportSize = getViewportSize(viewport)
+
     if (!props.virtual) {
-      currentRange = createEmptyVirtualRange()
-      currentItems = []
+      emitSnapshotIfChanged(emptySnapshot, scrollOffset, viewportSize)
+
+      if (nativeEvent) {
+        ctx.emit.scrollOffsetChange({
+          offset: scrollOffset,
+          nativeEvent,
+        })
+      }
+
       return
     }
 
-    const scrollOffset = getScrollOffset(viewport)
-    const viewportSize = getViewportSize(viewport)
-    const snapshot = virtualizer.getSnapshot(scrollOffset, viewportSize)
-    const nextRange = snapshot.range
-    const nextItems = snapshot.items
+    const nextSnapshot = virtualizer.getSnapshot(scrollOffset, viewportSize)
 
-    if (!areVirtualRangesEqual(currentRange, nextRange)) {
-      currentRange = nextRange
-      currentItems = nextItems
-
-      ctx.emit.rangeChange({
-        range: currentRange,
-        items: currentItems,
-        scrollOffset,
-        viewportSize,
-        totalSize: snapshot.totalSize,
-      })
-    }
+    emitSnapshotIfChanged(nextSnapshot, scrollOffset, viewportSize)
 
     if (nativeEvent) {
       ctx.emit.scrollOffsetChange({
@@ -173,11 +201,11 @@ function setup(
     },
 
     getRange(): ChatThreadVirtualRange {
-      return currentRange
+      return currentSnapshot.range
     },
 
     getItems(): ChatThreadVirtualItem[] {
-      return currentItems
+      return currentSnapshot.items
     },
 
     getTotalSize(): number {
@@ -289,10 +317,12 @@ function setup(
         <div
           part="items"
           data-slot="chat-thread-items"
-          data-range-start={() => String(currentRange.start)}
-          data-range-end={() => String(currentRange.end)}
-          data-overscan-start={() => String(currentRange.overscanStart)}
-          data-overscan-end={() => String(currentRange.overscanEnd)}
+          data-range-start={() => String(currentSnapshot.range.start)}
+          data-range-end={() => String(currentSnapshot.range.end)}
+          data-overscan-start={() =>
+            String(currentSnapshot.range.overscanStart)
+          }
+          data-overscan-end={() => String(currentSnapshot.range.overscanEnd)}
         >
           <Slot />
         </div>

@@ -133,7 +133,7 @@ export type ChatThreadScrollAlign = VirtualScrollAlign
 
 export type ChatThreadVirtualRange = VirtualRange
 
-export type ChatThreadVirtualItem = VirtualItem<NormalizedChatMessageData>
+export type ChatThreadVirtualItem = VirtualItem
 
 export interface ChatThreadVirtualSnapshot {
   range: ChatThreadVirtualRange

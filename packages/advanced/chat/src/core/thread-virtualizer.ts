@@ -7,7 +7,11 @@ import type {
   ChatThreadVirtualSnapshot,
 } from '../types'
 
-import { createEmptyVirtualRange, createVirtualizer } from '@zeus-web/virtual'
+import {
+  areVirtualRangesEqual,
+  createEmptyVirtualRange,
+  createVirtualizer,
+} from '@zeus-web/virtual'
 
 function normalizeCount(value: number): number {
   if (!Number.isFinite(value) || value <= 0) return 0
@@ -31,6 +35,41 @@ function defaultItemKey(index: number): string {
   return String(index)
 }
 
+export function areChatThreadVirtualItemsEqual(
+  left: ChatThreadVirtualItem[],
+  right: ChatThreadVirtualItem[],
+): boolean {
+  if (left.length !== right.length) return false
+
+  for (let index = 0; index < left.length; index += 1) {
+    const a = left[index]
+    const b = right[index]
+
+    if (
+      a.index !== b.index ||
+      a.key !== b.key ||
+      a.start !== b.start ||
+      a.size !== b.size ||
+      a.end !== b.end
+    ) {
+      return false
+    }
+  }
+
+  return true
+}
+
+export function shouldUpdateChatThreadVirtualSnapshot(
+  current: ChatThreadVirtualSnapshot,
+  next: ChatThreadVirtualSnapshot,
+): boolean {
+  return (
+    current.totalSize !== next.totalSize ||
+    !areVirtualRangesEqual(current.range, next.range) ||
+    !areChatThreadVirtualItemsEqual(current.items, next.items)
+  )
+}
+
 export function createChatThreadVirtualizer(
   options: ChatThreadVirtualizerOptions,
 ): ChatThreadVirtualizer {
@@ -49,7 +88,7 @@ export function createChatThreadVirtualizer(
   }
 
   function getItems(range: ChatThreadVirtualRange): ChatThreadVirtualItem[] {
-    return virtualizer.getItems(range) as ChatThreadVirtualItem[]
+    return virtualizer.getItems(range)
   }
 
   function getTotalSize(): number {
@@ -64,11 +103,10 @@ export function createChatThreadVirtualizer(
       viewportSize > 0
         ? getRange(scrollOffset, viewportSize)
         : createEmptyVirtualRange()
-    const items = getItems(range)
 
     return {
       range,
-      items,
+      items: getItems(range),
       totalSize: getTotalSize(),
     }
   }

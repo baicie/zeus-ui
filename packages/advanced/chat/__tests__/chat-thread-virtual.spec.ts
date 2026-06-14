@@ -112,10 +112,11 @@ describe('chat-thread virtual protocol', () => {
     )
   })
 
-  it('uses @zeus-web/virtual instead of duplicating virtualizer logic', () => {
+  it('uses @zeus-web/virtual and chat snapshot comparison helpers', () => {
     expect(source).toContain("from '@zeus-web/virtual'")
     expect(source).toContain('createRafScheduler')
-    expect(source).toContain('areVirtualRangesEqual')
+    expect(source).toContain('shouldUpdateChatThreadVirtualSnapshot')
+    expect(source).toContain('currentSnapshot')
   })
 
   it('does not render chat messages directly', () => {
