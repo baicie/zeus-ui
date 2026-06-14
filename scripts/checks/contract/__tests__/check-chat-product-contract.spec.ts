@@ -61,14 +61,19 @@ describe('chat product contract files', () => {
     expect(source).toContain("| 'chat'")
   })
 
-  it('native template uses auto entry and zw-chat components', () => {
+  it('native template is copyable source, not a source string wrapper', () => {
     const source = read('packages/registry/templates/native/chat.ts')
 
-    expect(source).toContain('@zeus-web/chat/wc/auto')
+    expect(source).toContain("import '@zeus-web/chat/wc/auto'")
+    expect(source).toContain("from '@zeus-web/chat'")
+    expect(source).toContain('export function mountChatDemo')
     expect(source).toContain('zw-chat')
     expect(source).toContain('zw-chat-thread')
     expect(source).toContain('zw-chat-message')
     expect(source).toContain('zw-chat-composer')
+    expect(source).toContain('scrollToBottom')
+    expect(source).not.toContain('String.raw')
+    expect(source).not.toContain('chatNativeSource')
   })
 
   it('react template uses React wrapper and cn utility', () => {

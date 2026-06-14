@@ -71,7 +71,7 @@ export default defineConfig(
 
   // Web Component packages - need DOM globals
   {
-    files: ['packages/primitives/**'],
+    files: ['packages/primitives/**', 'packages/registry/templates/**'],
     rules: {
       'no-restricted-globals': 'off',
     },

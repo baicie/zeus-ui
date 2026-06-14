@@ -141,15 +141,40 @@ describe('@zeus-web/registry package contract', () => {
     )
     expect(getRegistryItemNames(manifest)).toContain('chat')
 
+    expect(chat?.files).toEqual(
+      expect.arrayContaining([
+        {
+          framework: 'native',
+          source: 'templates/native/chat.ts',
+          target: 'components/chat.ts',
+        },
+        {
+          framework: 'react',
+          source: 'templates/react/chat.tsx',
+          target: 'components/ui/chat.tsx',
+        },
+        {
+          framework: 'vue',
+          source: 'templates/vue/chat.vue',
+          target: 'components/ui/chat.vue',
+        },
+      ]),
+    )
+
     const nativeSource = read('templates/native/chat.ts')
     const reactSource = read('templates/react/chat.tsx')
     const vueSource = read('templates/vue/chat.vue')
 
-    expect(nativeSource).toContain('@zeus-web/chat/wc/auto')
+    expect(nativeSource).toContain("import '@zeus-web/chat/wc/auto'")
+    expect(nativeSource).toContain("from '@zeus-web/chat'")
+    expect(nativeSource).toContain('mountChatDemo')
     expect(nativeSource).toContain('zw-chat')
     expect(nativeSource).toContain('zw-chat-thread')
     expect(nativeSource).toContain('zw-chat-message')
     expect(nativeSource).toContain('zw-chat-composer')
+    expect(nativeSource).toContain('scrollToBottom')
+    expect(nativeSource).not.toContain('String.raw')
+    expect(nativeSource).not.toContain('chatNativeSource')
 
     expect(reactSource).toContain('@zeus-web/chat/react')
     expect(reactSource).toContain("import { cn } from '@/lib/cn'")

@@ -1,11 +1,17 @@
-export const chatNativeSource = String.raw`
+import type {
+  ChatComposerElement,
+  ChatMessageStatus,
+  ChatRole,
+  ChatThreadElement,
+} from '@zeus-web/chat'
+
 import '@zeus-web/chat/wc/auto'
 
 interface ChatDemoMessage {
   id: string
-  role: 'user' | 'assistant'
+  role: Extract<ChatRole, 'user' | 'assistant'>
   content: string
-  status?: 'idle' | 'streaming' | 'complete' | 'error' | 'aborted'
+  status?: ChatMessageStatus
 }
 
 const chatDemoMessages: ChatDemoMessage[] = [
@@ -24,6 +30,17 @@ const chatDemoMessages: ChatDemoMessage[] = [
   },
 ]
 
+function createMessage(message: ChatDemoMessage): HTMLElement {
+  const item = document.createElement('zw-chat-message')
+
+  item.setAttribute('message-id', message.id)
+  item.setAttribute('role', message.role)
+  item.setAttribute('status', message.status ?? 'complete')
+  item.textContent = message.content
+
+  return item
+}
+
 export function mountChatDemo(root: HTMLElement): void {
   root.innerHTML = ''
 
@@ -31,32 +48,35 @@ export function mountChatDemo(root: HTMLElement): void {
   chat.setAttribute('empty-text', '暂无消息')
   chat.setAttribute('auto-scroll', '')
 
-  const thread = document.createElement('zw-chat-thread')
+  const thread = document.createElement('zw-chat-thread') as ChatThreadElement
   thread.setAttribute('slot', 'thread')
   thread.setAttribute('aria-label', 'Chat messages')
   thread.setAttribute('count', String(chatDemoMessages.length))
 
   for (const message of chatDemoMessages) {
-    const item = document.createElement('zw-chat-message')
-    item.setAttribute('message-id', message.id)
-    item.setAttribute('role', message.role)
-    item.setAttribute('status', message.status ?? 'complete')
-    item.textContent = message.content
-    thread.append(item)
+    thread.append(createMessage(message))
   }
 
-  const composer = document.createElement('zw-chat-composer')
+  const composer = document.createElement(
+    'zw-chat-composer',
+  ) as ChatComposerElement
   composer.setAttribute('slot', 'composer')
   composer.setAttribute('placeholder', '输入消息...')
   composer.setAttribute('aria-label', 'Message input')
 
   composer.addEventListener('send', event => {
     const detail = (event as CustomEvent<{ value: string }>).detail
-    const message = document.createElement('zw-chat-message')
-    message.setAttribute('message-id', 'local-' + Date.now())
-    message.setAttribute('role', 'user')
-    message.setAttribute('status', 'complete')
-    message.textContent = detail.value
+    const value = detail.value.trim()
+
+    if (!value) return
+
+    const message = createMessage({
+      id: `local-${Date.now()}`,
+      role: 'user',
+      content: value,
+      status: 'complete',
+    })
+
     thread.append(message)
     thread.setAttribute('count', String(thread.children.length))
     thread.scrollToBottom({ behavior: 'smooth' })
@@ -65,4 +85,3 @@ export function mountChatDemo(root: HTMLElement): void {
   chat.append(thread, composer)
   root.append(chat)
 }
-`.trim()
