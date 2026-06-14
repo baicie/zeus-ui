@@ -34,6 +34,8 @@ import {
   areDataGridActiveCellsEqual,
   createDataGridActiveCell,
   createDataGridColumnWidthState,
+  createDataGridControlledSortState,
+  createDataGridControlledStateController,
   createDataGridRows,
   createDataGridRowVirtualizer,
   createDataGridSelectionModel,
@@ -138,17 +140,13 @@ function resolveColumns(props: DataGridProps): DataGridColumn[] {
 
 function resolveRowHeight(props: DataGridProps): number {
   const value = props.rowHeight ?? 40
-
   if (!Number.isFinite(value) || value <= 0) return 40
-
   return value
 }
 
 function resolveOverscan(props: DataGridProps): number {
   const value = props.overscan ?? 4
-
   if (!Number.isFinite(value) || value < 0) return 4
-
   return Math.floor(value)
 }
 
@@ -156,6 +154,18 @@ function resolveSelectionMode(
   value: DataGridSelectionMode | undefined,
 ): DataGridSelectionMode {
   return value ?? 'none'
+}
+
+function resolveVirtual(props: DataGridProps): boolean {
+  return Boolean(props.virtual)
+}
+
+function resolveResizable(props: DataGridProps): boolean {
+  return Boolean(props.resizable)
+}
+
+function resolveKeyboardNavigation(props: DataGridProps): boolean {
+  return props.keyboardNavigation !== false
 }
 
 function getScrollOffset(viewport: HTMLElement | undefined): number {
@@ -171,7 +181,6 @@ function setScrollOffset(
   offset: number,
 ): void {
   if (!viewport) return
-
   viewport.scrollTop = Math.max(0, offset)
 }
 
@@ -205,7 +214,6 @@ function setup(
 
   let rowsSource = resolveRows(props)
   let columnsSource = resolveColumns(props)
-  let selectedKeysSource = props.selectedKeys
 
   let baseColumns = normalizeDataGridColumns(columnsSource)
   let defaultColumnWidths = createDataGridColumnWidthState(baseColumns)
@@ -213,10 +221,10 @@ function setup(
   let columns = applyDataGridColumnWidths(baseColumns, columnWidths)
   let visibleColumns = getVisibleDataGridColumns(columns)
   let rows = createDataGridRows(rowsSource)
-  let sort: DataGridSortState | undefined =
-    props.sortColumn && props.sortDirection
-      ? { columnId: props.sortColumn, direction: props.sortDirection }
-      : undefined
+  let sort: DataGridSortState | undefined = createDataGridControlledSortState(
+    props.sortColumn,
+    props.sortDirection,
+  )
   let visibleRows = sortDataGridRows(rows, columns, sort)
   const selection = createDataGridSelectionModel(
     resolveSelectionMode(props.selectionMode),
@@ -234,62 +242,92 @@ function setup(
     rowKey: props.activeRowKey,
     columnId: props.activeColumnId,
   })
-  let signature = ''
+  let shouldSyncActiveCellFromProps = true
   let modelVersion = 0
-  let activeRowKeySource = props.activeRowKey
-  let activeColumnIdSource = props.activeColumnId
-  let shouldSyncActiveCellFromProps = false
+  let signature = ''
   const scheduler = createRafScheduler()
 
-  const touchExternalModelVersion = (): void => {
-    const nextRowsSource = resolveRows(props)
-    const nextColumnsSource = resolveColumns(props)
-    const nextSelectedKeysSource = props.selectedKeys
-    const nextActiveRowKeySource = props.activeRowKey
-    const nextActiveColumnIdSource = props.activeColumnId
+  const controlledState = createDataGridControlledStateController({
+    rows: rowsSource,
+    columns: columnsSource,
+    selectedKeys: props.selectedKeys,
+    sortColumn: props.sortColumn,
+    sortDirection: props.sortDirection,
+    activeRowKey: props.activeRowKey,
+    activeColumnId: props.activeColumnId,
+    rowHeight: resolveRowHeight(props),
+    overscan: resolveOverscan(props),
+    virtual: resolveVirtual(props),
+    selectionMode: resolveSelectionMode(props.selectionMode),
+    resizable: resolveResizable(props),
+    keyboardNavigation: resolveKeyboardNavigation(props),
+  })
 
-    const columnsChanged = nextColumnsSource !== columnsSource
-    const activeCellPropsChanged =
-      nextActiveRowKeySource !== activeRowKeySource ||
-      nextActiveColumnIdSource !== activeColumnIdSource
+  const readControlledStateSources = () => ({
+    rows: resolveRows(props),
+    columns: resolveColumns(props),
+    selectedKeys: props.selectedKeys,
+    sortColumn: props.sortColumn,
+    sortDirection: props.sortDirection,
+    activeRowKey: props.activeRowKey,
+    activeColumnId: props.activeColumnId,
+    rowHeight: resolveRowHeight(props),
+    overscan: resolveOverscan(props),
+    virtual: resolveVirtual(props),
+    selectionMode: resolveSelectionMode(props.selectionMode),
+    resizable: resolveResizable(props),
+    keyboardNavigation: resolveKeyboardNavigation(props),
+  })
 
-    if (
-      nextRowsSource !== rowsSource ||
-      columnsChanged ||
-      nextSelectedKeysSource !== selectedKeysSource ||
-      activeCellPropsChanged
-    ) {
-      rowsSource = nextRowsSource
-      columnsSource = nextColumnsSource
-      selectedKeysSource = nextSelectedKeysSource
-      activeRowKeySource = nextActiveRowKeySource
-      activeColumnIdSource = nextActiveColumnIdSource
+  const syncControlledSources = (): void => {
+    const changes = controlledState.update(readControlledStateSources())
 
-      if (columnsChanged) {
-        baseColumns = normalizeDataGridColumns(columnsSource)
-        defaultColumnWidths = createDataGridColumnWidthState(baseColumns)
-        columnWidths = { ...defaultColumnWidths }
-      }
+    if (!changes.changed) return
 
-      if (activeCellPropsChanged) {
-        shouldSyncActiveCellFromProps = true
-      }
+    rowsSource = resolveRows(props)
+    columnsSource = resolveColumns(props)
 
-      modelVersion += 1
+    if (changes.columnsChanged) {
+      baseColumns = normalizeDataGridColumns(columnsSource)
+      defaultColumnWidths = createDataGridColumnWidthState(baseColumns)
+      columnWidths = { ...defaultColumnWidths }
     }
+
+    if (changes.selectedKeysChanged && Array.isArray(props.selectedKeys)) {
+      selection.setKeys(props.selectedKeys)
+    }
+
+    if (changes.selectionModeChanged) {
+      selection.setMode(resolveSelectionMode(props.selectionMode))
+    }
+
+    if (changes.sortChanged) {
+      sort = createDataGridControlledSortState(
+        props.sortColumn,
+        props.sortDirection,
+      )
+    }
+
+    if (changes.activeCellChanged) {
+      shouldSyncActiveCellFromProps = true
+    }
+
+    modelVersion += 1
   }
 
   const getSignature = (): string => {
-    touchExternalModelVersion()
+    syncControlledSources()
 
     return JSON.stringify({
       modelVersion,
+      columnWidths,
+      sort,
       rowHeight: resolveRowHeight(props),
       overscan: resolveOverscan(props),
-      sort,
+      virtual: resolveVirtual(props),
       selectionMode: resolveSelectionMode(props.selectionMode),
-      resizable: Boolean(props.resizable),
-      keyboardNavigation: props.keyboardNavigation !== false,
+      resizable: resolveResizable(props),
+      keyboardNavigation: resolveKeyboardNavigation(props),
     })
   }
 
@@ -303,18 +341,19 @@ function setup(
     columns = applyDataGridColumnWidths(baseColumns, columnWidths)
     visibleColumns = getVisibleDataGridColumns(columns)
     rows = createDataGridRows(rowsSource)
+    selection.setMode(resolveSelectionMode(props.selectionMode))
 
     if (Array.isArray(props.selectedKeys)) {
       selection.setKeys(props.selectedKeys)
     }
 
-    selection.setMode(resolveSelectionMode(props.selectionMode))
     visibleRows = sortDataGridRows(rows, columns, sort)
     virtualizer = createDataGridRowVirtualizer({
       rows: visibleRows,
       rowHeight: resolveRowHeight(props),
       overscan: resolveOverscan(props),
     })
+
     activeCell = createInitialDataGridActiveCell({
       rows: visibleRows,
       columns: visibleColumns,
@@ -402,6 +441,10 @@ function setup(
     scheduler.schedule(() => updateRange(nativeEvent))
   }
 
+  const commitControlledState = (): void => {
+    controlledState.commit(readControlledStateSources())
+  }
+
   const syncHostProps = (): void => {
     ctx.host.rows = resolveRows(props)
     ctx.host.columns = resolveColumns(props)
@@ -420,6 +463,29 @@ function setup(
     })
   }
 
+  const syncSelectionPropsFromModel = (): void => {
+    props.selectedKeys = selection.getState().keys
+    commitControlledState()
+    modelVersion += 1
+    signature = ''
+  }
+
+  const syncSortPropsFromModel = (): void => {
+    props.sortColumn = sort?.columnId
+    props.sortDirection = sort?.direction
+    commitControlledState()
+    modelVersion += 1
+    signature = ''
+  }
+
+  const syncActiveCellPropsFromModel = (): void => {
+    props.activeRowKey = activeCell?.rowKey
+    props.activeColumnId = activeCell?.columnId
+    commitControlledState()
+    modelVersion += 1
+    signature = ''
+  }
+
   const emitActiveCell = (
     nextActiveCell: DataGridActiveCell | undefined,
     nativeEvent?: Event,
@@ -428,13 +494,7 @@ function setup(
 
     const previousActiveCell = activeCell
     activeCell = nextActiveCell
-
-    props.activeRowKey = activeCell?.rowKey
-    props.activeColumnId = activeCell?.columnId
-    activeRowKeySource = props.activeRowKey
-    activeColumnIdSource = props.activeColumnId
-    modelVersion += 1
-    signature = ''
+    syncActiveCellPropsFromModel()
 
     ctx.emit.activeCellChange({
       activeCell,
@@ -632,12 +692,10 @@ function setup(
     rebuildModels()
 
     const column = getDataGridColumnById(columns, columnId)
-
     if (!column || !column.sortable) return
 
     sort = createNextDataGridSortState(sort, columnId, direction)
-    modelVersion += 1
-    signature = ''
+    syncSortPropsFromModel()
     visibleRows = sortDataGridRows(rows, columns, sort)
     virtualizer = createDataGridRowVirtualizer({
       rows: visibleRows,
@@ -661,6 +719,7 @@ function setup(
       rowsSource = nextRows
       modelVersion += 1
       syncHostProps()
+      commitControlledState()
       signature = ''
       updateRange()
     },
@@ -673,6 +732,7 @@ function setup(
       columnWidths = { ...defaultColumnWidths }
       modelVersion += 1
       syncHostProps()
+      commitControlledState()
       signature = ''
       updateRange()
     },
@@ -693,30 +753,25 @@ function setup(
     },
 
     getSelection(): DataGridSelectionState {
+      rebuildModels()
       return selection.getState()
     },
 
     setSelection(keys: DataGridRowKey[]): void {
       selection.setKeys(keys)
-      props.selectedKeys = selection.getState().keys
-      selectedKeysSource = props.selectedKeys
-      modelVersion += 1
+      syncSelectionPropsFromModel()
       emitSelection(undefined)
     },
 
     clearSelection(): void {
       selection.clear()
-      props.selectedKeys = []
-      selectedKeysSource = props.selectedKeys
-      modelVersion += 1
+      syncSelectionPropsFromModel()
       emitSelection(undefined)
     },
 
     toggleRowSelection(key: DataGridRowKey): void {
       selection.toggle(key)
-      props.selectedKeys = selection.getState().keys
-      selectedKeysSource = props.selectedKeys
-      modelVersion += 1
+      syncSelectionPropsFromModel()
       emitSelection(key)
     },
 
@@ -730,8 +785,7 @@ function setup(
 
     clearSort(): void {
       sort = undefined
-      modelVersion += 1
-      signature = ''
+      syncSortPropsFromModel()
       visibleRows = sortDataGridRows(rows, columns, sort)
       currentSnapshot = cloneEmptySnapshot()
 
@@ -743,6 +797,7 @@ function setup(
     },
 
     getSort(): DataGridSortState | undefined {
+      rebuildModels()
       return sort ? { ...sort } : undefined
     },
 
@@ -830,6 +885,7 @@ function setup(
     },
 
     getActiveCell(): DataGridActiveCell | undefined {
+      rebuildModels()
       return activeCell ? { ...activeCell } : undefined
     },
 
@@ -1024,7 +1080,6 @@ function setup(
         <div part="body" data-slot="data-grid-body" role="rowgroup">
           {getBodyRows().map(item => {
             const row = item.data
-
             if (!row) return null
 
             return (
@@ -1049,9 +1104,7 @@ function setup(
                 onClick={(nativeEvent: Event) => {
                   if (resolveSelectionMode(props.selectionMode) !== 'none') {
                     selection.toggle(row.key)
-                    props.selectedKeys = selection.getState().keys
-                    selectedKeysSource = props.selectedKeys
-                    modelVersion += 1
+                    syncSelectionPropsFromModel()
                     emitSelection(row.key, nativeEvent)
                   }
 
@@ -1065,6 +1118,9 @@ function setup(
                 }}
               >
                 {visibleColumns.map(column => {
+                  const columnIndex = visibleColumns.findIndex(
+                    item => item.id === column.id,
+                  )
                   const isActive =
                     activeCell?.rowKey === row.key &&
                     activeCell?.columnId === column.id
@@ -1073,9 +1129,7 @@ function setup(
                       rowIndex: row.index,
                       rowKey: row.key,
                       columnId: column.id,
-                      columnIndex: visibleColumns.findIndex(
-                        item => item.id === column.id,
-                      ),
+                      columnIndex,
                     }) ?? undefined
 
                   return (
@@ -1201,7 +1255,7 @@ export const DataGrid = defineElement<
     },
     meta: {
       description:
-        'Headless data grid advanced component with row virtualization, column resizing, keyboard navigation, selection and sorting.',
+        'Headless data grid advanced component with controlled state, row virtualization, column resizing, keyboard navigation, selection and sorting.',
     },
   },
   setup,

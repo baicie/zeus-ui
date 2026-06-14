@@ -56,7 +56,7 @@
     "dev": "rolldown -c ../../../rolldown.config.ts --watch",
     "build": "rimraf dist && rolldown -c ../../../rolldown.config.ts",
     "check": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest --root ../../.. --project unit packages/advanced/data-grid/__tests__/column-model.spec.ts packages/advanced/data-grid/__tests__/column-resize-model.spec.ts packages/advanced/data-grid/__tests__/row-model.spec.ts packages/advanced/data-grid/__tests__/selection-model.spec.ts packages/advanced/data-grid/__tests__/sort-model.spec.ts packages/advanced/data-grid/__tests__/grid-virtualizer.spec.ts packages/advanced/data-grid/__tests__/navigation-model.spec.ts packages/advanced/data-grid/__tests__/data-grid.spec.ts"
+    "test": "vitest --root ../../.. --project unit packages/advanced/data-grid/__tests__/column-model.spec.ts packages/advanced/data-grid/__tests__/column-resize-model.spec.ts packages/advanced/data-grid/__tests__/controlled-state-model.spec.ts packages/advanced/data-grid/__tests__/row-model.spec.ts packages/advanced/data-grid/__tests__/selection-model.spec.ts packages/advanced/data-grid/__tests__/sort-model.spec.ts packages/advanced/data-grid/__tests__/grid-virtualizer.spec.ts packages/advanced/data-grid/__tests__/navigation-model.spec.ts packages/advanced/data-grid/__tests__/data-grid.spec.ts packages/advanced/data-grid/__tests__/data-grid-behavior-contract.spec.ts"
   },
   "peerDependencies": {
     "@zeus-js/zeus": ">=0.1.0-beta.5 <0.2.0",

@@ -106,82 +106,6 @@ describe('data-grid component protocol', () => {
         },
       },
       methods: {
-        setRows: {
-          name: 'setRows',
-          returns: 'void',
-        },
-        setColumns: {
-          name: 'setColumns',
-          returns: 'void',
-        },
-        getRows: {
-          name: 'getRows',
-          returns: 'DataGridRow[]',
-        },
-        getColumns: {
-          name: 'getColumns',
-          returns: 'NormalizedDataGridColumn[]',
-        },
-        getVisibleRows: {
-          name: 'getVisibleRows',
-          returns: 'DataGridRow[]',
-        },
-        getSelection: {
-          name: 'getSelection',
-          returns: 'DataGridSelectionState',
-        },
-        setSelection: {
-          name: 'setSelection',
-          returns: 'void',
-        },
-        clearSelection: {
-          name: 'clearSelection',
-          returns: 'void',
-        },
-        toggleRowSelection: {
-          name: 'toggleRowSelection',
-          returns: 'void',
-        },
-        setSort: {
-          name: 'setSort',
-          returns: 'void',
-        },
-        clearSort: {
-          name: 'clearSort',
-          returns: 'void',
-        },
-        getSort: {
-          name: 'getSort',
-          returns: 'DataGridSortState | unknown',
-        },
-        getRange: {
-          name: 'getRange',
-          returns: 'DataGridVirtualRange',
-        },
-        getItems: {
-          name: 'getItems',
-          returns: 'DataGridVirtualItem[]',
-        },
-        getTotalSize: {
-          name: 'getTotalSize',
-          returns: 'number',
-        },
-        scrollToIndex: {
-          name: 'scrollToIndex',
-          returns: 'void',
-        },
-        scrollToOffset: {
-          name: 'scrollToOffset',
-          returns: 'void',
-        },
-        measure: {
-          name: 'measure',
-          returns: 'void',
-        },
-        resetMeasurements: {
-          name: 'resetMeasurements',
-          returns: 'void',
-        },
         resizeColumn: {
           name: 'resizeColumn',
           returns: 'void',
@@ -197,10 +121,6 @@ describe('data-grid component protocol', () => {
         setActiveCell: {
           name: 'setActiveCell',
           returns: 'void',
-        },
-        getActiveCell: {
-          name: 'getActiveCell',
-          returns: 'DataGridActiveCell | unknown',
         },
         moveActiveCell: {
           name: 'moveActiveCell',
@@ -231,10 +151,60 @@ describe('data-grid component protocol', () => {
     )
   })
 
-  it('uses @zeus-web/virtual instead of duplicating row virtualization', () => {
-    expect(source).toContain("from '@zeus-web/virtual'")
-    expect(source).toContain('createRafScheduler')
-    expect(source).toContain('createDataGridRowVirtualizer')
+  it('uses controlled state model instead of ad-hoc source tracking', () => {
+    expect(source).toContain('createDataGridControlledStateController')
+    expect(source).toContain('createDataGridControlledSortState')
+    expect(source).toContain('readControlledStateSources')
+    expect(source).toContain('syncControlledSources')
+    expect(source).toContain('commitControlledState')
+    expect(source).not.toContain('rowsLength: resolveRows(props).length')
+    expect(source).not.toContain('columnsLength: resolveColumns(props).length')
+  })
+
+  it('tracks controlled sort and active cell props', () => {
+    expect(source).toContain('sortColumn: props.sortColumn')
+    expect(source).toContain('sortDirection: props.sortDirection')
+    expect(source).toContain('activeRowKey: props.activeRowKey')
+    expect(source).toContain('activeColumnId: props.activeColumnId')
+    expect(source).toContain('changes.sortChanged')
+    expect(source).toContain('changes.activeCellChanged')
+  })
+
+  it('syncs internal model mutations back to host props', () => {
+    expect(source).toContain('syncSelectionPropsFromModel')
+    expect(source).toContain('syncSortPropsFromModel')
+    expect(source).toContain('syncActiveCellPropsFromModel')
+    expect(source).toContain('props.selectedKeys = selection.getState().keys')
+    expect(source).toContain('props.sortColumn = sort?.columnId')
+    expect(source).toContain('props.sortDirection = sort?.direction')
+    expect(source).toContain('props.activeRowKey = activeCell?.rowKey')
+    expect(source).toContain('props.activeColumnId = activeCell?.columnId')
+  })
+
+  it('keeps default column widths for reset', () => {
+    expect(source).toContain('defaultColumnWidths')
+    expect(source).toContain(
+      'resetDataGridColumnWidths(baseColumns, defaultColumnWidths)',
+    )
+  })
+
+  it('declares getSort and getActiveCell source signatures with undefined return', () => {
+    expect(source).toMatch(
+      /getSort\(\):\s*DataGridSortState\s*\|\s*undefined\s*\{/,
+    )
+    expect(source).toMatch(
+      /getActiveCell\(\):\s*DataGridActiveCell\s*\|\s*undefined\s*\{/,
+    )
+  })
+
+  it('moves active cell from current cell without emitting intermediate cell state', () => {
+    expect(source).toContain('moveActiveCellFromCell')
+    expect(source).toContain(
+      'moveActiveCellFromCell(\n                            row.key,\n                            column.id,\n                            nativeEvent.key,\n                            nativeEvent,\n                          )',
+    )
+    expect(source).not.toContain(
+      'setActiveCellByKey(row.key, column.id, nativeEvent)\n                          moveActiveCellByKey',
+    )
   })
 
   it('does not implement non-lite features', () => {
@@ -243,60 +213,5 @@ describe('data-grid component protocol', () => {
     expect(source).not.toContain('groupBy')
     expect(source).not.toContain('filterModel')
     expect(source).not.toContain('editor')
-  })
-
-  it('tracks model version for same-length row and column updates', () => {
-    expect(source).toContain('modelVersion')
-    expect(source).toContain('touchExternalModelVersion')
-    expect(source).toContain('rowsSource')
-    expect(source).toContain('columnsSource')
-    expect(source).toContain('selectedKeysSource')
-    expect(source).not.toContain('rowsLength: resolveRows(props).length')
-    expect(source).not.toContain('columnsLength: resolveColumns(props).length')
-  })
-
-  it('keeps rendered snapshot in sync with public getItems state', () => {
-    expect(source).toContain('currentSnapshot = snapshot')
-    expect(source).toContain('const getBodyRows')
-  })
-
-  it('uses column resize and navigation models', () => {
-    expect(source).toContain('resizeDataGridColumn')
-    expect(source).toContain('resizeDataGridColumnByDelta')
-    expect(source).toContain('moveDataGridActiveCell')
-    expect(source).toContain('activeCellChange')
-    expect(source).toContain('columnResize')
-  })
-
-  it('supports aria active descendant and resize handle', () => {
-    expect(source).toContain('aria-activedescendant')
-    expect(source).toContain('getDataGridActiveCellId')
-    expect(source).toContain('data-grid-resize-handle')
-    expect(source).toContain('role="separator"')
-  })
-
-  it('tracks controlled active cell props in model signature', () => {
-    expect(source).toContain('activeRowKeySource')
-    expect(source).toContain('activeColumnIdSource')
-    expect(source).toContain('shouldSyncActiveCellFromProps')
-    expect(source).toContain('nextActiveRowKeySource')
-    expect(source).toContain('nextActiveColumnIdSource')
-  })
-
-  it('moves active cell from current cell without emitting intermediate cell state', () => {
-    expect(source).toContain('moveActiveCellFromCell')
-    expect(source).toMatch(
-      /moveActiveCellFromCell\(\s*row\.key,\s*column\.id,\s*nativeEvent\.key,\s*nativeEvent/,
-    )
-    expect(source).not.toMatch(
-      /setActiveCellByKey\(row\.key, column\.id, nativeEvent\)\n\s+moveActiveCellByKey/,
-    )
-  })
-
-  it('keeps default column widths for reset', () => {
-    expect(source).toContain('defaultColumnWidths')
-    expect(source).toContain(
-      'resetDataGridColumnWidths(baseColumns, defaultColumnWidths)',
-    )
   })
 })

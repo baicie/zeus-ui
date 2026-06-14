@@ -1,5 +1,6 @@
 export * from './column-model'
 export * from './column-resize-model'
+export * from './controlled-state-model'
 export * from './grid-virtualizer'
 export * from './navigation-model'
 export * from './row-model'
