@@ -76,6 +76,17 @@ export interface DataGridProps {
 export interface DataGridElement extends HTMLElement {
   rows?: DataGridRowData[]
   columns?: DataGridColumn[]
+  rowHeight?: number
+  overscan?: number
+  virtual?: boolean
+  selectionMode?: 'none' | 'single' | 'multiple'
+  selectedKeys?: DataGridRowKey[]
+  sortColumn?: string
+  sortDirection?: DataGridSortDirection
+  resizable?: boolean
+  keyboardNavigation?: boolean
+  activeRowKey?: DataGridRowKey
+  activeColumnId?: string
   setRows: (rows: DataGridRowData[]) => void
   setColumns: (columns: DataGridColumn[]) => void
   getRows: () => DataGridRow[]

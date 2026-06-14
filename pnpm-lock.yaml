@@ -153,6 +153,31 @@ importers:
         specifier: workspace:*
         version: link:../../packages/primitives/tabs
 
+  examples/advanced-showcase:
+    dependencies:
+      '@zeus-web/chat':
+        specifier: workspace:*
+        version: link:../../packages/advanced/chat
+      '@zeus-web/data-grid':
+        specifier: workspace:*
+        version: link:../../packages/advanced/data-grid
+      '@zeus-web/virtual':
+        specifier: workspace:*
+        version: link:../../packages/advanced/virtual
+    devDependencies:
+      jsdom:
+        specifier: ^29.1.1
+        version: 29.1.1
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vite:
+        specifier: ^8.0.16
+        version: 8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0)
+      vitest:
+        specifier: ^4.1.8
+        version: 4.1.8(@types/node@25.9.3)(jsdom@29.1.1)(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+
   examples/native-showcase:
     dependencies:
       '@zeus-web/ui':

@@ -22,14 +22,17 @@ function readOptions(argv: string[]): Options {
   }
 }
 
-function discoverPackages(): { name: string; isPrimitive: boolean }[] {
-  const roots: Array<{ dir: string; isPrimitive: boolean }> = [
-    { dir: 'packages', isPrimitive: false },
-    { dir: 'packages/primitives', isPrimitive: true },
-  ]
-  const packages: { name: string; isPrimitive: boolean }[] = []
+type ShowcasePackageKind = 'package' | 'primitive' | 'advanced'
 
-  for (const { dir, isPrimitive } of roots) {
+function discoverPackages(): { name: string; kind: ShowcasePackageKind }[] {
+  const roots: Array<{ dir: string; kind: ShowcasePackageKind }> = [
+    { dir: 'packages', kind: 'package' },
+    { dir: 'packages/primitives', kind: 'primitive' },
+    { dir: 'packages/advanced', kind: 'advanced' },
+  ]
+  const packages: { name: string; kind: ShowcasePackageKind }[] = []
+
+  for (const { dir, kind } of roots) {
     const abs = join(process.cwd(), dir)
     if (!existsSync(abs)) continue
     for (const entry of readdirSync(abs, { withFileTypes: true })) {
@@ -40,7 +43,7 @@ function discoverPackages(): { name: string; isPrimitive: boolean }[] {
       const pkgJson = JSON.parse(readFileSync(pkgFile, 'utf8')) as {
         name: string
       }
-      packages.push({ name: pkgJson.name, isPrimitive })
+      packages.push({ name: pkgJson.name, kind })
     }
   }
 
@@ -65,8 +68,18 @@ function createBuildTargetNames(options: Options): string[] {
    * built so that vitepress can resolve its package exports during build.
    */
   const nativeShowcasePackages = ['@zeus-web/ui', '@zeus-web/zeus-compat']
+  const advancedShowcasePackages = [
+    '@zeus-web/virtual',
+    '@zeus-web/chat',
+    '@zeus-web/data-grid',
+  ]
 
-  return [...foundationPackages, ...packages, ...nativeShowcasePackages]
+  return [
+    ...foundationPackages,
+    ...packages,
+    ...nativeShowcasePackages,
+    ...advancedShowcasePackages,
+  ]
 }
 
 function createPnpmArgs(options: Options): string[] {
@@ -78,13 +91,13 @@ function createPnpmArgs(options: Options): string[] {
 
 async function buildPackage(
   pkg: string,
-  isPrimitive: boolean,
+  kind: ShowcasePackageKind,
   options: Options,
 ): Promise<void> {
-  if (isPrimitive) {
+  if (kind === 'primitive' || kind === 'advanced') {
     const pkgDir = join(
       process.cwd(),
-      'packages/primitives',
+      kind === 'primitive' ? 'packages/primitives' : 'packages/advanced',
       pkg.replace('@zeus-web/', ''),
     )
     const indexPath = join(pkgDir, 'dist', 'index.js')
@@ -131,10 +144,10 @@ async function main(): Promise<void> {
 
   for (const pkg of targets) {
     const pkgInfo = allPackages.find(p => p.name === pkg)
-    const isPrimitive = pkgInfo?.isPrimitive ?? false
+    const kind = pkgInfo?.kind ?? 'package'
     process.stdout.write(`  ${pc.bold(pkg)} ... `)
     try {
-      await buildPackage(pkg, isPrimitive, options)
+      await buildPackage(pkg, kind, options)
       process.stdout.write(`${pc.green('✓')}\n`)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)

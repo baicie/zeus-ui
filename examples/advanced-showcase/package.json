@@ -1,0 +1,25 @@
+{
+  "name": "@zeus-web/example-advanced-showcase",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Advanced Zeus Web component showcase.",
+  "scripts": {
+    "dev": "pnpm build:deps && vite --host 0.0.0.0 --port 5176",
+    "build": "pnpm build:deps && vite build",
+    "build:deps": "pnpm -w exec tsx scripts/examples/build-showcase-deps.ts --force",
+    "check": "pnpm build:deps && tsc -p tsconfig.json --noEmit",
+    "test": "pnpm build:deps && vitest --run"
+  },
+  "dependencies": {
+    "@zeus-web/chat": "workspace:*",
+    "@zeus-web/data-grid": "workspace:*",
+    "@zeus-web/virtual": "workspace:*"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8"
+  }
+}

@@ -17,6 +17,10 @@ const showcaseServers: ShowcaseServerConfig[] = [
     root: 'examples/vue-showcase',
     port: 5174,
   },
+  {
+    root: 'examples/advanced-showcase',
+    port: 5176,
+  },
 ]
 
 function startShowcaseServer(

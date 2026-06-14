@@ -33,6 +33,13 @@ export default defineConfig({
     __TEST__: true,
   },
 
+  oxc: {
+    jsx: {
+      runtime: 'automatic',
+      importSource: '@zeus-js/zeus',
+    },
+  },
+
   resolve: {
     alias: entries,
   },
@@ -307,12 +314,50 @@ export default defineConfig({
         test: {
           name: 'e2e',
           environment: 'jsdom',
-          include: [
-            'packages/*/__tests__/e2e/*.spec.ts',
-            'packages/primitives/*/__tests__/e2e/*.spec.ts',
-            'examples/*/__tests__/e2e/*.spec.ts',
+          include: ['e2e/**/*.spec.ts'],
+          exclude: ['e2e/showcase/**', 'packages/zeus-compat/**'],
+        },
+        resolve: {
+          conditions: ['import', 'module', 'browser', 'default'],
+          alias: [
+            {
+              find: /^@zeus-js\/zeus$/,
+              replacement: zeusEsmPath,
+            },
+            {
+              find: /^@zeus-js\/runtime-dom$/,
+              replacement: runtimeDomEsmPath,
+            },
+            {
+              find: /^react$/,
+              replacement: resolve(
+                process.cwd(),
+                'examples/vite-react/node_modules/react/index.js',
+              ),
+            },
+            {
+              find: /^react-dom\/client$/,
+              replacement: resolve(
+                process.cwd(),
+                'examples/vite-react/node_modules/react-dom/client.js',
+              ),
+            },
+            ...Object.entries(entries).map(([find, replacement]) => ({
+              find,
+              replacement,
+            })),
           ],
-          exclude: ['packages/zeus-compat/**'],
+        },
+        ssr: {
+          noExternal: ['@zeus-js/zeus', '@zeus-js/runtime-dom'],
+          resolve: {
+            externalConditions: ['import', 'module', 'browser', 'default'],
+          },
+        },
+        server: {
+          deps: {
+            inline: ['@zeus-js/zeus', '@zeus-js/runtime-dom'],
+          },
         },
       },
 
@@ -321,8 +366,8 @@ export default defineConfig({
         test: {
           name: 'showcase-e2e',
           environment: 'node',
-          include: ['examples/showcase-e2e/*.spec.ts'],
-          globalSetup: ['examples/showcase-e2e/setup.ts'],
+          include: ['e2e/showcase/*.spec.ts'],
+          globalSetup: ['e2e/showcase/setup.ts'],
           testTimeout: 30_000,
           hookTimeout: 120_000,
           pool: 'forks',

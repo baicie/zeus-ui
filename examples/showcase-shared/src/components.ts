@@ -699,6 +699,100 @@ export const showcaseComponents: ShowcaseComponent[] = [
     iconExamples: ['user'],
     productionPatterns: ['User profile', 'Assignee list', 'Team member card'],
   },
+  {
+    name: 'chat',
+    title: 'Chat',
+    routePath: '/components/chat',
+    packageName: '@zeus-web/chat',
+    group: 'Feedback',
+    description:
+      'Headless ChatGPT-style chat component family for AI and agent interfaces.',
+    registryCommand: 'zweb add chat',
+    imports: {
+      react: "import { Chat } from '@/components/ui/chat'",
+      vue: "import { Chat } from '@zeus-web/chat/vue'",
+      webComponent: "import '@zeus-web/chat/wc'",
+      registry: 'zweb add chat',
+    },
+    sections: [
+      'basic',
+      'states',
+      'controlled',
+      'events',
+      'theme',
+      'accessibility',
+      'production',
+    ],
+    states: ['empty', 'loading', 'disabled', 'streaming', 'with-artifact'],
+    events: [
+      {
+        name: 'send',
+        reactName: 'onSend',
+        vueName: 'send',
+        description: 'Emitted when the user submits a chat message.',
+      },
+      {
+        name: 'message-action',
+        reactName: 'onMessageAction',
+        vueName: 'message-action',
+        description: 'Emitted when a message action is requested.',
+      },
+    ],
+    themeTokens: ['background', 'foreground', 'muted', 'border', 'ring'],
+    iconExamples: ['external-link', 'copy', 'loader'],
+    productionPatterns: [
+      'AI assistant',
+      'Agent console',
+      'Support conversation',
+    ],
+  },
+  {
+    name: 'data-grid',
+    title: 'Data Grid',
+    routePath: '/components/data-grid',
+    packageName: '@zeus-web/data-grid',
+    group: 'Layout',
+    description:
+      'Headless data grid with row virtualization, sorting, selection and column controls.',
+    registryCommand: 'zweb add data-grid',
+    imports: {
+      react: "import { DataGrid } from '@/components/ui/data-grid'",
+      vue: "import { DataGrid } from '@zeus-web/data-grid/vue'",
+      webComponent: "import '@zeus-web/data-grid/wc'",
+      registry: 'zweb add data-grid',
+    },
+    sections: [
+      'basic',
+      'states',
+      'controlled',
+      'events',
+      'theme',
+      'accessibility',
+      'production',
+    ],
+    states: ['default', 'virtual', 'sortable', 'selectable', 'resizable'],
+    events: [
+      {
+        name: 'selection-change',
+        reactName: 'onSelectionChange',
+        vueName: 'selection-change',
+        description: 'Emitted when row selection changes.',
+      },
+      {
+        name: 'sort-change',
+        reactName: 'onSortChange',
+        vueName: 'sort-change',
+        description: 'Emitted when sorting changes.',
+      },
+    ],
+    themeTokens: ['background', 'foreground', 'muted', 'border', 'ring'],
+    iconExamples: ['chevron-up', 'chevron-down', 'settings'],
+    productionPatterns: [
+      'Operations table',
+      'Metric explorer',
+      'Admin data view',
+    ],
+  },
 ]
 
 export const deferredComponents = ['popover', 'dropdown', 'toast'] as const

@@ -26,6 +26,11 @@ export const showcaseTargets: ShowcaseTarget[] = [
   },
 ]
 
+export const advancedShowcaseTarget: ShowcaseTarget = {
+  name: 'advanced',
+  baseURL: 'http://127.0.0.1:5176',
+}
+
 export type ShowcasePageCallback<T> = (
   page: Page,
   context: BrowserContext,
@@ -81,7 +86,7 @@ function createArtifactPrefix(target: ShowcaseTarget): string {
 }
 
 async function ensureArtifactDir(): Promise<string> {
-  const artifactDir = resolve(process.cwd(), 'examples/showcase-e2e/.artifacts')
+  const artifactDir = resolve(process.cwd(), 'e2e/showcase/.artifacts')
   await mkdir(artifactDir, {
     recursive: true,
   })

@@ -66,6 +66,9 @@ jobs:
       - name: Run Native showcase unit tests
         run: pnpm showcase:test:native -- --run --reporter=verbose 2>&1 | tee examples/showcase-unit/.artifacts/native-unit.log
 
+      - name: Run Advanced showcase unit tests
+        run: pnpm showcase:test:advanced -- --run --reporter=verbose 2>&1 | tee examples/showcase-unit/.artifacts/advanced-unit.log
+
       - name: Upload showcase unit artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -93,7 +96,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Build React and Vue showcase
+      - name: Build showcase apps
         run: pnpm showcase:ci:build
 
   e2e:
@@ -135,15 +138,15 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Prepare showcase E2E artifacts directory
-        run: mkdir -p examples/showcase-e2e/.artifacts
+        run: mkdir -p e2e/showcase/.artifacts
 
       - name: Build showcase E2E dependencies
-        run: pnpm showcase:e2e:deps 2>&1 | tee examples/showcase-e2e/.artifacts/deps.log
+        run: pnpm showcase:e2e:deps 2>&1 | tee e2e/showcase/.artifacts/deps.log
 
       - name: Run showcase browser E2E
         env:
           SHOWCASE_E2E_ARTIFACTS: 'true'
-        run: pnpm exec vitest --project showcase-e2e --run --reporter=verbose 2>&1 | tee examples/showcase-e2e/.artifacts/e2e.log
+        run: pnpm exec vitest --project showcase-e2e --run --reporter=verbose 2>&1 | tee e2e/showcase/.artifacts/e2e.log
 
       - name: Upload showcase E2E artifacts
         if: always()
@@ -151,6 +154,6 @@ jobs:
         with:
           name: showcase-e2e-artifacts
           path: |
-            examples/showcase-e2e/.artifacts
+            e2e/showcase/.artifacts
           if-no-files-found: ignore
           retention-days: 7

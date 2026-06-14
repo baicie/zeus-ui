@@ -3,9 +3,9 @@ import { createRoot } from 'react-dom/client'
 import { describe, expect, it, vi } from 'vitest'
 
 // eslint-disable-next-line antfu/no-import-dist
-import { t as defineCustomElement } from '../../../../packages/primitives/input/dist/chunks/_zeus_wc_loader-DgIxLNRP.js'
+import { t as defineCustomElement } from '../../../packages/primitives/input/dist/chunks/_zeus_wc_loader-DgIxLNRP.js'
 // eslint-disable-next-line antfu/no-import-dist
-import { Input } from '../../../../packages/primitives/input/dist/react/index.js'
+import { Input } from '../../../packages/primitives/input/dist/react/index.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
