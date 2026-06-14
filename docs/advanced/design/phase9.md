@@ -194,13 +194,13 @@ e2e/showcase/*.spec.ts
 
 同时给 `@zeus-js/zeus` 和 `@zeus-js/runtime-dom` 配置 browser ESM alias，避免 jsdom 中解析到不适合的入口。
 
-Vitest 4.x 默认使用 oxc transformer，而 root tsconfig 将 `jsx` 设为 `preserve`。因此 `e2e` project 需要配置：
+Vitest 4.x 默认使用 oxc transformer，而 root tsconfig 将 `jsx` 设为 `preserve`。因此需要在 `vitest.config.ts` 顶层配置：
 
 ```txt
 oxc: { jsx: { runtime: 'automatic', importSource: '@zeus-js/zeus' } }
 ```
 
-否则 `.tsx` component source 会被原样传给 Vite import-analysis，并报 `invalid JS syntax`。
+该配置会覆盖 unit、unit-jsdom、canary、e2e 等 project，避免 `.tsx` component source 被原样传给 Vite import-analysis，并报 `invalid JS syntax`。
 
 ## 验收
 

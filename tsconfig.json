@@ -17,7 +17,8 @@
     "packages/advanced/*/__tests__",
     "scripts/**/*",
     "apps/**/*",
-    "examples/showcase-shared/src/**/*"
+    "examples/showcase-shared/src/**/*",
+    "e2e/**/*"
   ],
   "exclude": ["packages/zeus-compat/__tests__/canary-capabilities.spec.ts"]
 }

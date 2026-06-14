@@ -1,19 +1,46 @@
-import { act, createElement } from 'react'
-import { createRoot } from 'react-dom/client'
 import { describe, expect, it, vi } from 'vitest'
 
 // eslint-disable-next-line antfu/no-import-dist
-import { t as defineCustomElement } from '../../../packages/primitives/input/dist/chunks/_zeus_wc_loader-DgIxLNRP.js'
-// eslint-disable-next-line antfu/no-import-dist
-import { Input } from '../../../packages/primitives/input/dist/react/index.js'
+import { defineCustomElements } from '../../../packages/primitives/input/dist/wc/loader.js'
 
-globalThis.IS_REACT_ACT_ENVIRONMENT = true
+interface ReactRuntime {
+  act: (callback: () => Promise<void> | void) => Promise<void>
+  createElement: (type: unknown, props?: Record<string, unknown>) => unknown
+}
+
+interface ReactDomClientRuntime {
+  createRoot: (container: Element) => {
+    render: (element: unknown) => void
+    unmount: () => void
+  }
+}
+
+interface InputReactRuntime {
+  Input: unknown
+}
+
+;(
+  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true
 
 // Pre-register so @lit/react resolves the real class (not HTMLElement fallback).
-defineCustomElement('zw-input')
+defineCustomElements()
+
+function importRuntime<T>(specifier: string): Promise<T> {
+  return import(specifier) as Promise<T>
+}
 
 describe('react input wrapper', () => {
   it('bridges value-change to onValueChange', async () => {
+    const [{ act, createElement }, { createRoot }, { Input }] =
+      await Promise.all([
+        importRuntime<ReactRuntime>('react'),
+        importRuntime<ReactDomClientRuntime>('react-dom/client'),
+        importRuntime<InputReactRuntime>(
+          '../../../packages/primitives/input/dist/react/index.js',
+        ),
+      ])
+
     const container = globalThis.document.createElement('div')
     globalThis.document.body.appendChild(container)
 

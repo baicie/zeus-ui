@@ -1,9 +1,4 @@
-import type {
-  Browser,
-  BrowserContext,
-  BrowserTypeLaunchOptions,
-  Page,
-} from '@playwright/test'
+import type { Browser, BrowserContext, Page } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import process from 'node:process'
@@ -53,9 +48,9 @@ function getBrowserChannel(): string | undefined {
   return process.env.SHOWCASE_E2E_BROWSER_CHANNEL || undefined
 }
 
-function getLaunchOptions(): BrowserTypeLaunchOptions {
+function getLaunchOptions(): Parameters<typeof chromium.launch>[0] {
   const channel = getBrowserChannel()
-  const options: BrowserTypeLaunchOptions = {
+  const options: Parameters<typeof chromium.launch>[0] = {
     headless: shouldRunHeadless(),
   }
 

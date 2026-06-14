@@ -107,10 +107,6 @@ export default defineConfig({
             'packages/**/*.spec.tsx',
 
             // Showcase page / route unit tests (requires build:examples deps).
-            'examples/react-showcase/src/**/*.test.ts',
-            'examples/react-showcase/src/**/*.spec.ts',
-            'examples/react-showcase/src/**/*.test.tsx',
-            'examples/react-showcase/src/**/*.spec.tsx',
             'examples/vue-showcase/src/**/*.test.ts',
             'examples/vue-showcase/src/**/*.spec.ts',
             'examples/vue-showcase/src/**/*.test.tsx',
@@ -269,6 +265,99 @@ export default defineConfig({
           deps: {
             inline: ['@zeus-js/zeus', '@zeus-js/runtime-dom'],
           },
+        },
+      },
+
+      {
+        extends: true,
+        oxc: {
+          jsx: {
+            runtime: 'automatic',
+            importSource: 'react',
+          },
+        },
+        test: {
+          name: 'unit-react-showcase',
+          environment: 'jsdom',
+          include: [
+            'examples/react-showcase/src/**/*.test.ts',
+            'examples/react-showcase/src/**/*.spec.ts',
+            'examples/react-showcase/src/**/*.test.tsx',
+            'examples/react-showcase/src/**/*.spec.tsx',
+          ],
+        },
+        resolve: {
+          conditions: ['import', 'module', 'browser', 'default'],
+          alias: [
+            // React wrapper sub-paths for showcase tests (must come before base @zeus-web/* aliases).
+            ...[
+              '@zeus-web/alert',
+              '@zeus-web/badge',
+              '@zeus-web/button',
+              '@zeus-web/checkbox',
+              '@zeus-web/dialog',
+              '@zeus-web/input',
+              '@zeus-web/progress',
+              '@zeus-web/select',
+              '@zeus-web/switch',
+              '@zeus-web/accordion',
+              '@zeus-web/collapsible',
+              '@zeus-web/tooltip',
+              '@zeus-web/card',
+              '@zeus-web/avatar',
+              '@zeus-web/skeleton',
+              '@zeus-web/separator',
+              '@zeus-web/label',
+              '@zeus-web/radio-group',
+              '@zeus-web/tabs',
+              '@zeus-web/textarea',
+            ].flatMap(pkg => ({
+              find: new RegExp(`^${pkg}/react$`),
+              replacement: resolve(
+                process.cwd(),
+                `packages/primitives/${pkg.replace('@zeus-web/', '')}/dist/react/index.js`,
+              ),
+            })),
+            {
+              find: /^@zeus-web\/icons\/react$/,
+              replacement: resolve(
+                process.cwd(),
+                'packages/icons/dist/react/index.js',
+              ),
+            },
+            {
+              find: /^@zeus-web\/themes\/react$/,
+              replacement: resolve(
+                process.cwd(),
+                'packages/themes/dist/react/index.js',
+              ),
+            },
+            {
+              find: /^@\/components\/ui\/button$/,
+              replacement: resolve(
+                process.cwd(),
+                'examples/react-showcase/src/components/ui/button.tsx',
+              ),
+            },
+            {
+              find: /^@\/components\/ui\/input$/,
+              replacement: resolve(
+                process.cwd(),
+                'examples/react-showcase/src/components/ui/input.tsx',
+              ),
+            },
+            {
+              find: /^@\/lib\/cn$/,
+              replacement: resolve(
+                process.cwd(),
+                'examples/react-showcase/src/lib/cn.ts',
+              ),
+            },
+            ...Object.entries(entries).map(([find, replacement]) => ({
+              find,
+              replacement,
+            })),
+          ],
         },
       },
 
