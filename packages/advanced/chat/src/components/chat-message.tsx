@@ -1,5 +1,6 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 import type {
+  ChatMessageAction,
   ChatMessageActionDetail,
   ChatMessageStatus,
   ChatRole,
@@ -15,7 +16,9 @@ export interface ChatMessageProps {
   interactive?: boolean
 }
 
-export interface ChatMessageElement extends HTMLElement {}
+export interface ChatMessageElement extends HTMLElement {
+  emitAction: (action: ChatMessageAction, nativeEvent?: Event) => void
+}
 
 interface ChatMessageEmits extends Record<string, EventDefinition<unknown>> {
   messageAction: EventDefinition<ChatMessageActionDetail>
@@ -23,8 +26,20 @@ interface ChatMessageEmits extends Record<string, EventDefinition<unknown>> {
 
 function setup(
   props: ChatMessageProps,
-  _ctx: DefineElementContext<ChatMessageElement, ChatMessageEmits>,
+  ctx: DefineElementContext<ChatMessageElement, ChatMessageEmits>,
 ) {
+  ctx.expose({
+    emitAction(action: ChatMessageAction, nativeEvent?: Event): void {
+      if (!props.messageId) return
+
+      ctx.emit.messageAction({
+        messageId: props.messageId,
+        action,
+        nativeEvent,
+      })
+    },
+  })
+
   return (
     <Host
       part="root"

@@ -10,7 +10,9 @@ export interface ChatArtifactProps {
   open?: boolean
 }
 
-export interface ChatArtifactElement extends HTMLElement {}
+export interface ChatArtifactElement extends HTMLElement {
+  openArtifact: (nativeEvent?: Event) => void
+}
 
 interface ChatArtifactEmits extends Record<string, EventDefinition<unknown>> {
   artifactOpen: EventDefinition<ChatArtifactOpenDetail>
@@ -18,8 +20,19 @@ interface ChatArtifactEmits extends Record<string, EventDefinition<unknown>> {
 
 function setup(
   props: ChatArtifactProps,
-  _ctx: DefineElementContext<ChatArtifactElement, ChatArtifactEmits>,
+  ctx: DefineElementContext<ChatArtifactElement, ChatArtifactEmits>,
 ) {
+  ctx.expose({
+    openArtifact(nativeEvent?: Event): void {
+      if (!props.artifactId) return
+
+      ctx.emit.artifactOpen({
+        artifactId: props.artifactId,
+        nativeEvent,
+      })
+    },
+  })
+
   return (
     <Host
       part="root"

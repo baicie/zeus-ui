@@ -1,5 +1,5 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
-import type { ChatMessageActionDetail } from '../types'
+import type { ChatCodeBlockAction, ChatCodeBlockActionDetail } from '../types'
 
 import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
 
@@ -9,16 +9,29 @@ export interface ChatCodeBlockProps {
   copied?: boolean
 }
 
-export interface ChatCodeBlockElement extends HTMLElement {}
+export interface ChatCodeBlockElement extends HTMLElement {
+  emitAction: (action: ChatCodeBlockAction, nativeEvent?: Event) => void
+}
 
 interface ChatCodeBlockEmits extends Record<string, EventDefinition<unknown>> {
-  codeAction: EventDefinition<ChatMessageActionDetail>
+  codeAction: EventDefinition<ChatCodeBlockActionDetail>
 }
 
 function setup(
   props: ChatCodeBlockProps,
-  _ctx: DefineElementContext<ChatCodeBlockElement, ChatCodeBlockEmits>,
+  ctx: DefineElementContext<ChatCodeBlockElement, ChatCodeBlockEmits>,
 ) {
+  ctx.expose({
+    emitAction(action: ChatCodeBlockAction, nativeEvent?: Event): void {
+      ctx.emit.codeAction({
+        action,
+        language: props.language,
+        filename: props.filename,
+        nativeEvent,
+      })
+    },
+  })
+
   return (
     <Host
       part="root"
@@ -70,7 +83,7 @@ export const ChatCodeBlock = defineElement<
       }),
     },
     emits: {
-      codeAction: event<ChatMessageActionDetail>(),
+      codeAction: event<ChatCodeBlockActionDetail>(),
     },
     meta: {
       description: 'Headless chat code block advanced component.',

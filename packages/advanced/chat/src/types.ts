@@ -114,6 +114,15 @@ export interface ChatAttachmentChangeDetail {
   nativeEvent?: Event
 }
 
+export type ChatCodeBlockAction = 'copy'
+
+export interface ChatCodeBlockActionDetail {
+  action: ChatCodeBlockAction
+  language?: string
+  filename?: string
+  nativeEvent?: Event
+}
+
 export type { ChatProps, ChatElement } from './components/chat'
 
 export type {

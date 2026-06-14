@@ -71,6 +71,10 @@ describe('chat advanced component protocol', () => {
         },
       },
       methods: {
+        setMessages: {
+          name: 'setMessages',
+          returns: 'void',
+        },
         appendMessage: {
           name: 'appendMessage',
           returns: 'void',
@@ -93,6 +97,26 @@ describe('chat advanced component protocol', () => {
         },
         scrollToBottom: {
           name: 'scrollToBottom',
+        },
+        emitSend: {
+          name: 'emitSend',
+          returns: 'void',
+        },
+        emitAbort: {
+          name: 'emitAbort',
+          returns: 'void',
+        },
+        emitRegenerate: {
+          name: 'emitRegenerate',
+          returns: 'void',
+        },
+        emitMessageAction: {
+          name: 'emitMessageAction',
+          returns: 'void',
+        },
+        emitArtifactOpen: {
+          name: 'emitArtifactOpen',
+          returns: 'void',
         },
       },
       slots: {
@@ -153,7 +177,6 @@ describe('chat advanced component protocol', () => {
       methods: {
         scrollToBottom: {
           name: 'scrollToBottom',
-          returns: 'void',
         },
       },
       slots: {
@@ -204,6 +227,12 @@ describe('chat advanced component protocol', () => {
         messageAction: {
           name: 'message-action',
           reactName: 'onMessageAction',
+        },
+      },
+      methods: {
+        emitAction: {
+          name: 'emitAction',
+          returns: 'void',
         },
       },
       slots: {
@@ -310,28 +339,191 @@ describe('chat advanced component protocol', () => {
     )
   })
 
-  it('analyzes support components', () => {
-    const files = [
+  it('analyzes zw-chat-code-block', () => {
+    const result = analyzeComponent(
       'packages/advanced/chat/src/components/chat-code-block.tsx',
+    )
+
+    expect(result.diagnostics).toEqual([])
+    expect(result.components[0]).toMatchObject({
+      tag: 'zw-chat-code-block',
+      events: {
+        codeAction: {
+          name: 'code-action',
+          reactName: 'onCodeAction',
+        },
+      },
+      methods: {
+        emitAction: {
+          name: 'emitAction',
+          returns: 'void',
+        },
+      },
+      slots: {
+        default: { name: 'default' },
+        filename: { name: 'filename' },
+        language: { name: 'language' },
+        actions: { name: 'actions' },
+      },
+    })
+
+    expect(result.components[0].cssParts).toEqual(
+      expect.arrayContaining([
+        'actions',
+        'code',
+        'figure',
+        'filename',
+        'header',
+        'language',
+        'pre',
+        'root',
+      ]),
+    )
+  })
+
+  it('analyzes zw-chat-tool-call', () => {
+    const result = analyzeComponent(
       'packages/advanced/chat/src/components/chat-tool-call.tsx',
+    )
+
+    expect(result.diagnostics).toEqual([])
+    expect(result.components[0]).toMatchObject({
+      tag: 'zw-chat-tool-call',
+      props: {
+        status: {
+          type: 'string',
+          values: ['pending', 'running', 'success', 'error'],
+          default: 'pending',
+          reflect: true,
+        },
+      },
+      slots: {
+        summary: { name: 'summary' },
+        input: { name: 'input' },
+        output: { name: 'output' },
+        error: { name: 'error' },
+        actions: { name: 'actions' },
+      },
+    })
+
+    expect(result.components[0].cssParts.length).toBeGreaterThan(0)
+  })
+
+  it('analyzes zw-chat-artifact', () => {
+    const result = analyzeComponent(
       'packages/advanced/chat/src/components/chat-artifact.tsx',
+    )
+
+    expect(result.diagnostics).toEqual([])
+    expect(result.components[0]).toMatchObject({
+      tag: 'zw-chat-artifact',
+      events: {
+        artifactOpen: {
+          name: 'artifact-open',
+          reactName: 'onArtifactOpen',
+        },
+      },
+      methods: {
+        openArtifact: {
+          name: 'openArtifact',
+          returns: 'void',
+        },
+      },
+      slots: {
+        default: { name: 'default' },
+        header: { name: 'header' },
+        footer: { name: 'footer' },
+        actions: { name: 'actions' },
+      },
+    })
+
+    expect(result.components[0].cssParts.length).toBeGreaterThan(0)
+  })
+
+  it('analyzes zw-chat-typing', () => {
+    const result = analyzeComponent(
       'packages/advanced/chat/src/components/chat-typing.tsx',
-    ]
+    )
 
-    const tags = [
-      'zw-chat-code-block',
-      'zw-chat-tool-call',
-      'zw-chat-artifact',
-      'zw-chat-typing',
-    ]
+    expect(result.diagnostics).toEqual([])
+    expect(result.components[0]).toMatchObject({
+      tag: 'zw-chat-typing',
+      props: {
+        active: {
+          type: 'boolean',
+          default: true,
+          reflect: true,
+        },
+      },
+      slots: {
+        default: { name: 'default' },
+      },
+    })
 
-    for (let index = 0; index < files.length; index += 1) {
-      const result = analyzeComponent(files[index])
+    expect(result.components[0].cssParts.length).toBeGreaterThan(0)
+  })
+})
+
+describe('chat advanced component event trigger paths', () => {
+  const componentFiles: Array<{ tag: string; file: string }> = [
+    { tag: 'zw-chat', file: 'packages/advanced/chat/src/components/chat.tsx' },
+    {
+      tag: 'zw-chat-message',
+      file: 'packages/advanced/chat/src/components/chat-message.tsx',
+    },
+    {
+      tag: 'zw-chat-code-block',
+      file: 'packages/advanced/chat/src/components/chat-code-block.tsx',
+    },
+    {
+      tag: 'zw-chat-artifact',
+      file: 'packages/advanced/chat/src/components/chat-artifact.tsx',
+    },
+  ]
+
+  for (const { tag, file } of componentFiles) {
+    it(`${tag} declares events and has matching ctx.emit.* triggers`, () => {
+      const source = readFileSync(resolve(workspaceRoot, file), 'utf-8')
+      const result = analyzeFile({ file, code: source })
 
       expect(result.diagnostics).toEqual([])
-      expect(result.components).toHaveLength(1)
-      expect(result.components[0].tag).toBe(tags[index])
-      expect(result.components[0].cssParts.length).toBeGreaterThan(0)
-    }
-  })
+      const component = result.components[0]
+      expect(component.tag).toBe(tag)
+
+      const declaredEvents = Object.keys(component.events ?? {})
+      expect(declaredEvents.length).toBeGreaterThan(0)
+
+      for (const eventName of declaredEvents) {
+        const trigger = new RegExp(`ctx\\.emit\\.${eventName}\\b`)
+        expect(
+          source.match(trigger),
+          `${tag} event "${eventName}" declared but has no ctx.emit.${eventName} trigger`,
+        ).not.toBeNull()
+      }
+    })
+  }
+
+  for (const { tag, file } of componentFiles) {
+    it(`${tag} emitX/openArtifact-style methods reference ctx.emit.*`, () => {
+      const source = readFileSync(resolve(workspaceRoot, file), 'utf-8')
+      const methodNames = Object.keys(
+        analyzeFile({ file, code: source }).components[0]?.methods ?? {},
+      )
+
+      const emitMethods = methodNames.filter(
+        m => /^emit[A-Z]/.test(m) || m === 'openArtifact',
+      )
+      expect(emitMethods.length).toBeGreaterThan(0)
+
+      for (const method of emitMethods) {
+        const methodCall = new RegExp(
+          `\\b${method}\\b[\\s\\S]{0,800}ctx\\.emit\\.`,
+        )
+        expect(
+          source.match(methodCall),
+          `${tag} method "${method}" should call ctx.emit.* somewhere in its body`,
+        ).not.toBeNull()
+      }
+    })
+  }
 })

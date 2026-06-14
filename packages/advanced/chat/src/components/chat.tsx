@@ -2,6 +2,7 @@ import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 import type {
   ChatAbortDetail,
   ChatArtifactOpenDetail,
+  ChatAttachmentData,
   ChatMessageActionDetail,
   ChatMessageData,
   ChatMessagePart,
@@ -24,12 +25,22 @@ export interface ChatProps {
 
 export interface ChatElement extends HTMLElement {
   messages?: ChatMessageData[]
+  setMessages: (messages: ChatMessageData[]) => void
   appendMessage: (message: ChatMessageData) => void
   updateMessage: (id: string, patch: Partial<ChatMessageData>) => void
   appendMessagePart: (id: string, part: ChatMessagePart) => void
   clear: () => void
   getMessages: () => NormalizedChatMessageData[]
   scrollToBottom: (options?: ScrollIntoViewOptions) => void
+  emitSend: (
+    value: string,
+    nativeEvent?: Event | KeyboardEvent,
+    attachments?: ChatAttachmentData[],
+  ) => void
+  emitAbort: (detail?: ChatAbortDetail) => void
+  emitRegenerate: (messageId: string) => void
+  emitMessageAction: (detail: ChatMessageActionDetail) => void
+  emitArtifactOpen: (detail: ChatArtifactOpenDetail) => void
 }
 
 interface ChatEmits extends Record<string, EventDefinition<unknown>> {
@@ -40,12 +51,20 @@ interface ChatEmits extends Record<string, EventDefinition<unknown>> {
   artifactOpen: EventDefinition<ChatArtifactOpenDetail>
 }
 
+function createSyntheticEvent(type: string): Event {
+  return new Event(type)
+}
+
 function setup(
   props: ChatProps,
   ctx: DefineElementContext<ChatElement, ChatEmits>,
 ) {
   let root: HTMLElement | undefined
   const store = createChatStore(props.messages ?? [])
+
+  const syncHostMessages = (messages: NormalizedChatMessageData[]): void => {
+    ctx.host.messages = messages
+  }
 
   const scrollToBottom = (options?: ScrollIntoViewOptions): void => {
     root?.scrollTo({
@@ -54,36 +73,33 @@ function setup(
     })
   }
 
-  const syncHostMessages = (messages: NormalizedChatMessageData[]) => {
-    ctx.host.messages = messages
+  const maybeAutoScroll = (): void => {
+    if (props.autoScroll !== false) {
+      queueMicrotask(() => scrollToBottom({ behavior: 'smooth' }))
+    }
   }
 
-  ctx.expose({
-    appendMessage(message: ChatMessageData): void {
-      const messages = store.appendMessage(message)
-      syncHostMessages(messages)
+  syncHostMessages(store.getMessages())
 
-      if (props.autoScroll !== false) {
-        queueMicrotask(() => scrollToBottom({ behavior: 'smooth' }))
-      }
+  ctx.expose({
+    setMessages(messages: ChatMessageData[]): void {
+      syncHostMessages(store.setMessages(messages))
+      maybeAutoScroll()
+    },
+
+    appendMessage(message: ChatMessageData): void {
+      syncHostMessages(store.appendMessage(message))
+      maybeAutoScroll()
     },
 
     updateMessage(id: string, patch: Partial<ChatMessageData>): void {
-      const messages = store.updateMessage(id, patch)
-      syncHostMessages(messages)
-
-      if (props.autoScroll !== false) {
-        queueMicrotask(() => scrollToBottom({ behavior: 'smooth' }))
-      }
+      syncHostMessages(store.updateMessage(id, patch))
+      maybeAutoScroll()
     },
 
     appendMessagePart(id: string, part: ChatMessagePart): void {
-      const messages = store.appendMessagePart(id, part)
-      syncHostMessages(messages)
-
-      if (props.autoScroll !== false) {
-        queueMicrotask(() => scrollToBottom({ behavior: 'smooth' }))
-      }
+      syncHostMessages(store.appendMessagePart(id, part))
+      maybeAutoScroll()
     },
 
     clear(): void {
@@ -96,6 +112,42 @@ function setup(
     },
 
     scrollToBottom,
+
+    emitSend(
+      value: string,
+      nativeEvent: Event | KeyboardEvent = createSyntheticEvent('send'),
+      attachments: ChatAttachmentData[] = [],
+    ): void {
+      const normalizedValue = value.trim()
+
+      if (!normalizedValue || props.disabled || props.loading) return
+
+      ctx.emit.send({
+        value: normalizedValue,
+        attachments,
+        nativeEvent,
+      })
+    },
+
+    emitAbort(detail: ChatAbortDetail = {}): void {
+      ctx.emit.abort(detail)
+    },
+
+    emitRegenerate(messageId: string): void {
+      if (!messageId) return
+
+      ctx.emit.regenerate({
+        messageId,
+      })
+    },
+
+    emitMessageAction(detail: ChatMessageActionDetail): void {
+      ctx.emit.messageAction(detail)
+    },
+
+    emitArtifactOpen(detail: ChatArtifactOpenDetail): void {
+      ctx.emit.artifactOpen(detail)
+    },
   })
 
   return (
