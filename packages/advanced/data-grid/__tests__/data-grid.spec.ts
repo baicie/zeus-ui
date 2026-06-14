@@ -187,4 +187,19 @@ describe('data-grid component protocol', () => {
     expect(source).not.toContain('filterModel')
     expect(source).not.toContain('editor')
   })
+
+  it('tracks model version for same-length row and column updates', () => {
+    expect(source).toContain('modelVersion')
+    expect(source).toContain('touchExternalModelVersion')
+    expect(source).toContain('rowsSource')
+    expect(source).toContain('columnsSource')
+    expect(source).toContain('selectedKeysSource')
+    expect(source).not.toContain('rowsLength: resolveRows(props).length')
+    expect(source).not.toContain('columnsLength: resolveColumns(props).length')
+  })
+
+  it('keeps rendered snapshot in sync with public getItems state', () => {
+    expect(source).toContain('currentSnapshot = snapshot')
+    expect(source).toContain('const getBodyRows')
+  })
 })

@@ -182,4 +182,112 @@ describe('data grid row virtualizer', () => {
       }),
     ).toBe(false)
   })
+
+  it('detects row data reference changes even when row key is stable', () => {
+    const leftRow = {
+      key: 'a',
+      index: 0,
+      data: {
+        id: 'a',
+        name: 'old',
+      },
+    }
+
+    const rightRow = {
+      key: 'a',
+      index: 0,
+      data: {
+        id: 'a',
+        name: 'new',
+      },
+    }
+
+    expect(
+      areDataGridVirtualItemsEqual(
+        [
+          {
+            index: 0,
+            key: 'a',
+            start: 0,
+            size: 40,
+            end: 40,
+            data: leftRow,
+          },
+        ],
+        [
+          {
+            index: 0,
+            key: 'a',
+            start: 0,
+            size: 40,
+            end: 40,
+            data: rightRow,
+          },
+        ],
+      ),
+    ).toBe(false)
+  })
+
+  it('updates snapshot when row data reference changes with stable key', () => {
+    const leftRow = {
+      key: 'a',
+      index: 0,
+      data: {
+        id: 'a',
+        name: 'old',
+      },
+    }
+
+    const rightRow = {
+      key: 'a',
+      index: 0,
+      data: {
+        id: 'a',
+        name: 'new',
+      },
+    }
+
+    expect(
+      shouldUpdateDataGridVirtualSnapshot(
+        {
+          range: {
+            start: 0,
+            end: 0,
+            overscanStart: 0,
+            overscanEnd: 0,
+          },
+          items: [
+            {
+              index: 0,
+              key: 'a',
+              start: 0,
+              size: 40,
+              end: 40,
+              data: leftRow,
+            },
+          ],
+          totalSize: 40,
+        },
+        {
+          range: {
+            start: 0,
+            end: 0,
+            overscanStart: 0,
+            overscanEnd: 0,
+          },
+          items: [
+            {
+              index: 0,
+              key: 'a',
+              start: 0,
+              size: 40,
+              end: 40,
+              data: rightRow,
+            },
+          ],
+          totalSize: 40,
+        },
+      ),
+    ).toBe(true)
+  })
 })

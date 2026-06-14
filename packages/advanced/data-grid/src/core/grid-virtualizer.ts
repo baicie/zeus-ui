@@ -71,7 +71,7 @@ export function areDataGridVirtualItemsEqual(
       a.start !== b.start ||
       a.size !== b.size ||
       a.end !== b.end ||
-      a.data?.key !== b.data?.key
+      a.data !== b.data
     ) {
       return false
     }

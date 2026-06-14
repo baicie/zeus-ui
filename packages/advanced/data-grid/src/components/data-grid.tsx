@@ -149,9 +149,13 @@ function setup(
 ) {
   let viewport: HTMLElement | undefined
 
-  let columns = normalizeDataGridColumns(resolveColumns(props))
+  let rowsSource = resolveRows(props)
+  let columnsSource = resolveColumns(props)
+  let selectedKeysSource = props.selectedKeys
+
+  let columns = normalizeDataGridColumns(columnsSource)
   let visibleColumns = getVisibleDataGridColumns(columns)
-  let rows = createDataGridRows(resolveRows(props))
+  let rows = createDataGridRows(rowsSource)
   let sort: DataGridSortState | undefined =
     props.sortColumn && props.sortDirection
       ? { columnId: props.sortColumn, direction: props.sortDirection }
@@ -168,17 +172,37 @@ function setup(
   })
   let currentSnapshot = cloneEmptySnapshot()
   let signature = ''
+  let modelVersion = 0
   const scheduler = createRafScheduler()
 
-  const getSignature = (): string =>
-    JSON.stringify({
-      rowsLength: resolveRows(props).length,
-      columnsLength: resolveColumns(props).length,
+  const touchExternalModelVersion = (): void => {
+    const nextRowsSource = resolveRows(props)
+    const nextColumnsSource = resolveColumns(props)
+    const nextSelectedKeysSource = props.selectedKeys
+
+    if (
+      nextRowsSource !== rowsSource ||
+      nextColumnsSource !== columnsSource ||
+      nextSelectedKeysSource !== selectedKeysSource
+    ) {
+      rowsSource = nextRowsSource
+      columnsSource = nextColumnsSource
+      selectedKeysSource = nextSelectedKeysSource
+      modelVersion += 1
+    }
+  }
+
+  const getSignature = (): string => {
+    touchExternalModelVersion()
+
+    return JSON.stringify({
+      modelVersion,
       rowHeight: resolveRowHeight(props),
       overscan: resolveOverscan(props),
       sort,
       selectionMode: resolveSelectionMode(props.selectionMode),
     })
+  }
 
   const rebuildModels = (): void => {
     const nextSignature = getSignature()
@@ -186,11 +210,16 @@ function setup(
     if (nextSignature === signature) return
 
     signature = nextSignature
-    columns = normalizeDataGridColumns(resolveColumns(props))
+    columns = normalizeDataGridColumns(columnsSource)
     visibleColumns = getVisibleDataGridColumns(columns)
-    rows = createDataGridRows(resolveRows(props))
-    visibleRows = sortDataGridRows(rows, columns, sort)
+    rows = createDataGridRows(rowsSource)
+
+    if (Array.isArray(props.selectedKeys)) {
+      selection.setKeys(props.selectedKeys)
+    }
+
     selection.setMode(resolveSelectionMode(props.selectionMode))
+    visibleRows = sortDataGridRows(rows, columns, sort)
     virtualizer = createDataGridRowVirtualizer({
       rows: visibleRows,
       rowHeight: resolveRowHeight(props),
@@ -302,6 +331,8 @@ function setup(
     if (!column || !column.sortable) return
 
     sort = createNextDataGridSortState(sort, columnId, direction)
+    modelVersion += 1
+    signature = ''
     visibleRows = sortDataGridRows(rows, columns, sort)
     virtualizer = createDataGridRowVirtualizer({
       rows: visibleRows,
@@ -322,6 +353,8 @@ function setup(
   ctx.expose({
     setRows(nextRows: DataGridRowData[]): void {
       props.rows = nextRows
+      rowsSource = nextRows
+      modelVersion += 1
       syncHostProps()
       signature = ''
       updateRange()
@@ -329,6 +362,8 @@ function setup(
 
     setColumns(nextColumns: DataGridColumn[]): void {
       props.columns = nextColumns
+      columnsSource = nextColumns
+      modelVersion += 1
       syncHostProps()
       signature = ''
       updateRange()
@@ -355,16 +390,25 @@ function setup(
 
     setSelection(keys: DataGridRowKey[]): void {
       selection.setKeys(keys)
+      props.selectedKeys = selection.getState().keys
+      selectedKeysSource = props.selectedKeys
+      modelVersion += 1
       emitSelection(undefined)
     },
 
     clearSelection(): void {
       selection.clear()
+      props.selectedKeys = []
+      selectedKeysSource = props.selectedKeys
+      modelVersion += 1
       emitSelection(undefined)
     },
 
     toggleRowSelection(key: DataGridRowKey): void {
       selection.toggle(key)
+      props.selectedKeys = selection.getState().keys
+      selectedKeysSource = props.selectedKeys
+      modelVersion += 1
       emitSelection(key)
     },
 
@@ -378,6 +422,8 @@ function setup(
 
     clearSort(): void {
       sort = undefined
+      modelVersion += 1
+      signature = ''
       visibleRows = sortDataGridRows(rows, columns, sort)
       currentSnapshot = cloneEmptySnapshot()
 
@@ -449,6 +495,7 @@ function setup(
 
   const getBodyRows = (): DataGridVirtualItem[] => {
     const snapshot = getSnapshot()
+    currentSnapshot = snapshot
 
     return snapshot.items
   }
@@ -598,6 +645,9 @@ function setup(
                 onClick={(nativeEvent: Event) => {
                   if (resolveSelectionMode(props.selectionMode) !== 'none') {
                     selection.toggle(row.key)
+                    props.selectedKeys = selection.getState().keys
+                    selectedKeysSource = props.selectedKeys
+                    modelVersion += 1
                     emitSelection(row.key, nativeEvent)
                   }
 
