@@ -610,6 +610,51 @@ importers:
         specifier: ^3.3.4
         version: 3.3.4(typescript@6.0.3)
 
+  packages/advanced/chat:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.5 <0.2.0'
+        version: 0.1.0-beta.5
+      '@zeus-web/virtual':
+        specifier: workspace:*
+        version: link:../virtual
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.38(typescript@6.0.3)
+
+  packages/advanced/virtual:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.5 <0.2.0'
+        version: 0.1.0-beta.5
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.38(typescript@6.0.3)
+
   packages/ai: {}
 
   packages/cli:

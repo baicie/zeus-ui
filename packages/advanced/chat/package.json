@@ -56,7 +56,7 @@
     "dev": "rolldown -c ../../../rolldown.config.ts --watch",
     "build": "rimraf dist && rolldown -c ../../../rolldown.config.ts",
     "check": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest --root ../../.. --project unit packages/advanced/chat/__tests__/message-model.spec.ts packages/advanced/chat/__tests__/chat-store.spec.ts packages/advanced/chat/__tests__/composer-state.spec.ts packages/advanced/chat/__tests__/stream-buffer.spec.ts packages/advanced/chat/__tests__/chat-components.spec.ts"
+    "test": "vitest --root ../../.. --project unit packages/advanced/chat/__tests__/message-model.spec.ts packages/advanced/chat/__tests__/chat-store.spec.ts packages/advanced/chat/__tests__/composer-state.spec.ts packages/advanced/chat/__tests__/stream-buffer.spec.ts packages/advanced/chat/__tests__/thread-virtualizer.spec.ts packages/advanced/chat/__tests__/chat-components.spec.ts packages/advanced/chat/__tests__/chat-thread-virtual.spec.ts"
   },
   "peerDependencies": {
     "@zeus-js/zeus": ">=0.1.0-beta.5 <0.2.0",
@@ -74,6 +74,7 @@
   "dependencies": {
     "@zeus-js/runtime-dom": "0.1.0-beta.5",
     "@zeus-js/web-c-runtime": "0.2.0",
+    "@zeus-web/virtual": "workspace:*",
     "@zeus-web/zeus-compat": "workspace:*"
   }
 }

@@ -39,10 +39,3 @@ export interface Virtualizer {
   measure: (index: number, size: number) => void
   resetMeasurements: () => void
 }
-
-export type {
-  VirtualListProps,
-  VirtualListElement,
-  VirtualListRangeChangeDetail,
-  VirtualListScrollOffsetChangeDetail,
-} from './components/virtual-list'

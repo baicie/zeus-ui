@@ -1,3 +1,9 @@
+import type {
+  VirtualItem,
+  VirtualRange,
+  VirtualScrollAlign,
+} from '@zeus-web/virtual'
+
 export type ChatRole = 'system' | 'user' | 'assistant' | 'tool'
 
 export type ChatMessageStatus =
@@ -121,6 +127,58 @@ export interface ChatCodeBlockActionDetail {
   language?: string
   filename?: string
   nativeEvent?: Event
+}
+
+export type ChatThreadScrollAlign = VirtualScrollAlign
+
+export type ChatThreadVirtualRange = VirtualRange
+
+export type ChatThreadVirtualItem = VirtualItem<NormalizedChatMessageData>
+
+export interface ChatThreadVirtualSnapshot {
+  range: ChatThreadVirtualRange
+  items: ChatThreadVirtualItem[]
+  totalSize: number
+}
+
+export interface ChatThreadRangeChangeDetail {
+  range: ChatThreadVirtualRange
+  items: ChatThreadVirtualItem[]
+  scrollOffset: number
+  viewportSize: number
+  totalSize: number
+}
+
+export interface ChatThreadScrollOffsetChangeDetail {
+  offset: number
+  nativeEvent: Event
+}
+
+export interface ChatThreadVirtualizerOptions {
+  count: number
+  estimateSize: number
+  overscan?: number
+  getItemKey?: (index: number) => string
+}
+
+export interface ChatThreadVirtualizer {
+  getSnapshot: (
+    scrollOffset: number,
+    viewportSize: number,
+  ) => ChatThreadVirtualSnapshot
+  getRange: (
+    scrollOffset: number,
+    viewportSize: number,
+  ) => ChatThreadVirtualRange
+  getItems: (range: ChatThreadVirtualRange) => ChatThreadVirtualItem[]
+  getTotalSize: () => number
+  getOffsetForIndex: (
+    index: number,
+    align?: ChatThreadScrollAlign,
+    viewportSize?: number,
+  ) => number
+  measure: (index: number, size: number) => void
+  resetMeasurements: () => void
 }
 
 export type { ChatProps, ChatElement } from './components/chat'
