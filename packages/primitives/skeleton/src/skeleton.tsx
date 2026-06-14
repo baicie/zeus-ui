@@ -32,7 +32,7 @@ export const Skeleton = defineElement<SkeletonProps, SkeletonElement>(
       part="root"
       data-slot="skeleton-root"
       data-variant={() => props.variant}
-      data-animated={() => (props.animated ? '' : undefined)}
+      data-animated={() => (props.animated ? '' : null)}
       aria-hidden={() => 'true'}
     />
   ),

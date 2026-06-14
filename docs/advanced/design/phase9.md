@@ -1,10 +1,10 @@
-# Phase 9：Data Grid DOM Runtime Tests + Minimal E2E Harness
+# Phase 9: Data Grid DOM Runtime Tests + Minimal E2E Harness
 
 ## 目标
 
-Phase 9 不继续扩展 DataGrid 功能，而是补齐真实 custom element runtime 测试。
+Phase 9 不继续扩展 Data Grid 功能，而是补齐真实 custom element runtime 测试。
 
-前面 Phase 5 到 Phase 8 已完成：
+Phase 5 到 Phase 8 已完成：
 
 1. row virtualization
 2. selection
@@ -14,9 +14,7 @@ Phase 9 不继续扩展 DataGrid 功能，而是补齐真实 custom element runt
 6. controlled state model
 7. analyzer/source contract tests
 
-但这些测试大多是 core 或 source-level contract，缺少真实 DOM runtime 级测试。
-
-Phase 9 目标是使用：
+这些测试大多覆盖 core 或 source-level contract，缺少 DOM runtime 级验证。Phase 9 使用以下真实运行时 API 验证 `zw-data-grid` 行为：
 
 ```txt
 customElements.define()
@@ -26,15 +24,13 @@ addEventListener()
 querySelector()
 ```
 
-验证组件运行时行为。
-
 ## 范围
 
 新增：
 
 ```txt
-packages/advanced/data-grid/__tests__/e2e/data-grid-runtime-harness.ts
-packages/advanced/data-grid/__tests__/e2e/data-grid-runtime.spec.ts
+e2e/advanced/data-grid/data-grid-runtime-harness.ts
+e2e/advanced/data-grid/data-grid-runtime.spec.ts
 docs/advanced/design/phase9.md
 ```
 
@@ -43,24 +39,27 @@ docs/advanced/design/phase9.md
 ```txt
 vitest.config.ts
 packages/advanced/data-grid/package.json
+packages/advanced/data-grid/src/components/data-grid.tsx
 ```
+
+说明：项目级 E2E 已统一迁移到根目录 `e2e/`，因此 Data Grid runtime tests 不再放在包内 `__tests__/e2e/`。
 
 ## 非目标
 
 本阶段不做：
 
-1. 不新增 DataGrid 功能。
-2. 不做浏览器真实 Playwright。
-3. 不做视觉回归。
-4. 不做 registry product layer。
-5. 不改 React/Vue wrappers。
-6. 不做列虚拟、过滤器、编辑器、树表、分组。
+1. 不新增 Data Grid 产品功能
+2. 不做真实浏览器 Playwright 测试
+3. 不做视觉回归
+4. 不做 registry product layer
+5. 不改 React/Vue wrappers
+6. 不做列虚拟、过滤器、编辑器、树表、分组
 
 ## 测试策略
 
 ### unit
 
-继续跑已有 core / analyzer / source contract：
+继续运行已有 core / analyzer / source contract：
 
 ```bash
 pnpm --filter @zeus-web/data-grid test:unit
@@ -76,7 +75,7 @@ pnpm --filter @zeus-web/data-grid test:e2e
 
 ### package test
 
-默认串行执行：
+包级默认测试串行执行：
 
 ```bash
 pnpm --filter @zeus-web/data-grid test
@@ -181,15 +180,27 @@ range-change
 
 ## Vitest 配置
 
-`e2e` project 需要 jsdom，并且 include advanced 包：
+`e2e` project 使用 jsdom，并 include 根目录 E2E：
 
 ```txt
-packages/advanced/*/__tests__/e2e/*.spec.ts
+e2e/**/*.spec.ts
 ```
 
-同时要给 `@zeus-js/zeus` 和 `@zeus-js/runtime-dom` 配 browser ESM alias，否则 runtime-dom 在 jsdom 下可能解析到不合适的入口。
+`showcase-e2e` 单独 include：
 
-另外 vitest 4.x 默认使用 oxc transformer，而 root tsconfig 把 `jsx` 设为 `preserve` — 必须在 vitest config 顶层加 `oxc: { jsx: { runtime: 'automatic', importSource: '@zeus-js/zeus' } }`，否则 `.tsx` 组件 source 会被原样透传到 vite import-analysis 报"invalid JS syntax"。
+```txt
+e2e/showcase/*.spec.ts
+```
+
+同时给 `@zeus-js/zeus` 和 `@zeus-js/runtime-dom` 配置 browser ESM alias，避免 jsdom 中解析到不适合的入口。
+
+Vitest 4.x 默认使用 oxc transformer，而 root tsconfig 将 `jsx` 设为 `preserve`。因此 `e2e` project 需要配置：
+
+```txt
+oxc: { jsx: { runtime: 'automatic', importSource: '@zeus-js/zeus' } }
+```
+
+否则 `.tsx` component source 会被原样传给 Vite import-analysis，并报 `invalid JS syntax`。
 
 ## 验收
 

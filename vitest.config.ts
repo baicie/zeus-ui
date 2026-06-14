@@ -33,13 +33,6 @@ export default defineConfig({
     __TEST__: true,
   },
 
-  oxc: {
-    jsx: {
-      runtime: 'automatic',
-      importSource: '@zeus-js/zeus',
-    },
-  },
-
   resolve: {
     alias: entries,
   },
@@ -311,6 +304,12 @@ export default defineConfig({
 
       {
         extends: true,
+        oxc: {
+          jsx: {
+            runtime: 'automatic',
+            importSource: '@zeus-js/zeus',
+          },
+        },
         test: {
           name: 'e2e',
           environment: 'jsdom',
