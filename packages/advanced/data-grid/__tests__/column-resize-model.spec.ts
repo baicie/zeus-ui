@@ -88,14 +88,16 @@ describe('column resize model', () => {
     expect(result.width).toBe(192)
   })
 
-  it('resets column widths', () => {
+  it('resets column widths to provided default widths', () => {
+    const defaultWidths = createDataGridColumnWidthState(columns)
     const resized = resizeDataGridColumn(columns, 'name', 220)
-    const reset = resetDataGridColumnWidths(resized.columns)
+    const reset = resetDataGridColumnWidths(resized.columns, defaultWidths)
 
     expect(reset.widths).toEqual({
-      name: 220,
+      name: 160,
       role: 120,
       locked: 100,
     })
+    expect(reset.columns.find(column => column.id === 'name')?.width).toBe(160)
   })
 })

@@ -208,7 +208,8 @@ function setup(
   let selectedKeysSource = props.selectedKeys
 
   let baseColumns = normalizeDataGridColumns(columnsSource)
-  let columnWidths = createDataGridColumnWidthState(baseColumns)
+  let defaultColumnWidths = createDataGridColumnWidthState(baseColumns)
+  let columnWidths = { ...defaultColumnWidths }
   let columns = applyDataGridColumnWidths(baseColumns, columnWidths)
   let visibleColumns = getVisibleDataGridColumns(columns)
   let rows = createDataGridRows(rowsSource)
@@ -235,21 +236,45 @@ function setup(
   })
   let signature = ''
   let modelVersion = 0
+  let activeRowKeySource = props.activeRowKey
+  let activeColumnIdSource = props.activeColumnId
+  let shouldSyncActiveCellFromProps = false
   const scheduler = createRafScheduler()
 
   const touchExternalModelVersion = (): void => {
     const nextRowsSource = resolveRows(props)
     const nextColumnsSource = resolveColumns(props)
     const nextSelectedKeysSource = props.selectedKeys
+    const nextActiveRowKeySource = props.activeRowKey
+    const nextActiveColumnIdSource = props.activeColumnId
+
+    const columnsChanged = nextColumnsSource !== columnsSource
+    const activeCellPropsChanged =
+      nextActiveRowKeySource !== activeRowKeySource ||
+      nextActiveColumnIdSource !== activeColumnIdSource
 
     if (
       nextRowsSource !== rowsSource ||
-      nextColumnsSource !== columnsSource ||
-      nextSelectedKeysSource !== selectedKeysSource
+      columnsChanged ||
+      nextSelectedKeysSource !== selectedKeysSource ||
+      activeCellPropsChanged
     ) {
       rowsSource = nextRowsSource
       columnsSource = nextColumnsSource
       selectedKeysSource = nextSelectedKeysSource
+      activeRowKeySource = nextActiveRowKeySource
+      activeColumnIdSource = nextActiveColumnIdSource
+
+      if (columnsChanged) {
+        baseColumns = normalizeDataGridColumns(columnsSource)
+        defaultColumnWidths = createDataGridColumnWidthState(baseColumns)
+        columnWidths = { ...defaultColumnWidths }
+      }
+
+      if (activeCellPropsChanged) {
+        shouldSyncActiveCellFromProps = true
+      }
+
       modelVersion += 1
     }
   }
@@ -293,9 +318,14 @@ function setup(
     activeCell = createInitialDataGridActiveCell({
       rows: visibleRows,
       columns: visibleColumns,
-      rowKey: activeCell?.rowKey ?? props.activeRowKey,
-      columnId: activeCell?.columnId ?? props.activeColumnId,
+      rowKey: shouldSyncActiveCellFromProps
+        ? props.activeRowKey
+        : (activeCell?.rowKey ?? props.activeRowKey),
+      columnId: shouldSyncActiveCellFromProps
+        ? props.activeColumnId
+        : (activeCell?.columnId ?? props.activeColumnId),
     })
+    shouldSyncActiveCellFromProps = false
     currentSnapshot = cloneEmptySnapshot()
   }
 
@@ -401,6 +431,10 @@ function setup(
 
     props.activeRowKey = activeCell?.rowKey
     props.activeColumnId = activeCell?.columnId
+    activeRowKeySource = props.activeRowKey
+    activeColumnIdSource = props.activeColumnId
+    modelVersion += 1
+    signature = ''
 
     ctx.emit.activeCellChange({
       activeCell,
@@ -446,6 +480,48 @@ function setup(
       rows: visibleRows,
       columns: visibleColumns,
       current: activeCell,
+      key,
+      pageSize: Math.max(
+        1,
+        Math.floor(getViewportSize(viewport) / resolveRowHeight(props)),
+      ),
+    })
+
+    emitActiveCell(nextActiveCell, nativeEvent)
+
+    if (nextActiveCell) {
+      ctx.host.scrollToIndex(nextActiveCell.rowIndex, 'center')
+    }
+  }
+
+  const moveActiveCellFromCell = (
+    rowKey: DataGridRowKey,
+    columnId: string,
+    key: DataGridNavigationKey,
+    nativeEvent?: Event,
+  ): void => {
+    rebuildModels()
+
+    if (props.keyboardNavigation === false) return
+
+    const rowIndex = visibleRows.findIndex(row => row.key === rowKey)
+    const columnIndex = visibleColumns.findIndex(
+      column => column.id === columnId,
+    )
+
+    if (rowIndex < 0 || columnIndex < 0) return
+
+    const current = createDataGridActiveCell(
+      visibleRows,
+      visibleColumns,
+      rowIndex,
+      columnIndex,
+    )
+
+    const nextActiveCell = moveDataGridActiveCell({
+      rows: visibleRows,
+      columns: visibleColumns,
+      current,
       key,
       pageSize: Math.max(
         1,
@@ -593,7 +669,8 @@ function setup(
       props.columns = nextColumns
       columnsSource = nextColumns
       baseColumns = normalizeDataGridColumns(nextColumns)
-      columnWidths = createDataGridColumnWidthState(baseColumns)
+      defaultColumnWidths = createDataGridColumnWidthState(baseColumns)
+      columnWidths = { ...defaultColumnWidths }
       modelVersion += 1
       syncHostProps()
       signature = ''
@@ -730,12 +807,13 @@ function setup(
     resetColumnWidths(): void {
       rebuildModels()
 
-      const result = resetDataGridColumnWidths(baseColumns)
+      const result = resetDataGridColumnWidths(baseColumns, defaultColumnWidths)
       columnWidths = result.widths
       columns = result.columns
       visibleColumns = getVisibleDataGridColumns(columns)
       modelVersion += 1
       signature = ''
+      updateRange()
     },
 
     getColumnWidths(): Record<string, number> {
@@ -1031,8 +1109,12 @@ function setup(
                           isNavigationKey(nativeEvent.key)
                         ) {
                           nativeEvent.preventDefault()
-                          setActiveCellByKey(row.key, column.id, nativeEvent)
-                          moveActiveCellByKey(nativeEvent.key, nativeEvent)
+                          moveActiveCellFromCell(
+                            row.key,
+                            column.id,
+                            nativeEvent.key,
+                            nativeEvent,
+                          )
                         }
 
                         emitCellAction('keydown', row, column, nativeEvent)

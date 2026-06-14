@@ -274,4 +274,29 @@ describe('data-grid component protocol', () => {
     expect(source).toContain('data-grid-resize-handle')
     expect(source).toContain('role="separator"')
   })
+
+  it('tracks controlled active cell props in model signature', () => {
+    expect(source).toContain('activeRowKeySource')
+    expect(source).toContain('activeColumnIdSource')
+    expect(source).toContain('shouldSyncActiveCellFromProps')
+    expect(source).toContain('nextActiveRowKeySource')
+    expect(source).toContain('nextActiveColumnIdSource')
+  })
+
+  it('moves active cell from current cell without emitting intermediate cell state', () => {
+    expect(source).toContain('moveActiveCellFromCell')
+    expect(source).toMatch(
+      /moveActiveCellFromCell\(\s*row\.key,\s*column\.id,\s*nativeEvent\.key,\s*nativeEvent/,
+    )
+    expect(source).not.toMatch(
+      /setActiveCellByKey\(row\.key, column\.id, nativeEvent\)\n\s+moveActiveCellByKey/,
+    )
+  })
+
+  it('keeps default column widths for reset', () => {
+    expect(source).toContain('defaultColumnWidths')
+    expect(source).toContain(
+      'resetDataGridColumnWidths(baseColumns, defaultColumnWidths)',
+    )
+  })
 })

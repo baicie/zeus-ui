@@ -120,11 +120,15 @@ export function resizeDataGridColumnByDelta(
 
 export function resetDataGridColumnWidths(
   columns: NormalizedDataGridColumn[],
+  defaultWidths: DataGridColumnWidthState = createDataGridColumnWidthState(
+    columns,
+  ),
 ): DataGridColumnResizeResult {
-  const widths = createDataGridColumnWidthState(columns)
+  const widths = { ...defaultWidths }
+  const resetColumns = applyDataGridColumnWidths(columns, widths)
 
   return {
-    columns: applyDataGridColumnWidths(columns, widths),
+    columns: resetColumns,
     widths,
     column: undefined,
     previousWidth: undefined,
