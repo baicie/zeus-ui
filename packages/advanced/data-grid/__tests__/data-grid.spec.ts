@@ -106,6 +106,81 @@ describe('data-grid component protocol', () => {
         },
       },
       methods: {
+        setRows: {
+          name: 'setRows',
+          returns: 'void',
+        },
+        setColumns: {
+          name: 'setColumns',
+          returns: 'void',
+        },
+        getRows: {
+          name: 'getRows',
+          returns: 'DataGridRow[]',
+        },
+        getColumns: {
+          name: 'getColumns',
+          returns: 'NormalizedDataGridColumn[]',
+        },
+        getVisibleRows: {
+          name: 'getVisibleRows',
+          returns: 'DataGridRow[]',
+        },
+        getSelection: {
+          name: 'getSelection',
+          returns: 'DataGridSelectionState',
+        },
+        setSelection: {
+          name: 'setSelection',
+          returns: 'void',
+        },
+        clearSelection: {
+          name: 'clearSelection',
+          returns: 'void',
+        },
+        toggleRowSelection: {
+          name: 'toggleRowSelection',
+          returns: 'void',
+        },
+        setSort: {
+          name: 'setSort',
+          returns: 'void',
+        },
+        clearSort: {
+          name: 'clearSort',
+          returns: 'void',
+        },
+        getSort: {
+          name: 'getSort',
+        },
+        getRange: {
+          name: 'getRange',
+          returns: 'DataGridVirtualRange',
+        },
+        getItems: {
+          name: 'getItems',
+          returns: 'DataGridVirtualItem[]',
+        },
+        getTotalSize: {
+          name: 'getTotalSize',
+          returns: 'number',
+        },
+        scrollToIndex: {
+          name: 'scrollToIndex',
+          returns: 'void',
+        },
+        scrollToOffset: {
+          name: 'scrollToOffset',
+          returns: 'void',
+        },
+        measure: {
+          name: 'measure',
+          returns: 'void',
+        },
+        resetMeasurements: {
+          name: 'resetMeasurements',
+          returns: 'void',
+        },
         resizeColumn: {
           name: 'resizeColumn',
           returns: 'void',
@@ -121,6 +196,9 @@ describe('data-grid component protocol', () => {
         setActiveCell: {
           name: 'setActiveCell',
           returns: 'void',
+        },
+        getActiveCell: {
+          name: 'getActiveCell',
         },
         moveActiveCell: {
           name: 'moveActiveCell',
@@ -185,15 +263,6 @@ describe('data-grid component protocol', () => {
     expect(source).toContain('defaultColumnWidths')
     expect(source).toContain(
       'resetDataGridColumnWidths(baseColumns, defaultColumnWidths)',
-    )
-  })
-
-  it('declares getSort and getActiveCell source signatures with undefined return', () => {
-    expect(source).toMatch(
-      /getSort\(\):\s*DataGridSortState\s*\|\s*undefined\s*\{/,
-    )
-    expect(source).toMatch(
-      /getActiveCell\(\):\s*DataGridActiveCell\s*\|\s*undefined\s*\{/,
     )
   })
 

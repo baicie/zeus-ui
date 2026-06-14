@@ -293,8 +293,8 @@ function setup(
       columnWidths = { ...defaultColumnWidths }
     }
 
-    if (changes.selectedKeysChanged && Array.isArray(props.selectedKeys)) {
-      selection.setKeys(props.selectedKeys)
+    if (changes.selectedKeysChanged) {
+      selection.setKeys(props.selectedKeys ?? [])
     }
 
     if (changes.selectionModeChanged) {
@@ -343,9 +343,7 @@ function setup(
     rows = createDataGridRows(rowsSource)
     selection.setMode(resolveSelectionMode(props.selectionMode))
 
-    if (Array.isArray(props.selectedKeys)) {
-      selection.setKeys(props.selectedKeys)
-    }
+    selection.setKeys(props.selectedKeys ?? [])
 
     visibleRows = sortDataGridRows(rows, columns, sort)
     virtualizer = createDataGridRowVirtualizer({

@@ -85,6 +85,24 @@ describe('controlled state model', () => {
     expect(changes.reasons).toContain('selectedKeys')
   })
 
+  it('detects selectedKeys changed from array to undefined', () => {
+    const controller = createDataGridControlledStateController(
+      createSources({
+        selectedKeys: ['a'],
+      }),
+    )
+
+    const changes = controller.update(
+      createSources({
+        selectedKeys: undefined,
+      }),
+    )
+
+    expect(changes.changed).toBe(true)
+    expect(changes.selectedKeysChanged).toBe(true)
+    expect(changes.reasons).toContain('selectedKeys')
+  })
+
   it('detects sort changes', () => {
     const controller = createDataGridControlledStateController(createSources())
 

@@ -34,9 +34,10 @@ describe('data-grid behavior contract', () => {
     expect(source).toContain('columnWidths = { ...defaultColumnWidths }')
   })
 
-  it('syncs controlled selectedKeys into selection model', () => {
+  it('syncs controlled selectedKeys into selection model and clears undefined', () => {
     expect(source).toContain('changes.selectedKeysChanged')
-    expect(source).toContain('selection.setKeys(props.selectedKeys)')
+    expect(source).toContain('selection.setKeys(props.selectedKeys ?? [])')
+    expect(source).not.toContain('Array.isArray(props.selectedKeys)')
   })
 
   it('syncs controlled sort props into internal sort state', () => {
@@ -69,6 +70,15 @@ describe('data-grid behavior contract', () => {
     expect(source).toContain('moveActiveCellFromCell')
     expect(source).not.toContain(
       'setActiveCellByKey(row.key, column.id, nativeEvent)\n                          moveActiveCellByKey',
+    )
+  })
+
+  it('declares getSort and getActiveCell with undefined source return type', () => {
+    expect(source).toMatch(
+      /getSort\(\):\s*DataGridSortState\s*\|\s*undefined\s*\{/,
+    )
+    expect(source).toMatch(
+      /getActiveCell\(\):\s*DataGridActiveCell\s*\|\s*undefined\s*\{/,
     )
   })
 })
