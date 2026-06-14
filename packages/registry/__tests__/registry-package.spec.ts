@@ -38,10 +38,17 @@ describe('@zeus-web/registry package contract', () => {
     expect(packageJson.exports).toHaveProperty('./templates/react/button.tsx')
     expect(packageJson.exports).toHaveProperty('./templates/react/input.tsx')
     expect(packageJson.exports).toHaveProperty('./templates/react/chat.tsx')
+    expect(packageJson.exports).toHaveProperty(
+      './templates/react/data-grid.tsx',
+    )
     expect(packageJson.exports).toHaveProperty('./templates/vue/button.vue')
     expect(packageJson.exports).toHaveProperty('./templates/vue/input.vue')
     expect(packageJson.exports).toHaveProperty('./templates/vue/chat.vue')
+    expect(packageJson.exports).toHaveProperty('./templates/vue/data-grid.vue')
     expect(packageJson.exports).toHaveProperty('./templates/native/chat.ts')
+    expect(packageJson.exports).toHaveProperty(
+      './templates/native/data-grid.ts',
+    )
     expect(packageJson.exports).toHaveProperty('./templates/css/globals.css')
     expect(packageJson.exports).toHaveProperty('./templates/lib/cn.ts')
   })
@@ -51,7 +58,14 @@ describe('@zeus-web/registry package contract', () => {
     const names = getRegistryItemNames(manifest)
 
     expect(manifest.schemaVersion).toBe(1)
-    expect(names).toEqual(['cn', 'globals', 'button', 'input', 'chat'])
+    expect(names).toEqual([
+      'cn',
+      'globals',
+      'button',
+      'input',
+      'chat',
+      'data-grid',
+    ])
   })
 
   it('resolves item dependencies', () => {
@@ -192,6 +206,72 @@ describe('@zeus-web/registry package contract', () => {
       expect(source).not.toContain('OPENAI_API_KEY')
       expect(source).not.toContain('ANTHROPIC_API_KEY')
       expect(source).not.toContain('DEEPSEEK_API_KEY')
+    }
+  })
+
+  it('registers data-grid across native/react/vue with safe templates', () => {
+    const manifest = readManifest()
+    const dataGrid = findRegistryItem(manifest, 'data-grid')
+
+    expect(dataGrid).toBeTruthy()
+    expect(dataGrid?.dependencies).toEqual(['@zeus-web/data-grid'])
+    expect(dataGrid?.frameworks).toEqual(
+      expect.arrayContaining(['native', 'react', 'vue']),
+    )
+    expect(getRegistryItemNames(manifest)).toContain('data-grid')
+
+    expect(dataGrid?.files).toEqual(
+      expect.arrayContaining([
+        {
+          framework: 'native',
+          source: 'templates/native/data-grid.ts',
+          target: 'components/data-grid.ts',
+        },
+        {
+          framework: 'react',
+          source: 'templates/react/data-grid.tsx',
+          target: 'components/ui/data-grid.tsx',
+        },
+        {
+          framework: 'vue',
+          source: 'templates/vue/data-grid.vue',
+          target: 'components/ui/data-grid.vue',
+        },
+      ]),
+    )
+
+    const nativeSource = read('templates/native/data-grid.ts')
+    const reactSource = read('templates/react/data-grid.tsx')
+    const vueSource = read('templates/vue/data-grid.vue')
+
+    expect(nativeSource).toContain("import '@zeus-web/data-grid/wc/auto'")
+    expect(nativeSource).toContain("from '@zeus-web/data-grid'")
+    expect(nativeSource).toContain('mountDataGridDemo')
+    expect(nativeSource).toContain('zw-data-grid')
+    expect(nativeSource).toContain('dataGridDemoColumns')
+    expect(nativeSource).toContain('dataGridDemoRows')
+    expect(nativeSource).not.toContain('String.raw')
+    expect(nativeSource).not.toContain('dataGridNativeSource')
+
+    expect(reactSource).toContain('@zeus-web/data-grid/react')
+    expect(reactSource).toContain("import { cn } from '@/lib/cn'")
+    expect(reactSource).toContain('DataGridPrimitive')
+    expect(reactSource).toContain('DataGridDemo')
+
+    expect(vueSource).toContain('@zeus-web/data-grid/vue')
+    expect(vueSource).toContain("import { cn } from '@/lib/cn'")
+    expect(vueSource).toContain('DataGridPrimitive')
+
+    for (const source of [nativeSource, reactSource, vueSource]) {
+      expect(source).not.toContain('fetch(')
+      expect(source).not.toContain('Authorization')
+      expect(source).not.toContain('Bearer')
+      expect(source).not.toContain('apiKey')
+      expect(source).not.toContain('OPENAI_API_KEY')
+      expect(source).not.toContain('ANTHROPIC_API_KEY')
+      expect(source).not.toContain('DEEPSEEK_API_KEY')
+      expect(source).not.toContain('ag-grid')
+      expect(source).not.toContain('@ag-grid')
     }
   })
 })

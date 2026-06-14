@@ -97,6 +97,31 @@
           "target": "components/ui/chat.vue"
         }
       ]
+    },
+    {
+      "name": "data-grid",
+      "type": "component",
+      "description": "Styled data grid component built on @zeus-web/data-grid. Provides row virtualization, column model, row model, selection and sorting for React, Vue and native Web Component usage.",
+      "frameworks": ["native", "react", "vue"],
+      "dependencies": ["@zeus-web/data-grid"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "native",
+          "source": "templates/native/data-grid.ts",
+          "target": "components/data-grid.ts"
+        },
+        {
+          "framework": "react",
+          "source": "templates/react/data-grid.tsx",
+          "target": "components/ui/data-grid.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/data-grid.vue",
+          "target": "components/ui/data-grid.vue"
+        }
+      ]
     }
   ]
 }

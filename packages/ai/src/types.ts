@@ -20,7 +20,7 @@ export type ZeusWebAiComponentName =
   | 'progress'
   | 'avatar'
 
-export type ZeusWebAiAdvancedComponentName = 'chat' | 'virtual'
+export type ZeusWebAiAdvancedComponentName = 'chat' | 'virtual' | 'data-grid'
 
 export type ZeusWebAiThemeName =
   | 'default'

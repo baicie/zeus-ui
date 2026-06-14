@@ -58,7 +58,7 @@ describe('chat product contract files', () => {
 
     expect(source).toContain('ZeusWebAiAdvancedComponent')
     expect(source).toContain("category: 'advanced'")
-    expect(source).toContain("| 'chat'")
+    expect(source).toContain("'chat' |")
   })
 
   it('native template is copyable source, not a source string wrapper', () => {
