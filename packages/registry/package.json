@@ -26,8 +26,11 @@
     "./registry.json": "./dist/registry.json",
     "./templates/react/button.tsx": "./dist/templates/react/button.tsx",
     "./templates/react/input.tsx": "./dist/templates/react/input.tsx",
+    "./templates/react/chat.tsx": "./dist/templates/react/chat.tsx",
     "./templates/vue/button.vue": "./dist/templates/vue/button.vue",
     "./templates/vue/input.vue": "./dist/templates/vue/input.vue",
+    "./templates/vue/chat.vue": "./dist/templates/vue/chat.vue",
+    "./templates/native/chat.ts": "./dist/templates/native/chat.ts",
     "./templates/css/globals.css": "./dist/templates/css/globals.css",
     "./templates/lib/cn.ts": "./dist/templates/lib/cn.ts"
   },

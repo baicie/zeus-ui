@@ -37,8 +37,11 @@ describe('@zeus-web/registry package contract', () => {
     expect(packageJson.exports).toHaveProperty('./registry.json')
     expect(packageJson.exports).toHaveProperty('./templates/react/button.tsx')
     expect(packageJson.exports).toHaveProperty('./templates/react/input.tsx')
+    expect(packageJson.exports).toHaveProperty('./templates/react/chat.tsx')
     expect(packageJson.exports).toHaveProperty('./templates/vue/button.vue')
     expect(packageJson.exports).toHaveProperty('./templates/vue/input.vue')
+    expect(packageJson.exports).toHaveProperty('./templates/vue/chat.vue')
+    expect(packageJson.exports).toHaveProperty('./templates/native/chat.ts')
     expect(packageJson.exports).toHaveProperty('./templates/css/globals.css')
     expect(packageJson.exports).toHaveProperty('./templates/lib/cn.ts')
   })
@@ -48,7 +51,7 @@ describe('@zeus-web/registry package contract', () => {
     const names = getRegistryItemNames(manifest)
 
     expect(manifest.schemaVersion).toBe(1)
-    expect(names).toEqual(['cn', 'globals', 'button', 'input'])
+    expect(names).toEqual(['cn', 'globals', 'button', 'input', 'chat'])
   })
 
   it('resolves item dependencies', () => {
@@ -125,5 +128,45 @@ describe('@zeus-web/registry package contract', () => {
     expect(read('templates/vue/button.vue')).toContain(
       "import { cn } from '@/lib/cn'",
     )
+  })
+
+  it('registers chat across native/react/vue with safe templates', () => {
+    const manifest = readManifest()
+    const chat = findRegistryItem(manifest, 'chat')
+
+    expect(chat).toBeTruthy()
+    expect(chat?.dependencies).toEqual(['@zeus-web/chat'])
+    expect(chat?.frameworks).toEqual(
+      expect.arrayContaining(['native', 'react', 'vue']),
+    )
+    expect(getRegistryItemNames(manifest)).toContain('chat')
+
+    const nativeSource = read('templates/native/chat.ts')
+    const reactSource = read('templates/react/chat.tsx')
+    const vueSource = read('templates/vue/chat.vue')
+
+    expect(nativeSource).toContain('@zeus-web/chat/wc/auto')
+    expect(nativeSource).toContain('zw-chat')
+    expect(nativeSource).toContain('zw-chat-thread')
+    expect(nativeSource).toContain('zw-chat-message')
+    expect(nativeSource).toContain('zw-chat-composer')
+
+    expect(reactSource).toContain('@zeus-web/chat/react')
+    expect(reactSource).toContain("import { cn } from '@/lib/cn'")
+    expect(reactSource).toContain('ChatPrimitive')
+
+    expect(vueSource).toContain('@zeus-web/chat/vue')
+    expect(vueSource).toContain("import { cn } from '@/lib/cn'")
+    expect(vueSource).toContain('ChatPrimitive')
+
+    for (const source of [nativeSource, reactSource, vueSource]) {
+      expect(source).not.toContain('fetch(')
+      expect(source).not.toContain('Authorization')
+      expect(source).not.toContain('Bearer')
+      expect(source).not.toContain('apiKey')
+      expect(source).not.toContain('OPENAI_API_KEY')
+      expect(source).not.toContain('ANTHROPIC_API_KEY')
+      expect(source).not.toContain('DEEPSEEK_API_KEY')
+    }
   })
 })

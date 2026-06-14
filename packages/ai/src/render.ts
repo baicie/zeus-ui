@@ -1,4 +1,8 @@
-import type { ZeusWebAiComponent, ZeusWebAiMetadata } from './types'
+import type {
+  ZeusWebAiAdvancedComponent,
+  ZeusWebAiComponent,
+  ZeusWebAiMetadata,
+} from './types'
 
 function renderList(items: string[]): string {
   return items.map(item => `- ${item}`).join('\n')
@@ -113,7 +117,71 @@ function renderComponent(component: ZeusWebAiComponent): string {
   ].join('\n')
 }
 
+function renderAdvancedComponent(
+  component: ZeusWebAiAdvancedComponent,
+): string {
+  const examples = component.examples
+    .map(
+      example =>
+        `### ${example.title}\n\n${example.description}\n\n\`\`\`tsx\n${example.code}\n\`\`\``,
+    )
+    .join('\n\n')
+
+  return [
+    `## ${component.name} (advanced)`,
+    '',
+    component.summary,
+    '',
+    `Package: \`${component.packageName}\``,
+    `Tags: ${component.tags.map(tag => `\`${tag}\``).join(', ')}`,
+    '',
+    '### When to use',
+    '',
+    renderList(component.whenToUse),
+    '',
+    '### Do not use for',
+    '',
+    renderList(component.doNotUseFor),
+    '',
+    '### Components',
+    '',
+    renderList(component.components.map(tag => `\`${tag}\``)),
+    '',
+    '### Slots',
+    '',
+    renderList(
+      Object.entries(component.slots).flatMap(([tag, slots]) =>
+        slots.map(slot => `\`${tag}\` → \`${slot}\``),
+      ),
+    ),
+    '',
+    '### Events',
+    '',
+    renderList(
+      Object.entries(component.events).flatMap(([tag, events]) =>
+        events.map(event => `\`${tag}\` → \`${event}\``),
+      ),
+    ),
+    '',
+    '### Methods',
+    '',
+    renderList(
+      Object.entries(component.methods).flatMap(([tag, methods]) =>
+        methods.map(method => `\`${tag}\` → \`${method}()\``),
+      ),
+    ),
+    '',
+    '### Prompt hints',
+    '',
+    renderList(component.promptHints),
+    '',
+    examples,
+  ].join('\n')
+}
+
 export function renderAiMarkdown(metadata: ZeusWebAiMetadata): string {
+  const advanced = metadata.advancedComponents ?? []
+
   return [
     '# Zeus Web AI Guide',
     '',
@@ -140,6 +208,14 @@ export function renderAiMarkdown(metadata: ZeusWebAiMetadata): string {
     '# Components',
     '',
     metadata.components.map(renderComponent).join('\n\n---\n\n'),
+    ...(advanced.length === 0
+      ? []
+      : [
+          '',
+          '# Advanced components',
+          '',
+          advanced.map(renderAdvancedComponent).join('\n\n---\n\n'),
+        ]),
     '',
   ].join('\n')
 }

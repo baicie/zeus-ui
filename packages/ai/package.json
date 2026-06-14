@@ -28,6 +28,6 @@
     "dev": "tsup src/index.ts --format esm --dts --clean --watch",
     "build": "tsup src/index.ts --format esm --dts --clean && tsx scripts/gen-metadata.ts",
     "check": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest --root ../.. --project unit packages/ai/__tests__/ai.spec.ts"
+    "test": "vitest --root ../.. --project unit packages/ai/__tests__/ai.spec.ts packages/ai/__tests__/chat-ai-metadata.spec.ts"
   }
 }

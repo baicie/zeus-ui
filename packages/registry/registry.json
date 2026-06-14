@@ -72,6 +72,31 @@
           "target": "components/ui/input.vue"
         }
       ]
+    },
+    {
+      "name": "chat",
+      "type": "component",
+      "description": "Headless ChatGPT-style chat component family built on @zeus-web/chat primitives. Provides a root chat container, thread, message, composer, code block, tool call, artifact and typing components.",
+      "frameworks": ["native", "react", "vue"],
+      "dependencies": ["@zeus-web/chat"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "native",
+          "source": "templates/native/chat.ts",
+          "target": "components/chat.ts"
+        },
+        {
+          "framework": "react",
+          "source": "templates/react/chat.tsx",
+          "target": "components/ui/chat.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/chat.vue",
+          "target": "components/ui/chat.vue"
+        }
+      ]
     }
   ]
 }

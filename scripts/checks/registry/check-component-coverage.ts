@@ -65,19 +65,19 @@ function findDuplicates(values: string[]): string[] {
   return Array.from(duplicates).sort()
 }
 
-function readPrimitiveNames(root: string): string[] {
-  const primitivesRoot = resolve(root, 'packages/primitives')
+function readPackageNamesFromRoot(root: string, subdir: string): string[] {
+  const target = resolve(root, subdir)
 
-  if (!existsSync(primitivesRoot)) {
+  if (!existsSync(target)) {
     return []
   }
 
   const names: string[] = []
 
-  for (const entry of readdirSync(primitivesRoot, { withFileTypes: true })) {
+  for (const entry of readdirSync(target, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
 
-    const packageJsonPath = resolve(primitivesRoot, entry.name, 'package.json')
+    const packageJsonPath = resolve(target, entry.name, 'package.json')
 
     if (!existsSync(packageJsonPath)) continue
 
@@ -90,6 +90,13 @@ function readPrimitiveNames(root: string): string[] {
   }
 
   return names.sort()
+}
+
+function readPrimitiveNames(root: string): string[] {
+  const primitiveNames = readPackageNamesFromRoot(root, 'packages/primitives')
+  const advancedNames = readPackageNamesFromRoot(root, 'packages/advanced')
+
+  return unique([...primitiveNames, ...advancedNames])
 }
 
 function readRegistry(root: string): Registry {
@@ -117,7 +124,15 @@ function getRegistryNames(registry: Registry): string[] {
 }
 
 function getAiComponents(): AiComponentLike[] {
-  return aiMetadata.components as AiComponentLike[]
+  const primitives = aiMetadata.components as AiComponentLike[]
+  const advanced = (aiMetadata.advancedComponents ?? []).map(component => ({
+    name: component.name,
+    primitivePackage: component.packageName,
+    sourceTarget: `components/ui/${component.name}.tsx`,
+    dependencies: [component.packageName],
+  }))
+
+  return [...primitives, ...advanced]
 }
 
 function getAiNames(): string[] {
