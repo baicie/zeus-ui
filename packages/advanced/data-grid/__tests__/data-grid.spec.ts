@@ -47,6 +47,21 @@ describe('data-grid component protocol', () => {
           default: 'none',
           reflect: true,
         },
+        resizable: {
+          type: 'boolean',
+          default: false,
+          reflect: true,
+        },
+        keyboardNavigation: {
+          type: 'boolean',
+          default: true,
+        },
+        activeRowKey: {
+          type: 'string',
+        },
+        activeColumnId: {
+          type: 'string',
+        },
       },
       events: {
         rangeChange: {
@@ -72,6 +87,22 @@ describe('data-grid component protocol', () => {
         cellAction: {
           name: 'cell-action',
           reactName: 'onCellAction',
+        },
+        columnResizeStart: {
+          name: 'column-resize-start',
+          reactName: 'onColumnResizeStart',
+        },
+        columnResize: {
+          name: 'column-resize',
+          reactName: 'onColumnResize',
+        },
+        columnResizeEnd: {
+          name: 'column-resize-end',
+          reactName: 'onColumnResizeEnd',
+        },
+        activeCellChange: {
+          name: 'active-cell-change',
+          reactName: 'onActiveCellChange',
         },
       },
       methods: {
@@ -151,6 +182,30 @@ describe('data-grid component protocol', () => {
           name: 'resetMeasurements',
           returns: 'void',
         },
+        resizeColumn: {
+          name: 'resizeColumn',
+          returns: 'void',
+        },
+        resetColumnWidths: {
+          name: 'resetColumnWidths',
+          returns: 'void',
+        },
+        getColumnWidths: {
+          name: 'getColumnWidths',
+          returns: 'Record<string, number>',
+        },
+        setActiveCell: {
+          name: 'setActiveCell',
+          returns: 'void',
+        },
+        getActiveCell: {
+          name: 'getActiveCell',
+          returns: 'DataGridActiveCell | unknown',
+        },
+        moveActiveCell: {
+          name: 'moveActiveCell',
+          returns: 'void',
+        },
       },
       slots: {
         empty: {
@@ -166,6 +221,8 @@ describe('data-grid component protocol', () => {
         'empty',
         'header',
         'header-cell',
+        'header-label',
+        'resize-handle',
         'root',
         'row',
         'spacer',
@@ -201,5 +258,20 @@ describe('data-grid component protocol', () => {
   it('keeps rendered snapshot in sync with public getItems state', () => {
     expect(source).toContain('currentSnapshot = snapshot')
     expect(source).toContain('const getBodyRows')
+  })
+
+  it('uses column resize and navigation models', () => {
+    expect(source).toContain('resizeDataGridColumn')
+    expect(source).toContain('resizeDataGridColumnByDelta')
+    expect(source).toContain('moveDataGridActiveCell')
+    expect(source).toContain('activeCellChange')
+    expect(source).toContain('columnResize')
+  })
+
+  it('supports aria active descendant and resize handle', () => {
+    expect(source).toContain('aria-activedescendant')
+    expect(source).toContain('getDataGridActiveCellId')
+    expect(source).toContain('data-grid-resize-handle')
+    expect(source).toContain('role="separator"')
   })
 })

@@ -48,6 +48,7 @@ export function normalizeDataGridColumn(
     align: normalizeAlign(column.align),
     sortable: Boolean(column.sortable),
     hidden: Boolean(column.hidden),
+    resizable: column.resizable !== false,
   }
 }
 

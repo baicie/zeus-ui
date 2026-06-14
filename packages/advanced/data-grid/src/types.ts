@@ -18,6 +18,16 @@ export type DataGridSortDirection = 'asc' | 'desc'
 
 export type DataGridSelectionMode = 'none' | 'single' | 'multiple'
 
+export type DataGridNavigationKey =
+  | 'ArrowUp'
+  | 'ArrowDown'
+  | 'ArrowLeft'
+  | 'ArrowRight'
+  | 'Home'
+  | 'End'
+  | 'PageUp'
+  | 'PageDown'
+
 export interface DataGridColumn {
   id: string
   header?: string
@@ -28,6 +38,7 @@ export interface DataGridColumn {
   align?: DataGridColumnAlign
   sortable?: boolean
   hidden?: boolean
+  resizable?: boolean
 }
 
 export interface NormalizedDataGridColumn {
@@ -40,6 +51,7 @@ export interface NormalizedDataGridColumn {
   align: DataGridColumnAlign
   sortable: boolean
   hidden: boolean
+  resizable: boolean
 }
 
 export interface DataGridRow {
@@ -66,6 +78,13 @@ export interface DataGridVirtualSnapshot {
   range: DataGridVirtualRange
   items: DataGridVirtualItem[]
   totalSize: number
+}
+
+export interface DataGridActiveCell {
+  rowIndex: number
+  rowKey: DataGridRowKey
+  columnId: string
+  columnIndex: number
 }
 
 export interface DataGridCellContext {
@@ -96,6 +115,31 @@ export interface DataGridSelectionChangeDetail {
 export interface DataGridSortChangeDetail {
   sort: DataGridSortState | undefined
   column?: NormalizedDataGridColumn
+  nativeEvent?: Event
+}
+
+export interface DataGridColumnResizeStartDetail {
+  column: NormalizedDataGridColumn
+  width: number
+  nativeEvent?: Event
+}
+
+export interface DataGridColumnResizeDetail {
+  column: NormalizedDataGridColumn
+  width: number
+  previousWidth: number
+  nativeEvent?: Event
+}
+
+export interface DataGridColumnResizeEndDetail {
+  column: NormalizedDataGridColumn
+  width: number
+  nativeEvent?: Event
+}
+
+export interface DataGridActiveCellChangeDetail {
+  activeCell: DataGridActiveCell | undefined
+  previousActiveCell: DataGridActiveCell | undefined
   nativeEvent?: Event
 }
 

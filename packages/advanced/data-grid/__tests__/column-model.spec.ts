@@ -30,6 +30,7 @@ describe('column model', () => {
       align: 'start',
       sortable: true,
       hidden: false,
+      resizable: true,
     })
   })
 
@@ -106,5 +107,20 @@ describe('column model', () => {
     ])
 
     expect(getTotalColumnWidth(columns)).toBe(180)
+  })
+
+  it('normalizes non-resizable column', () => {
+    expect(
+      normalizeDataGridColumn(
+        {
+          id: 'locked',
+          resizable: false,
+        },
+        0,
+      ),
+    ).toMatchObject({
+      id: 'locked',
+      resizable: false,
+    })
   })
 })
