@@ -28,6 +28,10 @@ export type DataGridNavigationKey =
   | 'PageUp'
   | 'PageDown'
 
+export type DataGridAriaSort = 'ascending' | 'descending' | 'none'
+
+export type DataGridViewportSizeSource = 'client' | 'fallback'
+
 export interface DataGridColumn {
   id: string
   header?: string
@@ -93,6 +97,11 @@ export interface DataGridCellContext {
   value: unknown
 }
 
+export interface DataGridViewportMeasurement {
+  size: number
+  source: DataGridViewportSizeSource
+}
+
 export interface DataGridRangeChangeDetail {
   range: DataGridVirtualRange
   items: DataGridVirtualItem[]
@@ -104,6 +113,12 @@ export interface DataGridRangeChangeDetail {
 export interface DataGridScrollOffsetChangeDetail {
   offset: number
   nativeEvent: Event
+}
+
+export interface DataGridViewportResizeDetail {
+  viewportSize: number
+  source: DataGridViewportSizeSource
+  previousViewportSize: number
 }
 
 export interface DataGridSelectionChangeDetail {

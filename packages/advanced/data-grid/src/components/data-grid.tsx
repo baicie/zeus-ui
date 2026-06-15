@@ -22,6 +22,8 @@ import type {
   DataGridSortChangeDetail,
   DataGridSortDirection,
   DataGridSortState,
+  DataGridViewportMeasurement,
+  DataGridViewportResizeDetail,
   DataGridVirtualItem,
   DataGridVirtualRange,
   DataGridVirtualSnapshot,
@@ -39,11 +41,21 @@ import {
   createDataGridRows,
   createDataGridRowVirtualizer,
   createDataGridSelectionModel,
+  createDataGridViewportMeasureController,
   createInitialDataGridActiveCell,
   createNextDataGridSortState,
   getDataGridActiveCellId,
+  getDataGridActiveDescendant,
+  getDataGridAriaMultiSelectable,
+  getDataGridAriaSelected,
+  getDataGridAriaSort,
+  getDataGridCellTabIndex,
   getDataGridCellValue,
+  getDataGridColumnAriaIndex,
   getDataGridColumnById,
+  getDataGridDataRowAriaIndex,
+  getDataGridHeaderRowAriaIndex,
+  getDataGridResizeHandleAriaLabel,
   getDataGridRowByKey,
   getTotalColumnWidth,
   getVisibleDataGridColumns,
@@ -52,6 +64,7 @@ import {
   resetDataGridColumnWidths,
   resizeDataGridColumn,
   resizeDataGridColumnByDelta,
+  shouldEmitDataGridViewportResize,
   shouldUpdateDataGridVirtualSnapshot,
   sortDataGridRows,
 } from '../core'
@@ -120,11 +133,15 @@ export interface DataGridElement extends HTMLElement {
   ) => void
   getActiveCell: () => DataGridActiveCell | undefined
   moveActiveCell: (key: DataGridNavigationKey, nativeEvent?: Event) => void
+  focusCell: (rowKey: DataGridRowKey, columnId: string) => void
+  focusActiveCell: () => void
+  refreshViewport: () => void
 }
 
 interface DataGridEmits extends Record<string, EventDefinition<unknown>> {
   rangeChange: EventDefinition<DataGridRangeChangeDetail>
   scrollOffsetChange: EventDefinition<DataGridScrollOffsetChangeDetail>
+  viewportResize: EventDefinition<DataGridViewportResizeDetail>
   selectionChange: EventDefinition<DataGridSelectionChangeDetail>
   sortChange: EventDefinition<DataGridSortChangeDetail>
   rowAction: EventDefinition<DataGridRowActionDetail>
@@ -183,7 +200,7 @@ function getScrollOffset(viewport: HTMLElement | undefined): number {
   return viewport?.scrollTop ?? 0
 }
 
-function getViewportSize(viewport: HTMLElement | undefined): number {
+function getViewportClientHeight(viewport: HTMLElement | undefined): number {
   return viewport?.clientHeight ?? 0
 }
 
@@ -216,11 +233,16 @@ function isNavigationKey(key: string): key is DataGridNavigationKey {
   )
 }
 
+function escapeDataGridSelectorValue(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+}
+
 function setup(
   props: DataGridProps,
   ctx: DefineElementContext<DataGridElement, DataGridEmits>,
 ) {
   let viewport: HTMLElement | undefined
+  let viewportResizeObserver: ResizeObserver | undefined
   let resizeSession: ResizeSession | undefined
 
   let rowsSource = resolveRows(props)
@@ -258,6 +280,10 @@ function setup(
   let signature = ''
   const scheduler = createRafScheduler()
 
+  const viewportMeasure = createDataGridViewportMeasureController()
+  let viewportMeasurement: DataGridViewportMeasurement =
+    viewportMeasure.measure(0, resolveRowHeight(props), visibleRows.length)
+
   const controlledState = createDataGridControlledStateController({
     rows: rowsSource,
     columns: columnsSource,
@@ -289,6 +315,54 @@ function setup(
     resizable: resolveResizable(props),
     keyboardNavigation: resolveKeyboardNavigation(props),
   })
+
+  const measureViewport = (): DataGridViewportMeasurement => {
+    const previousViewportSize = viewportMeasurement.size
+    const nextMeasurement = viewportMeasure.measure(
+      getViewportClientHeight(viewport),
+      resolveRowHeight(props),
+      visibleRows.length,
+    )
+
+    if (
+      shouldEmitDataGridViewportResize(viewportMeasurement, nextMeasurement)
+    ) {
+      viewportMeasurement = nextMeasurement
+
+      ctx.emit.viewportResize({
+        viewportSize: viewportMeasurement.size,
+        source: viewportMeasurement.source,
+        previousViewportSize,
+      })
+    } else {
+      viewportMeasurement = nextMeasurement
+    }
+
+    return viewportMeasurement
+  }
+
+  const getResolvedViewportSize = (): number => measureViewport().size
+
+  const queryCell = (
+    rowKey: DataGridRowKey,
+    columnId: string,
+  ): HTMLElement | null => {
+    return ctx.host.querySelector<HTMLElement>(
+      `[data-slot="data-grid-cell"][data-row-key="${escapeDataGridSelectorValue(
+        rowKey,
+      )}"][data-column-id="${escapeDataGridSelectorValue(columnId)}"]`,
+    )
+  }
+
+  const focusCellElement = (rowKey: DataGridRowKey, columnId: string): void => {
+    queryCell(rowKey, columnId)?.focus()
+  }
+
+  const focusActiveCellElement = (): void => {
+    if (!activeCell) return
+
+    focusCellElement(activeCell.rowKey, activeCell.columnId)
+  }
 
   const syncControlledSources = (): void => {
     const changes = controlledState.update(readControlledStateSources())
@@ -425,15 +499,16 @@ function setup(
 
     return virtualizer.getSnapshot(
       getScrollOffset(viewport),
-      getViewportSize(viewport),
+      getResolvedViewportSize(),
     )
   }
 
   const updateRange = (nativeEvent?: Event): void => {
     rebuildModels()
+    measureViewport()
 
     const scrollOffset = getScrollOffset(viewport)
-    const viewportSize = getViewportSize(viewport)
+    const viewportSize = getResolvedViewportSize()
     const nextSnapshot = getSnapshot()
 
     emitSnapshotIfChanged(nextSnapshot, scrollOffset, viewportSize)
@@ -448,6 +523,18 @@ function setup(
 
   const scheduleUpdateRange = (nativeEvent?: Event): void => {
     scheduler.schedule(() => updateRange(nativeEvent))
+  }
+
+  const connectViewportObserver = (element: HTMLElement): void => {
+    viewportResizeObserver?.disconnect()
+
+    if (typeof ResizeObserver === 'undefined') return
+
+    viewportResizeObserver = new ResizeObserver(() => {
+      measureViewport()
+      scheduleUpdateRange()
+    })
+    viewportResizeObserver.observe(element)
   }
 
   const commitControlledState = (): void => {
@@ -510,6 +597,8 @@ function setup(
       previousActiveCell,
       nativeEvent,
     })
+
+    focusActiveCellElement()
   }
 
   const setActiveCellByKey = (
@@ -552,7 +641,7 @@ function setup(
       key,
       pageSize: Math.max(
         1,
-        Math.floor(getViewportSize(viewport) / resolveRowHeight(props)),
+        Math.floor(getResolvedViewportSize() / resolveRowHeight(props)),
       ),
     })
 
@@ -594,7 +683,7 @@ function setup(
       key,
       pageSize: Math.max(
         1,
-        Math.floor(getViewportSize(viewport) / resolveRowHeight(props)),
+        Math.floor(getResolvedViewportSize() / resolveRowHeight(props)),
       ),
     })
 
@@ -830,7 +919,7 @@ function setup(
       rebuildModels()
 
       const offset = props.virtual
-        ? virtualizer.getOffsetForIndex(index, align, getViewportSize(viewport))
+        ? virtualizer.getOffsetForIndex(index, align, getResolvedViewportSize())
         : index * resolveRowHeight(props)
 
       setScrollOffset(viewport, offset)
@@ -900,6 +989,21 @@ function setup(
 
     moveActiveCell(key: DataGridNavigationKey, nativeEvent?: Event): void {
       moveActiveCellByKey(key, nativeEvent)
+    },
+
+    focusCell(rowKey: DataGridRowKey, columnId: string): void {
+      setActiveCellByKey(rowKey, columnId)
+      focusCellElement(rowKey, columnId)
+    },
+
+    focusActiveCell(): void {
+      rebuildModels()
+      focusActiveCellElement()
+    },
+
+    refreshViewport(): void {
+      measureViewport()
+      updateRange()
     },
   })
 
@@ -973,15 +1077,24 @@ function setup(
         data-slot="data-grid-viewport"
         role="grid"
         aria-label={() => props.ariaLabel}
-        aria-rowcount={() => String(resolveRows(props).length)}
+        aria-rowcount={() => String(resolveRows(props).length + 1)}
         aria-colcount={() => String(visibleColumns.length)}
-        aria-activedescendant={() => getDataGridActiveCellId(activeCell)}
+        aria-activedescendant={() =>
+          getDataGridActiveDescendant(activeCell, getDataGridActiveCellId)
+        }
+        aria-multiselectable={() =>
+          getDataGridAriaMultiSelectable(
+            resolveSelectionMode(props.selectionMode),
+          )
+        }
         onScroll={(nativeEvent: Event) => {
           scheduleUpdateRange(nativeEvent)
         }}
         ref={(element: HTMLElement | null) => {
           if (element) {
             viewport = element
+            connectViewportObserver(element)
+            measureViewport()
             scheduleUpdateRange()
           }
         }}
@@ -990,13 +1103,14 @@ function setup(
           part="header"
           data-slot="data-grid-header"
           role="row"
+          aria-rowindex={() => String(getDataGridHeaderRowAriaIndex())}
           style={() => ({
             display: 'grid',
             gridTemplateColumns: getGridTemplateColumns(),
             width: `${getTotalColumnWidth(columns)}px`,
           })}
         >
-          {visibleColumns.map(column => (
+          {visibleColumns.map((column, index) => (
             <div
               key={column.id}
               part="header-cell"
@@ -1010,6 +1124,8 @@ function setup(
                 sort?.columnId === column.id ? sort.direction : undefined
               }
               role="columnheader"
+              aria-colindex={() => String(getDataGridColumnAriaIndex(index))}
+              aria-sort={() => getDataGridAriaSort(column, sort)}
               tabindex={0}
               onClick={(nativeEvent: Event) => {
                 applySort(column.id, undefined, nativeEvent)
@@ -1031,6 +1147,7 @@ function setup(
                 part="resize-handle"
                 data-slot="data-grid-resize-handle"
                 role="separator"
+                aria-label={() => getDataGridResizeHandleAriaLabel(column)}
                 aria-orientation="vertical"
                 aria-valuenow={() => String(column.width)}
                 aria-valuemin={() => String(column.minWidth)}
@@ -1102,6 +1219,15 @@ function setup(
                   selection.isSelected(row.key) ? '' : undefined
                 }
                 role="row"
+                aria-rowindex={() =>
+                  String(getDataGridDataRowAriaIndex(row.index))
+                }
+                aria-selected={() =>
+                  getDataGridAriaSelected(
+                    resolveSelectionMode(props.selectionMode),
+                    selection.isSelected(row.key),
+                  )
+                }
                 style={() => ({
                   display: 'grid',
                   gridTemplateColumns: getGridTemplateColumns(),
@@ -1126,10 +1252,7 @@ function setup(
                   emitRowAction('keydown', row, nativeEvent)
                 }}
               >
-                {visibleColumns.map(column => {
-                  const columnIndex = visibleColumns.findIndex(
-                    item => item.id === column.id,
-                  )
+                {visibleColumns.map((column, columnIndex) => {
                   const isActive =
                     activeCell?.rowKey === row.key &&
                     activeCell?.columnId === column.id
@@ -1152,13 +1275,24 @@ function setup(
                       data-align={column.align}
                       data-active={() => (isActive ? '' : undefined)}
                       role="gridcell"
-                      tabindex={() =>
-                        props.keyboardNavigation === false
-                          ? undefined
-                          : isActive
-                            ? 0
-                            : -1
+                      aria-colindex={() =>
+                        String(getDataGridColumnAriaIndex(columnIndex))
                       }
+                      aria-selected={() =>
+                        getDataGridAriaSelected(
+                          resolveSelectionMode(props.selectionMode),
+                          selection.isSelected(row.key),
+                        )
+                      }
+                      tabindex={() =>
+                        getDataGridCellTabIndex(
+                          props.keyboardNavigation !== false,
+                          isActive,
+                        )
+                      }
+                      onFocus={(nativeEvent: FocusEvent) => {
+                        setActiveCellByKey(row.key, column.id, nativeEvent)
+                      }}
                       onClick={(nativeEvent: Event) => {
                         setActiveCellByKey(row.key, column.id, nativeEvent)
                         emitCellAction('click', row, column, nativeEvent)
@@ -1253,6 +1387,7 @@ export const DataGrid = defineElement<
     emits: {
       rangeChange: event<DataGridRangeChangeDetail>(),
       scrollOffsetChange: event<DataGridScrollOffsetChangeDetail>(),
+      viewportResize: event<DataGridViewportResizeDetail>(),
       selectionChange: event<DataGridSelectionChangeDetail>(),
       sortChange: event<DataGridSortChangeDetail>(),
       rowAction: event<DataGridRowActionDetail>(),

@@ -72,6 +72,10 @@ describe('data-grid component protocol', () => {
           name: 'scroll-offset-change',
           reactName: 'onScrollOffsetChange',
         },
+        viewportResize: {
+          name: 'viewport-resize',
+          reactName: 'onViewportResize',
+        },
         selectionChange: {
           name: 'selection-change',
           reactName: 'onSelectionChange',
@@ -204,6 +208,18 @@ describe('data-grid component protocol', () => {
           name: 'moveActiveCell',
           returns: 'void',
         },
+        focusCell: {
+          name: 'focusCell',
+          returns: 'void',
+        },
+        focusActiveCell: {
+          name: 'focusActiveCell',
+          returns: 'void',
+        },
+        refreshViewport: {
+          name: 'refreshViewport',
+          returns: 'void',
+        },
       },
       slots: {
         empty: {
@@ -282,5 +298,37 @@ describe('data-grid component protocol', () => {
     expect(source).not.toContain('groupBy')
     expect(source).not.toContain('filterModel')
     expect(source).not.toContain('editor')
+  })
+
+  it('uses accessibility model for grid aria contract', () => {
+    expect(source).toContain('getDataGridAriaSort')
+    expect(source).toContain('getDataGridAriaSelected')
+    expect(source).toContain('getDataGridAriaMultiSelectable')
+    expect(source).toContain('getDataGridHeaderRowAriaIndex')
+    expect(source).toContain('getDataGridDataRowAriaIndex')
+    expect(source).toContain('getDataGridColumnAriaIndex')
+    expect(source).toContain('getDataGridResizeHandleAriaLabel')
+    expect(source).toContain('aria-sort')
+    expect(source).toContain('aria-rowindex')
+    expect(source).toContain('aria-colindex')
+    expect(source).toContain('aria-selected')
+    expect(source).toContain('aria-multiselectable')
+  })
+
+  it('uses viewport measurement model and exposes refreshViewport', () => {
+    expect(source).toContain('createDataGridViewportMeasureController')
+    expect(source).toContain('shouldEmitDataGridViewportResize')
+    expect(source).toContain('viewportResize')
+    expect(source).toContain('refreshViewport')
+    expect(source).toContain('ResizeObserver')
+    expect(source).toContain('getResolvedViewportSize')
+  })
+
+  it('exposes focus helpers for runtime focus management', () => {
+    expect(source).toContain('focusCell(')
+    expect(source).toContain('focusActiveCell(')
+    expect(source).toContain('focusCellElement')
+    expect(source).toContain('focusActiveCellElement')
+    expect(source).toContain('onFocus=')
   })
 })
