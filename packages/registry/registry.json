@@ -122,6 +122,31 @@
           "target": "components/ui/data-grid.vue"
         }
       ]
+    },
+    {
+      "name": "revogrid-adapter",
+      "type": "component",
+      "description": "RevoGrid-compatible adapter built on @zeus-web/revogrid-adapter. Bridges Zeus DataGrid column, row, sorting and selection models to a <revo-grid> custom element without bundling the RevoGrid implementation.",
+      "frameworks": ["native", "react", "vue"],
+      "dependencies": ["@zeus-web/revogrid-adapter"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "native",
+          "source": "templates/native/revogrid-adapter.ts",
+          "target": "components/revogrid-adapter.ts"
+        },
+        {
+          "framework": "react",
+          "source": "templates/react/revogrid-adapter.tsx",
+          "target": "components/ui/revogrid-adapter.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/revogrid-adapter.vue",
+          "target": "components/ui/revogrid-adapter.vue"
+        }
+      ]
     }
   ]
 }

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   mapDataGridRowsToRevoGridSource,
   mapDataGridSelectionToRevoGridSelection,
-} from '../src'
+} from '../src/core'
 
 describe('revoGrid selection map', () => {
   const source = mapDataGridRowsToRevoGridSource([

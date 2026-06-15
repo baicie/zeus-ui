@@ -21,6 +21,7 @@ export interface RevoGridAdapterElement extends HTMLElement {
   rows?: DataGridRowData[]
   columns?: DataGridColumn[]
   selectedKeys?: DataGridRowKey[]
+  getRowKey?: (row: DataGridRowData, index: number) => DataGridRowKey
   selectionMode?: DataGridSelectionMode
   sortColumn?: string
   sortDirection?: DataGridSortDirection
@@ -120,6 +121,7 @@ function setup(
     ctx.host.rows = resolveRows(props)
     ctx.host.columns = resolveColumns(props)
     ctx.host.selectedKeys = props.selectedKeys
+    ctx.host.getRowKey = props.getRowKey
     ctx.host.selectionMode = resolveSelectionMode(props.selectionMode)
     ctx.host.sortColumn = props.sortColumn
     ctx.host.sortDirection = props.sortDirection
@@ -249,6 +251,7 @@ export const RevoGridAdapter = defineElement<
       rows: Array,
       columns: Array,
       selectedKeys: Array,
+      getRowKey: prop(Function),
       selectionMode: prop(['none', 'single', 'multiple'], {
         attr: 'selection-mode',
         default: 'none',

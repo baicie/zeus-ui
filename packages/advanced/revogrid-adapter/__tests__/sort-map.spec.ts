@@ -4,8 +4,8 @@ import {
   mapDataGridColumnsToRevoGridColumns,
   mapDataGridSortPropsToRevoGridSort,
   mapDataGridSortToRevoGridSort,
-  ZEUS_REVO_COLUMN_ID,
-} from '../src'
+} from '../src/core'
+import { ZEUS_REVO_COLUMN_ID } from '../src/types'
 
 describe('revoGrid sort map', () => {
   const columns = mapDataGridColumnsToRevoGridColumns([

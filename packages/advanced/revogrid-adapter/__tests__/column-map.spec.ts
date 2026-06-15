@@ -5,8 +5,8 @@ import {
   getRevoGridColumnProp,
   mapDataGridColumnsToRevoGridColumns,
   mapDataGridColumnToRevoGridColumn,
-  ZEUS_REVO_COLUMN_ID,
-} from '../src'
+} from '../src/core'
+import { ZEUS_REVO_COLUMN_ID } from '../src/types'
 
 describe('revoGrid column map', () => {
   it('uses field as RevoGrid prop when available', () => {

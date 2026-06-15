@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  createRevoGridAdapterState,
-  ZEUS_REVO_COLUMN_ID,
-  ZEUS_REVO_ROW_KEY,
-} from '../src'
+import { createRevoGridAdapterState } from '../src/core'
+import { ZEUS_REVO_COLUMN_ID, ZEUS_REVO_ROW_KEY } from '../src/types'
 
 describe('revoGrid adapter state', () => {
   it('creates full adapter state', () => {

@@ -5,9 +5,8 @@ import {
   getRevoGridRowKey,
   mapDataGridRowsToRevoGridSource,
   mapDataGridRowToRevoGridSourceRow,
-  ZEUS_REVO_ROW_INDEX,
-  ZEUS_REVO_ROW_KEY,
-} from '../src'
+} from '../src/core'
+import { ZEUS_REVO_ROW_INDEX, ZEUS_REVO_ROW_KEY } from '../src/types'
 
 describe('revoGrid row map', () => {
   it('maps row metadata from id', () => {

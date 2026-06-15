@@ -20,7 +20,11 @@ export type ZeusWebAiComponentName =
   | 'progress'
   | 'avatar'
 
-export type ZeusWebAiAdvancedComponentName = 'chat' | 'virtual' | 'data-grid'
+export type ZeusWebAiAdvancedComponentName =
+  | 'chat'
+  | 'virtual'
+  | 'data-grid'
+  | 'revogrid-adapter'
 
 export type ZeusWebAiThemeName =
   | 'default'

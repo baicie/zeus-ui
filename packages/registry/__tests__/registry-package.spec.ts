@@ -41,13 +41,22 @@ describe('@zeus-web/registry package contract', () => {
     expect(packageJson.exports).toHaveProperty(
       './templates/react/data-grid.tsx',
     )
+    expect(packageJson.exports).toHaveProperty(
+      './templates/react/revogrid-adapter.tsx',
+    )
     expect(packageJson.exports).toHaveProperty('./templates/vue/button.vue')
     expect(packageJson.exports).toHaveProperty('./templates/vue/input.vue')
     expect(packageJson.exports).toHaveProperty('./templates/vue/chat.vue')
     expect(packageJson.exports).toHaveProperty('./templates/vue/data-grid.vue')
+    expect(packageJson.exports).toHaveProperty(
+      './templates/vue/revogrid-adapter.vue',
+    )
     expect(packageJson.exports).toHaveProperty('./templates/native/chat.ts')
     expect(packageJson.exports).toHaveProperty(
       './templates/native/data-grid.ts',
+    )
+    expect(packageJson.exports).toHaveProperty(
+      './templates/native/revogrid-adapter.ts',
     )
     expect(packageJson.exports).toHaveProperty('./templates/css/globals.css')
     expect(packageJson.exports).toHaveProperty('./templates/lib/cn.ts')
@@ -65,6 +74,7 @@ describe('@zeus-web/registry package contract', () => {
       'input',
       'chat',
       'data-grid',
+      'revogrid-adapter',
     ])
   })
 
@@ -283,6 +293,87 @@ describe('@zeus-web/registry package contract', () => {
       expect(source).not.toContain('DEEPSEEK_API_KEY')
       expect(source).not.toContain('ag-grid')
       expect(source).not.toContain('@ag-grid')
+    }
+  })
+
+  it('registers revogrid-adapter across native/react/vue with safe templates', () => {
+    const manifest = readManifest()
+    const adapter = findRegistryItem(manifest, 'revogrid-adapter')
+
+    expect(adapter).toBeTruthy()
+    expect(adapter?.dependencies).toEqual(['@zeus-web/revogrid-adapter'])
+    expect(adapter?.frameworks).toEqual(
+      expect.arrayContaining(['native', 'react', 'vue']),
+    )
+    expect(getRegistryItemNames(manifest)).toContain('revogrid-adapter')
+
+    expect(adapter?.files).toEqual(
+      expect.arrayContaining([
+        {
+          framework: 'native',
+          source: 'templates/native/revogrid-adapter.ts',
+          target: 'components/revogrid-adapter.ts',
+        },
+        {
+          framework: 'react',
+          source: 'templates/react/revogrid-adapter.tsx',
+          target: 'components/ui/revogrid-adapter.tsx',
+        },
+        {
+          framework: 'vue',
+          source: 'templates/vue/revogrid-adapter.vue',
+          target: 'components/ui/revogrid-adapter.vue',
+        },
+      ]),
+    )
+
+    const nativeSource = read('templates/native/revogrid-adapter.ts')
+    const reactSource = read('templates/react/revogrid-adapter.tsx')
+    const vueSource = read('templates/vue/revogrid-adapter.vue')
+
+    expect(nativeSource).toContain(
+      "import '@zeus-web/revogrid-adapter/wc/auto'",
+    )
+    expect(nativeSource).toContain("from '@zeus-web/revogrid-adapter'")
+    expect(nativeSource).toContain('mountRevoGridAdapterDemo')
+    expect(nativeSource).toContain('zw-revogrid-adapter')
+    expect(nativeSource).toContain('revoGridAdapterDemoColumns')
+    expect(nativeSource).toContain('revoGridAdapterDemoRows')
+    expect(nativeSource).not.toContain('String.raw')
+    expect(nativeSource).not.toContain('revoGridAdapterNativeSource')
+
+    expect(reactSource).toContain("from '@zeus-web/revogrid-adapter'")
+    expect(reactSource).toContain('@zeus-web/revogrid-adapter/react')
+    expect(reactSource).toContain("import { cn } from '@/lib/cn'")
+    expect(reactSource).toMatch(
+      /extends\s+ComponentProps<\s*typeof\s+RevoGridAdapterPrimitive/,
+    )
+    expect(reactSource).toContain('RevoGridAdapterPrimitive')
+    expect(reactSource).toContain('RevoGridAdapterDemo')
+    expect(reactSource).not.toContain(
+      "DataGridRowData,\n} from '@zeus-web/revogrid-adapter/react'",
+    )
+
+    expect(vueSource).toContain("from '@zeus-web/revogrid-adapter'")
+    expect(vueSource).toContain('@zeus-web/revogrid-adapter/vue')
+    expect(vueSource).toContain("import { cn } from '@/lib/cn'")
+    expect(vueSource).toContain('RevoGridAdapterPrimitive')
+    expect(vueSource).not.toContain(
+      "DataGridColumn, DataGridRowData } from '@zeus-web/revogrid-adapter/vue'",
+    )
+
+    for (const source of [nativeSource, reactSource, vueSource]) {
+      expect(source).not.toContain('fetch(')
+      expect(source).not.toContain('Authorization')
+      expect(source).not.toContain('Bearer')
+      expect(source).not.toContain('apiKey')
+      expect(source).not.toContain('OPENAI_API_KEY')
+      expect(source).not.toContain('ANTHROPIC_API_KEY')
+      expect(source).not.toContain('DEEPSEEK_API_KEY')
+      expect(source).not.toContain('ag-grid')
+      expect(source).not.toContain('@ag-grid')
+      expect(source).not.toContain('@revolist/revogrid')
+      expect(source).not.toContain('defineCustomElements')
     }
   })
 })
