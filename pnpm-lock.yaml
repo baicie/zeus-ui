@@ -683,6 +683,24 @@ importers:
         specifier: '>=3'
         version: 3.5.38(typescript@6.0.3)
 
+  packages/advanced/revogrid-adapter:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5
+      '@zeus-js/web-c-runtime':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@zeus-js/zeus':
+        specifier: '>=0.1.0-beta.5 <0.2.0'
+        version: 0.1.0-beta.5
+      '@zeus-web/data-grid':
+        specifier: workspace:*
+        version: link:../data-grid
+      '@zeus-web/zeus-compat':
+        specifier: workspace:*
+        version: link:../../zeus-compat
+
   packages/advanced/virtual:
     dependencies:
       '@zeus-js/runtime-dom':
