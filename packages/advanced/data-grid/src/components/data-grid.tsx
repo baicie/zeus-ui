@@ -364,6 +364,12 @@ function setup(
     focusCellElement(activeCell.rowKey, activeCell.columnId)
   }
 
+  const scheduleFocusActiveCellElement = (): void => {
+    scheduler.schedule(() => {
+      focusActiveCellElement()
+    })
+  }
+
   const syncControlledSources = (): void => {
     const changes = controlledState.update(readControlledStateSources())
 
@@ -598,7 +604,7 @@ function setup(
       nativeEvent,
     })
 
-    focusActiveCellElement()
+    scheduleFocusActiveCellElement()
   }
 
   const setActiveCellByKey = (
@@ -649,6 +655,7 @@ function setup(
 
     if (nextActiveCell) {
       ctx.host.scrollToIndex(nextActiveCell.rowIndex, 'center')
+      scheduleFocusActiveCellElement()
     }
   }
 
@@ -691,6 +698,7 @@ function setup(
 
     if (nextActiveCell) {
       ctx.host.scrollToIndex(nextActiveCell.rowIndex, 'center')
+      scheduleFocusActiveCellElement()
     }
   }
 
@@ -992,8 +1000,16 @@ function setup(
     },
 
     focusCell(rowKey: DataGridRowKey, columnId: string): void {
+      rebuildModels()
+
+      const rowIndex = visibleRows.findIndex(row => row.key === rowKey)
+
+      if (rowIndex >= 0) {
+        ctx.host.scrollToIndex(rowIndex, 'center')
+      }
+
       setActiveCellByKey(rowKey, columnId)
-      focusCellElement(rowKey, columnId)
+      scheduleFocusActiveCellElement()
     },
 
     focusActiveCell(): void {
@@ -1096,7 +1112,12 @@ function setup(
             connectViewportObserver(element)
             measureViewport()
             scheduleUpdateRange()
+            return
           }
+
+          viewportResizeObserver?.disconnect()
+          viewportResizeObserver = undefined
+          viewport = undefined
         }}
       >
         <div

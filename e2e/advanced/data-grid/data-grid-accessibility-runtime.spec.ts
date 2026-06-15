@@ -135,6 +135,39 @@ describe('zw-data-grid accessibility runtime', () => {
     expect(document.activeElement).toBe(getCell(grid, 'u3', 'role'))
   })
 
+  it('focusCell scrolls virtual rows into view before focusing the target cell', async () => {
+    const rows = Array.from({ length: 30 }, (_, index) => ({
+      id: `r${index}`,
+      name: `Row ${index}`,
+      age: index,
+      role: 'Runtime',
+    }))
+
+    const grid = await mountDataGrid({
+      rows,
+      columns: runtimeColumns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 1,
+    })
+
+    const viewport = getViewport(grid)
+    setElementClientHeight(viewport, 400)
+    grid.refreshViewport()
+    grid.focusCell('r20', 'age')
+
+    await nextFrame()
+    await nextFrame()
+
+    const items = grid.getItems().map(item => item.key)
+    expect(items).toContain('r20')
+
+    expect(grid.getRange()).toMatchObject({
+      start: 15,
+      end: 25,
+    })
+  })
+
   it('uses fallback viewport size when clientHeight is zero', async () => {
     const rows = Array.from({ length: 20 }, (_, index) => ({
       id: `r${index}`,

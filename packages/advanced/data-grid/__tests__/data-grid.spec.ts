@@ -156,6 +156,7 @@ describe('data-grid component protocol', () => {
         },
         getSort: {
           name: 'getSort',
+          returns: 'DataGridSortState | unknown',
         },
         getRange: {
           name: 'getRange',
@@ -203,6 +204,7 @@ describe('data-grid component protocol', () => {
         },
         getActiveCell: {
           name: 'getActiveCell',
+          returns: 'DataGridActiveCell | unknown',
         },
         moveActiveCell: {
           name: 'moveActiveCell',
@@ -330,5 +332,19 @@ describe('data-grid component protocol', () => {
     expect(source).toContain('focusCellElement')
     expect(source).toContain('focusActiveCellElement')
     expect(source).toContain('onFocus=')
+  })
+
+  it('schedules focus after virtual scroll navigation', () => {
+    expect(source).toContain('scheduleFocusActiveCellElement')
+    expect(source).toContain(
+      "ctx.host.scrollToIndex(nextActiveCell.rowIndex, 'center')",
+    )
+    expect(source).toContain('scheduleFocusActiveCellElement()')
+  })
+
+  it('disconnects viewport observer when viewport ref is cleared', () => {
+    expect(source).toContain('viewportResizeObserver?.disconnect()')
+    expect(source).toContain('viewportResizeObserver = undefined')
+    expect(source).toContain('viewport = undefined')
   })
 })
