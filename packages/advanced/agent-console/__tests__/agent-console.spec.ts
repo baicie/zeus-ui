@@ -13,6 +13,14 @@ const sourcePath = resolve(
   'packages/advanced/agent-console/src/components/agent-console.tsx',
 )
 const source = readFileSync(sourcePath, 'utf-8')
+const consoleStateSource = readFileSync(
+  resolve(
+    workspaceRoot,
+    'packages/advanced/agent-console/src/core/console-state.ts',
+  ),
+  'utf-8',
+)
+const combinedSource = `${source}\n${consoleStateSource}`
 
 describe('agent-console component protocol', () => {
   it('infers props, events, methods, slots and parts', () => {
@@ -143,6 +151,21 @@ describe('agent-console component protocol', () => {
     expect(source).not.toContain('DEEPSEEK_API_KEY')
     expect(source).not.toContain('Authorization')
     expect(source).not.toContain('Bearer')
+  })
+
+  it('syncs external host props into internal state', () => {
+    expect(source).toContain('readExternalState')
+    expect(source).toContain('syncExternalState')
+    expect(source).toContain('scheduleExternalSync')
+    expect(source).toContain('data-external-signature')
+    expect(source).toContain('ctx.host.toolCalls = state.toolCalls')
+    expect(source).toContain('ctx.host.diagnostics = state.diagnostics')
+  })
+
+  it('records reset in event log', () => {
+    expect(combinedSource).toContain('resetAgentConsoleState')
+    expect(combinedSource).toContain('emitLatestEvent()')
+    expect(combinedSource).toContain("type: 'reset'")
   })
 
   it('exports component from package root', () => {

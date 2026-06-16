@@ -11,6 +11,7 @@ import {
   getLatestAgentConsoleEvent,
   getLatestAgentConsoleMessage,
   getLatestAgentConsoleToolCall,
+  resetAgentConsoleState,
   selectAgentConsoleArtifact,
   setAgentConsoleStatus,
   startToolCallInAgentConsoleState,
@@ -146,5 +147,20 @@ describe('console state', () => {
     expect(snapshot.events[0].message?.id).toBe('m2')
     expect(snapshot).not.toBe(state)
     expect(snapshot.messages).not.toBe(state.messages)
+  })
+
+  it('resets state and records reset event', () => {
+    const state = resetAgentConsoleState('idle')
+
+    expect(state.status).toBe('idle')
+    expect(state.messages).toEqual([])
+    expect(state.toolCalls).toEqual([])
+    expect(state.artifacts).toEqual([])
+    expect(state.diagnostics).toEqual([])
+    expect(state.events).toEqual([
+      expect.objectContaining({
+        type: 'reset',
+      }),
+    ])
   })
 })

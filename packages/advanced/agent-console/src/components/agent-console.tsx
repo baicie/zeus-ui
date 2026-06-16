@@ -28,9 +28,9 @@ import {
   addDiagnosticToAgentConsoleState,
   appendMessageToAgentConsoleState,
   cloneAgentConsoleState,
-  createEmptyAgentConsoleState,
   finishToolCallInAgentConsoleState,
   getLatestAgentConsoleEvent,
+  resetAgentConsoleState,
   selectAgentConsoleArtifact,
   setAgentConsoleStatus,
   startToolCallInAgentConsoleState,
@@ -51,8 +51,11 @@ export interface AgentConsoleProps {
 export interface AgentConsoleElement extends HTMLElement {
   status?: AgentConsoleStatus
   messages?: AgentConsoleMessage[]
+  toolCalls?: AgentConsoleToolCall[]
   artifacts?: AgentConsoleArtifact[]
+  diagnostics?: AgentConsoleDiagnostic[]
   selectedArtifactId?: string
+  maxEvents?: number
   appendMessage: (input: AgentConsoleAppendMessageInput) => AgentConsoleMessage
   updateMessage: (
     input: AgentConsoleUpdateMessageInput,
@@ -77,13 +80,40 @@ interface AgentConsoleEmits extends Record<string, EventDefinition<unknown>> {
   reset: EventDefinition<AgentConsoleResetDetail>
 }
 
+const objectIds = new WeakMap<object, string>()
+let objectIdCounter = 0
+
+function getObjectSignature(value: unknown): string {
+  if (
+    (typeof value !== 'object' && typeof value !== 'function') ||
+    value === null
+  ) {
+    return String(value)
+  }
+
+  const objectValue = value as object
+  const existing = objectIds.get(objectValue)
+
+  if (existing) return existing
+
+  objectIdCounter += 1
+  const id = `ref:${objectIdCounter.toString(36)}`
+  objectIds.set(objectValue, id)
+
+  return id
+}
+
+function readArray<T>(value: T[] | undefined): T[] {
+  return Array.isArray(value) ? value : []
+}
+
 function resolveInitialState(props: AgentConsoleProps): AgentConsoleState {
   return {
     status: props.status ?? 'idle',
-    messages: props.messages ?? [],
-    toolCalls: props.toolCalls ?? [],
-    artifacts: props.artifacts ?? [],
-    diagnostics: props.diagnostics ?? [],
+    messages: readArray(props.messages),
+    toolCalls: readArray(props.toolCalls),
+    artifacts: readArray(props.artifacts),
+    diagnostics: readArray(props.diagnostics),
     events: [],
     selectedArtifactId: props.selectedArtifactId,
   }
@@ -94,14 +124,47 @@ function setup(
   ctx: DefineElementContext<AgentConsoleElement, AgentConsoleEmits>,
 ) {
   let state = resolveInitialState(props)
+  let pendingExternalSync = false
+  let lastExternalSignature = ''
 
-  const maxEvents = (): number | undefined => props.maxEvents
+  const readExternalState = (): AgentConsoleState => ({
+    status: ctx.host.status ?? props.status ?? 'idle',
+    messages: readArray(ctx.host.messages ?? props.messages),
+    toolCalls: readArray(ctx.host.toolCalls ?? props.toolCalls),
+    artifacts: readArray(ctx.host.artifacts ?? props.artifacts),
+    diagnostics: readArray(ctx.host.diagnostics ?? props.diagnostics),
+    events: state.events,
+    selectedArtifactId: ctx.host.selectedArtifactId ?? props.selectedArtifactId,
+  })
+
+  const getExternalSignature = (): string => {
+    const external = readExternalState()
+
+    return [
+      external.status,
+      external.selectedArtifactId,
+      ctx.host.maxEvents ?? props.maxEvents,
+      external.messages,
+      external.toolCalls,
+      external.artifacts,
+      external.diagnostics,
+    ]
+      .map(getObjectSignature)
+      .join('|')
+  }
+
+  const maxEvents = (): number | undefined =>
+    ctx.host.maxEvents ?? props.maxEvents
 
   const syncHostProps = (): void => {
     ctx.host.status = state.status
     ctx.host.messages = state.messages
+    ctx.host.toolCalls = state.toolCalls
     ctx.host.artifacts = state.artifacts
+    ctx.host.diagnostics = state.diagnostics
     ctx.host.selectedArtifactId = state.selectedArtifactId
+    ctx.host.maxEvents = maxEvents()
+    lastExternalSignature = getExternalSignature()
   }
 
   const emitLatestEvent = (): void => {
@@ -118,6 +181,26 @@ function setup(
     state = nextState
     syncHostProps()
     emitLatestEvent()
+  }
+
+  const syncExternalState = (): void => {
+    const nextSignature = getExternalSignature()
+
+    if (nextSignature === lastExternalSignature) return
+
+    state = readExternalState()
+    syncHostProps()
+  }
+
+  const scheduleExternalSync = (): void => {
+    if (pendingExternalSync) return
+
+    pendingExternalSync = true
+
+    queueMicrotask(() => {
+      pendingExternalSync = false
+      syncExternalState()
+    })
   }
 
   const getSelectedArtifact = (): AgentConsoleArtifact | undefined => {
@@ -151,7 +234,20 @@ function setup(
     },
 
     addArtifact(input: AgentConsoleAddArtifactInput): AgentConsoleArtifact {
+      const previousArtifact = getSelectedArtifact()
+
       commit(addArtifactToAgentConsoleState(state, input, maxEvents()))
+
+      const artifact = getSelectedArtifact()
+
+      if (previousArtifact?.id !== artifact?.id) {
+        ctx.emit.artifactSelect({
+          artifact,
+          artifactId: state.selectedArtifactId,
+          state: cloneAgentConsoleState(state),
+        })
+      }
+
       return state.artifacts[state.artifacts.length - 1]
     },
 
@@ -196,16 +292,19 @@ function setup(
     },
 
     getState(options?: AgentConsoleSnapshotOptions): AgentConsoleState {
+      syncExternalState()
       return cloneAgentConsoleState(state, options)
     },
 
     getEvents(): AgentConsoleEvent[] {
+      syncExternalState()
       return cloneAgentConsoleState(state).events
     },
 
     reset(): void {
-      state = createEmptyAgentConsoleState(props.status ?? 'idle')
+      state = resetAgentConsoleState(props.status ?? 'idle', maxEvents())
       syncHostProps()
+      emitLatestEvent()
 
       ctx.emit.reset({
         state: cloneAgentConsoleState(state),
@@ -219,6 +318,10 @@ function setup(
     <Host
       part="root"
       data-slot="agent-console-root"
+      data-external-signature={() => {
+        scheduleExternalSync()
+        return getExternalSignature()
+      }}
       data-status={() => state.status}
       data-message-count={() => String(state.messages.length)}
       data-tool-call-count={() => String(state.toolCalls.length)}

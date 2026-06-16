@@ -63,6 +63,24 @@ export function cloneAgentConsoleState(
   }
 }
 
+export function resetAgentConsoleState(
+  status: AgentConsoleStatus = 'idle',
+  maxEvents?: number,
+): AgentConsoleState {
+  const empty = createEmptyAgentConsoleState(status)
+
+  return {
+    ...empty,
+    events: appendAgentConsoleEvent(
+      [],
+      {
+        type: 'reset',
+      },
+      maxEvents,
+    ),
+  }
+}
+
 export function setAgentConsoleStatus(
   state: AgentConsoleState,
   status: AgentConsoleStatus,
