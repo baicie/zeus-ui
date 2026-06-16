@@ -44,6 +44,9 @@ describe('@zeus-web/registry package contract', () => {
     expect(packageJson.exports).toHaveProperty(
       './templates/react/revogrid-adapter.tsx',
     )
+    expect(packageJson.exports).toHaveProperty(
+      './templates/react/agent-console.tsx',
+    )
     expect(packageJson.exports).toHaveProperty('./templates/vue/button.vue')
     expect(packageJson.exports).toHaveProperty('./templates/vue/input.vue')
     expect(packageJson.exports).toHaveProperty('./templates/vue/chat.vue')
@@ -51,12 +54,18 @@ describe('@zeus-web/registry package contract', () => {
     expect(packageJson.exports).toHaveProperty(
       './templates/vue/revogrid-adapter.vue',
     )
+    expect(packageJson.exports).toHaveProperty(
+      './templates/vue/agent-console.vue',
+    )
     expect(packageJson.exports).toHaveProperty('./templates/native/chat.ts')
     expect(packageJson.exports).toHaveProperty(
       './templates/native/data-grid.ts',
     )
     expect(packageJson.exports).toHaveProperty(
       './templates/native/revogrid-adapter.ts',
+    )
+    expect(packageJson.exports).toHaveProperty(
+      './templates/native/agent-console.ts',
     )
     expect(packageJson.exports).toHaveProperty('./templates/css/globals.css')
     expect(packageJson.exports).toHaveProperty('./templates/lib/cn.ts')
@@ -75,6 +84,7 @@ describe('@zeus-web/registry package contract', () => {
       'chat',
       'data-grid',
       'revogrid-adapter',
+      'agent-console',
     ])
   })
 
@@ -374,6 +384,74 @@ describe('@zeus-web/registry package contract', () => {
       expect(source).not.toContain('@ag-grid')
       expect(source).not.toContain('@revolist/revogrid')
       expect(source).not.toContain('defineCustomElements')
+    }
+  })
+
+  it('registers agent-console across native/react/vue with safe templates', () => {
+    const manifest = readManifest()
+    const agentConsole = findRegistryItem(manifest, 'agent-console')
+
+    expect(agentConsole).toBeTruthy()
+    expect(agentConsole?.dependencies).toEqual(['@zeus-web/agent-console'])
+    expect(agentConsole?.frameworks).toEqual(
+      expect.arrayContaining(['native', 'react', 'vue']),
+    )
+    expect(getRegistryItemNames(manifest)).toContain('agent-console')
+
+    expect(agentConsole?.files).toEqual(
+      expect.arrayContaining([
+        {
+          framework: 'native',
+          source: 'templates/native/agent-console.ts',
+          target: 'components/agent-console.ts',
+        },
+        {
+          framework: 'react',
+          source: 'templates/react/agent-console.tsx',
+          target: 'components/ui/agent-console.tsx',
+        },
+        {
+          framework: 'vue',
+          source: 'templates/vue/agent-console.vue',
+          target: 'components/ui/agent-console.vue',
+        },
+      ]),
+    )
+
+    const nativeSource = read('templates/native/agent-console.ts')
+    const reactSource = read('templates/react/agent-console.tsx')
+    const vueSource = read('templates/vue/agent-console.vue')
+
+    expect(nativeSource).toContain("import '@zeus-web/agent-console/wc/auto'")
+    expect(nativeSource).toContain("from '@zeus-web/agent-console'")
+    expect(nativeSource).toContain('mountAgentConsoleDemo')
+    expect(nativeSource).toContain('zw-agent-console')
+    expect(nativeSource).not.toContain('String.raw')
+    expect(nativeSource).not.toContain('agentConsoleNativeSource')
+
+    expect(reactSource).toContain("from '@zeus-web/agent-console'")
+    expect(reactSource).toContain('@zeus-web/agent-console/react')
+    expect(reactSource).toContain("import { cn } from '@/lib/cn'")
+    expect(reactSource).toMatch(
+      /extends\s+ComponentProps<\s*typeof\s+AgentConsolePrimitive/,
+    )
+    expect(reactSource).toContain('AgentConsolePrimitive')
+    expect(reactSource).toContain('AgentConsoleDemo')
+
+    expect(vueSource).toContain("from '@zeus-web/agent-console'")
+    expect(vueSource).toContain('@zeus-web/agent-console/vue')
+    expect(vueSource).toContain("import { cn } from '@/lib/cn'")
+    expect(vueSource).toContain('AgentConsolePrimitive')
+
+    for (const source of [nativeSource, reactSource, vueSource]) {
+      expect(source).not.toContain('fetch(')
+      expect(source).not.toContain('EventSource')
+      expect(source).not.toContain('WebSocket')
+      expect(source).not.toContain('Authorization')
+      expect(source).not.toContain('Bearer')
+      expect(source).not.toContain('OPENAI_API_KEY')
+      expect(source).not.toContain('ANTHROPIC_API_KEY')
+      expect(source).not.toContain('DEEPSEEK_API_KEY')
     }
   })
 })

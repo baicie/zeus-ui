@@ -77,6 +77,14 @@ export default defineConfig(
     },
   },
 
+  // E2E tests and harnesses - run in jsdom, need DOM globals
+  {
+    files: ['e2e/**'],
+    rules: {
+      'no-restricted-globals': 'off',
+    },
+  },
+
   // Let ESLint format TypeScript files via @stylistic instead of Prettier
   {
     files: ['**/*.ts', '**/*.tsx'],

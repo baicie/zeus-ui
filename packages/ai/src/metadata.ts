@@ -2044,5 +2044,70 @@ export const aiMetadata: ZeusWebAiMetadata = {
         '不要在 revogrid-adapter 模板中导入 @revolist/revogrid 真实实现。',
       ],
     },
+    {
+      name: 'agent-console',
+      packageName: '@zeus-web/agent-console',
+      category: 'advanced',
+      summary:
+        'Headless agent console foundation for messages, tool calls, artifacts, diagnostics and local status state.',
+      whenToUse: [
+        'Use when building an AI assistant console UI.',
+        'Use when you need a local state model for messages, tool calls, artifacts and diagnostics.',
+        'Use before adding a real provider adapter.',
+      ],
+      doNotUseFor: [
+        '不要把它当作模型请求库。',
+        'Do not use as a direct OpenAI/Anthropic/DeepSeek client.',
+        'Do not use when you only need a basic chat transcript.',
+        'Do not put API keys or network transport inside templates.',
+      ],
+      tags: ['agent', 'console', 'chat', 'tools', 'artifacts', 'diagnostics'],
+      components: ['zw-agent-console'],
+      slots: {
+        'zw-agent-console': ['timeline', 'tools', 'artifacts', 'diagnostics'],
+      },
+      events: {
+        'zw-agent-console': [
+          'agent-event',
+          'status-change',
+          'artifact-select',
+          'reset',
+        ],
+      },
+      methods: {
+        'zw-agent-console': [
+          'appendMessage',
+          'updateMessage',
+          'startToolCall',
+          'finishToolCall',
+          'addArtifact',
+          'selectArtifact',
+          'addDiagnostic',
+          'setStatus',
+          'getState',
+          'getEvents',
+          'reset',
+        ],
+      },
+      examples: [
+        {
+          title: 'React styled usage',
+          description: 'Use the registry template as a local styled shell.',
+          code: [
+            "import { AgentConsole } from '@/components/ui/agent-console'",
+            '',
+            'export function Example() {',
+            '  return <AgentConsole />',
+            '}',
+          ].join('\n'),
+        },
+      ],
+      promptHints: [
+        '业务请求逻辑应该放在应用层，不应放在组件内部。',
+        'Generate local UI only.',
+        'Do not add fetch, WebSocket, EventSource or provider SDK usage.',
+        'Use appendMessage/startToolCall/addArtifact methods for local state transitions.',
+      ],
+    },
   ],
 }

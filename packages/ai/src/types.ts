@@ -25,6 +25,7 @@ export type ZeusWebAiAdvancedComponentName =
   | 'virtual'
   | 'data-grid'
   | 'revogrid-adapter'
+  | 'agent-console'
 
 export type ZeusWebAiThemeName =
   | 'default'
