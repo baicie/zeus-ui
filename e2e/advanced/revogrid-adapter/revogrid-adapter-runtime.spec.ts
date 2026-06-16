@@ -15,7 +15,6 @@ import {
   adapterRuntimeColumns,
   adapterRuntimeRows,
   cleanupRevoGridAdapterFixtures,
-  collectEvents,
   getFakeRevoGrid,
   mountRevoGridAdapter,
   nextFrame,
@@ -89,30 +88,77 @@ describe('zw-revogrid-adapter runtime', () => {
   })
 
   it('emits adapter-ready once and adapter-change on refresh', async () => {
-    const adapter = await mountRevoGridAdapter()
-    const readyCollector = collectEvents<RevoGridAdapterReadyDetail>(
-      adapter,
-      'adapter-ready',
-    )
-    const changeCollector = collectEvents<RevoGridAdapterChangeDetail>(
-      adapter,
-      'adapter-change',
-    )
+    const readyEvents: CustomEvent<RevoGridAdapterReadyDetail>[] = []
+    const changeEvents: CustomEvent<RevoGridAdapterChangeDetail>[] = []
+
+    const adapter = await mountRevoGridAdapter({
+      beforeAppend(element) {
+        element.addEventListener('adapter-ready', event => {
+          readyEvents.push(event as CustomEvent<RevoGridAdapterReadyDetail>)
+        })
+
+        element.addEventListener('adapter-change', event => {
+          changeEvents.push(event as CustomEvent<RevoGridAdapterChangeDetail>)
+        })
+      },
+    })
+
+    expect(readyEvents).toHaveLength(1)
+    expect(readyEvents[0]?.detail.state.source).toHaveLength(3)
 
     adapter.refresh()
     adapter.refresh()
 
     await nextFrame()
 
-    expect(readyCollector.events).toHaveLength(0)
-    expect(changeCollector.events).toHaveLength(2)
+    expect(readyEvents).toHaveLength(1)
+    expect(changeEvents.length).toBeGreaterThanOrEqual(3)
     expect(
-      changeCollector.events[changeCollector.events.length - 1]?.detail.state
-        .source,
+      changeEvents[changeEvents.length - 1]?.detail.state.source,
     ).toHaveLength(3)
+  })
 
-    readyCollector.dispose()
-    changeCollector.dispose()
+  it('syncs direct property updates into fake revo-grid without requiring exposed setters', async () => {
+    const adapter = await mountRevoGridAdapter()
+    const grid = getFakeRevoGrid(adapter)
+
+    adapter.rows = [
+      {
+        id: 'direct',
+        userName: 'Direct Update',
+        age: 1,
+        role: 'Runtime',
+      },
+    ]
+
+    adapter.columns = [
+      {
+        id: 'name',
+        field: 'userName',
+        header: 'User',
+        sortable: true,
+      },
+    ]
+
+    await nextFrame()
+    await nextFrame()
+
+    expect(grid.source).toEqual([
+      expect.objectContaining({
+        id: 'direct',
+        userName: 'Direct Update',
+        [ZEUS_REVO_ROW_KEY]: 'direct',
+        [ZEUS_REVO_ROW_INDEX]: 0,
+      }),
+    ])
+
+    expect(grid.columns).toEqual([
+      expect.objectContaining({
+        prop: 'userName',
+        name: 'User',
+        [ZEUS_REVO_COLUMN_ID]: 'name',
+      }),
+    ])
   })
 
   it('exposes state getters', async () => {

@@ -61,6 +61,43 @@ export const adapterRuntimeRows: DataGridRowData[] = [
   },
 ]
 
+export interface RevoGridAdapterRuntimeElement extends HTMLElement {
+  rows?: DataGridRowData[]
+  columns?: DataGridColumn[]
+  selectedKeys?: DataGridRowKey[]
+  selectionMode?: 'none' | 'single' | 'multiple'
+  sortColumn?: string
+  sortDirection?: DataGridSortDirection
+  readonly?: boolean
+  includeHiddenColumns?: boolean
+  getRowKey?: (row: DataGridRowData, index: number) => DataGridRowKey
+  getRevoColumns: () => RevoGridCompatibleColumn[]
+  getRevoSource: () => RevoGridCompatibleSourceRow[]
+  getRevoSort: () => RevoGridCompatibleSort | undefined
+  getRevoSelection: () => {
+    mode: 'none' | 'single' | 'multiple'
+    rowKeys: DataGridRowKey[]
+    rowIndexes: number[]
+  }
+  getState: () => {
+    columns: RevoGridCompatibleColumn[]
+    source: RevoGridCompatibleSourceRow[]
+    sort: RevoGridCompatibleSort | undefined
+    selection: {
+      mode: 'none' | 'single' | 'multiple'
+      rowKeys: DataGridRowKey[]
+      rowIndexes: number[]
+    }
+  }
+  getGridElement: () => FakeRevoGridElement | undefined
+  setRows: (rows: DataGridRowData[]) => void
+  setColumns: (columns: DataGridColumn[]) => void
+  setSelection: (keys: DataGridRowKey[]) => void
+  setSort: (columnId: string, direction?: DataGridSortDirection) => void
+  clearSort: () => void
+  refresh: () => void
+}
+
 export interface FakeRevoGridElement extends RevoGridElementLike {
   refreshCount: number
   columns?: RevoGridCompatibleColumn[]
@@ -82,6 +119,7 @@ export interface MountedRevoGridAdapterOptions {
   includeHiddenColumns?: boolean
   getRowKey?: (row: DataGridRowData, index: number) => DataGridRowKey
   ariaLabel?: string
+  beforeAppend?: (adapter: RevoGridAdapterRuntimeElement) => void
 }
 
 export interface EventCollector<T> {
@@ -133,47 +171,12 @@ export async function nextFrame(): Promise<void> {
 
 export async function mountRevoGridAdapter(
   options: MountedRevoGridAdapterOptions = {},
-) {
+): Promise<RevoGridAdapterRuntimeElement> {
   defineRevoGridAdapterElement()
 
   const adapter = document.createElement(
     'zw-revogrid-adapter',
-  ) as HTMLElement & {
-    rows?: DataGridRowData[]
-    columns?: DataGridColumn[]
-    selectedKeys?: DataGridRowKey[]
-    selectionMode?: 'none' | 'single' | 'multiple'
-    sortColumn?: string
-    sortDirection?: DataGridSortDirection
-    readonly?: boolean
-    includeHiddenColumns?: boolean
-    getRowKey?: (row: DataGridRowData, index: number) => DataGridRowKey
-    getRevoColumns: () => RevoGridCompatibleColumn[]
-    getRevoSource: () => RevoGridCompatibleSourceRow[]
-    getRevoSort: () => RevoGridCompatibleSort | undefined
-    getRevoSelection: () => {
-      mode: 'none' | 'single' | 'multiple'
-      rowKeys: DataGridRowKey[]
-      rowIndexes: number[]
-    }
-    getState: () => {
-      columns: RevoGridCompatibleColumn[]
-      source: RevoGridCompatibleSourceRow[]
-      sort: RevoGridCompatibleSort | undefined
-      selection: {
-        mode: 'none' | 'single' | 'multiple'
-        rowKeys: DataGridRowKey[]
-        rowIndexes: number[]
-      }
-    }
-    getGridElement: () => FakeRevoGridElement | undefined
-    setRows: (rows: DataGridRowData[]) => void
-    setColumns: (columns: DataGridColumn[]) => void
-    setSelection: (keys: DataGridRowKey[]) => void
-    setSort: (columnId: string, direction?: DataGridSortDirection) => void
-    clearSort: () => void
-    refresh: () => void
-  }
+  ) as RevoGridAdapterRuntimeElement
 
   adapter.rows = options.rows ?? adapterRuntimeRows
   adapter.columns = options.columns ?? adapterRuntimeColumns
@@ -188,6 +191,8 @@ export async function mountRevoGridAdapter(
   if (options.ariaLabel) {
     adapter.setAttribute('aria-label', options.ariaLabel)
   }
+
+  options.beforeAppend?.(adapter)
 
   document.body.append(adapter)
 

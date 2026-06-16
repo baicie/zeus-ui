@@ -1,6 +1,7 @@
 /* eslint-disable no-restricted-globals */
 import '@zeus-web/chat/wc/auto'
 import '@zeus-web/data-grid/wc/auto'
+import '@zeus-web/revogrid-adapter/wc/auto'
 import '@zeus-web/virtual/wc/auto'
 import './styles.css'
 
@@ -40,6 +41,17 @@ interface ChatMessageData {
 interface ChatElement extends HTMLElement {
   messages?: ChatMessageData[]
   emitSend: (value: string, nativeEvent?: Event) => void
+}
+
+interface RevoGridAdapterElement extends HTMLElement {
+  rows?: DataGridRowData[]
+  columns?: DataGridColumn[]
+  selectedKeys?: string[]
+  selectionMode?: 'none' | 'single' | 'multiple'
+  sortColumn?: string
+  sortDirection?: 'asc' | 'desc'
+  readonly?: boolean
+  refresh: () => void
 }
 
 const gridRows: DataGridRowData[] = [
@@ -246,6 +258,44 @@ function renderVirtualList(root: HTMLElement): void {
   root.append(section)
 }
 
+function renderRevoGridAdapter(root: HTMLElement): void {
+  const section = createSection(
+    'RevoGrid adapter',
+    'Interop bridge that maps Zeus DataGrid rows, columns, sorting and selection into a revo-grid compatible element.',
+  )
+
+  const adapter = document.createElement(
+    'zw-revogrid-adapter',
+  ) as RevoGridAdapterElement
+
+  adapter.rows = gridRows
+  adapter.columns = gridColumns
+  adapter.selectionMode = 'multiple'
+  adapter.selectedKeys = ['tickets']
+  adapter.sortColumn = 'owner'
+  adapter.sortDirection = 'asc'
+  adapter.setAttribute('aria-label', 'Advanced RevoGrid adapter demo')
+
+  const note = document.createElement('p')
+  note.className = 'event-output'
+  note.textContent =
+    'This demo does not bundle RevoGrid. It verifies the adapter target and state mapping.'
+
+  adapter.addEventListener('adapter-change', event => {
+    const customEvent = event as CustomEvent<{
+      state: {
+        source: unknown[]
+        columns: unknown[]
+      }
+    }>
+
+    note.textContent = `Adapter mapped ${customEvent.detail.state.source.length} rows and ${customEvent.detail.state.columns.length} columns.`
+  })
+
+  section.append(adapter, note)
+  root.append(section)
+}
+
 function renderAdvancedShowcase(root: HTMLElement): void {
   root.innerHTML = ''
 
@@ -270,6 +320,7 @@ function renderAdvancedShowcase(root: HTMLElement): void {
   shell.append(hero)
 
   renderDataGrid(shell)
+  renderRevoGridAdapter(shell)
   renderChat(shell)
   renderVirtualList(shell)
 

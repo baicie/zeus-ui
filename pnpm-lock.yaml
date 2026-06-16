@@ -161,6 +161,9 @@ importers:
       '@zeus-web/data-grid':
         specifier: workspace:*
         version: link:../../packages/advanced/data-grid
+      '@zeus-web/revogrid-adapter':
+        specifier: workspace:*
+        version: link:../../packages/advanced/revogrid-adapter
       '@zeus-web/virtual':
         specifier: workspace:*
         version: link:../../packages/advanced/virtual
