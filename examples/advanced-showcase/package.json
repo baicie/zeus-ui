@@ -12,12 +12,18 @@
     "test": "pnpm build:deps && vitest --run"
   },
   "dependencies": {
+    "@zeus-web/agent-console": "workspace:*",
     "@zeus-web/chat": "workspace:*",
     "@zeus-web/data-grid": "workspace:*",
     "@zeus-web/revogrid-adapter": "workspace:*",
-    "@zeus-web/virtual": "workspace:*"
+    "@zeus-web/virtual": "workspace:*",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-router-dom": "^7.11.0"
   },
   "devDependencies": {
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.1.4",
     "jsdom": "^29.1.1",
     "typescript": "^6.0.3",
     "vite": "^8.0.16",
