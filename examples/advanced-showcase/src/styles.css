@@ -218,6 +218,28 @@ zw-data-grid [data-slot='data-grid-body'] {
   position: relative;
 }
 
+zw-data-grid[data-virtual] [data-slot='data-grid-viewport'] {
+  position: relative;
+}
+
+zw-data-grid[data-virtual] [data-slot='data-grid-spacer'] {
+  display: block;
+}
+
+zw-data-grid[data-virtual] [data-slot='data-grid-body'] {
+  position: absolute;
+  top: 40px;
+  left: 0;
+  right: 0;
+  min-height: 0;
+}
+
+zw-data-grid[data-virtual] [data-slot='data-grid-row'] {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
 zw-data-grid [data-slot='data-grid-row'] {
   display: grid;
   border-bottom: 1px solid #e4eae6;
@@ -504,6 +526,7 @@ zw-chat [data-slot='chat'] {
 /* ─── Virtual List ─── */
 
 zw-virtual-list [data-slot='virtual-list-viewport'] {
+  position: relative;
   height: 300px;
   overflow: auto;
   border: 1px solid #b8c5bd;
@@ -511,13 +534,28 @@ zw-virtual-list [data-slot='virtual-list-viewport'] {
   background: #ffffff;
 }
 
+zw-virtual-list [data-slot='virtual-list-spacer'] {
+  display: block;
+}
+
+zw-virtual-list [data-slot='virtual-list-items'] {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 .virtual-items {
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
+  position: absolute;
+  inset: 0;
+  min-height: 0;
+  padding: 0;
 }
 
 .virtual-row {
+  position: absolute;
+  top: 0;
+  left: 8px;
+  right: 8px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -525,8 +563,8 @@ zw-virtual-list [data-slot='virtual-list-viewport'] {
   border-radius: 6px;
   border-left: 3px solid #4f8b6d;
   background: #f0f5f2;
-  margin-bottom: 4px;
   min-height: 44px;
+  pointer-events: auto;
 }
 
 .virtual-row:nth-child(3n) {
@@ -563,6 +601,10 @@ zw-virtual-list [data-slot='virtual-list-viewport'] {
 
 /* ─── RevoGrid Adapter ─── */
 
+zw-revogrid-adapter {
+  display: none;
+}
+
 zw-revogrid-adapter [data-slot='revogrid-adapter-grid'] {
   min-height: 280px;
   display: flex;
@@ -573,6 +615,72 @@ zw-revogrid-adapter [data-slot='revogrid-adapter-grid'] {
   background: #fafdfb;
   color: #5c6b62;
   font-size: 0.9rem;
+}
+
+.adapter-preview {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #b8c5bd;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.adapter-preview-header {
+  display: grid;
+  gap: 4px;
+}
+
+.adapter-preview-header strong {
+  color: #245f49;
+}
+
+.adapter-preview-header span {
+  color: #5c6b62;
+  font-size: 0.88rem;
+}
+
+.adapter-table {
+  display: grid;
+  overflow-x: auto;
+  border: 1px solid #d8e0da;
+  border-radius: 6px;
+}
+
+.adapter-table-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  min-width: 560px;
+}
+
+.adapter-table-head {
+  background: #dfe8e2;
+  font-weight: 800;
+  color: #1c4c3a;
+}
+
+.adapter-table-cell {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border-right: 1px solid #d8e0da;
+  border-bottom: 1px solid #edf2ef;
+  font-size: 0.88rem;
+}
+
+.adapter-table-cell:last-child {
+  border-right: none;
+}
+
+.adapter-state-json {
+  margin: 0;
+  padding: 12px;
+  border-radius: 6px;
+  background: #1c2c28;
+  color: #c8d9cf;
+  overflow-x: auto;
+  font-size: 0.82rem;
 }
 
 /* ─── Agent Console ─── */
@@ -819,6 +927,22 @@ zw-agent-console [data-slot='agent-console-diagnostics'] {
   margin: 10px 0 0;
   color: #506159;
   font-size: 0.88rem;
+}
+
+.debug-panel {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid #d8e0da;
+  border-radius: 8px;
+  background: #fafdfb;
+  color: #506159;
+  font-size: 0.88rem;
+}
+
+.debug-panel strong {
+  color: #245f49;
 }
 
 @media (max-width: 760px) {

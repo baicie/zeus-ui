@@ -26,6 +26,9 @@ export interface DataGridElement extends HTMLElement {
   rowHeight?: number
   overscan?: number
   virtual?: boolean
+  setRows?: (rows: DataGridRowData[]) => void
+  setColumns?: (columns: DataGridColumn[]) => void
+  refreshViewport?: () => void
   getSort?: () => unknown
   getSelection?: () => unknown
   getActiveCell?: () => unknown
@@ -81,6 +84,13 @@ export interface ChatCodeBlockElement extends HTMLElement {
   emitAction: (action: 'copy', nativeEvent?: Event) => void
 }
 
+export interface RevoGridAdapterState {
+  columns: Array<Record<string, unknown>>
+  source: Array<Record<string, unknown>>
+  sort?: Record<string, unknown>
+  selection: Record<string, unknown>
+}
+
 export interface RevoGridAdapterElement extends HTMLElement {
   rows?: DataGridRowData[]
   columns?: DataGridColumn[]
@@ -90,7 +100,7 @@ export interface RevoGridAdapterElement extends HTMLElement {
   sortDirection?: 'asc' | 'desc'
   readonly?: boolean
   refresh: () => void
-  getState?: () => unknown
+  getState?: () => RevoGridAdapterState
   getGridElement?: () => HTMLElement | undefined
 }
 
@@ -189,8 +199,37 @@ export interface AgentConsoleElement extends HTMLElement {
   reset: () => void
 }
 
+export interface VirtualItem {
+  index: number
+  key: string
+  start: number
+  size: number
+  end: number
+}
+
+export interface VirtualRange {
+  start: number
+  end: number
+  overscanStart: number
+  overscanEnd: number
+}
+
+export interface VirtualListRangeChangeDetail {
+  range: VirtualRange
+  items: VirtualItem[]
+  scrollOffset: number
+  viewportSize: number
+}
+
 export interface VirtualListElement extends HTMLElement {
   count?: number
   estimateSize?: number
   overscan?: number
+  horizontal?: boolean
+  getRange: () => VirtualRange
+  getItems: () => VirtualItem[]
+  getTotalSize: () => number
+  scrollToIndex: (index: number, align?: 'start' | 'center' | 'end') => void
+  scrollToOffset: (offset: number) => void
+  measure: () => void
 }

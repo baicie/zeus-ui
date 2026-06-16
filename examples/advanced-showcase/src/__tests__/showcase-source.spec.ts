@@ -55,6 +55,46 @@ describe('advanced showcase source', () => {
     }
   })
 
+  it('virtual-list page renders only virtual range items instead of all 120 rows', () => {
+    const source = read('src/pages/VirtualListPage.tsx')
+
+    expect(source).toContain('visibleItems.map')
+    expect(source).toContain('getItems')
+    expect(source).toContain('range-change')
+    expect(source).not.toContain('ITEMS.map(item =>')
+  })
+
+  it('data-grid page shows event output as debug panel, not as a data row', () => {
+    const source = read('src/pages/DataGridPage.tsx')
+
+    expect(source).toContain('className="debug-panel"')
+    expect(source).toContain('Debug output')
+    expect(source).not.toContain('<StatusNote>{note}</StatusNote>')
+  })
+
+  it('revogrid-adapter page displays mapped state instead of a blank target only', () => {
+    const source = read('src/pages/RevoGridAdapterPage.tsx')
+
+    expect(source).toContain('adapter-preview')
+    expect(source).toContain('adapter-table')
+    expect(source).toContain('getState')
+    expect(source).toContain('Mapped RevoGrid-compatible state')
+  })
+
+  it('styles overlay spacer and virtual body correctly', () => {
+    const source = read('src/styles.css')
+
+    expect(source).toContain("zw-virtual-list [data-slot='virtual-list-items']")
+    expect(source).toContain('position: absolute')
+    expect(source).toContain(
+      "zw-data-grid[data-virtual] [data-slot='data-grid-body']",
+    )
+    expect(source).toContain(
+      "zw-data-grid[data-virtual] [data-slot='data-grid-row']",
+    )
+    expect(source).toContain('.adapter-preview')
+  })
+
   it('does not bundle provider or RevoGrid implementations', () => {
     const files = [
       'src/main.tsx',

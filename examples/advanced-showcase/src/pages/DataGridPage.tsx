@@ -1,8 +1,8 @@
 import type { DataGridElement } from '../types'
 
 import { useEffect, useRef, useState } from 'react'
+
 import { DemoCard } from '../components/DemoCard'
-import { StatusNote } from '../components/StatusNote'
 import { gridColumns, gridRows } from '../data/advanced-data'
 
 export function DataGridPage() {
@@ -26,26 +26,32 @@ export function DataGridPage() {
     grid.activeColumnId = 'metric'
     grid.setAttribute('aria-label', 'Advanced metrics table')
 
+    const refresh = () => {
+      grid.refreshViewport?.()
+    }
+
     const handleSelection = () => {
       const sel = grid.getSelection?.()
-      setNote(`Selection: ${JSON.stringify(sel)}`)
+      setNote(`Selection event: ${JSON.stringify(sel)}`)
     }
 
     const handleSort = () => {
       const sort = grid.getSort?.()
-      setNote(`Sort: ${JSON.stringify(sort)}`)
+      setNote(`Sort event: ${JSON.stringify(sort)}`)
     }
 
     const handleActiveCell = () => {
       const cell = grid.getActiveCell?.()
       setNote(
-        `Active cell: row=${(cell as { rowKey?: string } | null)?.rowKey}, col=${(cell as { columnId?: string } | null)?.columnId}`,
+        `Active cell event: row=${(cell as { rowKey?: string } | null)?.rowKey}, col=${(cell as { columnId?: string } | null)?.columnId}`,
       )
     }
 
     grid.addEventListener('selection-change', handleSelection)
     grid.addEventListener('sort-change', handleSort)
     grid.addEventListener('active-cell-change', handleActiveCell)
+
+    requestAnimationFrame(refresh)
 
     return () => {
       grid.removeEventListener('selection-change', handleSelection)
@@ -60,7 +66,11 @@ export function DataGridPage() {
       description="Virtualized table with selection, sortable columns and keyboard navigation."
     >
       <zw-data-grid ref={gridRef} />
-      <StatusNote>{note}</StatusNote>
+
+      <div className="debug-panel" role="status">
+        <strong>Debug output</strong>
+        <span>{note}</span>
+      </div>
     </DemoCard>
   )
 }
