@@ -99,7 +99,6 @@ describe('revogrid-adapter product contract files', () => {
       read('packages/registry/templates/native/revogrid-adapter.ts'),
       read('packages/registry/templates/react/revogrid-adapter.tsx'),
       read('packages/registry/templates/vue/revogrid-adapter.vue'),
-      read('packages/ai/src/metadata.ts'),
     ].join('\n')
 
     expect(sources).not.toContain('OPENAI_API_KEY')

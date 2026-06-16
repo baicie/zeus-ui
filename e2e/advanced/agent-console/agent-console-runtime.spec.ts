@@ -238,4 +238,92 @@ describe('zw-agent-console runtime', () => {
 
     collector.dispose()
   })
+
+  it('syncs direct external property updates into state', async () => {
+    const consoleElement = await mountAgentConsole()
+
+    consoleElement.messages = [
+      {
+        id: 'external-message',
+        role: 'assistant',
+        content: 'External message',
+        status: 'complete',
+        createdAt: 10,
+        updatedAt: 10,
+      },
+    ]
+
+    consoleElement.toolCalls = [
+      {
+        id: 'external-tool',
+        name: 'search',
+        status: 'complete',
+        input: {
+          q: 'zeus',
+        },
+        output: {
+          ok: true,
+        },
+        createdAt: 11,
+        updatedAt: 12,
+      },
+    ]
+
+    consoleElement.artifacts = [
+      {
+        id: 'external-artifact',
+        kind: 'json',
+        title: 'External artifact',
+        content: {
+          ok: true,
+        },
+        createdAt: 13,
+        updatedAt: 13,
+      },
+    ]
+
+    consoleElement.diagnostics = [
+      {
+        id: 'external-diagnostic',
+        level: 'info',
+        message: 'External diagnostic',
+        createdAt: 14,
+      },
+    ]
+
+    consoleElement.status = 'waiting'
+    consoleElement.selectedArtifactId = 'external-artifact'
+
+    await nextFrame()
+    await nextFrame()
+
+    expect(consoleElement.getState()).toMatchObject({
+      status: 'waiting',
+      selectedArtifactId: 'external-artifact',
+      messages: [
+        expect.objectContaining({
+          id: 'external-message',
+          content: 'External message',
+        }),
+      ],
+      toolCalls: [
+        expect.objectContaining({
+          id: 'external-tool',
+          status: 'complete',
+        }),
+      ],
+      artifacts: [
+        expect.objectContaining({
+          id: 'external-artifact',
+          title: 'External artifact',
+        }),
+      ],
+      diagnostics: [
+        expect.objectContaining({
+          id: 'external-diagnostic',
+          message: 'External diagnostic',
+        }),
+      ],
+    })
+  })
 })

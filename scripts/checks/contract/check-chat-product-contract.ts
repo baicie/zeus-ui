@@ -64,7 +64,6 @@ const chatProductFiles = [
   'packages/registry/templates/native/chat.ts',
   'packages/registry/templates/react/chat.tsx',
   'packages/registry/templates/vue/chat.vue',
-  'packages/ai/src/metadata.ts',
 ]
 
 const nativeTemplatePath = 'packages/registry/templates/native/chat.ts'

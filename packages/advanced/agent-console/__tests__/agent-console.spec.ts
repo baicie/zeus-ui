@@ -75,7 +75,7 @@ describe('agent-console component protocol', () => {
         },
         updateMessage: {
           name: 'updateMessage',
-          returns: 'AgentConsoleMessage | unknown',
+          returns: 'AgentConsoleMessage | undefined',
         },
         startToolCall: {
           name: 'startToolCall',
@@ -91,7 +91,7 @@ describe('agent-console component protocol', () => {
         },
         selectArtifact: {
           name: 'selectArtifact',
-          returns: 'AgentConsoleArtifact | unknown',
+          returns: 'AgentConsoleArtifact | undefined',
         },
         addDiagnostic: {
           name: 'addDiagnostic',

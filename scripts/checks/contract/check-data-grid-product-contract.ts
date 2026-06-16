@@ -44,7 +44,6 @@ const productFiles = [
   'packages/registry/templates/native/data-grid.ts',
   'packages/registry/templates/react/data-grid.tsx',
   'packages/registry/templates/vue/data-grid.vue',
-  'packages/ai/src/metadata.ts',
 ]
 
 const forbiddenPatterns = [

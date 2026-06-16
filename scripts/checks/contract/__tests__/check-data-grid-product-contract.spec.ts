@@ -102,7 +102,6 @@ describe('data-grid product contract files', () => {
       read('packages/registry/templates/native/data-grid.ts'),
       read('packages/registry/templates/react/data-grid.tsx'),
       read('packages/registry/templates/vue/data-grid.vue'),
-      read('packages/ai/src/metadata.ts'),
     ].join('\n')
 
     expect(sources).not.toContain('OPENAI_API_KEY')

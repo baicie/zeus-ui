@@ -1,9 +1,20 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
 import {
   createMockAgentProvider,
   createReplayAgentProvider,
 } from '../src/provider'
+
+const workspaceRoot = existsSync(resolve(process.cwd(), 'pnpm-workspace.yaml'))
+  ? process.cwd()
+  : resolve(process.cwd(), '../../..')
+
+function readSource(path: string): string {
+  return readFileSync(resolve(workspaceRoot, path), 'utf-8')
+}
 
 async function collect<T>(iterable: AsyncIterable<T>): Promise<T[]> {
   const result: T[] = []
@@ -94,11 +105,34 @@ describe('agent provider contract', () => {
     expect(events).toEqual([])
   })
 
-  it('does not expose network primitives in provider implementation', async () => {
-    const provider = createMockAgentProvider()
+  it('keeps provider contract free of network/provider implementations', () => {
+    const providerSources = [
+      readSource('packages/advanced/agent-console/src/provider/types.ts'),
+      readSource(
+        'packages/advanced/agent-console/src/provider/mock-provider.ts',
+      ),
+      readSource(
+        'packages/advanced/agent-console/src/provider/replay-provider.ts',
+      ),
+      readSource('packages/advanced/agent-console/src/provider/index.ts'),
+    ].join('\n')
 
-    expect(JSON.stringify(provider)).not.toContain('fetch')
-    expect(JSON.stringify(provider)).not.toContain('WebSocket')
-    expect(JSON.stringify(provider)).not.toContain('EventSource')
+    for (const forbidden of [
+      'fetch(',
+      'EventSource',
+      'WebSocket',
+      'XMLHttpRequest',
+      'Authorization',
+      'Bearer',
+      'OPENAI_API_KEY',
+      'ANTHROPIC_API_KEY',
+      'DEEPSEEK_API_KEY',
+      '@openai',
+      '@anthropic',
+      'openai.chat',
+      'anthropic.messages',
+    ]) {
+      expect(providerSources).not.toContain(forbidden)
+    }
   })
 })

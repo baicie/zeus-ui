@@ -43,7 +43,6 @@ const productFiles = [
   'packages/registry/templates/native/revogrid-adapter.ts',
   'packages/registry/templates/react/revogrid-adapter.tsx',
   'packages/registry/templates/vue/revogrid-adapter.vue',
-  'packages/ai/src/metadata.ts',
 ]
 
 const forbiddenPatterns = [

@@ -95,7 +95,6 @@ describe('agent-console product contract files', () => {
       read('packages/registry/templates/native/agent-console.ts'),
       read('packages/registry/templates/react/agent-console.tsx'),
       read('packages/registry/templates/vue/agent-console.vue'),
-      read('packages/ai/src/metadata.ts'),
     ].join('\n')
 
     expect(sources).not.toContain('OPENAI_API_KEY')

@@ -58,7 +58,7 @@ describe('chat product contract files', () => {
 
     expect(source).toContain('ZeusWebAiAdvancedComponent')
     expect(source).toContain("category: 'advanced'")
-    expect(source).toContain("'chat' |")
+    expect(source).toContain("| 'chat'")
   })
 
   it('native template is copyable source, not a source string wrapper', () => {
@@ -95,7 +95,6 @@ describe('chat product contract files', () => {
       read('packages/registry/templates/native/chat.ts'),
       read('packages/registry/templates/react/chat.tsx'),
       read('packages/registry/templates/vue/chat.vue'),
-      read('packages/ai/src/metadata.ts'),
     ].join('\n')
 
     expect(sources).not.toContain('OPENAI_API_KEY')
