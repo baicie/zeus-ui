@@ -1,0 +1,72 @@
+{
+  "name": "@zeus-web/agent-console",
+  "type": "module",
+  "version": "0.0.0",
+  "description": "Headless agent console advanced component for Zeus Web.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baicie/zeus-ui.git",
+    "directory": "packages/advanced/agent-console"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "sideEffects": [
+    "./dist/wc/index.js",
+    "./dist/wc/*.js",
+    "./dist/**/*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/wc/index.d.ts",
+      "import": "./dist/wc/index.js"
+    },
+    "./wc": {
+      "types": "./dist/wc/index.d.ts",
+      "import": "./dist/wc/index.js"
+    },
+    "./wc/auto": {
+      "types": "./dist/wc/index.d.ts",
+      "import": "./dist/wc/auto.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
+    },
+    "./vue": {
+      "types": "./dist/vue/index.d.ts",
+      "import": "./dist/vue/index.js"
+    },
+    "./vue/global": {
+      "types": "./dist/vue/global.d.ts"
+    },
+    "./custom-elements.json": {
+      "default": "./dist/custom-elements.json"
+    },
+    "./zeus.components.json": {
+      "default": "./dist/zeus.components.json"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "rolldown -c ../../../rolldown.config.ts --watch",
+    "build": "rimraf dist && rolldown -c ../../../rolldown.config.ts",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest --root ../../.. --project unit packages/advanced/agent-console/__tests__/id.spec.ts packages/advanced/agent-console/__tests__/message-model.spec.ts packages/advanced/agent-console/__tests__/tool-call-model.spec.ts packages/advanced/agent-console/__tests__/artifact-model.spec.ts packages/advanced/agent-console/__tests__/diagnostic-model.spec.ts packages/advanced/agent-console/__tests__/event-log-model.spec.ts packages/advanced/agent-console/__tests__/console-state.spec.ts packages/advanced/agent-console/__tests__/agent-console.spec.ts"
+  },
+  "peerDependencies": {
+    "@zeus-js/zeus": ">=0.1.0-beta.5 <0.2.0"
+  },
+  "dependencies": {
+    "@zeus-js/runtime-dom": "0.1.0-beta.5",
+    "@zeus-js/web-c-runtime": "0.2.0",
+    "@zeus-web/chat": "workspace:*",
+    "@zeus-web/virtual": "workspace:*",
+    "@zeus-web/data-grid": "workspace:*",
+    "@zeus-web/zeus-compat": "workspace:*"
+  }
+}
