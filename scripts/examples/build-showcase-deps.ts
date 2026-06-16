@@ -72,6 +72,8 @@ function createBuildTargetNames(options: Options): string[] {
     '@zeus-web/virtual',
     '@zeus-web/chat',
     '@zeus-web/data-grid',
+    '@zeus-web/agent-console',
+    '@zeus-web/revogrid-adapter',
   ]
 
   return [
