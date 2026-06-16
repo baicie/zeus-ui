@@ -77,7 +77,7 @@
     "check:showcase-implementation": "tsx scripts/checks/examples/check-showcase-implementation.ts",
     "check:product-layers": "tsx scripts/checks/contract/check-product-layers.ts",
     "check:ui-package": "tsx scripts/checks/contract/check-ui-package.ts",
-    "check:product-contract": "tsx scripts/checks/contract/check-product-contract.ts && pnpm check:advanced-contract && pnpm check:chat-product-contract && pnpm check:data-grid-product-contract && pnpm check:revogrid-adapter-product-contract && pnpm check:agent-console-product-contract",
+    "check:product-contract": "tsx scripts/checks/contract/check-product-contract.ts && pnpm check:advanced-contract && pnpm check:chat-product-contract && pnpm check:data-grid-product-contract && pnpm check:revogrid-adapter-product-contract && pnpm check:agent-console-product-contract && pnpm check:advanced-final-contract",
     "check:advanced-contract": "tsx scripts/checks/contract/check-advanced-contract.ts",
     "check:chat-product-contract": "tsx scripts/checks/contract/check-chat-product-contract.ts",
     "check:data-grid-product-contract": "tsx scripts/checks/contract/check-data-grid-product-contract.ts",
