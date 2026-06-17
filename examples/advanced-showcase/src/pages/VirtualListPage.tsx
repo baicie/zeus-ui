@@ -4,7 +4,7 @@ import type {
   VirtualListRangeChangeDetail,
 } from '../types'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { DemoCard } from '../components/DemoCard'
 import { StatusNote } from '../components/StatusNote'
@@ -17,16 +17,66 @@ const ITEMS = Array.from({ length: 120 }, (_, i) => ({
   tag: i % 5 === 0 ? 'Priority' : i % 7 === 0 ? 'Escalated' : '',
 }))
 
-function getVisibleItems(element: VirtualListElement | null): VirtualItem[] {
-  if (!element) return []
+function isVirtualItem(value: unknown): value is VirtualItem {
+  if (!value || typeof value !== 'object') return false
 
-  return element.getItems?.() ?? []
+  const item = value as Partial<VirtualItem>
+
+  return (
+    typeof item.index === 'number' &&
+    typeof item.key === 'string' &&
+    typeof item.start === 'number' &&
+    typeof item.size === 'number' &&
+    typeof item.end === 'number'
+  )
+}
+
+function normalizeVirtualItems(value: unknown): VirtualItem[] {
+  if (!Array.isArray(value)) return []
+
+  return value.filter(isVirtualItem)
+}
+
+function getDetailItems(value: unknown): VirtualItem[] {
+  if (Array.isArray(value)) {
+    return normalizeVirtualItems(value)
+  }
+
+  if (!value || typeof value !== 'object') {
+    return []
+  }
+
+  const detail = value as Partial<VirtualListRangeChangeDetail>
+
+  return normalizeVirtualItems(detail.items)
+}
+
+function getVisibleItems(element: VirtualListElement | null): VirtualItem[] {
+  if (!element || typeof element.getItems !== 'function') return []
+
+  return normalizeVirtualItems(element.getItems())
+}
+
+function formatRangeNote(items: VirtualItem[]): string {
+  const first = items[0]
+  const last = items[items.length - 1]
+
+  return first && last
+    ? `Visible range: ${first.index + 1} - ${last.index + 1} / ${ITEMS.length}; DOM rows: ${items.length}`
+    : `Visible range: empty / ${ITEMS.length}; DOM rows: 0`
 }
 
 export function VirtualListPage() {
   const virtualRef = useRef<VirtualListElement | null>(null)
   const [visibleItems, setVisibleItems] = useState<VirtualItem[]>([])
   const [note, setNote] = useState('Waiting for virtual range.')
+
+  const commitVisibleItems = useCallback((nextValue: unknown) => {
+    const nextItems = normalizeVirtualItems(nextValue)
+
+    setVisibleItems([...nextItems])
+    setNote(formatRangeNote(nextItems))
+  }, [])
 
   useEffect(() => {
     const virtual = virtualRef.current
@@ -38,31 +88,12 @@ export function VirtualListPage() {
     virtual.setAttribute('aria-label', 'Advanced activity log')
 
     const syncVisibleItems = () => {
-      const items = getVisibleItems(virtual)
-      setVisibleItems(items)
-
-      const first = items[0]
-      const last = items[items.length - 1]
-
-      setNote(
-        first && last
-          ? `Visible range: ${first.index + 1} - ${last.index + 1} / ${ITEMS.length}; DOM rows: ${items.length}`
-          : `Visible range: empty / ${ITEMS.length}; DOM rows: 0`,
-      )
+      commitVisibleItems(getVisibleItems(virtual))
     }
 
     const handleRangeChange = (event: Event) => {
-      const customEvent = event as CustomEvent<VirtualListRangeChangeDetail>
-      setVisibleItems(customEvent.detail.items)
-
-      const first = customEvent.detail.items[0]
-      const last = customEvent.detail.items[customEvent.detail.items.length - 1]
-
-      setNote(
-        first && last
-          ? `Visible range: ${first.index + 1} - ${last.index + 1} / ${ITEMS.length}; DOM rows: ${customEvent.detail.items.length}`
-          : `Visible range: empty / ${ITEMS.length}; DOM rows: 0`,
-      )
+      const customEvent = event as CustomEvent<unknown>
+      commitVisibleItems(getDetailItems(customEvent.detail))
     }
 
     virtual.addEventListener('range-change', handleRangeChange)
@@ -75,7 +106,12 @@ export function VirtualListPage() {
     return () => {
       virtual.removeEventListener('range-change', handleRangeChange)
     }
-  }, [])
+  }, [commitVisibleItems])
+
+  const safeVisibleItems = useMemo(
+    () => normalizeVirtualItems(visibleItems),
+    [visibleItems],
+  )
 
   return (
     <DemoCard
@@ -84,7 +120,7 @@ export function VirtualListPage() {
     >
       <zw-virtual-list ref={virtualRef}>
         <div className="virtual-items">
-          {visibleItems.map(item => {
+          {safeVisibleItems.map(item => {
             const data = ITEMS[item.index]
 
             if (!data) return null

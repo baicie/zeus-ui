@@ -55,12 +55,20 @@ describe('advanced showcase source', () => {
     }
   })
 
-  it('virtual-list page renders only virtual range items instead of all 120 rows', () => {
+  it('virtual-list page renders only normalized virtual range items', () => {
     const source = read('src/pages/VirtualListPage.tsx')
 
-    expect(source).toContain('visibleItems.map')
-    expect(source).toContain('getItems')
+    expect(source).toContain('normalizeVirtualItems')
+    expect(source).toContain('isVirtualItem')
+    expect(source).toContain('getDetailItems')
+    expect(source).toContain('commitVisibleItems')
+    expect(source).toContain('safeVisibleItems.map')
     expect(source).toContain('range-change')
+    expect(source).toContain('element.getItems')
+    expect(source).toContain('normalizeVirtualItems(element.getItems())')
+    expect(source).not.toContain('setVisibleItems(customEvent.detail.items)')
+    expect(source).not.toContain('setVisibleItems(items)')
+    expect(source).not.toContain('visibleItems.map')
     expect(source).not.toContain('ITEMS.map(item =>')
   })
 
