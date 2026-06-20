@@ -12,6 +12,14 @@ const ROOT = process.cwd()
 
 type PackageKind = 'package' | 'primitive' | 'advanced'
 
+interface PackageJson {
+  name: string
+  exports?: unknown
+  private?: boolean
+  dependencies?: Record<string, string>
+  optionalDependencies?: Record<string, string>
+}
+
 interface PkgInfo {
   shortName: string
   fullName: string
@@ -20,6 +28,8 @@ interface PkgInfo {
   kind: PackageKind
   /** All non-component export target paths relative to package dir. */
   exportTargets: string[]
+  /** Workspace packages that must be built before this package. */
+  workspaceDependencyNames: string[]
 }
 
 function isComponentPackage(pkg: PkgInfo): boolean {
@@ -33,14 +43,135 @@ function collectExportTargets(value: unknown, targets: Set<string>): void {
     }
     return
   }
+
   if (Array.isArray(value)) {
     for (const item of value) collectExportTargets(item, targets)
     return
   }
+
   if (!value || typeof value !== 'object') return
+
   for (const nested of Object.values(value)) {
     collectExportTargets(nested, targets)
   }
+}
+
+function isWorkspaceDependency(version: string): boolean {
+  return version === 'workspace:*' || version.startsWith('workspace:')
+}
+
+function collectWorkspaceDependencyNames(pkgJson: PackageJson): string[] {
+  const dependencyMaps = [
+    pkgJson.dependencies,
+    pkgJson.optionalDependencies,
+  ].filter(Boolean) as Array<Record<string, string>>
+
+  const dependencyNames = new Set<string>()
+
+  for (const dependencyMap of dependencyMaps) {
+    for (const [name, version] of Object.entries(dependencyMap)) {
+      if (isWorkspaceDependency(version)) {
+        dependencyNames.add(name)
+      }
+    }
+  }
+
+  return Array.from(dependencyNames).sort()
+}
+
+function comparePackageBaseOrder(a: PkgInfo, b: PkgInfo): number {
+  const weight: Record<PackageKind, number> = {
+    primitive: 0,
+    advanced: 1,
+    package: 2,
+  }
+
+  const kindCompare = weight[a.kind] - weight[b.kind]
+  if (kindCompare !== 0) return kindCompare
+
+  return a.shortName.localeCompare(b.shortName)
+}
+
+function sortPackagesByWorkspaceDependencies(pkgs: PkgInfo[]): PkgInfo[] {
+  const byFullName = new Map<string, PkgInfo>()
+  const byShortName = new Map<string, PkgInfo>()
+
+  for (const pkg of pkgs) {
+    byFullName.set(pkg.fullName, pkg)
+    byShortName.set(pkg.shortName, pkg)
+  }
+
+  const sortedSeeds = [...pkgs].sort(comparePackageBaseOrder)
+  const result: PkgInfo[] = []
+  const visiting = new Set<string>()
+  const visited = new Set<string>()
+
+  const visit = (pkg: PkgInfo, stack: string[]): void => {
+    if (visited.has(pkg.fullName)) return
+
+    if (visiting.has(pkg.fullName)) {
+      const cycle = [...stack, pkg.fullName].join(' -> ')
+      throw new Error(`workspace dependency cycle detected: ${cycle}`)
+    }
+
+    visiting.add(pkg.fullName)
+
+    for (const dependencyName of pkg.workspaceDependencyNames) {
+      const dependency =
+        byFullName.get(dependencyName) ??
+        byShortName.get(dependencyName.replace(/^@zeus-web\//, ''))
+
+      if (!dependency || dependency.fullName === pkg.fullName) {
+        continue
+      }
+
+      visit(dependency, [...stack, pkg.fullName])
+    }
+
+    visiting.delete(pkg.fullName)
+    visited.add(pkg.fullName)
+    result.push(pkg)
+  }
+
+  for (const pkg of sortedSeeds) {
+    visit(pkg, [])
+  }
+
+  return result
+}
+
+function collectPackageClosure(pkg: PkgInfo, allPkgs: PkgInfo[]): PkgInfo[] {
+  const byFullName = new Map<string, PkgInfo>()
+  const byShortName = new Map<string, PkgInfo>()
+
+  for (const item of allPkgs) {
+    byFullName.set(item.fullName, item)
+    byShortName.set(item.shortName, item)
+  }
+
+  const closure = new Set<string>()
+
+  const visit = (item: PkgInfo): void => {
+    if (closure.has(item.fullName)) return
+
+    closure.add(item.fullName)
+
+    for (const dependencyName of item.workspaceDependencyNames) {
+      const dependency =
+        byFullName.get(dependencyName) ??
+        byShortName.get(dependencyName.replace(/^@zeus-web\//, ''))
+
+      if (dependency) {
+        visit(dependency)
+      }
+    }
+  }
+
+  visit(pkg)
+
+  return sortPackagesByWorkspaceDependencies(
+    allPkgs.filter(item => closure.has(item.fullName)),
+  )
 }
 
 function discoverPackages(): PkgInfo[] {
@@ -55,21 +186,20 @@ function discoverPackages(): PkgInfo[] {
   for (const { dir, kind } of roots) {
     const abs = join(ROOT, dir)
     if (!existsSync(abs)) continue
+
     for (const entry of readdirSync(abs, { withFileTypes: true })) {
       if (!entry.isDirectory()) continue
+
       const pkgFile = join(abs, entry.name, 'package.json')
       if (!existsSync(pkgFile)) continue
 
-      const pkgJson = JSON.parse(readFileSync(pkgFile, 'utf8')) as {
-        name: string
-        exports?: unknown
-        private?: boolean
-      }
+      const pkgJson = JSON.parse(readFileSync(pkgFile, 'utf8')) as PackageJson
 
       if (pkgJson.private || !pkgJson.name) continue
 
       const shortName = pkgJson.name.replace(/^@zeus-web\//, '')
       const exportTargets = new Set<string>()
+
       if (pkgJson.exports) {
         collectExportTargets(pkgJson.exports, exportTargets)
       }
@@ -80,22 +210,12 @@ function discoverPackages(): PkgInfo[] {
         dir: join(abs, entry.name),
         kind,
         exportTargets: Array.from(exportTargets),
+        workspaceDependencyNames: collectWorkspaceDependencyNames(pkgJson),
       })
     }
   }
 
-  return pkgs.sort((a, b) => {
-    const weight: Record<PackageKind, number> = {
-      primitive: 0,
-      advanced: 1,
-      package: 2,
-    }
-
-    const kindCompare = weight[a.kind] - weight[b.kind]
-    if (kindCompare !== 0) return kindCompare
-
-    return a.shortName.localeCompare(b.shortName)
-  })
+  return sortPackagesByWorkspaceDependencies(pkgs)
 }
 
 /* ------------------------------------------------------------------ */
@@ -108,24 +228,29 @@ async function buildFull(pkg: PkgInfo): Promise<void> {
     if (existsSync(indexPath)) {
       return
     }
+
     await execa('rolldown', ['-c', '../../../rolldown.config.ts'], {
       cwd: pkg.dir,
       stdio: 'inherit',
     })
-  } else {
-    // For non-component packages, check that ALL export targets exist
-    // (e.g. ai exports both ./index and ./metadata.json)
-    const missingTargets = pkg.exportTargets.filter(target => {
-      return !existsSync(join(pkg.dir, target))
-    })
-    if (missingTargets.length === 0) {
-      return
-    }
-    await execa('pnpm', ['run', 'build'], {
-      cwd: pkg.dir,
-      stdio: 'inherit',
-    })
+
+    return
   }
+
+  // For non-component packages, check that ALL export targets exist
+  // (e.g. ai exports both ./index and ./metadata.json)
+  const missingTargets = pkg.exportTargets.filter(target => {
+    return !existsSync(join(pkg.dir, target))
+  })
+
+  if (missingTargets.length === 0) {
+    return
+  }
+
+  await execa('pnpm', ['run', 'build'], {
+    cwd: pkg.dir,
+    stdio: 'inherit',
+  })
 }
 
 async function buildDeclarations(pkg: PkgInfo): Promise<void> {
@@ -146,17 +271,19 @@ async function buildDeclarations(pkg: PkgInfo): Promise<void> {
       ],
       { cwd: pkg.dir, stdio: 'inherit' },
     )
-  } else {
-    // tsup-based packages: --dts already produces declarations alongside the bundle
-    await buildFull(pkg)
+
+    return
   }
+
+  // tsup-based packages: --dts already produces declarations alongside the bundle
+  await buildFull(pkg)
 }
 
 /* ------------------------------------------------------------------ */
 /*  helpers                                                           */
 /* ------------------------------------------------------------------ */
 
-function logSection(title: string) {
+function logSection(title: string): void {
   console.log('')
   console.log(pc.bold(pc.cyan(`═══ ${title} ═══`)))
 }
@@ -187,7 +314,10 @@ async function main(): Promise<void> {
       : undefined
 
   // Filter out -t and its value to find the package name
-  const cleanArgs = args.filter((a, i) => a !== '-t' && args[i - 1] !== '-t')
+  const cleanArgs = args.filter((arg, index) => {
+    return arg !== '-t' && args[index - 1] !== '-t'
+  })
+
   const targetName = cleanArgs.length > 0 ? cleanArgs[0] : undefined
 
   const allPkgs = discoverPackages()
@@ -198,6 +328,7 @@ async function main(): Promise<void> {
 
   if (targetName) {
     const pkg = resolveTarget(targetName, allPkgs)
+
     if (!pkg) {
       const available = allPkgs.map(p => p.shortName).join(', ')
       console.error(
@@ -205,7 +336,8 @@ async function main(): Promise<void> {
       )
       process.exit(1)
     }
-    targets = [pkg]
+
+    targets = collectPackageClosure(pkg, allPkgs)
   } else {
     targets = allPkgs
   }
@@ -224,6 +356,7 @@ async function main(): Promise<void> {
       } else {
         await buildFull(pkg)
       }
+
       process.stdout.write(`${pc.green('✓')}\n`)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)

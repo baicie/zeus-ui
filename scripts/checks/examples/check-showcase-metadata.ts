@@ -9,7 +9,11 @@ import {
   showcaseThemes,
   validateShowcaseMetadata,
 } from '../../../examples/showcase-shared/src'
-import { iconMetadata, iconNames } from '../../../packages/icons/src'
+import {
+  iconMetadata,
+  iconNames,
+  isIconName,
+} from '../../../packages/icons/src'
 import {
   semanticColorTokens,
   themeModeNames,
@@ -63,6 +67,13 @@ function validateShowcaseIconCoverage(): string[] {
   const packageIconNameSet = new Set<string>(iconNames)
 
   for (const icon of showcaseIcons) {
+    if (!isIconName(icon.name)) {
+      errors.push(
+        `showcaseIcons contains "${icon.name}" but @zeus-web/icons does not export it.`,
+      )
+      continue
+    }
+
     if (!packageIconNameSet.has(icon.name)) {
       errors.push(
         `showcaseIcons contains "${icon.name}" but @zeus-web/icons does not export it.`,
