@@ -1,3 +1,5 @@
+import type { DetailedHTMLProps, HTMLAttributes } from 'react'
+
 import type {
   AgentConsoleElement,
   ChatComposerElement,
@@ -11,16 +13,13 @@ import type {
 declare module 'react' {
   namespace JSX {
     interface IntrinsicElements {
-      'zw-data-grid': React.DetailedHTMLProps<
-        React.HTMLAttributes<DataGridElement>,
+      'zw-data-grid': DetailedHTMLProps<
+        HTMLAttributes<DataGridElement>,
         DataGridElement
       >
-      'zw-chat': React.DetailedHTMLProps<
-        React.HTMLAttributes<ChatElement>,
-        ChatElement
-      >
-      'zw-chat-message': React.DetailedHTMLProps<
-        React.HTMLAttributes<ChatMessageElement>,
+      'zw-chat': DetailedHTMLProps<HTMLAttributes<ChatElement>, ChatElement>
+      'zw-chat-message': DetailedHTMLProps<
+        HTMLAttributes<ChatMessageElement>,
         ChatMessageElement
       > & {
         'message-id'?: string
@@ -29,8 +28,8 @@ declare module 'react' {
         selected?: boolean
         interactive?: boolean
       }
-      'zw-chat-composer': React.DetailedHTMLProps<
-        React.HTMLAttributes<ChatComposerElement>,
+      'zw-chat-composer': DetailedHTMLProps<
+        HTMLAttributes<ChatComposerElement>,
         ChatComposerElement
       > & {
         'default-value'?: string
@@ -42,20 +41,20 @@ declare module 'react' {
         'max-length'?: number
         'aria-label'?: string
       }
-      'zw-chat-code-block': React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement>,
+      'zw-chat-code-block': DetailedHTMLProps<
+        HTMLAttributes<HTMLElement>,
         HTMLElement
       > & {
         filename?: string
         language?: string
         copied?: boolean
       }
-      'zw-revogrid-adapter': React.DetailedHTMLProps<
-        React.HTMLAttributes<RevoGridAdapterElement>,
+      'zw-revogrid-adapter': DetailedHTMLProps<
+        HTMLAttributes<RevoGridAdapterElement>,
         RevoGridAdapterElement
       >
-      'zw-virtual-list': React.DetailedHTMLProps<
-        React.HTMLAttributes<VirtualListElement>,
+      'zw-virtual-list': DetailedHTMLProps<
+        HTMLAttributes<VirtualListElement>,
         VirtualListElement
       > & {
         count?: string
@@ -63,8 +62,8 @@ declare module 'react' {
         overscan?: string
         horizontal?: boolean
       }
-      'zw-agent-console': React.DetailedHTMLProps<
-        React.HTMLAttributes<AgentConsoleElement>,
+      'zw-agent-console': DetailedHTMLProps<
+        HTMLAttributes<AgentConsoleElement>,
         AgentConsoleElement
       >
     }

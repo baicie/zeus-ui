@@ -67,8 +67,8 @@
     "@zeus-js/runtime-dom": "0.1.0-beta.5",
     "@zeus-js/web-c-runtime": "0.2.0",
     "@zeus-web/chat": "workspace:*",
-    "@zeus-web/virtual": "workspace:*",
     "@zeus-web/data-grid": "workspace:*",
+    "@zeus-web/virtual": "workspace:*",
     "@zeus-web/zeus-compat": "workspace:*"
   }
 }

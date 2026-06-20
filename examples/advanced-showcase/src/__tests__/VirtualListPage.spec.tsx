@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -11,7 +13,7 @@ vi.mock('../components/DemoCard', () => ({
   }: {
     title: string
     description: string
-    children: React.ReactNode
+    children: ReactNode
   }) => (
     <section>
       <h1>{title}</h1>

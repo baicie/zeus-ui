@@ -1,11 +1,10 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
-const root = existsSync(resolve(process.cwd(), 'pnpm-workspace.yaml'))
-  ? resolve(process.cwd(), 'examples/advanced-showcase')
-  : process.cwd()
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 
 function read(path: string): string {
   return readFileSync(resolve(root, path), 'utf-8')

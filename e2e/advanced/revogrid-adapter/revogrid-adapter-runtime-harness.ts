@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-globals */
 import type {
   DataGridColumn,
   DataGridRowData,

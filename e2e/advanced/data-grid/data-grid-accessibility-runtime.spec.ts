@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-globals */
 import type { DataGridActiveCellChangeDetail } from './data-grid-runtime-harness'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -194,9 +193,11 @@ describe('zw-data-grid accessibility runtime', () => {
       overscanStart: 0,
       overscanEnd: 10,
     })
+    /* eslint-disable antfu/consistent-list-newline */
     expect(grid.getItems().map(item => item.index)).toEqual([
       0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
     ])
+    /* eslint-enable antfu/consistent-list-newline */
   })
 
   it('emits viewport-resize when viewport size changes', async () => {

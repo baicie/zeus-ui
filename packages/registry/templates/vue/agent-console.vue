@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-
 import type {
   AgentConsoleArtifact,
   AgentConsoleDiagnostic,
@@ -10,6 +8,8 @@ import type {
 } from '@zeus-web/agent-console'
 
 import { AgentConsole as AgentConsolePrimitive } from '@zeus-web/agent-console/vue'
+
+import { computed } from 'vue'
 
 import { cn } from '@/lib/cn'
 
@@ -89,39 +89,47 @@ const consoleClass = computed(() =>
     :status="props.status"
     aria-label="Agent console"
   >
-    <div slot="timeline" class="space-y-3">
-      <article
-        v-for="message in messages"
-        :key="message.id"
-        class="rounded-md border bg-muted/40 p-3 text-sm"
-        :data-role="message.role"
-      >
-        <div class="mb-1 text-xs font-medium uppercase text-muted-foreground">
-          {{ message.role }}
-        </div>
-        <div>{{ message.content }}</div>
-      </article>
-    </div>
-
-    <div slot="tools" class="space-y-2 text-sm">
-      <div class="font-medium">Tool calls</div>
-      <div class="text-muted-foreground">No tool calls yet.</div>
-    </div>
-
-    <div slot="artifacts" class="space-y-2 text-sm">
-      <div class="font-medium">Artifacts</div>
-      <div
-        v-for="artifact in artifacts"
-        :key="artifact.id"
-        class="rounded-md border p-2"
-      >
-        {{ artifact.title }}
+    <template #timeline>
+      <div class="space-y-3">
+        <article
+          v-for="message in messages"
+          :key="message.id"
+          class="rounded-md border bg-muted/40 p-3 text-sm"
+          :data-role="message.role"
+        >
+          <div class="mb-1 text-xs font-medium uppercase text-muted-foreground">
+            {{ message.role }}
+          </div>
+          <div>{{ message.content }}</div>
+        </article>
       </div>
-    </div>
+    </template>
 
-    <div slot="diagnostics" class="space-y-2 text-sm">
-      <div class="font-medium">Diagnostics</div>
-      <div class="text-muted-foreground">No diagnostics.</div>
-    </div>
+    <template #tools>
+      <div class="space-y-2 text-sm">
+        <div class="font-medium">Tool calls</div>
+        <div class="text-muted-foreground">No tool calls yet.</div>
+      </div>
+    </template>
+
+    <template #artifacts>
+      <div class="space-y-2 text-sm">
+        <div class="font-medium">Artifacts</div>
+        <div
+          v-for="artifact in artifacts"
+          :key="artifact.id"
+          class="rounded-md border p-2"
+        >
+          {{ artifact.title }}
+        </div>
+      </div>
+    </template>
+
+    <template #diagnostics>
+      <div class="space-y-2 text-sm">
+        <div class="font-medium">Diagnostics</div>
+        <div class="text-muted-foreground">No diagnostics.</div>
+      </div>
+    </template>
   </AgentConsolePrimitive>
 </template>

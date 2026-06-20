@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-
 import type {
   DataGridColumn,
   DataGridRowData,
 } from '@zeus-web/revogrid-adapter'
 
 import { RevoGridAdapter as RevoGridAdapterPrimitive } from '@zeus-web/revogrid-adapter/vue'
+
+import { computed } from 'vue'
 
 import { cn } from '@/lib/cn'
 

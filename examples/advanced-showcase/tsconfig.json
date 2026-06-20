@@ -10,9 +10,9 @@
     "types": ["vitest/globals", "vite/client"],
     "strict": true,
     "noEmit": true,
-    "isolatedDeclarations": false,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
+    "isolatedDeclarations": false,
     "skipLibCheck": true
   },
   "include": ["src", "vite.config.ts"]
