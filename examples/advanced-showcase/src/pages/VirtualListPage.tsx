@@ -8,6 +8,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { DemoCard } from '../components/DemoCard'
 import { StatusNote } from '../components/StatusNote'
+import {
+  getVirtualItemsFromRangeDetail,
+  getVisibleItemsFromElement,
+  normalizeVirtualItems,
+} from '../utils/virtual-items'
 
 const ITEMS = Array.from({ length: 120 }, (_, i) => ({
   id: String(i),
@@ -16,46 +21,6 @@ const ITEMS = Array.from({ length: 120 }, (_, i) => ({
     i % 3 === 0 ? 'Queued workload' : i % 3 === 1 ? 'Processing' : 'Completed',
   tag: i % 5 === 0 ? 'Priority' : i % 7 === 0 ? 'Escalated' : '',
 }))
-
-function isVirtualItem(value: unknown): value is VirtualItem {
-  if (!value || typeof value !== 'object') return false
-
-  const item = value as Partial<VirtualItem>
-
-  return (
-    typeof item.index === 'number' &&
-    typeof item.key === 'string' &&
-    typeof item.start === 'number' &&
-    typeof item.size === 'number' &&
-    typeof item.end === 'number'
-  )
-}
-
-function normalizeVirtualItems(value: unknown): VirtualItem[] {
-  if (!Array.isArray(value)) return []
-
-  return value.filter(isVirtualItem)
-}
-
-function getDetailItems(value: unknown): VirtualItem[] {
-  if (Array.isArray(value)) {
-    return normalizeVirtualItems(value)
-  }
-
-  if (!value || typeof value !== 'object') {
-    return []
-  }
-
-  const detail = value as Partial<VirtualListRangeChangeDetail>
-
-  return normalizeVirtualItems(detail.items)
-}
-
-function getVisibleItems(element: VirtualListElement | null): VirtualItem[] {
-  if (!element || typeof element.getItems !== 'function') return []
-
-  return normalizeVirtualItems(element.getItems())
-}
 
 function formatRangeNote(items: VirtualItem[]): string {
   const first = items[0]
@@ -88,12 +53,15 @@ export function VirtualListPage() {
     virtual.setAttribute('aria-label', 'Advanced activity log')
 
     const syncVisibleItems = () => {
-      commitVisibleItems(getVisibleItems(virtual))
+      commitVisibleItems(getVisibleItemsFromElement(virtual))
     }
 
     const handleRangeChange = (event: Event) => {
-      const customEvent = event as CustomEvent<unknown>
-      commitVisibleItems(getDetailItems(customEvent.detail))
+      const customEvent = event as CustomEvent<
+        VirtualListRangeChangeDetail | VirtualItem[] | unknown
+      >
+
+      commitVisibleItems(getVirtualItemsFromRangeDetail(customEvent.detail))
     }
 
     virtual.addEventListener('range-change', handleRangeChange)

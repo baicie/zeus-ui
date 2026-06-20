@@ -57,19 +57,34 @@ describe('advanced showcase source', () => {
 
   it('virtual-list page renders only normalized virtual range items', () => {
     const source = read('src/pages/VirtualListPage.tsx')
+    const utilsSource = read('src/utils/virtual-items.ts')
 
     expect(source).toContain('normalizeVirtualItems')
-    expect(source).toContain('isVirtualItem')
-    expect(source).toContain('getDetailItems')
+    expect(source).toContain('getVirtualItemsFromRangeDetail')
+    expect(source).toContain('getVisibleItemsFromElement')
     expect(source).toContain('commitVisibleItems')
     expect(source).toContain('safeVisibleItems.map')
     expect(source).toContain('range-change')
-    expect(source).toContain('element.getItems')
-    expect(source).toContain('normalizeVirtualItems(element.getItems())')
     expect(source).not.toContain('setVisibleItems(customEvent.detail.items)')
     expect(source).not.toContain('setVisibleItems(items)')
     expect(source).not.toContain('visibleItems.map')
     expect(source).not.toContain('ITEMS.map(item =>')
+
+    expect(utilsSource).toContain('isVirtualItem')
+    expect(utilsSource).toContain('normalizeVirtualItems')
+    expect(utilsSource).toContain('getVirtualItemsFromRangeDetail')
+    expect(utilsSource).toContain('Array.isArray')
+    expect(utilsSource).toContain('Number.isFinite')
+  })
+
+  it('virtual item helper guards malformed event detail', () => {
+    const source = read('src/utils/virtual-items.ts')
+
+    expect(source).toContain('isVirtualItem')
+    expect(source).toContain('normalizeVirtualItems')
+    expect(source).toContain('getVirtualItemsFromRangeDetail')
+    expect(source).toContain('Array.isArray')
+    expect(source).toContain('Number.isFinite')
   })
 
   it('data-grid page shows event output as debug panel, not as a data row', () => {
