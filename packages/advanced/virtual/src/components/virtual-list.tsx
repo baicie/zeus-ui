@@ -228,9 +228,21 @@ function setup(
       <div
         ref={(element: HTMLElement | null) => {
           if (element) {
+            if (viewport && viewport !== element) {
+              viewport.removeEventListener('scroll', scheduleUpdateRange)
+            }
+
             viewport = element
+            element.addEventListener('scroll', scheduleUpdateRange)
             scheduleUpdateRange()
+            return
           }
+
+          if (viewport) {
+            viewport.removeEventListener('scroll', scheduleUpdateRange)
+          }
+
+          viewport = undefined
         }}
         part="viewport"
         data-slot="virtual-list-viewport"
@@ -238,9 +250,6 @@ function setup(
         tabindex={() => 0}
         aria-label={() => props.ariaLabel}
         aria-orientation={() => (props.horizontal ? 'horizontal' : 'vertical')}
-        onScroll={(nativeEvent: Event) => {
-          scheduleUpdateRange(nativeEvent)
-        }}
       >
         <div
           part="spacer"

@@ -1,4 +1,4 @@
-import type { FormEvent } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import type { ChatElement } from '../types'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -58,7 +58,7 @@ export function ChatPage() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const form = event.currentTarget
-    const input = form.elements.namedItem('chat-input') as HTMLInputElement
+    const input = form.elements.namedItem('chat-input') as HTMLTextAreaElement
     if (input) {
       chatRef.current?.emitSend(input.value, event.nativeEvent)
       input.value = ''
@@ -66,70 +66,99 @@ export function ChatPage() {
   }
 
   const renderContent = (message: (typeof chatMessages)[number]) => {
-    const lines = message.content?.split('\n') ?? []
+    const lines = message.content ? message.content.split('\n') : []
+    const blocks: ReactNode[] = []
+    let lineIdx = 0
 
-    return lines.map((line, lineIdx) => {
+    while (lineIdx < lines.length) {
+      const line = lines[lineIdx]
+
       if (line.startsWith('```')) {
         const lang = line.replace(/^```/, '') || 'code'
         const codeLines: string[] = []
-        for (let i = lineIdx + 1; i < lines.length; i++) {
-          if (lines[i] === '```') break
-          codeLines.push(lines[i])
+        let codeEnd = lineIdx + 1
+
+        while (codeEnd < lines.length && lines[codeEnd] !== '```') {
+          codeLines.push(lines[codeEnd])
+          codeEnd += 1
         }
 
-        if (codeLines.length > 0) {
-          return (
-            <div key={lineIdx} className="chat-code-block-wrapper">
-              <div className="chat-code-block-header">
-                <span className="chat-code-lang">{lang}</span>
-                <button
-                  type="button"
-                  className="chat-copy-btn"
-                  onClick={() => handleCopyBlock(codeLines.join('\n'))}
-                >
-                  Copy
-                </button>
-              </div>
-              <pre className="chat-code-block">
-                <code>{codeLines.join('\n')}</code>
-              </pre>
+        blocks.push(
+          <div key={lineIdx} className="chat-code-block-wrapper">
+            <div className="chat-code-block-header">
+              <span className="chat-code-lang">{lang}</span>
+              <button
+                type="button"
+                className="chat-copy-btn"
+                onClick={() => handleCopyBlock(codeLines.join('\n'))}
+              >
+                Copy
+              </button>
             </div>
-          )
-        }
-      }
-
-      if (line.includes('|') && line.includes('---')) {
-        return null
+            <pre className="chat-code-block">
+              <code>{codeLines.join('\n')}</code>
+            </pre>
+          </div>,
+        )
+        lineIdx = codeEnd + 1
+        continue
       }
 
       if (line.startsWith('|') && line.endsWith('|')) {
-        const cells = line
-          .split('|')
-          .filter((_, i, arr) => i > 0 && i < arr.length - 1)
-        return (
-          <div key={lineIdx} className="chat-table-row">
-            {cells.map((cell, ci) => (
-              <span
-                key={ci}
-                className={`chat-table-cell${line.includes('---') ? ' chat-table-header' : ''}`}
-              >
-                {cell.trim()}
-              </span>
+        const tableRows: string[][] = []
+        const tableStart = lineIdx
+
+        while (
+          lineIdx < lines.length &&
+          lines[lineIdx].startsWith('|') &&
+          lines[lineIdx].endsWith('|')
+        ) {
+          if (!lines[lineIdx].includes('---')) {
+            tableRows.push(
+              lines[lineIdx]
+                .split('|')
+                .filter(
+                  (_, index, cells) => index > 0 && index < cells.length - 1,
+                )
+                .map(cell => cell.trim()),
+            )
+          }
+          lineIdx += 1
+        }
+
+        blocks.push(
+          <div key={tableStart} className="chat-table">
+            {tableRows.map((cells, rowIndex) => (
+              <div key={rowIndex} className="chat-table-row">
+                {cells.map((cell, cellIndex) => (
+                  <span
+                    key={cellIndex}
+                    className={`chat-table-cell${rowIndex === 0 ? ' chat-table-header' : ''}`}
+                  >
+                    {cell}
+                  </span>
+                ))}
+              </div>
             ))}
-          </div>
+          </div>,
         )
+        continue
       }
 
       if (line.trim()) {
-        return (
+        blocks.push(
           <p key={lineIdx} className="chat-text-line">
             {line}
-          </p>
+          </p>,
         )
+      } else {
+        blocks.push(<br key={lineIdx} />)
       }
 
-      return <br key={lineIdx} />
-    })
+      lineIdx += 1
+    }
+
+    return blocks
   }
 
   return (
@@ -144,41 +173,59 @@ export function ChatPage() {
               key={message.id}
               className={`chat-message chat-message-${message.role}`}
             >
-              <div className="chat-message-header">
-                <span className="chat-role-badge">
-                  {ROLE_LABEL[message.role]}
-                </span>
-                {message.status === 'streaming' && (
-                  <span className="chat-status-dot" />
-                )}
-              </div>
+              <div className="chat-message-inner">
+                <div className="chat-avatar" aria-hidden="true">
+                  {message.role === 'assistant'
+                    ? '✦'
+                    : ROLE_LABEL[message.role].slice(0, 1)}
+                </div>
 
-              <div className="chat-message-body">{renderContent(message)}</div>
+                <div className="chat-message-content">
+                  <div className="chat-message-header">
+                    <strong>{ROLE_LABEL[message.role]}</strong>
+                    {message.status === 'streaming' ? (
+                      <span className="chat-status-dot" />
+                    ) : null}
+                  </div>
 
-              <div className="chat-message-actions">
-                <button
-                  type="button"
-                  className="chat-action-btn"
-                  onClick={() =>
-                    handleCopyMarkdown(message.id, message.content ?? '')
-                  }
-                >
-                  Copy as MD
-                </button>
+                  <div className="chat-message-body">
+                    {renderContent(message)}
+                  </div>
+
+                  <div className="chat-message-actions">
+                    <button
+                      type="button"
+                      className="chat-action-btn"
+                      aria-label={`Copy ${ROLE_LABEL[message.role]} message as markdown`}
+                      onClick={() =>
+                        handleCopyMarkdown(message.id, message.content ?? '')
+                      }
+                    >
+                      <span aria-hidden="true">▣</span>
+                      Copy
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           ))}
         </div>
 
         <form slot="composer" className="chat-composer" onSubmit={handleSubmit}>
-          <input
+          <textarea
             name="chat-input"
             className="chat-composer-input"
-            placeholder="Ask anything..."
+            placeholder="Message ChatGPT"
+            aria-label="Message ChatGPT"
+            rows={1}
             autoComplete="off"
           />
-          <button type="submit" className="chat-composer-btn">
-            Send
+          <button
+            type="submit"
+            className="chat-composer-btn"
+            aria-label="Send message"
+          >
+            ↑
           </button>
         </form>
       </zw-chat>

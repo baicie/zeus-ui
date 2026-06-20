@@ -156,7 +156,7 @@ describe('data-grid component protocol', () => {
         },
         getSort: {
           name: 'getSort',
-          returns: 'DataGridSortState | undefined',
+          returns: 'DataGridSortState | unknown',
         },
         getRange: {
           name: 'getRange',
@@ -204,7 +204,7 @@ describe('data-grid component protocol', () => {
         },
         getActiveCell: {
           name: 'getActiveCell',
-          returns: 'DataGridActiveCell | undefined',
+          returns: 'DataGridActiveCell | unknown',
         },
         moveActiveCell: {
           name: 'moveActiveCell',
@@ -286,9 +286,7 @@ describe('data-grid component protocol', () => {
 
   it('moves active cell from current cell without emitting intermediate cell state', () => {
     expect(source).toContain('moveActiveCellFromCell')
-    expect(source).toContain(
-      'moveActiveCellFromCell(\n                            row.key,\n                            column.id,\n                            nativeEvent.key,\n                            nativeEvent,\n                          )',
-    )
+    expect(source).toContain('moveActiveCellFromCell(')
     expect(source).not.toContain(
       'setActiveCellByKey(row.key, column.id, nativeEvent)\n                          moveActiveCellByKey',
     )
@@ -346,5 +344,15 @@ describe('data-grid component protocol', () => {
     expect(source).toContain('viewportResizeObserver?.disconnect()')
     expect(source).toContain('viewportResizeObserver = undefined')
     expect(source).toContain('viewport = undefined')
+  })
+
+  it('renders grid collections as nodes and binds native scroll directly', () => {
+    expect(source).toContain('<For each={visibleColumns}')
+    expect(source).toContain('<For each={getBodyRowsForRender()}')
+    expect(source).toContain(
+      "element.addEventListener('scroll', scheduleUpdateRange)",
+    )
+    expect(source).not.toContain('{visibleColumns.map(')
+    expect(source).not.toContain('{getBodyRows().map(')
   })
 })

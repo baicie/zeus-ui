@@ -93,4 +93,14 @@ describe('virtual-list advanced component protocol', () => {
       cssParts: ['items', 'root', 'spacer', 'viewport'],
     })
   })
+
+  it('binds native scroll directly because scroll does not bubble', () => {
+    expect(source).toContain(
+      "element.addEventListener('scroll', scheduleUpdateRange)",
+    )
+    expect(source).toContain(
+      "viewport.removeEventListener('scroll', scheduleUpdateRange)",
+    )
+    expect(source).not.toContain('onScroll=')
+  })
 })

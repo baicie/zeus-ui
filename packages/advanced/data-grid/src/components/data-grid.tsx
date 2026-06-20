@@ -29,7 +29,15 @@ import type {
   DataGridVirtualSnapshot,
   NormalizedDataGridColumn,
 } from '../types'
-import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
+import {
+  defineElement,
+  event,
+  For,
+  Host,
+  prop,
+  Slot,
+  state,
+} from '@zeus-js/zeus'
 import { createEmptyVirtualRange, createRafScheduler } from '@zeus-web/virtual'
 import {
   applyDataGridColumnWidths,
@@ -269,6 +277,7 @@ function setup(
     overscan: resolveOverscan(props),
   })
   let currentSnapshot = cloneEmptySnapshot()
+  const renderVersion = state(0)
   let activeCell = createInitialDataGridActiveCell({
     rows: visibleRows,
     columns: visibleColumns,
@@ -467,6 +476,7 @@ function setup(
     }
 
     currentSnapshot = nextSnapshot
+    renderVersion.value += 1
 
     ctx.emit.rangeChange({
       range: currentSnapshot.range,
@@ -1030,6 +1040,11 @@ function setup(
     return snapshot.items
   }
 
+  const getBodyRowsForRender = (): DataGridVirtualItem[] => {
+    void renderVersion.value
+    return getBodyRows()
+  }
+
   const getSpacerStyle = (): Record<string, string> => {
     if (!props.virtual) return { display: 'none' }
 
@@ -1103,12 +1118,14 @@ function setup(
             resolveSelectionMode(props.selectionMode),
           )
         }
-        onScroll={(nativeEvent: Event) => {
-          scheduleUpdateRange(nativeEvent)
-        }}
         ref={(element: HTMLElement | null) => {
           if (element) {
+            if (viewport && viewport !== element) {
+              viewport.removeEventListener('scroll', scheduleUpdateRange)
+            }
+
             viewport = element
+            element.addEventListener('scroll', scheduleUpdateRange)
             connectViewportObserver(element)
             measureViewport()
             scheduleUpdateRange()
@@ -1117,6 +1134,11 @@ function setup(
 
           viewportResizeObserver?.disconnect()
           viewportResizeObserver = undefined
+
+          if (viewport) {
+            viewport.removeEventListener('scroll', scheduleUpdateRange)
+          }
+
           viewport = undefined
         }}
       >
@@ -1131,90 +1153,100 @@ function setup(
             width: `${getTotalColumnWidth(columns)}px`,
           })}
         >
-          {visibleColumns.map((column, index) => (
-            <div
-              key={column.id}
-              part="header-cell"
-              data-slot="data-grid-header-cell"
-              data-column-id={column.id}
-              data-sortable={() => (column.sortable ? '' : undefined)}
-              data-resizable={() =>
-                props.resizable && column.resizable ? '' : undefined
-              }
-              data-sort-direction={() =>
-                sort?.columnId === column.id ? sort.direction : undefined
-              }
-              role="columnheader"
-              aria-colindex={() => String(getDataGridColumnAriaIndex(index))}
-              aria-sort={() => getDataGridAriaSort(column, sort)}
-              tabindex={0}
-              onClick={(nativeEvent: Event) => {
-                applySort(column.id, undefined, nativeEvent)
-              }}
-              onKeyDown={(nativeEvent: KeyboardEvent) => {
-                if (
-                  column.sortable &&
-                  (nativeEvent.key === 'Enter' || nativeEvent.key === ' ')
-                ) {
+          <For each={visibleColumns} by={column => column.id}>
+            {(column, index) => (
+              <div
+                key={column.id}
+                part="header-cell"
+                data-slot="data-grid-header-cell"
+                data-column-id={column.id}
+                data-sortable={() => (column.sortable ? '' : undefined)}
+                data-resizable={() =>
+                  props.resizable && column.resizable ? '' : undefined
+                }
+                data-sort-direction={() =>
+                  sort?.columnId === column.id ? sort.direction : undefined
+                }
+                role="columnheader"
+                aria-colindex={() => String(getDataGridColumnAriaIndex(index))}
+                aria-sort={() => getDataGridAriaSort(column, sort)}
+                tabindex={0}
+                onClick={(nativeEvent: Event) => {
                   applySort(column.id, undefined, nativeEvent)
-                }
-              }}
-            >
-              <span part="header-label" data-slot="data-grid-header-label">
-                {column.header}
-              </span>
-
-              <span
-                part="resize-handle"
-                data-slot="data-grid-resize-handle"
-                role="separator"
-                aria-label={() => getDataGridResizeHandleAriaLabel(column)}
-                aria-orientation="vertical"
-                aria-valuenow={() => String(column.width)}
-                aria-valuemin={() => String(column.minWidth)}
-                aria-valuemax={() => String(column.maxWidth)}
-                tabindex={() =>
-                  props.resizable && column.resizable ? 0 : undefined
-                }
-                hidden={() => !(props.resizable && column.resizable)}
-                onPointerDown={(nativeEvent: PointerEvent) => {
-                  startResize(column, nativeEvent)
-                }}
-                onPointerMove={(nativeEvent: PointerEvent) => {
-                  moveResize(nativeEvent)
-                }}
-                onPointerUp={(nativeEvent: PointerEvent) => {
-                  endResize(nativeEvent)
-                }}
-                onPointerCancel={(nativeEvent: PointerEvent) => {
-                  endResize(nativeEvent)
                 }}
                 onKeyDown={(nativeEvent: KeyboardEvent) => {
-                  if (!props.resizable || !column.resizable) return
-
-                  if (nativeEvent.key === 'ArrowLeft') {
-                    nativeEvent.preventDefault()
-                    applyColumnResize(column.id, column.width - 16, nativeEvent)
-                  }
-
-                  if (nativeEvent.key === 'ArrowRight') {
-                    nativeEvent.preventDefault()
-                    applyColumnResize(column.id, column.width + 16, nativeEvent)
-                  }
-
-                  if (nativeEvent.key === 'Home') {
-                    nativeEvent.preventDefault()
-                    applyColumnResize(column.id, column.minWidth, nativeEvent)
-                  }
-
-                  if (nativeEvent.key === 'End') {
-                    nativeEvent.preventDefault()
-                    applyColumnResize(column.id, column.maxWidth, nativeEvent)
+                  if (
+                    column.sortable &&
+                    (nativeEvent.key === 'Enter' || nativeEvent.key === ' ')
+                  ) {
+                    applySort(column.id, undefined, nativeEvent)
                   }
                 }}
-              />
-            </div>
-          ))}
+              >
+                <span part="header-label" data-slot="data-grid-header-label">
+                  {column.header}
+                </span>
+
+                <span
+                  part="resize-handle"
+                  data-slot="data-grid-resize-handle"
+                  role="separator"
+                  aria-label={() => getDataGridResizeHandleAriaLabel(column)}
+                  aria-orientation="vertical"
+                  aria-valuenow={() => String(column.width)}
+                  aria-valuemin={() => String(column.minWidth)}
+                  aria-valuemax={() => String(column.maxWidth)}
+                  tabindex={() =>
+                    props.resizable && column.resizable ? 0 : undefined
+                  }
+                  hidden={() => !(props.resizable && column.resizable)}
+                  onPointerDown={(nativeEvent: PointerEvent) => {
+                    startResize(column, nativeEvent)
+                  }}
+                  onPointerMove={(nativeEvent: PointerEvent) => {
+                    moveResize(nativeEvent)
+                  }}
+                  onPointerUp={(nativeEvent: PointerEvent) => {
+                    endResize(nativeEvent)
+                  }}
+                  onPointerCancel={(nativeEvent: PointerEvent) => {
+                    endResize(nativeEvent)
+                  }}
+                  onKeyDown={(nativeEvent: KeyboardEvent) => {
+                    if (!props.resizable || !column.resizable) return
+
+                    if (nativeEvent.key === 'ArrowLeft') {
+                      nativeEvent.preventDefault()
+                      applyColumnResize(
+                        column.id,
+                        column.width - 16,
+                        nativeEvent,
+                      )
+                    }
+
+                    if (nativeEvent.key === 'ArrowRight') {
+                      nativeEvent.preventDefault()
+                      applyColumnResize(
+                        column.id,
+                        column.width + 16,
+                        nativeEvent,
+                      )
+                    }
+
+                    if (nativeEvent.key === 'Home') {
+                      nativeEvent.preventDefault()
+                      applyColumnResize(column.id, column.minWidth, nativeEvent)
+                    }
+
+                    if (nativeEvent.key === 'End') {
+                      nativeEvent.preventDefault()
+                      applyColumnResize(column.id, column.maxWidth, nativeEvent)
+                    }
+                  }}
+                />
+              </div>
+            )}
+          </For>
         </div>
 
         <div
@@ -1225,126 +1257,160 @@ function setup(
         />
 
         <div part="body" data-slot="data-grid-body" role="rowgroup">
-          {getBodyRows().map(item => {
-            const row = item.data
-            if (!row) return null
+          <For each={getBodyRowsForRender()} by={item => item.key}>
+            {item =>
+              (() => {
+                const row = item.data as DataGridRow
 
-            return (
-              <div
-                key={item.key}
-                part="row"
-                data-slot="data-grid-row"
-                data-row-key={row.key}
-                data-row-index={() => String(row.index)}
-                data-selected={() =>
-                  selection.isSelected(row.key) ? '' : undefined
-                }
-                role="row"
-                aria-rowindex={() =>
-                  String(getDataGridDataRowAriaIndex(row.index))
-                }
-                aria-selected={() =>
-                  getDataGridAriaSelected(
-                    resolveSelectionMode(props.selectionMode),
-                    selection.isSelected(row.key),
-                  )
-                }
-                style={() => ({
-                  display: 'grid',
-                  gridTemplateColumns: getGridTemplateColumns(),
-                  width: `${getTotalColumnWidth(columns)}px`,
-                  transform: props.virtual
-                    ? `translateY(${item.start}px)`
-                    : undefined,
-                })}
-                onClick={(nativeEvent: Event) => {
-                  if (resolveSelectionMode(props.selectionMode) !== 'none') {
-                    selection.toggle(row.key)
-                    syncSelectionPropsFromModel()
-                    emitSelection(row.key, nativeEvent)
-                  }
+                return (
+                  <div
+                    key={item.key}
+                    part="row"
+                    data-slot="data-grid-row"
+                    data-row-key={row.key}
+                    data-row-index={() => String(row.index)}
+                    data-selected={() =>
+                      selection.isSelected(row.key) ? '' : undefined
+                    }
+                    role="row"
+                    aria-rowindex={() =>
+                      String(getDataGridDataRowAriaIndex(row.index))
+                    }
+                    aria-selected={() =>
+                      getDataGridAriaSelected(
+                        resolveSelectionMode(props.selectionMode),
+                        selection.isSelected(row.key),
+                      )
+                    }
+                    style={() => ({
+                      display: 'grid',
+                      gridTemplateColumns: getGridTemplateColumns(),
+                      width: `${getTotalColumnWidth(columns)}px`,
+                      transform: props.virtual
+                        ? `translateY(${item.start}px)`
+                        : undefined,
+                    })}
+                    onClick={(nativeEvent: Event) => {
+                      if (
+                        resolveSelectionMode(props.selectionMode) !== 'none'
+                      ) {
+                        selection.toggle(row.key)
+                        syncSelectionPropsFromModel()
+                        emitSelection(row.key, nativeEvent)
+                      }
 
-                  emitRowAction('click', row, nativeEvent)
-                }}
-                onDblClick={(nativeEvent: Event) => {
-                  emitRowAction('dblclick', row, nativeEvent)
-                }}
-                onKeyDown={(nativeEvent: KeyboardEvent) => {
-                  emitRowAction('keydown', row, nativeEvent)
-                }}
-              >
-                {visibleColumns.map((column, columnIndex) => {
-                  const isActive =
-                    activeCell?.rowKey === row.key &&
-                    activeCell?.columnId === column.id
-                  const cellId =
-                    getDataGridActiveCellId({
-                      rowIndex: row.index,
-                      rowKey: row.key,
-                      columnId: column.id,
-                      columnIndex,
-                    }) ?? undefined
+                      emitRowAction('click', row, nativeEvent)
+                    }}
+                    onDblClick={(nativeEvent: Event) => {
+                      emitRowAction('dblclick', row, nativeEvent)
+                    }}
+                    onKeyDown={(nativeEvent: KeyboardEvent) => {
+                      emitRowAction('keydown', row, nativeEvent)
+                    }}
+                  >
+                    <For each={visibleColumns} by={column => column.id}>
+                      {(column, columnIndex) =>
+                        (() => {
+                          const isActive =
+                            activeCell?.rowKey === row.key &&
+                            activeCell?.columnId === column.id
+                          const cellId =
+                            getDataGridActiveCellId({
+                              rowIndex: row.index,
+                              rowKey: row.key,
+                              columnId: column.id,
+                              columnIndex,
+                            }) ?? undefined
 
-                  return (
-                    <div
-                      key={column.id}
-                      id={cellId}
-                      part="cell"
-                      data-slot="data-grid-cell"
-                      data-column-id={column.id}
-                      data-row-key={row.key}
-                      data-align={column.align}
-                      data-active={() => (isActive ? '' : undefined)}
-                      role="gridcell"
-                      aria-colindex={() =>
-                        String(getDataGridColumnAriaIndex(columnIndex))
-                      }
-                      aria-selected={() =>
-                        getDataGridAriaSelected(
-                          resolveSelectionMode(props.selectionMode),
-                          selection.isSelected(row.key),
-                        )
-                      }
-                      tabindex={() =>
-                        getDataGridCellTabIndex(
-                          props.keyboardNavigation !== false,
-                          isActive,
-                        )
-                      }
-                      onFocus={(nativeEvent: FocusEvent) => {
-                        setActiveCellByKey(row.key, column.id, nativeEvent)
-                      }}
-                      onClick={(nativeEvent: Event) => {
-                        setActiveCellByKey(row.key, column.id, nativeEvent)
-                        emitCellAction('click', row, column, nativeEvent)
-                      }}
-                      onDblClick={(nativeEvent: Event) => {
-                        emitCellAction('dblclick', row, column, nativeEvent)
-                      }}
-                      onKeyDown={(nativeEvent: KeyboardEvent) => {
-                        if (
-                          props.keyboardNavigation !== false &&
-                          isNavigationKey(nativeEvent.key)
-                        ) {
-                          nativeEvent.preventDefault()
-                          moveActiveCellFromCell(
-                            row.key,
-                            column.id,
-                            nativeEvent.key,
-                            nativeEvent,
+                          return (
+                            <div
+                              key={column.id}
+                              id={cellId}
+                              part="cell"
+                              data-slot="data-grid-cell"
+                              data-column-id={column.id}
+                              data-row-key={row.key}
+                              data-align={column.align}
+                              data-active={() => (isActive ? '' : undefined)}
+                              role="gridcell"
+                              aria-colindex={() =>
+                                String(getDataGridColumnAriaIndex(columnIndex))
+                              }
+                              aria-selected={() =>
+                                getDataGridAriaSelected(
+                                  resolveSelectionMode(props.selectionMode),
+                                  selection.isSelected(row.key),
+                                )
+                              }
+                              tabindex={() =>
+                                getDataGridCellTabIndex(
+                                  props.keyboardNavigation !== false,
+                                  isActive,
+                                )
+                              }
+                              onFocus={(nativeEvent: FocusEvent) => {
+                                setActiveCellByKey(
+                                  row.key,
+                                  column.id,
+                                  nativeEvent,
+                                )
+                              }}
+                              onClick={(nativeEvent: Event) => {
+                                setActiveCellByKey(
+                                  row.key,
+                                  column.id,
+                                  nativeEvent,
+                                )
+                                emitCellAction(
+                                  'click',
+                                  row,
+                                  column,
+                                  nativeEvent,
+                                )
+                              }}
+                              onDblClick={(nativeEvent: Event) => {
+                                emitCellAction(
+                                  'dblclick',
+                                  row,
+                                  column,
+                                  nativeEvent,
+                                )
+                              }}
+                              onKeyDown={(nativeEvent: KeyboardEvent) => {
+                                if (
+                                  props.keyboardNavigation !== false &&
+                                  isNavigationKey(nativeEvent.key)
+                                ) {
+                                  nativeEvent.preventDefault()
+                                  moveActiveCellFromCell(
+                                    row.key,
+                                    column.id,
+                                    nativeEvent.key,
+                                    nativeEvent,
+                                  )
+                                }
+
+                                emitCellAction(
+                                  'keydown',
+                                  row,
+                                  column,
+                                  nativeEvent,
+                                )
+                              }}
+                            >
+                              {String(
+                                getDataGridCellValue(row, column.field) ?? '',
+                              )}
+                            </div>
                           )
-                        }
-
-                        emitCellAction('keydown', row, column, nativeEvent)
-                      }}
-                    >
-                      {String(getDataGridCellValue(row, column.field) ?? '')}
-                    </div>
-                  )
-                })}
-              </div>
-            )
-          })}
+                        })()
+                      }
+                    </For>
+                  </div>
+                )
+              })()
+            }
+          </For>
         </div>
 
         <div part="empty" data-slot="data-grid-empty">

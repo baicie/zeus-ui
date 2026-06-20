@@ -80,6 +80,18 @@ describe('advanced showcase source', () => {
     expect(source).not.toContain('<StatusNote>{note}</StatusNote>')
   })
 
+  it('uses a ChatGPT-style message flow and floating composer', () => {
+    const pageSource = read('src/pages/ChatPage.tsx')
+    const styleSource = read('src/styles.css')
+
+    expect(pageSource).toContain('chat-message-inner')
+    expect(pageSource).toContain('placeholder="Message ChatGPT"')
+    expect(pageSource).toContain('className="chat-table"')
+    expect(styleSource).toContain('.chat-message-user .chat-message-body')
+    expect(styleSource).toContain('.chat-composer')
+    expect(styleSource).toContain('border-radius: 28px')
+  })
+
   it('revogrid-adapter page displays mapped state instead of a blank target only', () => {
     const source = read('src/pages/RevoGridAdapterPage.tsx')
 
