@@ -75,6 +75,8 @@ describe('agent-console component protocol', () => {
         },
         updateMessage: {
           name: 'updateMessage',
+          // TODO: analyzer degrades `T | undefined` union to `T | unknown`;
+          // should be `AgentConsoleMessage | undefined` after analyzer fix
           returns: 'AgentConsoleMessage | unknown',
         },
         startToolCall: {
@@ -91,6 +93,8 @@ describe('agent-console component protocol', () => {
         },
         selectArtifact: {
           name: 'selectArtifact',
+          // TODO: analyzer degrades `T | undefined` union to `T | unknown`;
+          // should be `AgentConsoleArtifact | undefined` after analyzer fix
           returns: 'AgentConsoleArtifact | unknown',
         },
         addDiagnostic: {
