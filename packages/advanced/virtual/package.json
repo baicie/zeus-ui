@@ -20,8 +20,8 @@
   ],
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/wc/index.d.ts",
+      "import": "./dist/wc/index.js"
     },
     "./wc": {
       "types": "./dist/wc/index.d.ts",
