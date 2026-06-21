@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 import { execa } from 'execa'
 import pc from 'picocolors'
 import ts from 'typescript'
@@ -7,6 +7,7 @@ import ts from 'typescript'
 import { validatePackageRules } from './package-rules'
 
 const root = process.cwd()
+const packageRoots = ['packages', 'packages/primitives', 'packages/advanced']
 
 // ---------------------------------------------------------------------------
 // Shared
@@ -18,7 +19,7 @@ function readPkg(file: string): Record<string, unknown> {
 
 function listPackageJsons(): string[] {
   const files: string[] = []
-  for (const rel of ['packages', 'packages/primitives']) {
+  for (const rel of packageRoots) {
     const abs = join(root, rel)
     if (!existsSync(abs)) continue
     for (const name of readdirSync(abs)) {
@@ -134,6 +135,7 @@ async function checkZeusImports(errors: string[]): Promise<void> {
   const checkedRoots = [
     'packages/zeus-compat',
     'packages/primitives',
+    'packages/advanced',
     'packages/headless',
     'packages/react',
     'packages/vue',
@@ -210,8 +212,10 @@ async function checkZeusImports(errors: string[]): Promise<void> {
         rel.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
       )
       const allowed = allowedZeusImports.get(rel) ?? new Set<string>()
-      const isPrimitiveInput =
-        rel.startsWith('packages/primitives/') && rel.includes('/src/')
+      const isZeusComponentSource =
+        (rel.startsWith('packages/primitives/') ||
+          rel.startsWith('packages/advanced/')) &&
+        rel.includes('/src/')
 
       const specifiers: string[] = []
       function visit(node: ts.Node): void {
@@ -236,7 +240,7 @@ async function checkZeusImports(errors: string[]): Promise<void> {
 
       for (const spec of specifiers) {
         if (!spec.startsWith('@zeus-js/')) continue
-        if (isPrimitiveInput && spec === '@zeus-js/zeus') continue
+        if (isZeusComponentSource && spec === '@zeus-js/zeus') continue
         if (allowed.has(spec)) continue
         errors.push(
           `${rel}: do not import ${spec} directly. Use @zeus-web/zeus-compat instead.`,
@@ -251,7 +255,7 @@ async function checkZeusImports(errors: string[]): Promise<void> {
 // ---------------------------------------------------------------------------
 
 async function checkBuildOutput(errors: string[]): Promise<void> {
-  const pkgMap = new Map<string, { exports?: unknown }>()
+  const pkgMap = new Map<string, { dir: string; exports?: unknown }>()
   for (const file of listPackageJsons()) {
     const pkg = JSON.parse(readFileSync(file, 'utf8')) as {
       name?: string
@@ -259,15 +263,17 @@ async function checkBuildOutput(errors: string[]): Promise<void> {
       exports?: unknown
     }
     if (pkg.private || !pkg.name || !pkg.exports) continue
-    pkgMap.set(pkg.name, pkg)
+    pkgMap.set(pkg.name, {
+      dir: dirname(file),
+      exports: pkg.exports,
+    })
   }
 
   const targets: Array<{ pkg: string; dir: string; target: string }> = []
   for (const [pkgName, pkg] of pkgMap) {
-    const dir = join(root, 'packages', pkgName.replace('@zeus-web/', ''))
     const collect = (v: unknown): void => {
       if (typeof v === 'string' && v.startsWith('./') && !v.includes('*'))
-        targets.push({ pkg: pkgName, dir, target: v })
+        targets.push({ pkg: pkgName, dir: pkg.dir, target: v })
       else if (Array.isArray(v)) v.forEach(collect)
       else if (v && typeof v === 'object')
         Object.values(v as Record<string, unknown>).forEach(collect)

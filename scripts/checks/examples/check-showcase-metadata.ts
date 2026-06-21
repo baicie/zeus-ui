@@ -9,7 +9,11 @@ import {
   showcaseThemes,
   validateShowcaseMetadata,
 } from '../../../examples/showcase-shared/src'
-import { iconMetadata, iconNames } from '../../../packages/icons/src'
+import {
+  iconMetadata,
+  iconNames,
+  isIconName,
+} from '../../../packages/icons/src'
 import {
   semanticColorTokens,
   themeModeNames,
@@ -30,7 +34,21 @@ function readJson<T>(file: string): T {
   return JSON.parse(readFileSync(file, 'utf-8')) as T
 }
 
-function readRegistryComponentNames(): string[] {
+/**
+ * Advanced components are shown in examples/advanced-showcase.
+ *
+ * They are still registry components, but they intentionally do not belong to
+ * the classic React/Vue showcase metadata model that validates
+ * examples/showcase-shared/src/components.ts.
+ */
+const advancedShowcaseRegistryComponentNames = new Set([
+  'chat',
+  'data-grid',
+  'revogrid-adapter',
+  'agent-console',
+])
+
+function readClassicRegistryComponentNames(): string[] {
   const registry = readJson<Registry>(
     resolve(process.cwd(), 'packages/registry/registry.json'),
   )
@@ -38,6 +56,7 @@ function readRegistryComponentNames(): string[] {
   return registry.items
     .filter(item => item.type === 'component' || item.type === 'registry:ui')
     .map(item => item.name)
+    .filter(name => !advancedShowcaseRegistryComponentNames.has(name))
     .sort()
 }
 
@@ -48,6 +67,13 @@ function validateShowcaseIconCoverage(): string[] {
   const packageIconNameSet = new Set<string>(iconNames)
 
   for (const icon of showcaseIcons) {
+    if (!isIconName(icon.name)) {
+      errors.push(
+        `showcaseIcons contains "${icon.name}" but @zeus-web/icons does not export it.`,
+      )
+      continue
+    }
+
     if (!packageIconNameSet.has(icon.name)) {
       errors.push(
         `showcaseIcons contains "${icon.name}" but @zeus-web/icons does not export it.`,
@@ -122,7 +148,7 @@ function validateShowcaseThemeCoverage(): string[] {
 }
 
 const result = validateShowcaseMetadata({
-  registryComponentNames: readRegistryComponentNames(),
+  registryComponentNames: readClassicRegistryComponentNames(),
 })
 
 const iconCoverageErrors = validateShowcaseIconCoverage()

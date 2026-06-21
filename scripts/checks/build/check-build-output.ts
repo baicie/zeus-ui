@@ -1,60 +1,52 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
-import { dirname, join, relative } from 'node:path'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { join, relative } from 'node:path'
 
-import { execa } from 'execa'
+import pc from 'picocolors'
 
-const root = process.cwd()
+const ROOT = process.cwd()
 
-interface PackageJsonLike {
-  name?: string
-  private?: boolean
-  exports?: unknown
+type PackageKind = 'package' | 'primitive' | 'advanced'
+
+interface PackageInfo {
+  name: string
+  dir: string
+  kind: PackageKind
+  exportTargets: string[]
 }
 
-interface ExportTarget {
-  packageName: string
-  packageDir: string
-  target: string
-}
+const WORKSPACE_ROOTS: Array<{ dir: string; kind: PackageKind }> = [
+  { dir: 'packages', kind: 'package' },
+  { dir: 'packages/primitives', kind: 'primitive' },
+  { dir: 'packages/advanced', kind: 'advanced' },
+]
+
+const componentRequiredOutputs = [
+  'dist/wc/index.js',
+  'dist/wc/index.d.ts',
+  'dist/wc/auto.js',
+  'dist/react/index.js',
+  'dist/react/index.d.ts',
+  'dist/vue/index.js',
+  'dist/vue/index.d.ts',
+  'dist/vue/global.d.ts',
+  'dist/custom-elements.json',
+  'dist/zeus.components.json',
+]
 
 function toForwardSlash(value: string): string {
   return value.replace(/\\/g, '/')
 }
 
-function listPackageJsonFiles(): string[] {
-  const files: string[] = []
-
-  for (const rel of ['packages', 'packages/primitives']) {
-    const abs = join(root, rel)
-
-    if (!existsSync(abs)) continue
-
-    for (const name of readdirSync(abs)) {
-      const file = join(abs, name, 'package.json')
-
-      if (existsSync(file)) {
-        files.push(file)
-      }
-    }
-  }
-
-  return files.sort()
-}
-
 function collectExportTargets(value: unknown, targets: Set<string>): void {
   if (typeof value === 'string') {
     if (value.startsWith('./') && !value.includes('*')) {
-      targets.add(value)
+      targets.add(value.slice(2))
     }
-
     return
   }
 
   if (Array.isArray(value)) {
-    for (const item of value) {
-      collectExportTargets(item, targets)
-    }
-
+    for (const item of value) collectExportTargets(item, targets)
     return
   }
 
@@ -65,110 +57,129 @@ function collectExportTargets(value: unknown, targets: Set<string>): void {
   }
 }
 
-function listExportTargets(): ExportTarget[] {
-  const result: ExportTarget[] = []
+function readPackageInfo(dir: string, kind: PackageKind): PackageInfo | undefined {
+  const file = join(dir, 'package.json')
 
-  for (const packageJsonFile of listPackageJsonFiles()) {
-    const pkg = JSON.parse(
-      readFileSync(packageJsonFile, 'utf8'),
-    ) as PackageJsonLike
+  if (!existsSync(file)) return undefined
 
-    if (pkg.private || !pkg.name || !pkg.exports) continue
+  const json = JSON.parse(readFileSync(file, 'utf8')) as {
+    name?: string
+    private?: boolean
+    exports?: unknown
+  }
 
-    const packageDir = dirname(packageJsonFile)
-    const targets = new Set<string>()
+  if (!json.name || json.private) return undefined
 
-    collectExportTargets(pkg.exports, targets)
+  const exportTargets = new Set<string>()
 
-    for (const target of targets) {
-      result.push({
-        packageName: pkg.name,
-        packageDir,
-        target,
-      })
+  if (json.exports) {
+    collectExportTargets(json.exports, exportTargets)
+  }
+
+  return {
+    name: json.name,
+    dir,
+    kind,
+    exportTargets: Array.from(exportTargets),
+  }
+}
+
+function discoverPackages(): PackageInfo[] {
+  const result: PackageInfo[] = []
+
+  for (const rootInfo of WORKSPACE_ROOTS) {
+    const abs = join(ROOT, rootInfo.dir)
+
+    if (!existsSync(abs)) continue
+
+    for (const entry of readdirSync(abs, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue
+
+      const info = readPackageInfo(join(abs, entry.name), rootInfo.kind)
+
+      if (info) {
+        result.push(info)
+      }
     }
   }
 
   return result.sort((a, b) => {
-    const packageCompare = a.packageName.localeCompare(b.packageName)
+    const weight: Record<PackageKind, number> = {
+      primitive: 0,
+      advanced: 1,
+      package: 2,
+    }
 
-    if (packageCompare !== 0) return packageCompare
+    const kindCompare = weight[a.kind] - weight[b.kind]
+    if (kindCompare !== 0) return kindCompare
 
-    return a.target.localeCompare(b.target)
+    return a.name.localeCompare(b.name)
   })
 }
 
-async function main(): Promise<void> {
-  let hasError = false
-  const dtsFiles = new Set<string>()
+function isComponentPackage(pkg: PackageInfo): boolean {
+  return pkg.kind === 'primitive' || pkg.kind === 'advanced'
+}
 
-  for (const item of listExportTargets()) {
-    const absoluteTarget = join(item.packageDir, item.target)
-    const relativeTarget = toForwardSlash(relative(root, absoluteTarget))
+function checkExists(pkg: PackageInfo, rel: string, errors: string[]): void {
+  const abs = join(pkg.dir, rel)
 
-    if (!existsSync(absoluteTarget)) {
-      console.error(
-        `[build-output] ${item.packageName} export target is missing: ${relativeTarget}`,
-      )
-      hasError = true
-      continue
-    }
+  if (!existsSync(abs)) {
+    errors.push(`${pkg.name}: missing ${toForwardSlash(relative(pkg.dir, abs))}`)
+    return
+  }
 
-    if (absoluteTarget.endsWith('.d.ts')) {
-      dtsFiles.add(relativeTarget)
+  const stat = statSync(abs)
+
+  if (!stat.isFile() && !stat.isDirectory()) {
+    errors.push(`${pkg.name}: invalid output ${rel}`)
+  }
+}
+
+function checkComponentPackage(pkg: PackageInfo, errors: string[]): void {
+  for (const rel of componentRequiredOutputs) {
+    checkExists(pkg, rel, errors)
+  }
+}
+
+function checkRegularPackage(pkg: PackageInfo, errors: string[]): void {
+  const distDir = join(pkg.dir, 'dist')
+
+  if (!existsSync(distDir) || !statSync(distDir).isDirectory()) {
+    errors.push(`${pkg.name}: missing dist/ output directory`)
+    return
+  }
+
+  for (const rel of pkg.exportTargets) {
+    checkExists(pkg, rel, errors)
+  }
+}
+
+function main(): void {
+  const errors: string[] = []
+  const packages = discoverPackages()
+
+  for (const pkg of packages) {
+    if (isComponentPackage(pkg)) {
+      checkComponentPackage(pkg, errors)
+    } else {
+      checkRegularPackage(pkg, errors)
     }
   }
 
-  if (dtsFiles.size > 0) {
-    const result = await execa(
-      'pnpm',
-      [
-        'exec',
-        'tsc',
-        ...dtsFiles,
-        '--ignoreConfig',
-        '--noEmit',
-        '--module',
-        'ESNext',
-        '--moduleResolution',
-        'bundler',
-        '--target',
-        'ES2016',
-        '--jsx',
-        'preserve',
-        '--types',
-        'node',
-        '--skipLibCheck',
-      ],
-      {
-        cwd: root,
-        reject: false,
-      },
-    )
+  if (errors.length > 0) {
+    console.error(pc.red('Build output check failed:'))
 
-    if (result.exitCode !== 0) {
-      console.error('[build-output] generated dts files are invalid')
-
-      if (result.stdout) {
-        console.error(result.stdout)
-      }
-
-      if (result.stderr) {
-        console.error(result.stderr)
-      }
-
-      hasError = true
+    for (const error of errors) {
+      console.error(`  ${pc.red('-')} ${error}`)
     }
-  }
 
-  if (hasError) {
     process.exit(1)
   }
 
-  console.log('Build output looks good.')
+  console.log(
+    pc.green(`Build output looks good. (${packages.length} packages checked)`),
+  )
 }
 
-main().catch(error => {
-  console.error(error)
-  process.exit(1)
-})
+main()

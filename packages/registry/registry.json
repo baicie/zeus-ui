@@ -72,6 +72,106 @@
           "target": "components/ui/input.vue"
         }
       ]
+    },
+    {
+      "name": "chat",
+      "type": "component",
+      "description": "Headless ChatGPT-style chat component family built on @zeus-web/chat primitives. Provides a root chat container, thread, message, composer, code block, tool call, artifact and typing components.",
+      "frameworks": ["native", "react", "vue"],
+      "dependencies": ["@zeus-web/chat"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "native",
+          "source": "templates/native/chat.ts",
+          "target": "components/chat.ts"
+        },
+        {
+          "framework": "react",
+          "source": "templates/react/chat.tsx",
+          "target": "components/ui/chat.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/chat.vue",
+          "target": "components/ui/chat.vue"
+        }
+      ]
+    },
+    {
+      "name": "data-grid",
+      "type": "component",
+      "description": "Styled data grid component built on @zeus-web/data-grid. Provides row virtualization, column model, row model, selection and sorting for React, Vue and native Web Component usage.",
+      "frameworks": ["native", "react", "vue"],
+      "dependencies": ["@zeus-web/data-grid"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "native",
+          "source": "templates/native/data-grid.ts",
+          "target": "components/data-grid.ts"
+        },
+        {
+          "framework": "react",
+          "source": "templates/react/data-grid.tsx",
+          "target": "components/ui/data-grid.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/data-grid.vue",
+          "target": "components/ui/data-grid.vue"
+        }
+      ]
+    },
+    {
+      "name": "revogrid-adapter",
+      "type": "component",
+      "description": "RevoGrid-compatible adapter built on @zeus-web/revogrid-adapter. Bridges Zeus DataGrid column, row, sorting and selection models to a <revo-grid> custom element without bundling the RevoGrid implementation.",
+      "frameworks": ["native", "react", "vue"],
+      "dependencies": ["@zeus-web/revogrid-adapter"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "native",
+          "source": "templates/native/revogrid-adapter.ts",
+          "target": "components/revogrid-adapter.ts"
+        },
+        {
+          "framework": "react",
+          "source": "templates/react/revogrid-adapter.tsx",
+          "target": "components/ui/revogrid-adapter.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/revogrid-adapter.vue",
+          "target": "components/ui/revogrid-adapter.vue"
+        }
+      ]
+    },
+    {
+      "name": "agent-console",
+      "type": "component",
+      "description": "Headless agent console product template built on @zeus-web/agent-console. Provides a local foundation for messages, tool calls, artifacts, diagnostics and status without bundling any LLM provider.",
+      "frameworks": ["native", "react", "vue"],
+      "dependencies": ["@zeus-web/agent-console"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "native",
+          "source": "templates/native/agent-console.ts",
+          "target": "components/agent-console.ts"
+        },
+        {
+          "framework": "react",
+          "source": "templates/react/agent-console.tsx",
+          "target": "components/ui/agent-console.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/agent-console.vue",
+          "target": "components/ui/agent-console.vue"
+        }
+      ]
     }
   ]
 }

@@ -1,7 +1,26 @@
-import type { ZeusWebAiComponent, ZeusWebAiMetadata } from './types'
+import type {
+  ZeusWebAiAdvancedComponent,
+  ZeusWebAiComponent,
+  ZeusWebAiMetadata,
+} from './types'
 
 function renderList(items: string[]): string {
   return items.map(item => `- ${item}`).join('\n')
+}
+
+function renderRecordItems(
+  record: Record<string, string[]>,
+  renderItem: (tag: string, item: string) => string,
+): string[] {
+  const result: string[] = []
+
+  for (const tag of Object.keys(record)) {
+    for (const item of record[tag]) {
+      result.push(renderItem(tag, item))
+    }
+  }
+
+  return result
 }
 
 function renderIcons(metadata: ZeusWebAiMetadata): string {
@@ -113,7 +132,74 @@ function renderComponent(component: ZeusWebAiComponent): string {
   ].join('\n')
 }
 
+function renderAdvancedComponent(
+  component: ZeusWebAiAdvancedComponent,
+): string {
+  const examples = component.examples
+    .map(
+      example =>
+        `### ${example.title}\n\n${example.description}\n\n\`\`\`tsx\n${example.code}\n\`\`\``,
+    )
+    .join('\n\n')
+
+  return [
+    `## ${component.name} (advanced)`,
+    '',
+    component.summary,
+    '',
+    `Package: \`${component.packageName}\``,
+    `Tags: ${component.tags.map(tag => `\`${tag}\``).join(', ')}`,
+    '',
+    '### When to use',
+    '',
+    renderList(component.whenToUse),
+    '',
+    '### Do not use for',
+    '',
+    renderList(component.doNotUseFor),
+    '',
+    '### Components',
+    '',
+    renderList(component.components.map(tag => `\`${tag}\``)),
+    '',
+    '### Slots',
+    '',
+    renderList(
+      renderRecordItems(
+        component.slots,
+        (tag, slot) => `\`${tag}\` → \`${slot}\``,
+      ),
+    ),
+    '',
+    '### Events',
+    '',
+    renderList(
+      renderRecordItems(
+        component.events,
+        (tag, event) => `\`${tag}\` → \`${event}\``,
+      ),
+    ),
+    '',
+    '### Methods',
+    '',
+    renderList(
+      renderRecordItems(
+        component.methods,
+        (tag, method) => `\`${tag}\` → \`${method}()\``,
+      ),
+    ),
+    '',
+    '### Prompt hints',
+    '',
+    renderList(component.promptHints),
+    '',
+    examples,
+  ].join('\n')
+}
+
 export function renderAiMarkdown(metadata: ZeusWebAiMetadata): string {
+  const advanced = metadata.advancedComponents ?? []
+
   return [
     '# Zeus Web AI Guide',
     '',
@@ -140,6 +226,14 @@ export function renderAiMarkdown(metadata: ZeusWebAiMetadata): string {
     '# Components',
     '',
     metadata.components.map(renderComponent).join('\n\n---\n\n'),
+    ...(advanced.length === 0
+      ? []
+      : [
+          '',
+          '# Advanced components',
+          '',
+          advanced.map(renderAdvancedComponent).join('\n\n---\n\n'),
+        ]),
     '',
   ].join('\n')
 }

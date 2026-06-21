@@ -24,13 +24,6 @@ export interface Registry {
   items: RegistryItem[]
 }
 
-export interface AiComponentLike {
-  name: string
-  primitivePackage?: string
-  sourceTarget?: string
-  dependencies?: string[]
-}
-
 export interface CoverageResult {
   valid: boolean
   errors: string[]
@@ -44,6 +37,13 @@ export interface CoverageResult {
 const deferredOverlayComponents = ['popover', 'dropdown', 'toast'] as const
 
 const registryPhase17RequiredItems = ['button', 'input'] as const
+
+const advancedRegistryComponentNames = new Set([
+  'chat',
+  'data-grid',
+  'revogrid-adapter',
+  'agent-console',
+])
 
 function readJson<T>(file: string): T {
   return JSON.parse(readFileSync(file, 'utf-8')) as T
@@ -65,19 +65,19 @@ function findDuplicates(values: string[]): string[] {
   return Array.from(duplicates).sort()
 }
 
-function readPrimitiveNames(root: string): string[] {
-  const primitivesRoot = resolve(root, 'packages/primitives')
+function readPackageNamesFromRoot(root: string, subdir: string): string[] {
+  const target = resolve(root, subdir)
 
-  if (!existsSync(primitivesRoot)) {
+  if (!existsSync(target)) {
     return []
   }
 
   const names: string[] = []
 
-  for (const entry of readdirSync(primitivesRoot, { withFileTypes: true })) {
+  for (const entry of readdirSync(target, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
 
-    const packageJsonPath = resolve(primitivesRoot, entry.name, 'package.json')
+    const packageJsonPath = resolve(target, entry.name, 'package.json')
 
     if (!existsSync(packageJsonPath)) continue
 
@@ -90,6 +90,13 @@ function readPrimitiveNames(root: string): string[] {
   }
 
   return names.sort()
+}
+
+function readPrimitiveNames(root: string): string[] {
+  const primitiveNames = readPackageNamesFromRoot(root, 'packages/primitives')
+  const advancedNames = readPackageNamesFromRoot(root, 'packages/advanced')
+
+  return unique([...primitiveNames, ...advancedNames])
 }
 
 function readRegistry(root: string): Registry {
@@ -116,14 +123,34 @@ function getRegistryNames(registry: Registry): string[] {
     .sort()
 }
 
-function getAiComponents(): AiComponentLike[] {
-  return aiMetadata.components as AiComponentLike[]
+function getClassicAiComponents(): Array<{
+  name: string
+  primitivePackage?: string
+  sourceTarget?: string
+  dependencies?: string[]
+}> {
+  return aiMetadata.components as Array<{
+    name: string
+    primitivePackage?: string
+    sourceTarget?: string
+    dependencies?: string[]
+  }>
+}
+
+function getAdvancedAiComponents(): Array<{
+  name: string
+  packageName: string
+}> {
+  return (aiMetadata.advancedComponents ?? []).map(component => ({
+    name: component.name,
+    packageName: component.packageName,
+  }))
 }
 
 function getAiNames(): string[] {
-  return getAiComponents()
-    .map(component => component.name)
-    .sort()
+  const classicNames = getClassicAiComponents().map(c => c.name)
+  const advancedNames = getAdvancedAiComponents().map(c => c.name)
+  return [...classicNames, ...advancedNames].sort()
 }
 
 function includesPackageDependency(item: RegistryItem): boolean {
@@ -133,13 +160,21 @@ function includesPackageDependency(item: RegistryItem): boolean {
 }
 
 function includesUiTarget(item: RegistryItem): boolean {
-  const expected = `components/ui/${item.name}.tsx`
-
   return (
     item.files?.some(file => {
       const target = file.target
-      return target === expected || target === `components/ui/${item.name}.vue`
+      return (
+        target === `components/ui/${item.name}.tsx` ||
+        target === `components/ui/${item.name}.vue`
+      )
     }) ?? false
+  )
+}
+
+function includesNativeTarget(item: RegistryItem): boolean {
+  return (
+    item.files?.some(file => file.target === `components/${item.name}.ts`) ??
+    false
   )
 }
 
@@ -173,6 +208,7 @@ function checkRegistryFiles(
 
   for (const file of item.files) {
     const filePath = file.source ?? file.path ?? ''
+
     if (filePath && !registryFileExists(root, filePath)) {
       errors.push(
         `registry item "${item.name}" references missing file "${filePath}"`,
@@ -181,7 +217,15 @@ function checkRegistryFiles(
   }
 }
 
-function checkAiComponent(component: AiComponentLike, errors: string[]): void {
+function checkClassicAiComponent(
+  component: {
+    name: string
+    primitivePackage?: string
+    sourceTarget?: string
+    dependencies?: string[]
+  },
+  errors: string[],
+): void {
   const expectedPackage = `@zeus-web/${component.name}`
   const expectedSourceTarget = `components/ui/${component.name}.tsx`
 
@@ -204,12 +248,30 @@ function checkAiComponent(component: AiComponentLike, errors: string[]): void {
   }
 }
 
+function checkAdvancedAiComponent(
+  component: { name: string; packageName: string },
+  errors: string[],
+): void {
+  const expectedPackage = `@zeus-web/${component.name}`
+
+  if (component.packageName !== expectedPackage) {
+    errors.push(
+      `AI metadata advanced component "${component.name}" must use packageName "${expectedPackage}"`,
+    )
+  }
+}
+
+function isAdvancedRegistryComponent(name: string): boolean {
+  return advancedRegistryComponentNames.has(name)
+}
+
 export function checkComponentCoverage(root = process.cwd()): CoverageResult {
   const primitiveNames = readPrimitiveNames(root)
   const registry = readRegistry(root)
   const registryItems = getRegistryUiItems(registry)
   const registryNames = getRegistryNames(registry)
-  const aiComponents = getAiComponents()
+  const classicAiComponents = getClassicAiComponents()
+  const advancedAiComponents = getAdvancedAiComponents()
   const aiNames = getAiNames()
 
   const primitiveNameSet = new Set(primitiveNames)
@@ -224,6 +286,8 @@ export function checkComponentCoverage(root = process.cwd()): CoverageResult {
   pushDuplicateErrors(errors, 'AI metadata', aiNames)
 
   for (const item of registryItems) {
+    const isAdvanced = isAdvancedRegistryComponent(item.name)
+
     if (!primitiveNameSet.has(item.name)) {
       errors.push(
         `registry item "${item.name}" has no matching primitive package`,
@@ -242,14 +306,20 @@ export function checkComponentCoverage(root = process.cwd()): CoverageResult {
 
     if (!includesUiTarget(item)) {
       errors.push(
-        `registry item "${item.name}" must target components/ui/${item.name}.tsx`,
+        `registry item "${item.name}" must target components/ui/${item.name}.tsx or .vue`,
+      )
+    }
+
+    if (isAdvanced && !includesNativeTarget(item)) {
+      errors.push(
+        `advanced registry item "${item.name}" must also target components/${item.name}.ts`,
       )
     }
 
     checkRegistryFiles(root, item, errors)
   }
 
-  for (const component of aiComponents) {
+  for (const component of classicAiComponents) {
     const name = component.name
 
     if (!registryNameSet.has(name)) {
@@ -271,7 +341,27 @@ export function checkComponentCoverage(root = process.cwd()): CoverageResult {
     }
 
     if (registryNameSet.has(name)) {
-      checkAiComponent(component, errors)
+      checkClassicAiComponent(component, errors)
+    }
+  }
+
+  for (const component of advancedAiComponents) {
+    const name = component.name
+
+    if (!primitiveNameSet.has(name)) {
+      errors.push(
+        `AI metadata advanced component "${name}" has no matching advanced package`,
+      )
+    }
+
+    if (name !== 'virtual' && !registryNameSet.has(name)) {
+      errors.push(
+        `AI metadata advanced component "${name}" has no matching registry item`,
+      )
+    }
+
+    if (registryNameSet.has(name)) {
+      checkAdvancedAiComponent(component, errors)
     }
   }
 
@@ -321,6 +411,7 @@ export function checkComponentCoverage(root = process.cwd()): CoverageResult {
 function printResult(result: CoverageResult): void {
   console.log(pc.bold('Zeus Web component coverage'))
   console.log('')
+
   console.log(`  primitives: ${pc.cyan(String(result.primitiveNames.length))}`)
   console.log(`  registry:   ${pc.cyan(String(result.registryNames.length))}`)
   console.log(`  AI:         ${pc.cyan(String(result.aiNames.length))}`)

@@ -143,6 +143,62 @@ export function validateAiMetadata(
     }
   }
 
+  const advancedNames = new Set<string>()
+
+  for (const advanced of metadata.advancedComponents ?? []) {
+    if (advancedNames.has(advanced.name)) {
+      errors.push(`duplicated advanced component metadata: ${advanced.name}`)
+    }
+
+    advancedNames.add(advanced.name)
+
+    if (advanced.category !== 'advanced') {
+      errors.push(`${advanced.name}: category must be 'advanced'`)
+    }
+
+    if (advanced.packageName !== `@zeus-web/${advanced.name}`) {
+      errors.push(
+        `${advanced.name}: packageName must be @zeus-web/${advanced.name}`,
+      )
+    }
+
+    if (advanced.components.length === 0) {
+      errors.push(`${advanced.name}: components are required`)
+    }
+
+    if (advanced.examples.length === 0) {
+      errors.push(`${advanced.name}: examples are required`)
+    }
+
+    if (advanced.promptHints.length === 0) {
+      errors.push(`${advanced.name}: promptHints are required`)
+    }
+
+    if (advanced.doNotUseFor.length === 0) {
+      errors.push(`${advanced.name}: doNotUseFor is required`)
+    }
+
+    if (
+      !advanced.doNotUseFor.some(rule =>
+        rule.includes('不要把它当作模型请求库'),
+      )
+    ) {
+      errors.push(
+        `${advanced.name}: doNotUseFor must include "不要把它当作模型请求库"`,
+      )
+    }
+
+    if (
+      !advanced.promptHints.some(rule =>
+        rule.includes('业务请求逻辑应该放在应用层'),
+      )
+    ) {
+      errors.push(
+        `${advanced.name}: promptHints must include "业务请求逻辑应该放在应用层"`,
+      )
+    }
+  }
+
   for (const name of requiredComponents) {
     if (!names.has(name)) {
       errors.push(`missing component metadata: ${name}`)

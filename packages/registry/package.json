@@ -26,8 +26,20 @@
     "./registry.json": "./dist/registry.json",
     "./templates/react/button.tsx": "./dist/templates/react/button.tsx",
     "./templates/react/input.tsx": "./dist/templates/react/input.tsx",
+    "./templates/react/chat.tsx": "./dist/templates/react/chat.tsx",
+    "./templates/react/data-grid.tsx": "./dist/templates/react/data-grid.tsx",
+    "./templates/react/revogrid-adapter.tsx": "./dist/templates/react/revogrid-adapter.tsx",
+    "./templates/react/agent-console.tsx": "./dist/templates/react/agent-console.tsx",
     "./templates/vue/button.vue": "./dist/templates/vue/button.vue",
     "./templates/vue/input.vue": "./dist/templates/vue/input.vue",
+    "./templates/vue/chat.vue": "./dist/templates/vue/chat.vue",
+    "./templates/vue/data-grid.vue": "./dist/templates/vue/data-grid.vue",
+    "./templates/vue/revogrid-adapter.vue": "./dist/templates/vue/revogrid-adapter.vue",
+    "./templates/vue/agent-console.vue": "./dist/templates/vue/agent-console.vue",
+    "./templates/native/chat.ts": "./dist/templates/native/chat.ts",
+    "./templates/native/data-grid.ts": "./dist/templates/native/data-grid.ts",
+    "./templates/native/revogrid-adapter.ts": "./dist/templates/native/revogrid-adapter.ts",
+    "./templates/native/agent-console.ts": "./dist/templates/native/agent-console.ts",
     "./templates/css/globals.css": "./dist/templates/css/globals.css",
     "./templates/lib/cn.ts": "./dist/templates/lib/cn.ts"
   },
@@ -43,6 +55,6 @@
   "devDependencies": {
     "tsup": "8.5.1",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.9"
   }
 }

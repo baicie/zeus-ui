@@ -94,6 +94,10 @@ expect.extend({
 const KNOWN_NOISE_PREFIXES = ['[Zeus context]', '[zeus:web-c]']
 
 beforeEach(() => {
+  if (typeof window !== 'undefined') {
+    window.scrollTo = vi.fn()
+  }
+
   asserted.clear()
   warn = vi.spyOn(console, 'warn')
   warn.mockImplementation(() => {})

@@ -20,6 +20,13 @@ export type ZeusWebAiComponentName =
   | 'progress'
   | 'avatar'
 
+export type ZeusWebAiAdvancedComponentName =
+  | 'chat'
+  | 'virtual'
+  | 'data-grid'
+  | 'revogrid-adapter'
+  | 'agent-console'
+
 export type ZeusWebAiThemeName =
   | 'default'
   | 'slate'
@@ -106,6 +113,29 @@ export interface ZeusWebAiMetadata {
     dont: string[]
   }
   components: ZeusWebAiComponent[]
+  advancedComponents: ZeusWebAiAdvancedComponent[]
+}
+
+export interface ZeusWebAiAdvancedComponentUsageExample {
+  title: string
+  description: string
+  code: string
+}
+
+export interface ZeusWebAiAdvancedComponent {
+  name: ZeusWebAiAdvancedComponentName
+  packageName: string
+  category: 'advanced'
+  summary: string
+  whenToUse: string[]
+  doNotUseFor: string[]
+  tags: string[]
+  components: string[]
+  slots: Record<string, string[]>
+  events: Record<string, string[]>
+  methods: Record<string, string[]>
+  examples: ZeusWebAiAdvancedComponentUsageExample[]
+  promptHints: string[]
 }
 
 export interface ZeusWebAiValidationResult {

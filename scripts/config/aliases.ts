@@ -18,6 +18,13 @@ function addPackage(key: string, pkgPath: string) {
   entries[key] = index
 }
 
+// Headless-only packages expose their core/types subpath instead of the
+// component barrel so vitest does not pull in JSX component sources when a
+// downstream package only needs framework-agnostic utilities.
+const headlessEntryOverrides: Record<string, string> = {
+  '@zeus-web/virtual': 'core',
+}
+
 // Scan packages/*
 for (const name of readdirSync(path.join(root, 'packages'))) {
   const pkgPath = path.join(root, 'packages', name)
@@ -33,6 +40,27 @@ if (statSync(primitivesRoot).isDirectory()) {
     if (!statSync(pkgPath).isDirectory()) continue
     addPackage(`@zeus-web/${name}`, pkgPath)
   }
+}
+
+// Scan packages/advanced/*
+const advancedRoot = path.join(root, 'packages', 'advanced')
+if (statSync(advancedRoot).isDirectory()) {
+  for (const name of readdirSync(advancedRoot)) {
+    const pkgPath = path.join(advancedRoot, name)
+    if (!statSync(pkgPath).isDirectory()) continue
+    addPackage(`@zeus-web/${name}`, pkgPath)
+  }
+}
+
+// Override headless-only entries to their subpath barrels.
+for (const [key, subpath] of Object.entries(headlessEntryOverrides)) {
+  const base = entries[key]
+  if (!base) continue
+  const lastSegment = `index.${base.endsWith('tsx') ? 'tsx' : 'ts'}`
+  entries[key] = base.replace(
+    new RegExp(`${lastSegment}$`),
+    `${subpath}/${lastSegment}`,
+  )
 }
 
 export { entries }

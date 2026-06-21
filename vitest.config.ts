@@ -33,6 +33,13 @@ export default defineConfig({
     __TEST__: true,
   },
 
+  oxc: {
+    jsx: {
+      runtime: 'automatic',
+      importSource: '@zeus-js/zeus',
+    },
+  },
+
   resolve: {
     alias: entries,
   },
@@ -49,7 +56,11 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      include: ['packages/*/src/**', 'packages/primitives/*/src/**'],
+      include: [
+        'packages/*/src/**',
+        'packages/primitives/*/src/**',
+        'packages/advanced/*/src/**',
+      ],
       exclude: [],
     },
 
@@ -65,6 +76,8 @@ export default defineConfig({
             'packages/**/*.spec.tsx',
             'scripts/checks/__tests__/**/*.test.ts',
             'scripts/checks/__tests__/**/*.spec.ts',
+            'scripts/checks/contract/__tests__/**/*.test.ts',
+            'scripts/checks/contract/__tests__/**/*.spec.ts',
             'scripts/docs/__tests__/**/*.test.ts',
             'scripts/docs/__tests__/**/*.spec.ts',
             'scripts/checks/__tests__/showcase-metadata/**/*.test.ts',
@@ -94,10 +107,6 @@ export default defineConfig({
             'packages/**/*.spec.tsx',
 
             // Showcase page / route unit tests (requires build:examples deps).
-            'examples/react-showcase/src/**/*.test.ts',
-            'examples/react-showcase/src/**/*.spec.ts',
-            'examples/react-showcase/src/**/*.test.tsx',
-            'examples/react-showcase/src/**/*.spec.tsx',
             'examples/vue-showcase/src/**/*.test.ts',
             'examples/vue-showcase/src/**/*.spec.ts',
             'examples/vue-showcase/src/**/*.test.tsx',
@@ -261,6 +270,99 @@ export default defineConfig({
 
       {
         extends: true,
+        oxc: {
+          jsx: {
+            runtime: 'automatic',
+            importSource: 'react',
+          },
+        },
+        test: {
+          name: 'unit-react-showcase',
+          environment: 'jsdom',
+          include: [
+            'examples/react-showcase/src/**/*.test.ts',
+            'examples/react-showcase/src/**/*.spec.ts',
+            'examples/react-showcase/src/**/*.test.tsx',
+            'examples/react-showcase/src/**/*.spec.tsx',
+          ],
+        },
+        resolve: {
+          conditions: ['import', 'module', 'browser', 'default'],
+          alias: [
+            // React wrapper sub-paths for showcase tests (must come before base @zeus-web/* aliases).
+            ...[
+              '@zeus-web/alert',
+              '@zeus-web/badge',
+              '@zeus-web/button',
+              '@zeus-web/checkbox',
+              '@zeus-web/dialog',
+              '@zeus-web/input',
+              '@zeus-web/progress',
+              '@zeus-web/select',
+              '@zeus-web/switch',
+              '@zeus-web/accordion',
+              '@zeus-web/collapsible',
+              '@zeus-web/tooltip',
+              '@zeus-web/card',
+              '@zeus-web/avatar',
+              '@zeus-web/skeleton',
+              '@zeus-web/separator',
+              '@zeus-web/label',
+              '@zeus-web/radio-group',
+              '@zeus-web/tabs',
+              '@zeus-web/textarea',
+            ].flatMap(pkg => ({
+              find: new RegExp(`^${pkg}/react$`),
+              replacement: resolve(
+                process.cwd(),
+                `packages/primitives/${pkg.replace('@zeus-web/', '')}/dist/react/index.js`,
+              ),
+            })),
+            {
+              find: /^@zeus-web\/icons\/react$/,
+              replacement: resolve(
+                process.cwd(),
+                'packages/icons/dist/react/index.js',
+              ),
+            },
+            {
+              find: /^@zeus-web\/themes\/react$/,
+              replacement: resolve(
+                process.cwd(),
+                'packages/themes/dist/react/index.js',
+              ),
+            },
+            {
+              find: /^@\/components\/ui\/button$/,
+              replacement: resolve(
+                process.cwd(),
+                'examples/react-showcase/src/components/ui/button.tsx',
+              ),
+            },
+            {
+              find: /^@\/components\/ui\/input$/,
+              replacement: resolve(
+                process.cwd(),
+                'examples/react-showcase/src/components/ui/input.tsx',
+              ),
+            },
+            {
+              find: /^@\/lib\/cn$/,
+              replacement: resolve(
+                process.cwd(),
+                'examples/react-showcase/src/lib/cn.ts',
+              ),
+            },
+            ...Object.entries(entries).map(([find, replacement]) => ({
+              find,
+              replacement,
+            })),
+          ],
+        },
+      },
+
+      {
+        extends: true,
         test: {
           name: 'canary',
           environment: 'jsdom',
@@ -301,12 +403,50 @@ export default defineConfig({
         test: {
           name: 'e2e',
           environment: 'jsdom',
-          include: [
-            'packages/*/__tests__/e2e/*.spec.ts',
-            'packages/primitives/*/__tests__/e2e/*.spec.ts',
-            'examples/*/__tests__/e2e/*.spec.ts',
+          include: ['e2e/**/*.spec.ts'],
+          exclude: ['e2e/showcase/**', 'packages/zeus-compat/**'],
+        },
+        resolve: {
+          conditions: ['import', 'module', 'browser', 'default'],
+          alias: [
+            {
+              find: /^@zeus-js\/zeus$/,
+              replacement: zeusEsmPath,
+            },
+            {
+              find: /^@zeus-js\/runtime-dom$/,
+              replacement: runtimeDomEsmPath,
+            },
+            {
+              find: /^react$/,
+              replacement: resolve(
+                process.cwd(),
+                'examples/vite-react/node_modules/react/index.js',
+              ),
+            },
+            {
+              find: /^react-dom\/client$/,
+              replacement: resolve(
+                process.cwd(),
+                'examples/vite-react/node_modules/react-dom/client.js',
+              ),
+            },
+            ...Object.entries(entries).map(([find, replacement]) => ({
+              find,
+              replacement,
+            })),
           ],
-          exclude: ['packages/zeus-compat/**'],
+        },
+        ssr: {
+          noExternal: ['@zeus-js/zeus', '@zeus-js/runtime-dom'],
+          resolve: {
+            externalConditions: ['import', 'module', 'browser', 'default'],
+          },
+        },
+        server: {
+          deps: {
+            inline: ['@zeus-js/zeus', '@zeus-js/runtime-dom'],
+          },
         },
       },
 
@@ -315,8 +455,8 @@ export default defineConfig({
         test: {
           name: 'showcase-e2e',
           environment: 'node',
-          include: ['examples/showcase-e2e/*.spec.ts'],
-          globalSetup: ['examples/showcase-e2e/setup.ts'],
+          include: ['e2e/showcase/*.spec.ts'],
+          globalSetup: ['e2e/showcase/setup.ts'],
           testTimeout: 30_000,
           hookTimeout: 120_000,
           pool: 'forks',

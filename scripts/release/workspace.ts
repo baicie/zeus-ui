@@ -31,6 +31,8 @@ export interface PackageJsonLike {
   [key: string]: unknown
 }
 
+export type WorkspacePackageKind = 'package' | 'primitive' | 'advanced'
+
 export interface WorkspacePackage {
   name: string
   version: string
@@ -38,11 +40,17 @@ export interface WorkspacePackage {
   relativeDir: string
   packageJsonPath: string
   packageJson: PackageJsonLike
+  kind: WorkspacePackageKind
   isPrimitive: boolean
+  isAdvanced: boolean
   isPrivate: boolean
 }
 
-export const packageRoots = ['packages', 'packages/primitives'] as const
+export const packageRoots = [
+  { dir: 'packages', kind: 'package' },
+  { dir: 'packages/primitives', kind: 'primitive' },
+  { dir: 'packages/advanced', kind: 'advanced' },
+] as const
 
 export const repositoryUrl = 'https://github.com/baicie/zeus-ui.git'
 
@@ -54,13 +62,22 @@ function readPackageJson(file: string): PackageJsonLike {
   return JSON.parse(readFileSync(file, 'utf-8')) as PackageJsonLike
 }
 
+function getWorkspacePackageKind(
+  packageRoot: (typeof packageRoots)[number],
+): WorkspacePackageKind {
+  if (packageRoot.dir === 'packages/primitives') return 'primitive'
+  if (packageRoot.dir === 'packages/advanced') return 'advanced'
+  return 'package'
+}
+
 export function listWorkspacePackages(
   root = process.cwd(),
 ): WorkspacePackage[] {
   const result: WorkspacePackage[] = []
 
   for (const packageRoot of packageRoots) {
-    const absoluteRoot = resolve(root, packageRoot)
+    const absoluteRoot = resolve(root, packageRoot.dir)
+    const kind = getWorkspacePackageKind(packageRoot)
 
     if (!existsSync(absoluteRoot)) continue
 
@@ -77,25 +94,32 @@ export function listWorkspacePackages(
         throw new Error(`${packageJsonPath} missing package name`)
       }
 
+      const dir = resolve(absoluteRoot, entry.name)
+
       result.push({
         name: packageJson.name,
         version: packageJson.version ?? '0.0.0',
-        dir: resolve(absoluteRoot, entry.name),
-        relativeDir: toForwardSlash(
-          relative(root, resolve(absoluteRoot, entry.name)),
-        ),
+        dir,
+        relativeDir: toForwardSlash(relative(root, dir)),
         packageJsonPath,
         packageJson,
-        isPrimitive: packageRoot === 'packages/primitives',
+        kind,
+        isPrimitive: kind === 'primitive',
+        isAdvanced: kind === 'advanced',
         isPrivate: Boolean(packageJson.private),
       })
     }
   }
 
   return result.sort((a, b) => {
-    if (a.isPrimitive !== b.isPrimitive) {
-      return a.isPrimitive ? -1 : 1
+    const weight: Record<WorkspacePackageKind, number> = {
+      primitive: 0,
+      advanced: 1,
+      package: 2,
     }
+
+    const kindCompare = weight[a.kind] - weight[b.kind]
+    if (kindCompare !== 0) return kindCompare
 
     return a.name.localeCompare(b.name)
   })

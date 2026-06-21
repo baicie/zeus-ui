@@ -1,23 +1,30 @@
 import { existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
+
 import { validatePackageRules } from '../package-rules'
 
 const root = process.cwd()
 
-function listPackageJsonFiles() {
+const packageRoots = ['packages', 'packages/primitives', 'packages/advanced']
+
+function listPackageJsonFiles(): string[] {
   const files: string[] = []
 
-  for (const rel of ['packages', 'packages/primitives']) {
+  for (const rel of packageRoots) {
     const abs = join(root, rel)
+
     if (!existsSync(abs)) continue
 
     for (const name of readdirSync(abs)) {
       const file = join(abs, name, 'package.json')
-      if (existsSync(file)) files.push(file)
+
+      if (existsSync(file)) {
+        files.push(file)
+      }
     }
   }
 
-  return files
+  return files.sort()
 }
 
 let hasError = false

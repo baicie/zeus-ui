@@ -89,4 +89,39 @@ describe('@zeus-web/ai metadata', () => {
     expect(parsed.icons.packageName).toBe('@zeus-web/icons')
     expect(parsed.icons.recommendedIcons).toContain('check')
   })
+
+  it('includes chat advanced component metadata', () => {
+    const advanced = aiMetadata.advancedComponents ?? []
+    const chat = advanced.find(component => component.name === 'chat')
+
+    expect(chat).toBeDefined()
+    expect(chat?.packageName).toBe('@zeus-web/chat')
+    expect(chat?.category).toBe('advanced')
+
+    expect(chat?.doNotUseFor.join('\n')).toContain('不要把它当作模型请求库')
+    expect(chat?.promptHints.join('\n')).toContain('业务请求逻辑应该放在应用层')
+
+    expect(chat?.components).toEqual(
+      expect.arrayContaining([
+        'zw-chat',
+        'zw-chat-thread',
+        'zw-chat-message',
+        'zw-chat-composer',
+      ]),
+    )
+
+    const code = (chat?.examples ?? []).map(example => example.code).join('\n')
+
+    expect(code).toContain('@zeus-web/chat/wc/auto')
+    expect(code).toContain('@zeus-web/chat/react')
+  })
+
+  it('renders chat advanced section in markdown', () => {
+    const markdown = renderAiMarkdown(aiMetadata)
+
+    expect(markdown).toContain('# Advanced components')
+    expect(markdown).toContain('## chat (advanced)')
+    expect(markdown).toContain('不要把它当作模型请求库')
+    expect(markdown).toContain('业务请求逻辑应该放在应用层')
+  })
 })

@@ -27,6 +27,10 @@
       "types": "./dist/wc/index.d.ts",
       "import": "./dist/wc/index.js"
     },
+    "./wc/auto": {
+      "types": "./dist/wc/index.d.ts",
+      "import": "./dist/wc/auto.js"
+    },
     "./react": {
       "types": "./dist/react/index.d.ts",
       "import": "./dist/react/index.js"
