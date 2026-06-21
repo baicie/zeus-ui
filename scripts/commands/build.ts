@@ -207,6 +207,7 @@ function collectPackageClosure(pkg: PkgInfo, allPkgs: PkgInfo[]): PkgInfo[] {
 function discoverPackages(): PkgInfo[] {
   const pkgs: PkgInfo[] = []
 
+  // { dir: 'packages/advanced', kind: 'advanced' }
   const roots: Array<{ dir: string; kind: PackageKind }> = [
     {
       dir: 'packages',
@@ -221,6 +222,7 @@ function discoverPackages(): PkgInfo[] {
       kind: 'advanced',
     },
   ]
+  // advanced package dist structure: 'dist', 'wc', 'index.js' and 'dist/react', 'dist/vue'
 
   for (const { dir, kind } of roots) {
     const abs = join(ROOT, dir)
@@ -276,15 +278,9 @@ function hasAllExportTargets(pkg: PkgInfo): boolean {
   return pkg.exportTargets.every(target => existsSync(join(pkg.dir, target)))
 }
 
-async function buildFull(pkg: PkgInfo): Promise<void> {
-  if (hasAllExportTargets(pkg)) {
-    return
-  }
-
+async function runPackageBuild(pkg: PkgInfo): Promise<void> {
   if (!pkg.hasBuildScript) {
-    throw new Error(
-      `${pkg.fullName} has no build script and missing dist output`,
-    )
+    throw new Error(`${pkg.fullName} has no build script`)
   }
 
   await execa('pnpm', ['run', 'build'], {
@@ -293,8 +289,22 @@ async function buildFull(pkg: PkgInfo): Promise<void> {
   })
 }
 
+async function buildFull(pkg: PkgInfo): Promise<void> {
+  if (isComponentPackage(pkg)) {
+    await runPackageBuild(pkg)
+    return
+  }
+
+  if (hasAllExportTargets(pkg)) {
+    return
+  }
+
+  await runPackageBuild(pkg)
+}
+
 async function buildDeclarations(pkg: PkgInfo): Promise<void> {
   if (isComponentPackage(pkg)) {
+    // advanced component output: 'dist', 'wc', 'index.js'
     await execa(
       'tsc',
       [
