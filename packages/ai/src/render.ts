@@ -8,6 +8,21 @@ function renderList(items: string[]): string {
   return items.map(item => `- ${item}`).join('\n')
 }
 
+function renderRecordItems(
+  record: Record<string, string[]>,
+  renderItem: (tag: string, item: string) => string,
+): string[] {
+  const result: string[] = []
+
+  for (const tag of Object.keys(record)) {
+    for (const item of record[tag]) {
+      result.push(renderItem(tag, item))
+    }
+  }
+
+  return result
+}
+
 function renderIcons(metadata: ZeusWebAiMetadata): string {
   const icons = metadata.icons
 
@@ -150,24 +165,27 @@ function renderAdvancedComponent(
     '### Slots',
     '',
     renderList(
-      Object.entries(component.slots).flatMap(([tag, slots]) =>
-        slots.map(slot => `\`${tag}\` → \`${slot}\``),
+      renderRecordItems(
+        component.slots,
+        (tag, slot) => `\`${tag}\` → \`${slot}\``,
       ),
     ),
     '',
     '### Events',
     '',
     renderList(
-      Object.entries(component.events).flatMap(([tag, events]) =>
-        events.map(event => `\`${tag}\` → \`${event}\``),
+      renderRecordItems(
+        component.events,
+        (tag, event) => `\`${tag}\` → \`${event}\``,
       ),
     ),
     '',
     '### Methods',
     '',
     renderList(
-      Object.entries(component.methods).flatMap(([tag, methods]) =>
-        methods.map(method => `\`${tag}\` → \`${method}()\``),
+      renderRecordItems(
+        component.methods,
+        (tag, method) => `\`${tag}\` → \`${method}()\``,
       ),
     ),
     '',
