@@ -78,6 +78,8 @@ export default defineConfig({
             'scripts/checks/__tests__/**/*.spec.ts',
             'scripts/checks/contract/__tests__/**/*.test.ts',
             'scripts/checks/contract/__tests__/**/*.spec.ts',
+            'scripts/commands/__tests__/**/*.test.ts',
+            'scripts/commands/__tests__/**/*.spec.ts',
             'scripts/docs/__tests__/**/*.test.ts',
             'scripts/docs/__tests__/**/*.spec.ts',
             'scripts/checks/__tests__/showcase-metadata/**/*.test.ts',
