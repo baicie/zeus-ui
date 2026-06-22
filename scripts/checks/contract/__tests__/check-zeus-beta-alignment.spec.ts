@@ -187,6 +187,13 @@ export function createPrimitiveRolldownConfig() {
       actual: '0.2.0',
       expected: '0.1.0-beta.6',
     })
+    expect(
+      result.problems.filter(
+        problem =>
+          problem.file === 'packages/advanced/data-grid/package.json' &&
+          problem.dependencyName === '@zeus-js/web-c-runtime',
+      ),
+    ).toHaveLength(1)
   })
 
   it('fails when the local WC dts patch is still present', () => {

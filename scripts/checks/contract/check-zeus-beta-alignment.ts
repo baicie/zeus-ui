@@ -127,6 +127,7 @@ function checkPackageJsons(options: {
             actual,
             expected: expectedVersion,
           })
+          continue
         }
 
         if (actual !== expectedVersion) {
