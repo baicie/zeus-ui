@@ -13,13 +13,39 @@ function readWorkspaceFile(path: string): string {
   return readFileSync(resolve(workspaceRoot, path), 'utf-8')
 }
 
-describe('data-grid benchmark contract', () => {
-  it('keeps benchmark files outside published src output', () => {
-    const tsconfig = readWorkspaceFile(
-      'packages/advanced/data-grid/tsconfig.json',
-    )
+function readWorkspaceJson<T>(path: string): T {
+  return JSON.parse(readWorkspaceFile(path)) as T
+}
 
-    expect(tsconfig).toContain('"include": ["src"]')
+describe('data-grid benchmark contract', () => {
+  it('keeps package build tsconfig scoped to published src output', () => {
+    const tsconfig = readWorkspaceJson<{
+      include?: string[]
+    }>('packages/advanced/data-grid/tsconfig.json')
+
+    expect(tsconfig.include).toEqual(['src'])
+  })
+
+  it('declares benchmark typecheck tsconfig', () => {
+    const tsconfig = readWorkspaceJson<{
+      include?: string[]
+      compilerOptions?: {
+        types?: string[]
+      }
+    }>('packages/advanced/data-grid/tsconfig.bench.json')
+
+    expect(tsconfig.include).toEqual([
+      'benchmarks/**/*.ts',
+      '__tests__/benchmark-data.spec.ts',
+      '__tests__/benchmark-metrics.spec.ts',
+      '__tests__/data-grid-benchmark-contract.spec.ts',
+    ])
+
+    expect(tsconfig.compilerOptions?.types).toEqual([
+      '@zeus-js/zeus/jsx',
+      'vitest/globals',
+      'node',
+    ])
   })
 
   it('declares all Phase G1 benchmark files', () => {
@@ -34,13 +60,18 @@ describe('data-grid benchmark contract', () => {
     }
   })
 
-  it('wires benchmark command into data-grid package scripts', () => {
-    const pkg = readWorkspaceFile('packages/advanced/data-grid/package.json')
+  it('wires benchmark commands into data-grid package scripts', () => {
+    const pkg = readWorkspaceJson<{
+      scripts?: Record<string, string>
+    }>('packages/advanced/data-grid/package.json')
 
-    expect(pkg).toContain('"test:bench"')
-    expect(pkg).toContain('data-grid-render.bench.ts')
-    expect(pkg).toContain('data-grid-scroll.bench.ts')
-    expect(pkg).toContain('data-grid-update.bench.ts')
+    expect(pkg.scripts?.check).toContain('pnpm check:bench')
+    expect(pkg.scripts?.['check:bench']).toBe(
+      'tsc -p tsconfig.bench.json --noEmit',
+    )
+    expect(pkg.scripts?.['test:bench']).toContain('data-grid-render.bench.ts')
+    expect(pkg.scripts?.['test:bench']).toContain('data-grid-scroll.bench.ts')
+    expect(pkg.scripts?.['test:bench']).toContain('data-grid-update.bench.ts')
   })
 
   it('keeps benchmark assertions based on current virtualized row contract', () => {

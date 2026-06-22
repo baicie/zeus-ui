@@ -63,6 +63,12 @@ export interface DataGridBenchmarkRuntime {
   getCounters: () => DataGridBenchmarkCounters
 }
 
+export interface DataGridMemoryTrend {
+  heapUsedDelta: number
+  heapTotalDelta?: number
+  rssDelta?: number
+}
+
 export interface DataGridRenderBenchmarkResult {
   name: string
   rowCount: number
@@ -74,6 +80,7 @@ export interface DataGridRenderBenchmarkResult {
   totalSize: number
   memoryBefore?: DataGridMemorySample
   memoryAfter?: DataGridMemorySample
+  memoryTrend?: DataGridMemoryTrend
 }
 
 export interface DataGridScrollBenchmarkResult {
@@ -81,6 +88,11 @@ export interface DataGridScrollBenchmarkResult {
   frames: number
   durationMs: number
   averageFrameCostMs: number
+  /**
+   * Node model-loop estimated FPS.
+   * This is NOT browser rAF FPS — it reflects the pure data-model
+   * loop cost, not real DOM rendering or compositor thread activity.
+   */
   estimatedFps: number
   rangeChanges: number
   renderedRowsMax: number
@@ -88,6 +100,7 @@ export interface DataGridScrollBenchmarkResult {
   counters: DataGridBenchmarkCounters
   memoryBefore?: DataGridMemorySample
   memoryAfter?: DataGridMemorySample
+  memoryTrend?: DataGridMemoryTrend
 }
 
 export interface DataGridUpdateBenchmarkResult {
@@ -98,6 +111,7 @@ export interface DataGridUpdateBenchmarkResult {
   counters: DataGridBenchmarkCounters
   memoryBefore?: DataGridMemorySample
   memoryAfter?: DataGridMemorySample
+  memoryTrend?: DataGridMemoryTrend
 }
 
 export interface DataGridMemorySample {
@@ -250,6 +264,27 @@ export function createDataGridBenchmarkRuntime(
   }
 }
 
+export function getDataGridMemoryTrend(
+  before: DataGridMemorySample | undefined,
+  after: DataGridMemorySample | undefined,
+): DataGridMemoryTrend | undefined {
+  if (!before || !after) {
+    return undefined
+  }
+
+  return {
+    heapUsedDelta: after.heapUsed - before.heapUsed,
+    heapTotalDelta:
+      before.heapTotal === undefined || after.heapTotal === undefined
+        ? undefined
+        : after.heapTotal - before.heapTotal,
+    rssDelta:
+      before.rss === undefined || after.rss === undefined
+        ? undefined
+        : after.rss - before.rss,
+  }
+}
+
 export function measureDataGridFirstRender(input: {
   name: string
   rows: DataGridRowData[]
@@ -288,6 +323,7 @@ export function measureDataGridFirstRender(input: {
     totalSize: snapshot.totalSize,
     memoryBefore,
     memoryAfter,
+    memoryTrend: getDataGridMemoryTrend(memoryBefore, memoryAfter),
   }
 }
 
@@ -350,6 +386,7 @@ export function measureDataGridScroll(input: {
     counters,
     memoryBefore,
     memoryAfter,
+    memoryTrend: getDataGridMemoryTrend(memoryBefore, memoryAfter),
   }
 }
 
@@ -395,6 +432,7 @@ export function measureDataGridUpdates(input: {
     counters: runtime.getCounters(),
     memoryBefore,
     memoryAfter,
+    memoryTrend: getDataGridMemoryTrend(memoryBefore, memoryAfter),
   }
 }
 

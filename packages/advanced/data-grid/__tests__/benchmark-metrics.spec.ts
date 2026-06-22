@@ -9,6 +9,7 @@ import {
 import {
   createDataGridBenchmarkRuntime,
   estimateDataGridDomBudget,
+  getDataGridMemoryTrend,
   getRenderedRowsBudget,
   measureDataGridFirstRender,
   measureDataGridScroll,
@@ -33,6 +34,27 @@ describe('data-grid benchmark metrics', () => {
     expect(getRenderedRowsBudget(480, 40, 4)).toBe(21)
     // 400 / 40 = 10 整除, max visible = 11, budget = 19
     expect(getRenderedRowsBudget(400, 40, 4)).toBe(19)
+  })
+
+  it('computes memory trend deltas', () => {
+    expect(
+      getDataGridMemoryTrend(
+        {
+          heapUsed: 100,
+          heapTotal: 200,
+          rss: 300,
+        },
+        {
+          heapUsed: 150,
+          heapTotal: 260,
+          rss: 390,
+        },
+      ),
+    ).toEqual({
+      heapUsedDelta: 50,
+      heapTotalDelta: 60,
+      rssDelta: 90,
+    })
   })
 
   it('keeps 100k x 20 rendered rows within virtual budget', () => {

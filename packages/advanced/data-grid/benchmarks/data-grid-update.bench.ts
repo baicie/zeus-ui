@@ -18,6 +18,9 @@ describe('data-grid update benchmark', () => {
       const nextRows = createDataGridBenchmarkRows(
         scenario.rowCount,
         scenario.columnCount,
+        {
+          seed: 1,
+        },
       )
       const nextColumns = createDataGridBenchmarkColumns(scenario.columnCount)
 
@@ -43,6 +46,8 @@ describe('data-grid update benchmark', () => {
 
       // initial / rows update / columns update 后各取过一次 snapshot。
       expect(result.counters.snapshots).toBe(3)
+
+      expect(result.memoryTrend).toBeDefined()
     })
   }
 })

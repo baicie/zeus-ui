@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["@zeus-js/zeus/jsx", "vitest/globals", "node"],
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "isolatedDeclarations": false
+  },
+  "include": [
+    "benchmarks/**/*.ts",
+    "__tests__/benchmark-data.spec.ts",
+    "__tests__/benchmark-metrics.spec.ts",
+    "__tests__/data-grid-benchmark-contract.spec.ts"
+  ]
+}

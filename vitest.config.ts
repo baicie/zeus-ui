@@ -72,6 +72,7 @@ export default defineConfig({
           include: [
             'packages/**/*.test.ts',
             'packages/**/*.spec.ts',
+            'packages/**/*.bench.ts',
             'packages/**/*.test.tsx',
             'packages/**/*.spec.tsx',
             'scripts/checks/__tests__/**/*.test.ts',
@@ -105,6 +106,7 @@ export default defineConfig({
           include: [
             'packages/**/*.test.ts',
             'packages/**/*.spec.ts',
+            'packages/**/*.bench.ts',
             'packages/**/*.test.tsx',
             'packages/**/*.spec.tsx',
 
