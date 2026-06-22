@@ -22,7 +22,10 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run test-unit
+      - run: pnpm build:examples
+      - run: pnpm test-unit:node
+      - run: pnpm test-unit:jsdom
+      - run: pnpm test-unit:react-showcase
 
   unit-test-windows:
     runs-on: windows-latest
@@ -36,7 +39,10 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run test-unit
+      - run: pnpm build:examples
+      - run: pnpm test-unit:node
+      - run: pnpm test-unit:jsdom
+      - run: pnpm test-unit:react-showcase
 
   e2e-test:
     runs-on: ubuntu-latest
