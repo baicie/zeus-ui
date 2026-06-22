@@ -1,4 +1,4 @@
-import type { RolldownOptions, RolldownPlugin } from 'rolldown'
+import type { RolldownOptions } from 'rolldown'
 
 import zeus from '@zeus-js/bundler-plugin/rolldown'
 import react from '@zeus-js/output-react-wrapper'
@@ -61,48 +61,6 @@ export function createPrimitiveRolldownConfig(
           }),
         ],
       }),
-      fixWcEventListenerDts(),
     ],
-  }
-}
-
-function fixWcEventListenerDts(): RolldownPlugin {
-  return {
-    name: 'zeus-ui-fix-wc-event-listener-dts',
-    generateBundle(_, bundle) {
-      for (const item of Object.values(bundle)) {
-        if (
-          item.type !== 'asset' ||
-          typeof item.fileName !== 'string' ||
-          !item.fileName.startsWith('wc/') ||
-          !item.fileName.endsWith('.d.ts') ||
-          typeof item.source !== 'string'
-        ) {
-          continue
-        }
-
-        item.source = item.source
-          .replace(
-            /(addEventListener<K extends keyof \w+EventMap>\([\s\S]+?\): void\n)/,
-            `$1
-  addEventListener(
-    type: string,
-    listener: EventListenerOrEventListenerObject | null,
-    options?: boolean | AddEventListenerOptions,
-  ): void
-`,
-          )
-          .replace(
-            /(removeEventListener<K extends keyof \w+EventMap>\([\s\S]+?\): void\n)/,
-            `$1
-  removeEventListener(
-    type: string,
-    listener: EventListenerOrEventListenerObject | null,
-    options?: boolean | EventListenerOptions,
-  ): void
-`,
-          )
-      }
-    },
   }
 }

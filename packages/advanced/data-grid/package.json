@@ -61,7 +61,7 @@
     "test:e2e": "vitest --root ../../.. --project e2e e2e/advanced/data-grid/data-grid-runtime.spec.ts e2e/advanced/data-grid/data-grid-accessibility-runtime.spec.ts"
   },
   "peerDependencies": {
-    "@zeus-js/zeus": ">=0.1.0-beta.5 <0.2.0",
+    "@zeus-js/zeus": ">=0.1.0-beta.6 <0.2.0",
     "react": ">=18 || >=19",
     "vue": ">=3"
   },
@@ -74,8 +74,8 @@
     }
   },
   "dependencies": {
-    "@zeus-js/runtime-dom": "0.1.0-beta.5",
-    "@zeus-js/web-c-runtime": "0.2.0",
+    "@zeus-js/runtime-dom": "0.1.0-beta.6",
+    "@zeus-js/web-c-runtime": "0.1.0-beta.6",
     "@zeus-web/virtual": "workspace:*",
     "@zeus-web/zeus-compat": "workspace:*"
   }
