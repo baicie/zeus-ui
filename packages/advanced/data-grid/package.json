@@ -55,9 +55,11 @@
   "scripts": {
     "dev": "rolldown -c ../../../rolldown.config.ts --watch",
     "build": "rimraf dist && rolldown -c ../../../rolldown.config.ts",
-    "check": "tsc -p tsconfig.json --noEmit",
-    "test": "pnpm test:unit && pnpm test:e2e",
-    "test:unit": "vitest --root ../../.. --project unit packages/advanced/data-grid/__tests__/accessibility-model.spec.ts packages/advanced/data-grid/__tests__/viewport-measure-model.spec.ts packages/advanced/data-grid/__tests__/column-model.spec.ts packages/advanced/data-grid/__tests__/column-resize-model.spec.ts packages/advanced/data-grid/__tests__/controlled-state-model.spec.ts packages/advanced/data-grid/__tests__/row-model.spec.ts packages/advanced/data-grid/__tests__/selection-model.spec.ts packages/advanced/data-grid/__tests__/sort-model.spec.ts packages/advanced/data-grid/__tests__/grid-virtualizer.spec.ts packages/advanced/data-grid/__tests__/navigation-model.spec.ts packages/advanced/data-grid/__tests__/data-grid.spec.ts packages/advanced/data-grid/__tests__/data-grid-behavior-contract.spec.ts",
+    "check": "tsc -p tsconfig.json --noEmit && pnpm check:bench",
+    "check:bench": "tsc -p tsconfig.bench.json --noEmit",
+    "test": "pnpm test:unit && pnpm test:bench && pnpm test:e2e",
+    "test:unit": "vitest --root ../../.. --project unit packages/advanced/data-grid/__tests__/accessibility-model.spec.ts packages/advanced/data-grid/__tests__/viewport-measure-model.spec.ts packages/advanced/data-grid/__tests__/column-model.spec.ts packages/advanced/data-grid/__tests__/column-resize-model.spec.ts packages/advanced/data-grid/__tests__/controlled-state-model.spec.ts packages/advanced/data-grid/__tests__/row-model.spec.ts packages/advanced/data-grid/__tests__/selection-model.spec.ts packages/advanced/data-grid/__tests__/sort-model.spec.ts packages/advanced/data-grid/__tests__/grid-virtualizer.spec.ts packages/advanced/data-grid/__tests__/navigation-model.spec.ts packages/advanced/data-grid/__tests__/data-grid.spec.ts packages/advanced/data-grid/__tests__/data-grid-behavior-contract.spec.ts packages/advanced/data-grid/__tests__/benchmark-data.spec.ts packages/advanced/data-grid/__tests__/benchmark-metrics.spec.ts packages/advanced/data-grid/__tests__/data-grid-benchmark-contract.spec.ts",
+    "test:bench": "vitest --root ../../.. --project unit packages/advanced/data-grid/benchmarks/data-grid-render.bench.ts packages/advanced/data-grid/benchmarks/data-grid-scroll.bench.ts packages/advanced/data-grid/benchmarks/data-grid-update.bench.ts",
     "test:e2e": "vitest --root ../../.. --project e2e e2e/advanced/data-grid/data-grid-runtime.spec.ts e2e/advanced/data-grid/data-grid-accessibility-runtime.spec.ts"
   },
   "peerDependencies": {

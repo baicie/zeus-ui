@@ -75,6 +75,7 @@
     "showcase:e2e:headed": "pnpm showcase:e2e:deps && SHOWCASE_E2E_HEADLESS=false vitest --project showcase-e2e --run",
     "showcase:registry:sync": "tsx scripts/examples/sync-showcase-registry.ts",
     "showcase:registry:check": "tsx scripts/examples/sync-showcase-registry.ts --check",
+    "data-grid:bench": "pnpm --filter @zeus-web/data-grid test:bench",
     "check:component-coverage": "tsx scripts/checks/registry/check-component-coverage.ts",
     "check:showcase-metadata": "tsx scripts/checks/examples/check-showcase-metadata.ts",
     "check:showcase-implementation": "tsx scripts/checks/examples/check-showcase-implementation.ts",

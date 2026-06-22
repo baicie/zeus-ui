@@ -12,6 +12,7 @@
     "packages/*/src",
     "packages/primitives/*/src",
     "packages/advanced/*/src",
+    "packages/advanced/*/benchmarks",
     "packages/*/__tests__",
     "packages/primitives/*/__tests__",
     "packages/advanced/*/__tests__",
