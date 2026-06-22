@@ -156,7 +156,7 @@ describe('data-grid component protocol', () => {
         },
         getSort: {
           name: 'getSort',
-          returns: 'DataGridSortState | unknown',
+          returns: 'DataGridSortState | undefined',
         },
         getRange: {
           name: 'getRange',
@@ -204,7 +204,7 @@ describe('data-grid component protocol', () => {
         },
         getActiveCell: {
           name: 'getActiveCell',
-          returns: 'DataGridActiveCell | unknown',
+          returns: 'DataGridActiveCell | undefined',
         },
         moveActiveCell: {
           name: 'moveActiveCell',

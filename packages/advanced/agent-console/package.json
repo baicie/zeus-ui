@@ -61,11 +61,11 @@
     "test:e2e": "vitest --root ../../.. --project e2e e2e/advanced/agent-console/agent-console-runtime.spec.ts"
   },
   "peerDependencies": {
-    "@zeus-js/zeus": ">=0.1.0-beta.5 <0.2.0"
+    "@zeus-js/zeus": ">=0.1.0-beta.6 <0.2.0"
   },
   "dependencies": {
-    "@zeus-js/runtime-dom": "0.1.0-beta.5",
-    "@zeus-js/web-c-runtime": "0.2.0",
+    "@zeus-js/runtime-dom": "0.1.0-beta.6",
+    "@zeus-js/web-c-runtime": "0.1.0-beta.6",
     "@zeus-web/chat": "workspace:*",
     "@zeus-web/data-grid": "workspace:*",
     "@zeus-web/virtual": "workspace:*",
