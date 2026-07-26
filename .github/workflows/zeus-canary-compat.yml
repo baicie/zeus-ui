@@ -117,6 +117,9 @@ jobs:
       - name: Check Zeus baseline
         run: pnpm check:zeus-baseline
 
+      - name: Align workspace to selected Zeus canary
+        run: pnpm exec tsx scripts/commands/align-zeus-beta.ts "$ZEUS_VERSION"
+
       - name: Relax Zeus peer ranges for selected canary
         run: pnpm zeus:relax-peer-ranges
 
@@ -138,7 +141,8 @@ jobs:
             "@zeus-js/output-vue-wrapper@${ZEUS_VERSION}" \
             "@zeus-js/output-css@${ZEUS_VERSION}" \
             "@zeus-js/output-icons@${ZEUS_VERSION}" \
-            --save-exact
+            --save-exact \
+            --config.auto-install-peers=false
 
       - name: Verify installed Zeus versions
         run: |
