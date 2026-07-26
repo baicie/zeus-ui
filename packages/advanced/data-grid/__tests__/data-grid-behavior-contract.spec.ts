@@ -31,7 +31,24 @@ describe('data-grid behavior contract', () => {
     expect(source).toContain(
       'defaultColumnWidths = createDataGridColumnWidthState(baseColumns)',
     )
-    expect(source).toContain('columnWidths = { ...defaultColumnWidths }')
+    expect(source).toContain(
+      'columnWidths = createDataGridColumnWidthState(baseColumns)',
+    )
+    expect(source).toContain('shouldRefreshColumnsForRender = true')
+    expect(source).toContain('columnRenderVersion.value += 1')
+  })
+
+  it('refreshes keyed rows when a controlled row keeps the same key', () => {
+    expect(source).toContain('shouldRefreshRowsForRender = true')
+    expect(source).toContain('rowRenderVersion.value += 1')
+    expect(source).toContain('void rowRenderVersion.value')
+  })
+
+  it('batches model-to-prop synchronization', () => {
+    expect(source).toContain('batch(() => {')
+    expect(source).toContain('syncSelectionPropsFromModel')
+    expect(source).toContain('syncSortPropsFromModel')
+    expect(source).toContain('syncActiveCellPropsFromModel')
   })
 
   it('syncs controlled selectedKeys into selection model and clears undefined', () => {

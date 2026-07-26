@@ -271,10 +271,18 @@ describe('data-grid component protocol', () => {
     expect(source).toContain('syncSortPropsFromModel')
     expect(source).toContain('syncActiveCellPropsFromModel')
     expect(source).toContain('props.selectedKeys = selection.getState().keys')
-    expect(source).toContain('props.sortColumn = sort?.columnId')
-    expect(source).toContain('props.sortDirection = sort?.direction')
-    expect(source).toContain('props.activeRowKey = activeCell?.rowKey')
-    expect(source).toContain('props.activeColumnId = activeCell?.columnId')
+    expect(source).toContain(
+      'props.sortColumn = sort ? sort.columnId : undefined',
+    )
+    expect(source).toContain(
+      'props.sortDirection = sort ? sort.direction : undefined',
+    )
+    expect(source).toContain(
+      'props.activeRowKey = activeCell ? activeCell.rowKey : undefined',
+    )
+    expect(source).toContain(
+      'props.activeColumnId = activeCell ? activeCell.columnId : undefined',
+    )
   })
 
   it('keeps default column widths for reset', () => {
@@ -347,8 +355,8 @@ describe('data-grid component protocol', () => {
   })
 
   it('renders grid collections as nodes and binds native scroll directly', () => {
-    expect(source).toContain('<For each={visibleColumns}')
-    expect(source).toContain('<For each={getBodyRowsForRender()}')
+    expect(source).toContain('each={getVisibleColumnsForRender()}')
+    expect(source).toContain('each={getBodyRowsForRender()}')
     expect(source).toContain(
       "element.addEventListener('scroll', scheduleUpdateRange)",
     )
