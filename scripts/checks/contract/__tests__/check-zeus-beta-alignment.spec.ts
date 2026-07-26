@@ -18,26 +18,26 @@ afterEach(() => {
 })
 
 describe('checkZeusBetaAlignment', () => {
-  it('passes when root and package Zeus versions are aligned to beta.6', () => {
+  it('passes when root and package Zeus versions are aligned to beta.7', () => {
     const root = createTempRoot()
 
     writePackage(root, 'package.json', {
       name: 'zeus-ui-workspace',
       private: true,
       devDependencies: {
-        '@zeus-js/zeus': '0.1.0-beta.6',
-        '@zeus-js/runtime-dom': '0.1.0-beta.6',
+        '@zeus-js/zeus': '0.1.0-beta.7',
+        '@zeus-js/runtime-dom': '0.1.0-beta.7',
       },
     })
 
     writePackage(root, 'packages/advanced/data-grid/package.json', {
       name: '@zeus-web/data-grid',
       peerDependencies: {
-        '@zeus-js/zeus': '>=0.1.0-beta.6 <0.2.0',
+        '@zeus-js/zeus': '>=0.1.0-beta.7 <0.2.0',
       },
       dependencies: {
-        '@zeus-js/runtime-dom': '0.1.0-beta.6',
-        '@zeus-js/web-c-runtime': '0.1.0-beta.6',
+        '@zeus-js/runtime-dom': '0.1.0-beta.7',
+        '@zeus-js/web-c-runtime': '0.1.0-beta.7',
       },
     })
 
@@ -57,13 +57,13 @@ export function createPrimitiveRolldownConfig() {
 
     const result = checkZeusBetaAlignment({
       root,
-      expectedVersion: '0.1.0-beta.6',
+      expectedVersion: '0.1.0-beta.7',
     })
 
     expect(result).toEqual({
       ok: true,
-      expectedVersion: '0.1.0-beta.6',
-      expectedPeerRange: '>=0.1.0-beta.6 <0.2.0',
+      expectedVersion: '0.1.0-beta.7',
+      expectedPeerRange: '>=0.1.0-beta.7 <0.2.0',
       problems: [],
     })
   })
@@ -84,7 +84,7 @@ export function createPrimitiveRolldownConfig() {
 
     const result = checkZeusBetaAlignment({
       root,
-      expectedVersion: '0.1.0-beta.6',
+      expectedVersion: '0.1.0-beta.7',
     })
 
     expect(result.ok).toBe(false)
@@ -95,7 +95,7 @@ export function createPrimitiveRolldownConfig() {
       field: 'devDependencies',
       dependencyName: '@zeus-js/zeus',
       actual: '0.1.0-beta.5',
-      expected: '0.1.0-beta.6',
+      expected: '0.1.0-beta.7',
     })
     expect(result.problems).toContainEqual({
       type: 'zeus-version-mismatch',
@@ -104,7 +104,7 @@ export function createPrimitiveRolldownConfig() {
       field: 'devDependencies',
       dependencyName: '@zeus-js/runtime-dom',
       actual: '0.1.0-beta.5',
-      expected: '0.1.0-beta.6',
+      expected: '0.1.0-beta.7',
     })
   })
 
@@ -115,7 +115,7 @@ export function createPrimitiveRolldownConfig() {
       name: 'zeus-ui-workspace',
       private: true,
       devDependencies: {
-        '@zeus-js/zeus': '0.1.0-beta.6',
+        '@zeus-js/zeus': '0.1.0-beta.7',
       },
     })
 
@@ -125,8 +125,8 @@ export function createPrimitiveRolldownConfig() {
         '@zeus-js/zeus': '>=0.1.0-beta.5 <0.2.0',
       },
       dependencies: {
-        '@zeus-js/runtime-dom': '0.1.0-beta.6',
-        '@zeus-js/web-c-runtime': '0.1.0-beta.6',
+        '@zeus-js/runtime-dom': '0.1.0-beta.7',
+        '@zeus-js/web-c-runtime': '0.1.0-beta.7',
       },
     })
 
@@ -134,7 +134,7 @@ export function createPrimitiveRolldownConfig() {
 
     const result = checkZeusBetaAlignment({
       root,
-      expectedVersion: '0.1.0-beta.6',
+      expectedVersion: '0.1.0-beta.7',
     })
 
     expect(result.ok).toBe(false)
@@ -145,7 +145,7 @@ export function createPrimitiveRolldownConfig() {
       field: 'peerDependencies',
       dependencyName: '@zeus-js/zeus',
       actual: '>=0.1.0-beta.5 <0.2.0',
-      expected: '>=0.1.0-beta.6 <0.2.0',
+      expected: '>=0.1.0-beta.7 <0.2.0',
     })
   })
 
@@ -156,14 +156,14 @@ export function createPrimitiveRolldownConfig() {
       name: 'zeus-ui-workspace',
       private: true,
       devDependencies: {
-        '@zeus-js/zeus': '0.1.0-beta.6',
+        '@zeus-js/zeus': '0.1.0-beta.7',
       },
     })
 
     writePackage(root, 'packages/advanced/data-grid/package.json', {
       name: '@zeus-web/data-grid',
       peerDependencies: {
-        '@zeus-js/zeus': '>=0.1.0-beta.6 <0.2.0',
+        '@zeus-js/zeus': '>=0.1.0-beta.7 <0.2.0',
       },
       dependencies: {
         '@zeus-js/web-c-runtime': '0.2.0',
@@ -174,7 +174,7 @@ export function createPrimitiveRolldownConfig() {
 
     const result = checkZeusBetaAlignment({
       root,
-      expectedVersion: '0.1.0-beta.6',
+      expectedVersion: '0.1.0-beta.7',
     })
 
     expect(result.ok).toBe(false)
@@ -185,7 +185,7 @@ export function createPrimitiveRolldownConfig() {
       field: 'dependencies',
       dependencyName: '@zeus-js/web-c-runtime',
       actual: '0.2.0',
-      expected: '0.1.0-beta.6',
+      expected: '0.1.0-beta.7',
     })
     expect(
       result.problems.filter(
@@ -203,7 +203,7 @@ export function createPrimitiveRolldownConfig() {
       name: 'zeus-ui-workspace',
       private: true,
       devDependencies: {
-        '@zeus-js/zeus': '0.1.0-beta.6',
+        '@zeus-js/zeus': '0.1.0-beta.7',
       },
     })
 
@@ -221,7 +221,7 @@ function fixWcEventListenerDts() {
 
     const result = checkZeusBetaAlignment({
       root,
-      expectedVersion: '0.1.0-beta.6',
+      expectedVersion: '0.1.0-beta.7',
     })
 
     expect(result.ok).toBe(false)
