@@ -352,6 +352,10 @@ export default defineConfig({
         test: {
           name: 'unit-react-showcase',
           environment: 'jsdom',
+          setupFiles: [
+            'examples/react-showcase/src/test.setup.ts',
+            'scripts/config/setup-vitest.ts',
+          ],
           include: [
             'examples/react-showcase/src/**/*.test.ts',
             'examples/react-showcase/src/**/*.spec.ts',
