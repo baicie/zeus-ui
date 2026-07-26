@@ -73,11 +73,11 @@ describe('chat-thread virtual protocol', () => {
         },
         getRange: {
           name: 'getRange',
-          returns: 'ChatThreadVirtualRange',
+          returns: 'unknown',
         },
         getItems: {
           name: 'getItems',
-          returns: 'ChatThreadVirtualItem[]',
+          returns: 'unknown[]',
         },
         getTotalSize: {
           name: 'getTotalSize',

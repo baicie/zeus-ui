@@ -71,11 +71,11 @@ describe('agent-console component protocol', () => {
       methods: {
         appendMessage: {
           name: 'appendMessage',
-          returns: 'AgentConsoleMessage',
+          returns: 'unknown',
         },
         updateMessage: {
           name: 'updateMessage',
-          returns: 'AgentConsoleMessage | undefined',
+          returns: 'unknown | undefined',
         },
         startToolCall: {
           name: 'startToolCall',
@@ -87,11 +87,11 @@ describe('agent-console component protocol', () => {
         },
         addArtifact: {
           name: 'addArtifact',
-          returns: 'AgentConsoleArtifact',
+          returns: 'unknown',
         },
         selectArtifact: {
           name: 'selectArtifact',
-          returns: 'AgentConsoleArtifact | undefined',
+          returns: 'unknown | undefined',
         },
         addDiagnostic: {
           name: 'addDiagnostic',
@@ -103,11 +103,11 @@ describe('agent-console component protocol', () => {
         },
         getState: {
           name: 'getState',
-          returns: 'AgentConsoleState',
+          returns: 'unknown',
         },
         getEvents: {
           name: 'getEvents',
-          returns: 'AgentConsoleEvent[]',
+          returns: 'unknown[]',
         },
         reset: {
           name: 'reset',

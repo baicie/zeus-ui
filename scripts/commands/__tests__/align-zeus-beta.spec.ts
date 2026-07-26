@@ -46,17 +46,17 @@ describe('alignZeusBeta', () => {
 
     const result = alignZeusBeta({
       root,
-      version: '0.1.0-beta.6',
+      version: '0.1.0-beta.7',
     })
 
-    expect(result.version).toBe('0.1.0-beta.6')
-    expect(result.peerRange).toBe('>=0.1.0-beta.6 <0.2.0')
+    expect(result.version).toBe('0.1.0-beta.7')
+    expect(result.peerRange).toBe('>=0.1.0-beta.7 <0.2.0')
     expect(result.changedFiles).toHaveLength(2)
 
     expect(readPackage(root, 'package.json')).toMatchObject({
       devDependencies: {
-        '@zeus-js/zeus': '0.1.0-beta.6',
-        '@zeus-js/runtime-dom': '0.1.0-beta.6',
+        '@zeus-js/zeus': '0.1.0-beta.7',
+        '@zeus-js/runtime-dom': '0.1.0-beta.7',
         typescript: '^6.0.3',
       },
     })
@@ -65,12 +65,12 @@ describe('alignZeusBeta', () => {
       readPackage(root, 'packages/advanced/data-grid/package.json'),
     ).toMatchObject({
       peerDependencies: {
-        '@zeus-js/zeus': '>=0.1.0-beta.6 <0.2.0',
+        '@zeus-js/zeus': '>=0.1.0-beta.7 <0.2.0',
         react: '>=18 || >=19',
       },
       dependencies: {
-        '@zeus-js/runtime-dom': '0.1.0-beta.6',
-        '@zeus-js/web-c-runtime': '0.1.0-beta.6',
+        '@zeus-js/runtime-dom': '0.1.0-beta.7',
+        '@zeus-js/web-c-runtime': '0.1.0-beta.7',
         '@zeus-web/virtual': 'workspace:*',
       },
     })
@@ -83,17 +83,17 @@ describe('alignZeusBeta', () => {
       name: 'zeus-ui-workspace',
       private: true,
       devDependencies: {
-        '@zeus-js/zeus': '0.1.0-beta.6',
+        '@zeus-js/zeus': '0.1.0-beta.7',
       },
     })
 
     const result = alignZeusBeta({
       root,
-      version: '0.1.0-beta.6',
+      version: '0.1.0-beta.7',
     })
 
-    expect(result.version).toBe('0.1.0-beta.6')
-    expect(result.peerRange).toBe('>=0.1.0-beta.6 <0.2.0')
+    expect(result.version).toBe('0.1.0-beta.7')
+    expect(result.peerRange).toBe('>=0.1.0-beta.7 <0.2.0')
     expect(result.changedFiles).toEqual([])
   })
 
@@ -112,12 +112,12 @@ describe('alignZeusBeta', () => {
 
     alignZeusBeta({
       root,
-      version: '0.1.0-beta.6',
+      version: '0.1.0-beta.7',
     })
 
     expect(readPackage(root, 'package.json')).toMatchObject({
       devDependencies: {
-        '@zeus-js/zeus': '0.1.0-beta.6',
+        '@zeus-js/zeus': '0.1.0-beta.7',
         react: '^19.0.0',
         vue: '^3.5.0',
       },
@@ -131,7 +131,7 @@ describe('alignZeusBeta', () => {
       name: 'zeus-ui-workspace',
       private: true,
       devDependencies: {
-        '@zeus-js/zeus': '0.1.0-beta.6',
+        '@zeus-js/zeus': '0.1.0-beta.7',
       },
     })
 
@@ -149,7 +149,7 @@ describe('alignZeusBeta', () => {
 
     const result = alignZeusBeta({
       root,
-      version: '0.1.0-beta.6',
+      version: '0.1.0-beta.7',
     })
 
     expect(result.changedFiles).toEqual([])
