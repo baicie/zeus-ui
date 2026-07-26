@@ -30,6 +30,7 @@ import type {
   NormalizedDataGridColumn,
 } from '../types'
 import {
+  batch,
   defineElement,
   event,
   For,
@@ -258,7 +259,7 @@ function setup(
 
   let baseColumns = normalizeDataGridColumns(columnsSource)
   let defaultColumnWidths = createDataGridColumnWidthState(baseColumns)
-  let columnWidths = { ...defaultColumnWidths }
+  let columnWidths = createDataGridColumnWidthState(baseColumns)
   let columns = applyDataGridColumnWidths(baseColumns, columnWidths)
   let visibleColumns = getVisibleDataGridColumns(columns)
   let rows = createDataGridRows(rowsSource)
@@ -286,6 +287,10 @@ function setup(
   })
   let shouldSyncActiveCellFromProps = true
   let modelVersion = 0
+  const rowRenderVersion = state(0)
+  const columnRenderVersion = state(0)
+  let shouldRefreshRowsForRender = false
+  let shouldRefreshColumnsForRender = false
   let signature = ''
   const scheduler = createRafScheduler()
 
@@ -373,6 +378,14 @@ function setup(
     focusCellElement(activeCell.rowKey, activeCell.columnId)
   }
 
+  const isActiveCellElementFocused = (): boolean => {
+    if (!activeCell) return false
+
+    const cell = queryCell(activeCell.rowKey, activeCell.columnId)
+
+    return cell !== null && cell.ownerDocument.activeElement === cell
+  }
+
   const scheduleFocusActiveCellElement = (): void => {
     scheduler.schedule(() => {
       focusActiveCellElement()
@@ -387,10 +400,15 @@ function setup(
     rowsSource = resolveRows(props)
     columnsSource = resolveColumns(props)
 
+    if (changes.rowsChanged) {
+      shouldRefreshRowsForRender = true
+    }
+
     if (changes.columnsChanged) {
+      shouldRefreshColumnsForRender = true
       baseColumns = normalizeDataGridColumns(columnsSource)
       defaultColumnWidths = createDataGridColumnWidthState(baseColumns)
-      columnWidths = { ...defaultColumnWidths }
+      columnWidths = createDataGridColumnWidthState(baseColumns)
     }
 
     if (changes.selectedKeysChanged) {
@@ -436,6 +454,10 @@ function setup(
 
     if (nextSignature === signature) return
 
+    const shouldRestoreActiveCellFocus =
+      (shouldRefreshRowsForRender || shouldRefreshColumnsForRender) &&
+      isActiveCellElementFocused()
+
     signature = nextSignature
     baseColumns = normalizeDataGridColumns(columnsSource)
     columns = applyDataGridColumnWidths(baseColumns, columnWidths)
@@ -464,6 +486,20 @@ function setup(
     })
     shouldSyncActiveCellFromProps = false
     currentSnapshot = cloneEmptySnapshot()
+
+    if (shouldRefreshRowsForRender) {
+      shouldRefreshRowsForRender = false
+      rowRenderVersion.value += 1
+    }
+
+    if (shouldRefreshColumnsForRender) {
+      shouldRefreshColumnsForRender = false
+      columnRenderVersion.value += 1
+    }
+
+    if (shouldRestoreActiveCellFocus) {
+      scheduleFocusActiveCellElement()
+    }
   }
 
   const emitSnapshotIfChanged = (
@@ -576,26 +612,32 @@ function setup(
   }
 
   const syncSelectionPropsFromModel = (): void => {
-    props.selectedKeys = selection.getState().keys
-    commitControlledState()
-    modelVersion += 1
-    signature = ''
+    batch(() => {
+      props.selectedKeys = selection.getState().keys
+      commitControlledState()
+      modelVersion += 1
+      signature = ''
+    })
   }
 
   const syncSortPropsFromModel = (): void => {
-    props.sortColumn = sort?.columnId
-    props.sortDirection = sort?.direction
-    commitControlledState()
-    modelVersion += 1
-    signature = ''
+    batch(() => {
+      props.sortColumn = sort ? sort.columnId : undefined
+      props.sortDirection = sort ? sort.direction : undefined
+      commitControlledState()
+      modelVersion += 1
+      signature = ''
+    })
   }
 
   const syncActiveCellPropsFromModel = (): void => {
-    props.activeRowKey = activeCell?.rowKey
-    props.activeColumnId = activeCell?.columnId
-    commitControlledState()
-    modelVersion += 1
-    signature = ''
+    batch(() => {
+      props.activeRowKey = activeCell ? activeCell.rowKey : undefined
+      props.activeColumnId = activeCell ? activeCell.columnId : undefined
+      commitControlledState()
+      modelVersion += 1
+      signature = ''
+    })
   }
 
   const emitActiveCell = (
@@ -831,26 +873,32 @@ function setup(
 
   ctx.expose({
     setRows(nextRows: DataGridRowData[]): void {
-      props.rows = nextRows
-      rowsSource = nextRows
-      modelVersion += 1
-      syncHostProps()
-      commitControlledState()
-      signature = ''
-      updateRange()
+      batch(() => {
+        props.rows = nextRows
+        rowsSource = nextRows
+        modelVersion += 1
+        shouldRefreshRowsForRender = true
+        syncHostProps()
+        commitControlledState()
+        signature = ''
+        updateRange()
+      })
     },
 
     setColumns(nextColumns: DataGridColumn[]): void {
-      props.columns = nextColumns
-      columnsSource = nextColumns
-      baseColumns = normalizeDataGridColumns(nextColumns)
-      defaultColumnWidths = createDataGridColumnWidthState(baseColumns)
-      columnWidths = { ...defaultColumnWidths }
-      modelVersion += 1
-      syncHostProps()
-      commitControlledState()
-      signature = ''
-      updateRange()
+      batch(() => {
+        props.columns = nextColumns
+        columnsSource = nextColumns
+        baseColumns = normalizeDataGridColumns(nextColumns)
+        defaultColumnWidths = createDataGridColumnWidthState(baseColumns)
+        columnWidths = createDataGridColumnWidthState(baseColumns)
+        modelVersion += 1
+        shouldRefreshColumnsForRender = true
+        syncHostProps()
+        commitControlledState()
+        signature = ''
+        updateRange()
+      })
     },
 
     getRows(): DataGridRow[] {
@@ -1042,7 +1090,13 @@ function setup(
 
   const getBodyRowsForRender = (): DataGridVirtualItem[] => {
     void renderVersion.value
+    void rowRenderVersion.value
     return getBodyRows()
+  }
+
+  const getVisibleColumnsForRender = (): NormalizedDataGridColumn[] => {
+    void columnRenderVersion.value
+    return visibleColumns
   }
 
   const getSpacerStyle = (): Record<string, string> => {
@@ -1153,7 +1207,10 @@ function setup(
             width: `${getTotalColumnWidth(columns)}px`,
           })}
         >
-          <For each={visibleColumns} by={column => column.id}>
+          <For
+            each={getVisibleColumnsForRender()}
+            by={column => `${columnRenderVersion.value}:${column.id}`}
+          >
             {(column, index) => (
               <div
                 key={column.id}
@@ -1257,7 +1314,10 @@ function setup(
         />
 
         <div part="body" data-slot="data-grid-body" role="rowgroup">
-          <For each={getBodyRowsForRender()} by={item => item.key}>
+          <For
+            each={getBodyRowsForRender()}
+            by={item => `${rowRenderVersion.value}:${item.key}`}
+          >
             {item =>
               (() => {
                 const row = item.data as DataGridRow
@@ -1308,7 +1368,10 @@ function setup(
                       emitRowAction('keydown', row, nativeEvent)
                     }}
                   >
-                    <For each={visibleColumns} by={column => column.id}>
+                    <For
+                      each={getVisibleColumnsForRender()}
+                      by={column => `${columnRenderVersion.value}:${column.id}`}
+                    >
                       {(column, columnIndex) =>
                         (() => {
                           const isActive =

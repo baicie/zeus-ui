@@ -36,6 +36,8 @@ export const Separator = defineElement<SeparatorProps, SeparatorElement>(
         props.decorative ? undefined : props.orientation || 'horizontal'
       }
       aria-hidden={() => (props.decorative ? 'true' : undefined)}
-    />
+    >
+      {null}
+    </Host>
   ),
 )

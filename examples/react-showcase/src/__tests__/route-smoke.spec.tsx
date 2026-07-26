@@ -1,4 +1,4 @@
-import { cleanup, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { implementedShowcaseComponentNames } from '@zeus-web/example-showcase-shared'
 
 import { renderReactShowcaseRoute } from '../test-utils/render-route'
@@ -27,10 +27,6 @@ const staticRoutes = [
 ] as const
 
 describe('react showcase routes', () => {
-  afterEach(() => {
-    cleanup()
-  })
-
   it.each(staticRoutes)('renders $path', async route => {
     await renderReactShowcaseRoute(route.path)
 

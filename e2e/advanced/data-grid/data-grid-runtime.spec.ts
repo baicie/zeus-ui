@@ -54,6 +54,10 @@ describe('zw-data-grid runtime', () => {
 
   it('updates rows and columns when controlled references change with the same length', async () => {
     const grid = await mountDataGrid()
+    const initialCell = getCell(grid, 'u1', 'name')
+
+    initialCell.focus()
+    expect(document.activeElement).toBe(initialCell)
 
     grid.rows = [
       {
@@ -79,6 +83,8 @@ describe('zw-data-grid runtime', () => {
     await nextFrame()
 
     expect(grid.getRows()[0].data.name).toBe('Ada Updated')
+    expect(getCell(grid, 'u1', 'name').textContent).toBe('Ada Updated')
+    expect(document.activeElement).toBe(getCell(grid, 'u1', 'name'))
 
     grid.columns = [
       {
@@ -111,6 +117,8 @@ describe('zw-data-grid runtime', () => {
       header: 'Full name',
       width: 220,
     })
+    expect(getHeaderCell(grid, 'name').textContent).toContain('Full name')
+    expect(document.activeElement).toBe(getCell(grid, 'u1', 'name'))
   })
 
   it('syncs selectedKeys and clears selection when selectedKeys becomes undefined', async () => {
@@ -210,6 +218,70 @@ describe('zw-data-grid runtime', () => {
     expect(grid.getSort()).toBeUndefined()
 
     collector.dispose()
+  })
+
+  it('rebuilds sorted rows and virtual items when columns change', () => {
+    return mountDataGrid({
+      rows: [
+        { id: 'r1', primary: 2, secondary: 2 },
+        { id: 'r2', primary: 1, secondary: 3 },
+        { id: 'r3', primary: 3, secondary: 1 },
+      ],
+      columns: [
+        {
+          id: 'rank',
+          header: 'Primary rank',
+          field: 'primary',
+          sortable: true,
+        },
+      ],
+      virtual: true,
+      rowHeight: 40,
+      overscan: 0,
+    }).then(grid => {
+      const viewport = getViewport(grid)
+      setElementClientHeight(viewport, 120)
+      grid.setSort('rank', 'asc')
+      grid.refreshViewport()
+
+      return nextFrame()
+        .then(() => {
+          expect(grid.getVisibleRows().map(row => row.key)).toEqual([
+            'r2',
+            'r1',
+            'r3',
+          ])
+          expect(grid.getItems().map(item => item.key)).toEqual([
+            'r2',
+            'r1',
+            'r3',
+          ])
+
+          grid.setColumns([
+            {
+              id: 'rank',
+              header: 'Secondary rank',
+              field: 'secondary',
+              sortable: true,
+            },
+          ])
+
+          return nextFrame()
+        })
+        .then(() => {
+          expect(grid.getVisibleRows().map(row => row.key)).toEqual([
+            'r3',
+            'r1',
+            'r2',
+          ])
+          expect(grid.getItems().map(item => item.key)).toEqual([
+            'r3',
+            'r1',
+            'r2',
+          ])
+          expect(getCell(grid, 'r3', 'rank').textContent).toBe('1')
+        })
+    })
   })
 
   it('sorts when a sortable header cell is clicked', async () => {
