@@ -28,7 +28,6 @@ function assertNotContains(source: string, value: string, label: string): void {
 }
 
 export function checkAdvancedFinalContract(): void {
-  const registry = read('packages/registry/registry.json')
   const aiTypes = read('packages/ai/src/types.ts')
   const aiMetadata = read('packages/ai/src/metadata.ts')
 
@@ -64,18 +63,6 @@ export function checkAdvancedFinalContract(): void {
     assert(packageJson.includes('"./vue"'), `${packageName} must export ./vue`)
   }
 
-  for (const registryItem of [
-    'chat',
-    'data-grid',
-    'revogrid-adapter',
-    'agent-console',
-  ]) {
-    assert(
-      registry.includes(`"name": "${registryItem}"`),
-      `registry must include ${registryItem}`,
-    )
-  }
-
   for (const aiItem of [
     'chat',
     'virtual',
@@ -90,7 +77,7 @@ export function checkAdvancedFinalContract(): void {
     )
   }
 
-  for (const source of [registry, aiTypes, aiMetadata]) {
+  for (const source of [aiTypes, aiMetadata]) {
     assertNotContains(source, 'OPENAI_API_KEY', 'advanced final source')
     assertNotContains(source, 'ANTHROPIC_API_KEY', 'advanced final source')
     assertNotContains(source, 'DEEPSEEK_API_KEY', 'advanced final source')

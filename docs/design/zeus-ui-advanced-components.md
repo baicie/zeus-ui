@@ -16,7 +16,7 @@
 - 不依赖 React 或 Vue 的原生 Web Component 使用方式。
 - 轻量 React / Vue wrapper。
 - headless-first 的行为、状态与可访问性契约。
-- 通过 registry 模板和 `@zeus-web/ui` 入口叠加最终产品样式。
+- Beta.0 仅通过各自的高级组件包提供能力；高级 registry 模板和 `@zeus-web/ui` styled 入口均延期发布。
 - 对 AI 友好的元数据、示例与使用规则。
 
 ## 非目标
@@ -36,7 +36,7 @@
 packages/advanced/
   virtual/        @zeus-web/virtual
   chat/           @zeus-web/chat
-  revogrid/       @zeus-web/revogrid
+  revogrid-adapter/ @zeus-web/revogrid-adapter
   data-grid/      @zeus-web/data-grid
   agent-console/  @zeus-web/agent-console
 ```
@@ -55,20 +55,20 @@ packages/advanced/*
 
 ## 分层模型
 
-每个高级组件都分为四层。
+高级组件的长期产品模型分为四层。Beta.0 只公开 headless advanced package 和 AI metadata；registry source 与 styled UI 两层均延期。
 
 ```txt
 Headless advanced package
   -> @zeus-web/chat
   -> 负责状态、行为、事件、slots、methods 与 a11y
 
-Registry source template
-  -> zweb add chat
-  -> React / Vue 可编辑带样式源码
+Package install
+  -> pnpm add @zeus-web/chat
+  -> 使用包提供的 Web Component / React / Vue headless 入口
 
-Native styled UI entry
-  -> @zeus-web/ui/chat
-  -> 面向无框架使用的带样式 Web Components
+Deferred native styled UI entry
+  -> future @zeus-web/ui/chat
+  -> Beta.0 不导出该入口
 
 AI metadata
   -> @zeus-web/ai
@@ -171,7 +171,7 @@ Headless advanced packages 只暴露样式钩子，不拥有最终视觉设计�
 - `part` 名称
 - 当布局或测量值需要外部控制时提供 CSS variables
 
-最终样式放在：
+Beta.0 不提供高级组件的最终样式。未来的最终样式计划放在 `@zeus-web/ui`，高级 registry 模板路径也只保留为后续设计：
 
 ```txt
 packages/registry/templates/<framework>/<component>
@@ -373,10 +373,11 @@ scrollToBottom(options)
 
 ```txt
 @zeus-web/chat
-zweb add chat
-@zeus-web/ui/chat
+pnpm add @zeus-web/chat
 @zeus-web/ai metadata
 ```
+
+高级 registry 模板和 `@zeus-web/ui/chat` styled 入口延期到 Beta.0 之后。
 
 ## @zeus-web/data-grid
 
@@ -520,16 +521,17 @@ P0 不包含：
 
 ```txt
 @zeus-web/data-grid
-zweb add data-grid
-@zeus-web/ui/data-grid
+pnpm add @zeus-web/data-grid
 @zeus-web/ai metadata
 ```
 
-## @zeus-web/revogrid
+高级 registry 模板和 `@zeus-web/ui/data-grid` styled 入口延期到 Beta.0 之后。
+
+## @zeus-web/revogrid-adapter
 
 ### 目的
 
-`@zeus-web/revogrid` 是一个适配器包，不是 Zeus 最终自研 Data Grid。
+`@zeus-web/revogrid-adapter` 是一个适配器包，不是 Zeus 最终自研 Data Grid。
 
 它用于验证：
 
@@ -571,17 +573,17 @@ zweb add data-grid
 
 ## 完整路线图
 
-| Phase | 名称                        | 输出                                                                                         |
-| ----- | --------------------------- | -------------------------------------------------------------------------------------------- |
-| 0     | Advanced workspace contract | `packages/advanced/*` 被 workspace、build、checks、release scripts 识别。                    |
-| 1     | Virtual foundation          | `@zeus-web/virtual` 固定高度与动态高度列表虚拟化。                                           |
-| 2     | Chat headless               | `@zeus-web/chat` Web Component / React / Vue headless 组件族。                               |
-| 3     | Chat product                | `zweb add chat`、`@zeus-web/ui/chat`、docs、AI metadata、showcases。                         |
-| 4     | RevoGrid adapter            | `@zeus-web/revogrid`，用于大型 Web Component 互操作验证。                                    |
-| 5     | DataGrid Lite               | `@zeus-web/data-grid` 行/列虚拟化、选择、键盘导航。                                          |
-| 6     | DataGrid product            | `zweb add data-grid`、`@zeus-web/ui/data-grid`、sorting、filtering、resize、pinned columns。 |
-| 7     | DataGrid advanced           | Server row model、tree data、grouping、plugin system、export。                               |
-| 8     | Agent Console               | `@zeus-web/agent-console`，面向 AI Ops / RUM / SQL Agent 产品工作流。                        |
+| Phase | 名称                        | 输出                                                                                               |
+| ----- | --------------------------- | -------------------------------------------------------------------------------------------------- |
+| 0     | Advanced workspace contract | `packages/advanced/*` 被 workspace、build、checks、release scripts 识别。                          |
+| 1     | Virtual foundation          | `@zeus-web/virtual` 固定高度与动态高度列表虚拟化。                                                 |
+| 2     | Chat headless               | `@zeus-web/chat` Web Component / React / Vue headless 组件族。                                     |
+| 3     | Chat product                | `@zeus-web/chat`、docs、AI metadata、showcases；registry / UI styled 输出延期。                    |
+| 4     | RevoGrid adapter            | `@zeus-web/revogrid-adapter`，用于大型 Web Component 互操作验证。                                  |
+| 5     | DataGrid Lite               | `@zeus-web/data-grid` 行/列虚拟化、选择、键盘导航。                                                |
+| 6     | DataGrid product            | `@zeus-web/data-grid`、sorting、filtering、resize、pinned columns；registry / UI styled 输出延期。 |
+| 7     | DataGrid advanced           | Server row model、tree data、grouping、plugin system、export。                                     |
+| 8     | Agent Console               | `@zeus-web/agent-console`，面向 AI Ops / RUM / SQL Agent 产品工作流。                              |
 
 ## 推荐分支计划
 
@@ -617,4 +619,4 @@ pnpm docs:check
 - React showcase 覆盖。
 - Vue showcase 覆盖。
 - AI metadata 规则。
-- 产品化后需要 registry template 检查。
+- 只有高级 registry 模板正式进入公开清单后，才启用对应 template 检查。

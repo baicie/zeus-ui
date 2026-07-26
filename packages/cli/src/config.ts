@@ -7,7 +7,7 @@ import type {
 
 import { existsSync, readFileSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
-import { dirname, isAbsolute, relative, resolve } from 'node:path'
+import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 
 import {
   getThemeColors,
@@ -262,36 +262,90 @@ export function resolveAliasToPath(cwd: string, alias: string): string {
   return resolve(cwd, normalizeAlias(alias))
 }
 
+function assertSafeRegistryTarget(target: string): void {
+  const segments = target.split(/[\\/]/)
+
+  if (
+    !target ||
+    target.startsWith('/') ||
+    target.startsWith('\\') ||
+    segments.includes('') ||
+    segments.includes('..') ||
+    segments.some(segment => /^[A-Z]:/i.test(segment))
+  ) {
+    throw new Error(`Unsafe registry target: ${target}`)
+  }
+}
+
+function resolveRegistryTargetInside(
+  basePath: string,
+  relativeTarget: string,
+  registryTarget: string,
+): string {
+  const absoluteTarget = resolve(basePath, relativeTarget)
+  const relativeTargetPath = relative(basePath, absoluteTarget)
+
+  if (
+    relativeTargetPath === '..' ||
+    relativeTargetPath.startsWith(`..${sep}`) ||
+    isAbsolute(relativeTargetPath)
+  ) {
+    throw new Error(
+      `Registry target escapes configured path: ${registryTarget}`,
+    )
+  }
+
+  return absoluteTarget
+}
+
 export function resolveRegistryTarget(
   cwd: string,
   config: ComponentsConfig,
   target: string,
 ): string {
+  assertSafeRegistryTarget(target)
+
   if (target === 'lib' || target.startsWith('lib/')) {
     const rest = target === 'lib' ? '' : target.slice('lib/'.length)
-    return resolve(resolveAliasToPath(cwd, config.aliases.lib), rest)
+    return resolveRegistryTargetInside(
+      resolveAliasToPath(cwd, config.aliases.lib),
+      rest,
+      target,
+    )
   }
 
   if (target === 'components/ui' || target.startsWith('components/ui/')) {
     const rest =
       target === 'components/ui' ? '' : target.slice('components/ui/'.length)
 
-    return resolve(resolveAliasToPath(cwd, config.aliases.ui), rest)
+    return resolveRegistryTargetInside(
+      resolveAliasToPath(cwd, config.aliases.ui),
+      rest,
+      target,
+    )
   }
 
   if (target === 'components' || target.startsWith('components/')) {
     const rest =
       target === 'components' ? '' : target.slice('components/'.length)
 
-    return resolve(resolveAliasToPath(cwd, config.aliases.components), rest)
+    return resolveRegistryTargetInside(
+      resolveAliasToPath(cwd, config.aliases.components),
+      rest,
+      target,
+    )
   }
 
   if (target === 'styles' || target.startsWith('styles/')) {
     const rest = target === 'styles' ? '' : target.slice('styles/'.length)
-    return resolve(resolveAliasToPath(cwd, config.aliases.styles), rest)
+    return resolveRegistryTargetInside(
+      resolveAliasToPath(cwd, config.aliases.styles),
+      rest,
+      target,
+    )
   }
 
-  return resolve(cwd, target)
+  return resolveRegistryTargetInside(cwd, target, target)
 }
 
 export function toRelativeProjectPath(cwd: string, file: string): string {

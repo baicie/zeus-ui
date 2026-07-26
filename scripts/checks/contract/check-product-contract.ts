@@ -69,6 +69,22 @@ function mustNotContain(
   }
 }
 
+function isUnsafeRegistryPath(path: string): boolean {
+  const segments = path.split(/[\\/]/)
+
+  if (
+    !path ||
+    path.startsWith('/') ||
+    path.startsWith('\\') ||
+    segments.includes('') ||
+    segments.some(segment => /^[A-Z]:/i.test(segment))
+  ) {
+    return true
+  }
+
+  return segments.includes('..')
+}
+
 // ---------------------------------------------------------------------------
 // check:registry
 // ---------------------------------------------------------------------------
@@ -106,8 +122,15 @@ function checkRegistry(errors: string[]): void {
     './templates/css/globals.css',
     './templates/lib/cn.ts',
   ]
+  const packageExports = pkg.exports || {}
+
   for (const e of requiredExports) {
-    if (!pkg.exports?.[e]) errors.push(`missing export ${e}`)
+    if (!packageExports[e]) errors.push(`missing export ${e}`)
+  }
+  for (const e of Object.keys(packageExports)) {
+    if (!requiredExports.includes(e)) {
+      errors.push(`unexpected beta.0 registry export ${e}`)
+    }
   }
   for (const s of ['build', 'check', 'test']) {
     if (!pkg.scripts?.[s]) errors.push(`missing script ${s}`)
@@ -154,9 +177,13 @@ function checkRegistry(errors: string[]): void {
     for (const file of item.files) {
       if (!allowedFrameworks.has(file.framework))
         errors.push(`${item.name}: invalid file framework`)
-      if (!file.source.startsWith('templates/'))
-        errors.push(`${item.name}: source must start templates/`)
-      if (file.target.startsWith('/') || file.target.includes('..'))
+      if (
+        !file.source.startsWith('templates/') ||
+        isUnsafeRegistryPath(file.source)
+      ) {
+        errors.push(`${item.name}: unsafe source`)
+      }
+      if (isUnsafeRegistryPath(file.target))
         errors.push(`${item.name}: unsafe target`)
       if (!existsSync(resolve(packageRoot, file.source)))
         errors.push(`${item.name}: missing template ${file.source}`)
@@ -165,6 +192,12 @@ function checkRegistry(errors: string[]): void {
 
   for (const required of ['button', 'input', 'cn', 'globals']) {
     if (!names.has(required)) errors.push(`registry.json missing ${required}`)
+  }
+
+  for (const name of names) {
+    if (!['button', 'input', 'cn', 'globals'].includes(name)) {
+      errors.push(`unexpected beta.0 registry item ${name}`)
+    }
   }
 
   for (const item of manifest.items) {

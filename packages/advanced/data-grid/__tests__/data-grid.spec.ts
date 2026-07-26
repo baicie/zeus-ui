@@ -120,19 +120,19 @@ describe('data-grid component protocol', () => {
         },
         getRows: {
           name: 'getRows',
-          returns: 'DataGridRow[]',
+          returns: 'unknown[]',
         },
         getColumns: {
           name: 'getColumns',
-          returns: 'NormalizedDataGridColumn[]',
+          returns: 'unknown[]',
         },
         getVisibleRows: {
           name: 'getVisibleRows',
-          returns: 'DataGridRow[]',
+          returns: 'unknown[]',
         },
         getSelection: {
           name: 'getSelection',
-          returns: 'DataGridSelectionState',
+          returns: 'unknown',
         },
         setSelection: {
           name: 'setSelection',
@@ -156,15 +156,15 @@ describe('data-grid component protocol', () => {
         },
         getSort: {
           name: 'getSort',
-          returns: 'DataGridSortState | undefined',
+          returns: 'unknown | undefined',
         },
         getRange: {
           name: 'getRange',
-          returns: 'DataGridVirtualRange',
+          returns: 'unknown',
         },
         getItems: {
           name: 'getItems',
-          returns: 'DataGridVirtualItem[]',
+          returns: 'unknown[]',
         },
         getTotalSize: {
           name: 'getTotalSize',
@@ -204,7 +204,7 @@ describe('data-grid component protocol', () => {
         },
         getActiveCell: {
           name: 'getActiveCell',
-          returns: 'DataGridActiveCell | undefined',
+          returns: 'unknown | undefined',
         },
         moveActiveCell: {
           name: 'moveActiveCell',

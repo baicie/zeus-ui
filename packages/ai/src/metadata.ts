@@ -1882,11 +1882,11 @@ export const aiMetadata: ZeusWebAiMetadata = {
       },
       examples: [
         {
-          title: 'React registry usage',
+          title: 'React package usage',
           description:
-            'Use the registry-installed styled DataGrid source in React apps.',
+            'Use the generated DataGrid wrapper from the advanced package in React apps.',
           code: [
-            "import { DataGrid } from '@/components/ui/data-grid'",
+            "import { DataGrid } from '@zeus-web/data-grid/react'",
             '',
             'const columns = [',
             "  { id: 'name', header: 'Name', field: 'name', sortable: true },",
@@ -1988,11 +1988,11 @@ export const aiMetadata: ZeusWebAiMetadata = {
       },
       examples: [
         {
-          title: 'React registry usage',
+          title: 'React package usage',
           description:
-            'Use the registry-installed styled RevoGrid adapter source in React apps.',
+            'Use the generated RevoGrid adapter wrapper from the advanced package in React apps.',
           code: [
-            "import { RevoGridAdapter } from '@/components/ui/revogrid-adapter'",
+            "import { RevoGridAdapter } from '@zeus-web/revogrid-adapter/react'",
             '',
             'const columns = [',
             "  { id: 'name', header: 'Name', field: 'userName', sortable: true },",
@@ -2091,10 +2091,11 @@ export const aiMetadata: ZeusWebAiMetadata = {
       },
       examples: [
         {
-          title: 'React styled usage',
-          description: 'Use the registry template as a local styled shell.',
+          title: 'React package usage',
+          description:
+            'Use the generated Agent Console wrapper from the advanced package.',
           code: [
-            "import { AgentConsole } from '@/components/ui/agent-console'",
+            "import { AgentConsole } from '@zeus-web/agent-console/react'",
             '',
             'export function Example() {',
             '  return <AgentConsole />',

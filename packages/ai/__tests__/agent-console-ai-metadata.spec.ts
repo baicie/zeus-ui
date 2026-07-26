@@ -46,4 +46,17 @@ describe('agent-console ai metadata', () => {
     expect(text).not.toContain('ANTHROPIC_API_KEY')
     expect(text).not.toContain('DEEPSEEK_API_KEY')
   })
+
+  it('documents package usage without a registry template', () => {
+    expect(agentConsole).toBeTruthy()
+
+    if (!agentConsole) {
+      throw new Error('agent-console advanced metadata is required')
+    }
+
+    const code = agentConsole.examples.map(example => example.code).join('\n')
+
+    expect(code).toContain('@zeus-web/agent-console/react')
+    expect(code).not.toContain('@/components/ui/agent-console')
+  })
 })
