@@ -16,6 +16,10 @@ env:
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 'true'
   CI: 'true'
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   metadata:
     name: metadata
