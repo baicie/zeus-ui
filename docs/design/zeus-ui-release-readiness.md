@@ -2,7 +2,7 @@
 
 ## Status
 
-Phase 24 design.
+Phase 24 implemented design.
 
 ## Goal
 
@@ -27,7 +27,7 @@ Phase 24 includes:
 pnpm release:verify
 pnpm release:verify:strict
 pnpm release:verify:pack
-pnpm release:final
+pnpm release:final 0.1.0-beta.0 --allow-zero
 ```
 
 ## Publishable package rules
@@ -42,9 +42,11 @@ Every publishable package must:
 - define `scripts.build`
 - define `scripts.check`
 - contain `dist`
-- contain `README.md`
 - resolve all export targets
 - use public provenance publish config in strict mode
+
+The repository must contain a root `README.md` and `LICENSE`.
+Package-local `README.md` files are optional.
 
 ## Private package rules
 
@@ -61,9 +63,10 @@ Tarballs must include:
 
 ```
 package.json
-README.md
 dist/
 ```
+
+A package-local `README.md` may be included when the package owns one.
 
 Tarballs must not include:
 
@@ -73,15 +76,25 @@ tests/
 __tests__/
 examples/
 scripts/
-*.map
 *.tsbuildinfo
 *.log
 ```
 
+Source maps are allowed only under `dist/`.
+
 ## Non-goals
 
-Phase 24 does not publish packages, create tags, update versions or change release workflow permissions.
+The Phase 24 verification commands do not publish packages or create tags.
+Release workflow orchestration and permissions are enforced separately.
+Dry-run orchestration is read-only, checkout credentials are not persisted,
+and third-party Actions in the release path are pinned to full commit SHAs.
+An unprivileged validation job fails non-`main` dispatches explicitly.
+Publish checks out the captured release commit SHA, verifies the version tag,
+then performs a fresh build and tarball validation before contacting npm.
+Release dispatches publish as a separate tag-scoped run so npm provenance uses
+the release tag and commit rather than the earlier manual-dispatch context.
 
 ## Next phase
 
-After Phase 24, the project is ready for release verification and can move to release candidate / beta publication.
+After Phase 24, release candidate and beta publication run through the guarded
+release workflow and the separately dispatched, reusable publish workflow.

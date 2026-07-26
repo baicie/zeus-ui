@@ -22,27 +22,44 @@ on:
         type: boolean
 
 permissions:
-  contents: write
-  id-token: write
+  contents: read
 
 concurrency:
-  group: release-${{ github.event.inputs.version }}
+  group: release-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
-  release:
+  validate-context:
     runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Verify release context
+        run: test "$GITHUB_REF" = "refs/heads/main"
+
+  dry-run:
+    needs: validate-context
+    if: ${{ github.ref == 'refs/heads/main' && inputs.dry_run == true }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
+      VERSION: ${{ inputs.version }}
+      TAG: ${{ inputs.tag }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
+          ref: main
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
+      - name: Verify dispatch revision
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
 
-      - uses: actions/setup-node@v5
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version-file: .node-version
           cache: pnpm
@@ -51,25 +68,76 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Dry-run release
-        if: ${{ github.event.inputs.dry_run == 'true' }}
         run: |
-          pnpm release \
-            ${{ github.event.inputs.version }} \
-            --tag ${{ github.event.inputs.tag }} \
-            --dry
+          pnpm release "$VERSION" --tag "$TAG" --dry
+
+  release:
+    needs: validate-context
+    if: ${{ github.ref == 'refs/heads/main' && inputs.dry_run == false }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      release_sha: ${{ steps.release_commit.outputs.sha }}
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+      VERSION: ${{ inputs.version }}
+      TAG: ${{ inputs.tag }}
+
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Verify dispatch revision
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Release
-        if: ${{ github.event.inputs.dry_run != 'true' }}
-        run: |
-          pnpm release \
-            ${{ github.event.inputs.version }} \
-            --tag ${{ github.event.inputs.tag }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm release "$VERSION" --tag "$TAG"
 
-      - name: Create default tag for publish trigger
-        if: ${{ github.event.inputs.dry_run != 'true' }}
+      - name: Capture release commit
+        id: release_commit
         run: |
-          git tag default@${{ github.event.inputs.version }}
-          git push origin default@${{ github.event.inputs.version }}
+          release_sha="$(git rev-parse "refs/tags/v${VERSION}^{commit}")"
+          test "$(git rev-parse HEAD)" = "$release_sha"
+          echo "sha=$release_sha" >> "$GITHUB_OUTPUT"
+
+  dispatch-publish:
+    needs: release
+    if: ${{ github.ref == 'refs/heads/main' && inputs.dry_run == false }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    env:
+      VERSION: ${{ inputs.version }}
+      TAG: ${{ inputs.tag }}
+      RELEASE_SHA: ${{ needs.release.outputs.release_sha }}
+
+    steps:
+      - name: Dispatch publish workflow
+        run: |
+          gh workflow run publish.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref "v$VERSION" \
+            --raw-field version="$VERSION" \
+            --raw-field tag="$TAG" \
+            --raw-field release_sha="$RELEASE_SHA"
+        env:
+          GH_TOKEN: ${{ github.token }}

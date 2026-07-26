@@ -15,13 +15,14 @@ const ROLE_LABEL: Record<string, string> = {
 
 export function ChatPage() {
   const chatRef = useRef<ChatElement | null>(null)
+  const [isComposerReady, setComposerReady] = useState(false)
   const [sendNote, setSendNote] = useState('Send a message to see the event.')
 
   useEffect(() => {
     const chat = chatRef.current
     if (!chat) return
 
-    chat.setMessages(chatMessages)
+    let isActive = true
 
     const handleSend = (event: Event) => {
       const customEvent = event as CustomEvent<{ value: string }>
@@ -30,7 +31,20 @@ export function ChatPage() {
 
     chat.addEventListener('send', handleSend)
 
+    void chat.componentOnReady().then(
+      () => {
+        if (!isActive) return
+
+        chat.setMessages(chatMessages)
+        setComposerReady(true)
+      },
+      () => {
+        if (isActive) setComposerReady(false)
+      },
+    )
+
     return () => {
+      isActive = false
       chat.removeEventListener('send', handleSend)
     }
   }, [])
@@ -219,11 +233,13 @@ export function ChatPage() {
             aria-label="Message ChatGPT"
             rows={1}
             autoComplete="off"
+            disabled={!isComposerReady}
           />
           <button
             type="submit"
             className="chat-composer-btn"
             aria-label="Send message"
+            disabled={!isComposerReady}
           >
             ↑
           </button>
