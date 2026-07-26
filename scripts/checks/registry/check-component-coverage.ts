@@ -38,13 +38,6 @@ const deferredOverlayComponents = ['popover', 'dropdown', 'toast'] as const
 
 const registryPhase17RequiredItems = ['button', 'input'] as const
 
-const advancedRegistryComponentNames = new Set([
-  'chat',
-  'data-grid',
-  'revogrid-adapter',
-  'agent-console',
-])
-
 function readJson<T>(file: string): T {
   return JSON.parse(readFileSync(file, 'utf-8')) as T
 }
@@ -171,13 +164,6 @@ function includesUiTarget(item: RegistryItem): boolean {
   )
 }
 
-function includesNativeTarget(item: RegistryItem): boolean {
-  return (
-    item.files?.some(file => file.target === `components/${item.name}.ts`) ??
-    false
-  )
-}
-
 function registryFileExists(root: string, filePath: string): boolean {
   return existsSync(resolve(root, 'packages/registry', filePath))
 }
@@ -261,10 +247,6 @@ function checkAdvancedAiComponent(
   }
 }
 
-function isAdvancedRegistryComponent(name: string): boolean {
-  return advancedRegistryComponentNames.has(name)
-}
-
 export function checkComponentCoverage(root = process.cwd()): CoverageResult {
   const primitiveNames = readPrimitiveNames(root)
   const registry = readRegistry(root)
@@ -285,9 +267,15 @@ export function checkComponentCoverage(root = process.cwd()): CoverageResult {
   pushDuplicateErrors(errors, 'registry', registryNames)
   pushDuplicateErrors(errors, 'AI metadata', aiNames)
 
-  for (const item of registryItems) {
-    const isAdvanced = isAdvancedRegistryComponent(item.name)
+  for (const name of registryNames) {
+    if (!isRegistryPhase17RequiredItem(name)) {
+      errors.push(
+        `registry item "${name}" is outside the beta.0 public registry scope`,
+      )
+    }
+  }
 
+  for (const item of registryItems) {
     if (!primitiveNameSet.has(item.name)) {
       errors.push(
         `registry item "${item.name}" has no matching primitive package`,
@@ -307,12 +295,6 @@ export function checkComponentCoverage(root = process.cwd()): CoverageResult {
     if (!includesUiTarget(item)) {
       errors.push(
         `registry item "${item.name}" must target components/ui/${item.name}.tsx or .vue`,
-      )
-    }
-
-    if (isAdvanced && !includesNativeTarget(item)) {
-      errors.push(
-        `advanced registry item "${item.name}" must also target components/${item.name}.ts`,
       )
     }
 
@@ -354,9 +336,9 @@ export function checkComponentCoverage(root = process.cwd()): CoverageResult {
       )
     }
 
-    if (name !== 'virtual' && !registryNameSet.has(name)) {
-      errors.push(
-        `AI metadata advanced component "${name}" has no matching registry item`,
+    if (!registryNameSet.has(name)) {
+      warnings.push(
+        `AI metadata advanced component "${name}" is package-only in beta.0 and has no public registry item`,
       )
     }
 

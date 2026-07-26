@@ -47,6 +47,22 @@ const allowedTypes = new Set<RegistryItemType>([
   'style',
 ])
 
+function isUnsafeRegistryPath(path: string): boolean {
+  const segments = path.split(/[\\/]/)
+
+  if (
+    !path ||
+    path.startsWith('/') ||
+    path.startsWith('\\') ||
+    segments.includes('') ||
+    segments.some(segment => /^[A-Z]:/i.test(segment))
+  ) {
+    return true
+  }
+
+  return segments.includes('..')
+}
+
 export function findRegistryItem(
   manifest: RegistryManifest,
   name: string,
@@ -147,17 +163,16 @@ export function validateRegistry(registry: Registry): RegistryValidationResult {
         )
       }
 
-      if (!file.source.startsWith('templates/')) {
+      if (
+        !file.source.startsWith('templates/') ||
+        isUnsafeRegistryPath(file.source)
+      ) {
         errors.push(
-          `registry item "${item.name}" file source must start with templates/: ${file.source}`,
+          `registry item "${item.name}" has unsafe file source: ${file.source}`,
         )
       }
 
-      if (
-        !file.target ||
-        file.target.startsWith('/') ||
-        file.target.includes('..')
-      ) {
+      if (isUnsafeRegistryPath(file.target)) {
         errors.push(
           `registry item "${item.name}" has unsafe file target: ${file.target}`,
         )

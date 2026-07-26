@@ -77,11 +77,12 @@ describe('revogrid-adapter ai metadata', () => {
     ).toBe(true)
   })
 
-  it('contains registry and native examples', () => {
+  it('contains package and native examples', () => {
     const code =
       (adapter?.examples ?? []).map(example => example.code).join('\n') ?? ''
 
-    expect(code).toContain('@/components/ui/revogrid-adapter')
+    expect(code).toContain('@zeus-web/revogrid-adapter/react')
+    expect(code).not.toContain('@/components/ui/revogrid-adapter')
     expect(code).toContain('@zeus-web/revogrid-adapter/wc/auto')
     expect(code).toContain('zw-revogrid-adapter')
   })

@@ -24,7 +24,7 @@
 packages/advanced/
   virtual/        @zeus-web/virtual
   chat/           @zeus-web/chat
-  revogrid/       @zeus-web/revogrid
+  revogrid-adapter/ @zeus-web/revogrid-adapter
   data-grid/      @zeus-web/data-grid
   agent-console/  @zeus-web/agent-console
 ```

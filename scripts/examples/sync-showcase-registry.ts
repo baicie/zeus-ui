@@ -255,6 +255,21 @@ function createPlannedFiles(registry: RegistryManifest): PlannedFile[] {
   )
 }
 
+function contentsMatch(file: PlannedFile, current: string): boolean {
+  if (!file.source.startsWith('generated:') || !file.target.endsWith('.json')) {
+    return current === file.content
+  }
+
+  try {
+    return (
+      JSON.stringify(JSON.parse(current)) ===
+      JSON.stringify(JSON.parse(file.content))
+    )
+  } catch {
+    return false
+  }
+}
+
 function checkPlannedFiles(planned: PlannedFile[]): string[] {
   const errors: string[] = []
 
@@ -268,7 +283,7 @@ function checkPlannedFiles(planned: PlannedFile[]): string[] {
 
     const current = readText(file.target)
 
-    if (current !== file.content) {
+    if (!contentsMatch(file, current)) {
       errors.push(
         `Outdated showcase registry file: ${toProjectPath(file.target)}`,
       )

@@ -152,12 +152,12 @@ import '@zeus-web/button/wc'
 ```txt
 @zeus-web/virtual
 @zeus-web/chat
-@zeus-web/revogrid
+@zeus-web/revogrid-adapter
 @zeus-web/data-grid
 @zeus-web/agent-console
 ```
 
-高级组件坚持 headless-first。它们负责行为、状态、事件、方法、可访问性与性能契约；最终产品样式通过 `packages/registry` 和 `packages/ui` 分层提供。
+高级组件坚持 headless-first。它们负责行为、状态、事件、方法、可访问性与性能契约。Beta.0 仅通过各自的 `@zeus-web/*` 高级包提供；高级 registry 模板和 `@zeus-web/ui` styled 入口均延期发布。
 
 详细设计与路线图见：
 
