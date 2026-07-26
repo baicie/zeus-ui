@@ -87,11 +87,12 @@ describe('data-grid AI metadata', () => {
     ).toBe(true)
   })
 
-  it('contains registry and native examples', () => {
+  it('contains package and native examples', () => {
     const code =
       (dataGrid?.examples ?? []).map(example => example.code).join('\n') ?? ''
 
-    expect(code).toContain('@/components/ui/data-grid')
+    expect(code).toContain('@zeus-web/data-grid/react')
+    expect(code).not.toContain('@/components/ui/data-grid')
     expect(code).toContain('@zeus-web/data-grid/wc/auto')
     expect(code).toContain('zw-data-grid')
   })

@@ -1,20 +1,39 @@
 import type { RegistryManifest } from '../src'
-
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
 import { fileURLToPath } from 'node:url'
-import { describe, expect, it } from 'vitest'
 
+import { describe, expect, it } from 'vitest'
 import {
   findRegistryItem,
   getRegistryDependencies,
   getRegistryFilesForFramework,
   getRegistryItemNames,
+  validateRegistry,
 } from '../src'
+
+interface RegistryPackageJson {
+  name: string
+  exports: Record<string, unknown>
+}
 
 const testDir = dirname(fileURLToPath(import.meta.url))
 const packageRoot = resolve(testDir, '..')
+
+const publicRegistryItemNames = ['cn', 'globals', 'button', 'input']
+
+const publicRegistryExports = [
+  '.',
+  './schema',
+  './registry.json',
+  './templates/react/button.tsx',
+  './templates/react/input.tsx',
+  './templates/vue/button.vue',
+  './templates/vue/input.vue',
+  './templates/css/globals.css',
+  './templates/lib/cn.ts',
+]
 
 function read(relativePath: string): string {
   return readFileSync(resolve(packageRoot, relativePath), 'utf-8')
@@ -25,67 +44,18 @@ function readManifest(): RegistryManifest {
 }
 
 describe('@zeus-web/registry package contract', () => {
-  it('declares package exports', () => {
-    const packageJson = JSON.parse(read('package.json')) as {
-      name: string
-      exports: Record<string, unknown>
-    }
+  it('exports exactly the beta.0 registry surface', () => {
+    const packageJson = JSON.parse(read('package.json')) as RegistryPackageJson
 
     expect(packageJson.name).toBe('@zeus-web/registry')
-    expect(packageJson.exports).toHaveProperty('.')
-    expect(packageJson.exports).toHaveProperty('./schema')
-    expect(packageJson.exports).toHaveProperty('./registry.json')
-    expect(packageJson.exports).toHaveProperty('./templates/react/button.tsx')
-    expect(packageJson.exports).toHaveProperty('./templates/react/input.tsx')
-    expect(packageJson.exports).toHaveProperty('./templates/react/chat.tsx')
-    expect(packageJson.exports).toHaveProperty(
-      './templates/react/data-grid.tsx',
-    )
-    expect(packageJson.exports).toHaveProperty(
-      './templates/react/revogrid-adapter.tsx',
-    )
-    expect(packageJson.exports).toHaveProperty(
-      './templates/react/agent-console.tsx',
-    )
-    expect(packageJson.exports).toHaveProperty('./templates/vue/button.vue')
-    expect(packageJson.exports).toHaveProperty('./templates/vue/input.vue')
-    expect(packageJson.exports).toHaveProperty('./templates/vue/chat.vue')
-    expect(packageJson.exports).toHaveProperty('./templates/vue/data-grid.vue')
-    expect(packageJson.exports).toHaveProperty(
-      './templates/vue/revogrid-adapter.vue',
-    )
-    expect(packageJson.exports).toHaveProperty(
-      './templates/vue/agent-console.vue',
-    )
-    expect(packageJson.exports).toHaveProperty('./templates/native/chat.ts')
-    expect(packageJson.exports).toHaveProperty(
-      './templates/native/data-grid.ts',
-    )
-    expect(packageJson.exports).toHaveProperty(
-      './templates/native/revogrid-adapter.ts',
-    )
-    expect(packageJson.exports).toHaveProperty(
-      './templates/native/agent-console.ts',
-    )
-    expect(packageJson.exports).toHaveProperty('./templates/css/globals.css')
-    expect(packageJson.exports).toHaveProperty('./templates/lib/cn.ts')
+    expect(Object.keys(packageJson.exports)).toEqual(publicRegistryExports)
   })
 
-  it('contains required registry items', () => {
+  it('contains exactly the beta.0 registry items', () => {
     const manifest = readManifest()
-    const names = getRegistryItemNames(manifest)
 
     expect(manifest.schemaVersion).toBe(1)
-    expect(names).toEqual([
-      'cn',
-      'globals',
-      'button',
-      'input',
-      'chat',
-      'data-grid',
-      'revogrid-adapter',
-      'agent-console',
-    ])
+    expect(getRegistryItemNames(manifest)).toEqual(publicRegistryItemNames)
   })
 
   it('resolves item dependencies', () => {
@@ -96,21 +66,31 @@ describe('@zeus-web/registry package contract', () => {
     expect(button).toBeTruthy()
     expect(input).toBeTruthy()
 
-    expect(button?.dependencies).toEqual(['@zeus-web/button'])
-    expect(input?.dependencies).toEqual(['@zeus-web/input'])
+    if (!button || !input) {
+      throw new Error('button and input registry items are required')
+    }
+
+    expect(button.dependencies).toEqual(['@zeus-web/button'])
+    expect(input.dependencies).toEqual(['@zeus-web/input'])
 
     expect(
-      getRegistryDependencies(manifest, button!).map(item => item.name),
+      getRegistryDependencies(manifest, button).map(item => item.name),
     ).toEqual(['cn', 'globals'])
 
     expect(
-      getRegistryDependencies(manifest, input!).map(item => item.name),
+      getRegistryDependencies(manifest, input).map(item => item.name),
     ).toEqual(['cn', 'globals'])
   })
 
   it('resolves files by framework', () => {
     const manifest = readManifest()
-    const button = findRegistryItem(manifest, 'button')!
+    const button = findRegistryItem(manifest, 'button')
+
+    expect(button).toBeTruthy()
+
+    if (!button) {
+      throw new Error('button registry item is required')
+    }
 
     expect(getRegistryFilesForFramework(button, 'react')).toEqual([
       {
@@ -142,7 +122,70 @@ describe('@zeus-web/registry package contract', () => {
     }
   })
 
-  it('templates use primitives and local utility imports', () => {
+  it('rejects registry sources that escape the templates directory', () => {
+    const unsafeSources = [
+      'templates/../../../package.json',
+      'templates/..\\..\\package.json',
+    ]
+
+    for (const unsafeSource of unsafeSources) {
+      const manifest = readManifest()
+      const item = manifest.items[0]
+      const file = item && item.files[0]
+
+      if (!file) {
+        throw new Error('registry manifest must contain a source file')
+      }
+
+      file.source = unsafeSource
+
+      expect(validateRegistry(manifest)).toMatchObject({
+        valid: false,
+        errors: expect.arrayContaining([
+          expect.stringContaining('unsafe file source'),
+        ]),
+      })
+    }
+  })
+
+  it('rejects registry targets that escape the project directory', () => {
+    const unsafeTargets = [
+      '../../../package.json',
+      '..\\..\\package.json',
+      '/tmp/package.json',
+      '\\tmp\\package.json',
+      'C:/tmp/package.json',
+      'C:\\tmp\\package.json',
+      'C:package.json',
+      'C:..\\package.json',
+      'components/ui/C:outside.ts',
+      'lib/C:..\\outside.ts',
+      'components/ui//outside.ts',
+      'components/ui/\\outside.ts',
+      'styles/\\outside.css',
+    ]
+
+    for (const unsafeTarget of unsafeTargets) {
+      const manifest = readManifest()
+      const item = manifest.items[0]
+      const file = item && item.files[0]
+
+      if (!file) {
+        throw new Error('registry manifest must contain a target file')
+      }
+
+      file.target = unsafeTarget
+
+      expect(validateRegistry(manifest)).toMatchObject({
+        valid: false,
+        errors: expect.arrayContaining([
+          expect.stringContaining('unsafe file target'),
+        ]),
+      })
+    }
+  })
+
+  it('uses primitives and local utility imports in public templates', () => {
     expect(read('templates/react/button.tsx')).toContain(
       "import { Button as ButtonPrimitive } from '@zeus-web/button/react'",
     )
@@ -162,296 +205,5 @@ describe('@zeus-web/registry package contract', () => {
     expect(read('templates/vue/button.vue')).toContain(
       "import { cn } from '@/lib/cn'",
     )
-  })
-
-  it('registers chat across native/react/vue with safe templates', () => {
-    const manifest = readManifest()
-    const chat = findRegistryItem(manifest, 'chat')
-
-    expect(chat).toBeTruthy()
-    expect(chat?.dependencies).toEqual(['@zeus-web/chat'])
-    expect(chat?.frameworks).toEqual(
-      expect.arrayContaining(['native', 'react', 'vue']),
-    )
-    expect(getRegistryItemNames(manifest)).toContain('chat')
-
-    expect(chat?.files).toEqual(
-      expect.arrayContaining([
-        {
-          framework: 'native',
-          source: 'templates/native/chat.ts',
-          target: 'components/chat.ts',
-        },
-        {
-          framework: 'react',
-          source: 'templates/react/chat.tsx',
-          target: 'components/ui/chat.tsx',
-        },
-        {
-          framework: 'vue',
-          source: 'templates/vue/chat.vue',
-          target: 'components/ui/chat.vue',
-        },
-      ]),
-    )
-
-    const nativeSource = read('templates/native/chat.ts')
-    const reactSource = read('templates/react/chat.tsx')
-    const vueSource = read('templates/vue/chat.vue')
-
-    expect(nativeSource).toContain("import '@zeus-web/chat/wc/auto'")
-    expect(nativeSource).toContain("from '@zeus-web/chat'")
-    expect(nativeSource).toContain('mountChatDemo')
-    expect(nativeSource).toContain('zw-chat')
-    expect(nativeSource).toContain('zw-chat-thread')
-    expect(nativeSource).toContain('zw-chat-message')
-    expect(nativeSource).toContain('zw-chat-composer')
-    expect(nativeSource).toContain('scrollToBottom')
-    expect(nativeSource).not.toContain('String.raw')
-    expect(nativeSource).not.toContain('chatNativeSource')
-
-    expect(reactSource).toContain('@zeus-web/chat/react')
-    expect(reactSource).toContain("import { cn } from '@/lib/cn'")
-    expect(reactSource).toContain('ChatPrimitive')
-
-    expect(vueSource).toContain('@zeus-web/chat/vue')
-    expect(vueSource).toContain("import { cn } from '@/lib/cn'")
-    expect(vueSource).toContain('ChatPrimitive')
-
-    for (const source of [nativeSource, reactSource, vueSource]) {
-      expect(source).not.toContain('fetch(')
-      expect(source).not.toContain('Authorization')
-      expect(source).not.toContain('Bearer')
-      expect(source).not.toContain('apiKey')
-      expect(source).not.toContain('OPENAI_API_KEY')
-      expect(source).not.toContain('ANTHROPIC_API_KEY')
-      expect(source).not.toContain('DEEPSEEK_API_KEY')
-    }
-  })
-
-  it('registers data-grid across native/react/vue with safe templates', () => {
-    const manifest = readManifest()
-    const dataGrid = findRegistryItem(manifest, 'data-grid')
-
-    expect(dataGrid).toBeTruthy()
-    expect(dataGrid?.dependencies).toEqual(['@zeus-web/data-grid'])
-    expect(dataGrid?.frameworks).toEqual(
-      expect.arrayContaining(['native', 'react', 'vue']),
-    )
-    expect(getRegistryItemNames(manifest)).toContain('data-grid')
-
-    expect(dataGrid?.files).toEqual(
-      expect.arrayContaining([
-        {
-          framework: 'native',
-          source: 'templates/native/data-grid.ts',
-          target: 'components/data-grid.ts',
-        },
-        {
-          framework: 'react',
-          source: 'templates/react/data-grid.tsx',
-          target: 'components/ui/data-grid.tsx',
-        },
-        {
-          framework: 'vue',
-          source: 'templates/vue/data-grid.vue',
-          target: 'components/ui/data-grid.vue',
-        },
-      ]),
-    )
-
-    const nativeSource = read('templates/native/data-grid.ts')
-    const reactSource = read('templates/react/data-grid.tsx')
-    const vueSource = read('templates/vue/data-grid.vue')
-
-    expect(nativeSource).toContain("import '@zeus-web/data-grid/wc/auto'")
-    expect(nativeSource).toContain("from '@zeus-web/data-grid'")
-    expect(nativeSource).toContain('mountDataGridDemo')
-    expect(nativeSource).toContain('zw-data-grid')
-    expect(nativeSource).toContain('dataGridDemoColumns')
-    expect(nativeSource).toContain('dataGridDemoRows')
-    expect(nativeSource).not.toContain('String.raw')
-    expect(nativeSource).not.toContain('dataGridNativeSource')
-
-    expect(reactSource).toContain("from '@zeus-web/data-grid'")
-    expect(reactSource).toContain('@zeus-web/data-grid/react')
-    expect(reactSource).toContain("import { cn } from '@/lib/cn'")
-    expect(reactSource).toMatch(
-      /extends\s+ComponentProps<\s+typeof\s+DataGridPrimitive/,
-    )
-    expect(reactSource).toContain('DataGridPrimitive')
-    expect(reactSource).toContain('DataGridDemo')
-    expect(reactSource).not.toContain(
-      "DataGridRowData,\n} from '@zeus-web/data-grid/react'",
-    )
-
-    expect(vueSource).toContain("from '@zeus-web/data-grid'")
-    expect(vueSource).toContain('@zeus-web/data-grid/vue')
-    expect(vueSource).toContain("import { cn } from '@/lib/cn'")
-    expect(vueSource).toContain('DataGridPrimitive')
-    expect(vueSource).not.toContain(
-      "DataGridColumn, DataGridRowData } from '@zeus-web/data-grid/vue'",
-    )
-
-    for (const source of [nativeSource, reactSource, vueSource]) {
-      expect(source).not.toContain('fetch(')
-      expect(source).not.toContain('Authorization')
-      expect(source).not.toContain('Bearer')
-      expect(source).not.toContain('apiKey')
-      expect(source).not.toContain('OPENAI_API_KEY')
-      expect(source).not.toContain('ANTHROPIC_API_KEY')
-      expect(source).not.toContain('DEEPSEEK_API_KEY')
-      expect(source).not.toContain('ag-grid')
-      expect(source).not.toContain('@ag-grid')
-    }
-  })
-
-  it('registers revogrid-adapter across native/react/vue with safe templates', () => {
-    const manifest = readManifest()
-    const adapter = findRegistryItem(manifest, 'revogrid-adapter')
-
-    expect(adapter).toBeTruthy()
-    expect(adapter?.dependencies).toEqual(['@zeus-web/revogrid-adapter'])
-    expect(adapter?.frameworks).toEqual(
-      expect.arrayContaining(['native', 'react', 'vue']),
-    )
-    expect(getRegistryItemNames(manifest)).toContain('revogrid-adapter')
-
-    expect(adapter?.files).toEqual(
-      expect.arrayContaining([
-        {
-          framework: 'native',
-          source: 'templates/native/revogrid-adapter.ts',
-          target: 'components/revogrid-adapter.ts',
-        },
-        {
-          framework: 'react',
-          source: 'templates/react/revogrid-adapter.tsx',
-          target: 'components/ui/revogrid-adapter.tsx',
-        },
-        {
-          framework: 'vue',
-          source: 'templates/vue/revogrid-adapter.vue',
-          target: 'components/ui/revogrid-adapter.vue',
-        },
-      ]),
-    )
-
-    const nativeSource = read('templates/native/revogrid-adapter.ts')
-    const reactSource = read('templates/react/revogrid-adapter.tsx')
-    const vueSource = read('templates/vue/revogrid-adapter.vue')
-
-    expect(nativeSource).toContain(
-      "import '@zeus-web/revogrid-adapter/wc/auto'",
-    )
-    expect(nativeSource).toContain("from '@zeus-web/revogrid-adapter'")
-    expect(nativeSource).toContain('mountRevoGridAdapterDemo')
-    expect(nativeSource).toContain('zw-revogrid-adapter')
-    expect(nativeSource).toContain('revoGridAdapterDemoColumns')
-    expect(nativeSource).toContain('revoGridAdapterDemoRows')
-    expect(nativeSource).not.toContain('String.raw')
-    expect(nativeSource).not.toContain('revoGridAdapterNativeSource')
-
-    expect(reactSource).toContain("from '@zeus-web/revogrid-adapter'")
-    expect(reactSource).toContain('@zeus-web/revogrid-adapter/react')
-    expect(reactSource).toContain("import { cn } from '@/lib/cn'")
-    expect(reactSource).toMatch(
-      /extends\s+ComponentProps<\s*typeof\s+RevoGridAdapterPrimitive/,
-    )
-    expect(reactSource).toContain('RevoGridAdapterPrimitive')
-    expect(reactSource).toContain('RevoGridAdapterDemo')
-    expect(reactSource).not.toContain(
-      "DataGridRowData,\n} from '@zeus-web/revogrid-adapter/react'",
-    )
-
-    expect(vueSource).toContain("from '@zeus-web/revogrid-adapter'")
-    expect(vueSource).toContain('@zeus-web/revogrid-adapter/vue')
-    expect(vueSource).toContain("import { cn } from '@/lib/cn'")
-    expect(vueSource).toContain('RevoGridAdapterPrimitive')
-    expect(vueSource).not.toContain(
-      "DataGridColumn, DataGridRowData } from '@zeus-web/revogrid-adapter/vue'",
-    )
-
-    for (const source of [nativeSource, reactSource, vueSource]) {
-      expect(source).not.toContain('fetch(')
-      expect(source).not.toContain('Authorization')
-      expect(source).not.toContain('Bearer')
-      expect(source).not.toContain('apiKey')
-      expect(source).not.toContain('OPENAI_API_KEY')
-      expect(source).not.toContain('ANTHROPIC_API_KEY')
-      expect(source).not.toContain('DEEPSEEK_API_KEY')
-      expect(source).not.toContain('ag-grid')
-      expect(source).not.toContain('@ag-grid')
-      expect(source).not.toContain('@revolist/revogrid')
-      expect(source).not.toContain('defineCustomElements')
-    }
-  })
-
-  it('registers agent-console across native/react/vue with safe templates', () => {
-    const manifest = readManifest()
-    const agentConsole = findRegistryItem(manifest, 'agent-console')
-
-    expect(agentConsole).toBeTruthy()
-    expect(agentConsole?.dependencies).toEqual(['@zeus-web/agent-console'])
-    expect(agentConsole?.frameworks).toEqual(
-      expect.arrayContaining(['native', 'react', 'vue']),
-    )
-    expect(getRegistryItemNames(manifest)).toContain('agent-console')
-
-    expect(agentConsole?.files).toEqual(
-      expect.arrayContaining([
-        {
-          framework: 'native',
-          source: 'templates/native/agent-console.ts',
-          target: 'components/agent-console.ts',
-        },
-        {
-          framework: 'react',
-          source: 'templates/react/agent-console.tsx',
-          target: 'components/ui/agent-console.tsx',
-        },
-        {
-          framework: 'vue',
-          source: 'templates/vue/agent-console.vue',
-          target: 'components/ui/agent-console.vue',
-        },
-      ]),
-    )
-
-    const nativeSource = read('templates/native/agent-console.ts')
-    const reactSource = read('templates/react/agent-console.tsx')
-    const vueSource = read('templates/vue/agent-console.vue')
-
-    expect(nativeSource).toContain("import '@zeus-web/agent-console/wc/auto'")
-    expect(nativeSource).toContain("from '@zeus-web/agent-console'")
-    expect(nativeSource).toContain('mountAgentConsoleDemo')
-    expect(nativeSource).toContain('zw-agent-console')
-    expect(nativeSource).not.toContain('String.raw')
-    expect(nativeSource).not.toContain('agentConsoleNativeSource')
-
-    expect(reactSource).toContain("from '@zeus-web/agent-console'")
-    expect(reactSource).toContain('@zeus-web/agent-console/react')
-    expect(reactSource).toContain("import { cn } from '@/lib/cn'")
-    expect(reactSource).toMatch(
-      /extends\s+ComponentProps<\s*typeof\s+AgentConsolePrimitive/,
-    )
-    expect(reactSource).toContain('AgentConsolePrimitive')
-    expect(reactSource).toContain('AgentConsoleDemo')
-
-    expect(vueSource).toContain("from '@zeus-web/agent-console'")
-    expect(vueSource).toContain('@zeus-web/agent-console/vue')
-    expect(vueSource).toContain("import { cn } from '@/lib/cn'")
-    expect(vueSource).toContain('AgentConsolePrimitive')
-
-    for (const source of [nativeSource, reactSource, vueSource]) {
-      expect(source).not.toContain('fetch(')
-      expect(source).not.toContain('EventSource')
-      expect(source).not.toContain('WebSocket')
-      expect(source).not.toContain('Authorization')
-      expect(source).not.toContain('Bearer')
-      expect(source).not.toContain('OPENAI_API_KEY')
-      expect(source).not.toContain('ANTHROPIC_API_KEY')
-      expect(source).not.toContain('DEEPSEEK_API_KEY')
-    }
   })
 })

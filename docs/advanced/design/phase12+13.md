@@ -1308,14 +1308,10 @@ export type ZeusWebAiAdvancedComponentName =
   description:
     'RevoGrid-compatible adapter that maps Zeus DataGrid rows, columns, sorting and selection state to a <revo-grid> custom element without bundling RevoGrid itself.',
   primitivePackage: '@zeus-web/revogrid-adapter',
-  registryCommand: 'zweb add revogrid-adapter',
   installCommand: 'pnpm add @zeus-web/revogrid-adapter',
   reactImport:
     "import { RevoGridAdapter } from '@zeus-web/revogrid-adapter/react'",
   webComponentImport: "import '@zeus-web/revogrid-adapter/wc'",
-  styledImport:
-    "import { RevoGridAdapter } from '@/components/ui/revogrid-adapter'",
-  sourceTarget: 'components/ui/revogrid-adapter.tsx',
   dependencies: ['@zeus-web/revogrid-adapter'],
   props: [
     {
@@ -1444,10 +1440,8 @@ describe('revogrid-adapter ai metadata', () => {
     expect(adapter).toMatchObject({
       name: 'revogrid-adapter',
       primitivePackage: '@zeus-web/revogrid-adapter',
-      registryCommand: 'zweb add revogrid-adapter',
       installCommand: 'pnpm add @zeus-web/revogrid-adapter',
       dependencies: ['@zeus-web/revogrid-adapter'],
-      sourceTarget: 'components/ui/revogrid-adapter.tsx',
     })
   })
 
@@ -1845,3 +1839,5 @@ Phase 14: Agent Console Foundation
 ```txt id="7rpky5"
 Virtual -> Chat -> DataGrid Lite -> RevoGrid Adapter -> Agent Console
 ```
+
+> **Beta.0 范围更新（2026-07-26）**：本文中的高级 Registry 模板、exports 和产品契约方案已延期，不代表当前可用能力。Beta.0 Registry 只公开 `cn`、`globals`、`button`、`input`；`revogrid-adapter` 等高级组件只能通过各自的 `@zeus-web/*` 包使用。上述 Registry 章节仅保留为历史设计记录。

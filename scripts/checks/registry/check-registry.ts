@@ -69,6 +69,22 @@ const forbiddenDependencies = [
   'tailwind-merge',
 ]
 
+function isUnsafeRegistryPath(path: string): boolean {
+  const segments = path.split(/[\\/]/)
+
+  if (
+    !path ||
+    path.startsWith('/') ||
+    path.startsWith('\\') ||
+    segments.includes('') ||
+    segments.some(segment => /^[A-Z]:/i.test(segment))
+  ) {
+    return true
+  }
+
+  return segments.includes('..')
+}
+
 function read(relativePath: string): string {
   return readFileSync(resolve(packageRoot, relativePath), 'utf-8')
 }
@@ -121,9 +137,19 @@ function checkPackageJson(errors: string[]): void {
     './templates/lib/cn.ts',
   ]
 
+  const packageExports = packageJson.exports || {}
+
   for (const exportName of requiredExports) {
-    if (!packageJson.exports?.[exportName]) {
+    if (!packageExports[exportName]) {
       errors.push(`packages/registry/package.json missing export ${exportName}`)
+    }
+  }
+
+  for (const exportName of Object.keys(packageExports)) {
+    if (!requiredExports.includes(exportName)) {
+      errors.push(
+        `packages/registry/package.json has unexpected beta.0 export ${exportName}`,
+      )
     }
   }
 
@@ -200,11 +226,14 @@ function checkManifestShape(
         errors.push(`${item.name}: invalid file framework ${file.framework}`)
       }
 
-      if (!file.source.startsWith('templates/')) {
-        errors.push(`${item.name}: file source must start with templates/`)
+      if (
+        !file.source.startsWith('templates/') ||
+        isUnsafeRegistryPath(file.source)
+      ) {
+        errors.push(`${item.name}: unsafe file source ${file.source}`)
       }
 
-      if (file.target.startsWith('/') || file.target.includes('..')) {
+      if (isUnsafeRegistryPath(file.target)) {
         errors.push(`${item.name}: unsafe file target ${file.target}`)
       }
 
@@ -217,6 +246,12 @@ function checkManifestShape(
   for (const requiredName of requiredItemNames) {
     if (!names.has(requiredName)) {
       errors.push(`registry.json missing required item ${requiredName}`)
+    }
+  }
+
+  for (const name of names) {
+    if (!requiredItemNames.includes(name)) {
+      errors.push(`registry.json has unexpected beta.0 item ${name}`)
     }
   }
 

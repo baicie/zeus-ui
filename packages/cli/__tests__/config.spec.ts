@@ -87,6 +87,31 @@ describe('@zeus-web/cli config', () => {
     }
   })
 
+  it('rejects registry targets that escape configured aliases', () => {
+    const cwd = resolve('project')
+    const config = createDefaultComponentsConfig()
+    const unsafeTargets = [
+      '../../../package.json',
+      '..\\..\\package.json',
+      '/tmp/package.json',
+      '\\tmp\\package.json',
+      'C:/tmp/package.json',
+      'C:\\tmp\\package.json',
+      'C:package.json',
+      'components/ui/C:outside.ts',
+      'components/ui//outside.ts',
+      'components/ui/\\outside.ts',
+      'lib//outside.ts',
+      'styles/\\outside.css',
+    ]
+
+    for (const unsafeTarget of unsafeTargets) {
+      expect(() => resolveRegistryTarget(cwd, config, unsafeTarget)).toThrow(
+        'registry target',
+      )
+    }
+  })
+
   it('creates theme css file', async () => {
     const cwd = await createTempDir()
 
