@@ -46,6 +46,13 @@ export interface WorkspacePackage {
   isPrivate: boolean
 }
 
+export interface WorkspacePackageCounts {
+  total: number
+  base: number
+  primitive: number
+  advanced: number
+}
+
 export const packageRoots = [
   { dir: 'packages', kind: 'package' },
   { dir: 'packages/primitives', kind: 'primitive' },
@@ -53,6 +60,13 @@ export const packageRoots = [
 ] as const
 
 export const repositoryUrl = 'https://github.com/baicie/zeus-ui.git'
+
+export const expectedWorkspacePackageCounts: WorkspacePackageCounts = {
+  total: 36,
+  base: 11,
+  primitive: 20,
+  advanced: 5,
+}
 
 function toForwardSlash(value: string): string {
   return value.replace(/\\/g, '/')
@@ -129,6 +143,25 @@ export function listPublishablePackages(
   root = process.cwd(),
 ): WorkspacePackage[] {
   return listWorkspacePackages(root).filter(pkg => !pkg.isPrivate)
+}
+
+export function countWorkspacePackages(
+  packages: WorkspacePackage[],
+): WorkspacePackageCounts {
+  const counts: WorkspacePackageCounts = {
+    total: packages.length,
+    base: 0,
+    primitive: 0,
+    advanced: 0,
+  }
+
+  for (const pkg of packages) {
+    if (pkg.kind === 'package') counts.base += 1
+    if (pkg.kind === 'primitive') counts.primitive += 1
+    if (pkg.kind === 'advanced') counts.advanced += 1
+  }
+
+  return counts
 }
 
 export function getPackageByName(

@@ -1,5 +1,7 @@
 import { defineReleaseConfig } from '@baicie/release'
 
+import { packageRoots } from './release/workspace'
+
 export default defineReleaseConfig({
   repo: 'baicie/zeus-ui',
   repositoryUrl: 'https://github.com/baicie/zeus-ui.git',
@@ -7,7 +9,7 @@ export default defineReleaseConfig({
   packageManager: 'pnpm',
 
   workspace: {
-    roots: ['packages', 'packages/primitives'],
+    roots: packageRoots.map(root => root.dir),
     publishable(pkg) {
       return pkg.name.startsWith('@zeus-web/')
     },

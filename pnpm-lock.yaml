@@ -131,6 +131,9 @@ importers:
       vue:
         specifier: ^3.5.38
         version: 3.5.38(typescript@6.0.3)
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
 
   apps/docs:
     devDependencies:
