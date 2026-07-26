@@ -1,13 +1,41 @@
 name: Publish to NPM
 
 on:
-  push:
-    tags:
-      - 'default@*'
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      tag:
+        required: true
+        type: string
+      release_sha:
+        required: true
+        type: string
+    secrets:
+      NPM_PUBLISH_TOKEN:
+        required: true
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version without the v prefix
+        required: true
+        type: string
+      tag:
+        description: npm dist-tag
+        required: true
+        type: choice
+        options:
+          - beta
+          - latest
+      release_sha:
+        description: Immutable release commit SHA
+        required: true
+        type: string
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: publish-${{ github.repository }}-${{ inputs.tag }}
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -17,23 +45,50 @@ jobs:
       id-token: write
     environment: Release
     steps:
-      - uses: actions/checkout@v5
+      - name: Verify dispatch context
+        run: |
+          test "$GITHUB_REF" = "refs/tags/v$VERSION"
+          test "$GITHUB_SHA" = "$RELEASE_SHA"
+        env:
+          VERSION: ${{ inputs.version }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
+          ref: ${{ inputs.release_sha }}
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
+      - name: Verify release tag
+        run: |
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          test "$(git rev-parse "refs/tags/v${VERSION}^{commit}")" = "$RELEASE_SHA"
+        env:
+          VERSION: ${{ inputs.version }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
 
-      - uses: actions/setup-node@v5
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version-file: .node-version
           registry-url: https://registry.npmjs.org/
           cache: pnpm
 
-      - run: pnpm install
+      - run: pnpm install --frozen-lockfile
 
-      - run: npm i -g npm@latest
+      - name: Build packages
+        run: pnpm build
+
+      - name: Verify build outputs
+        run: pnpm check:build-output
+
+      - name: Verify release tarballs
+        run: pnpm release:verify:pack
 
       - name: Publish package
-        run: pnpm run ci-publish --tag latest
+        run: pnpm run ci-publish --version "$VERSION" --tag "$TAG"
         env:
+          VERSION: ${{ inputs.version }}
+          TAG: ${{ inputs.tag }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}

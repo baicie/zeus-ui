@@ -137,7 +137,7 @@ pnpm check:native-showcase
 pnpm check:phase24-release
 pnpm release:verify:strict
 pnpm release:verify:pack
-pnpm release:final
+pnpm release:final 0.1.0-beta.0 --allow-zero
 pnpm check:public-docs
 pnpm docs:check
 pnpm docs:build
