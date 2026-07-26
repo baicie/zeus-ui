@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-const DEFAULT_VERSION = '0.1.0-beta.7'
+const DEFAULT_VERSION = '0.1.0-beta.8'
 const ZEUS_SCOPE = '@zeus-js/'
 
 const DEP_FIELDS = [
