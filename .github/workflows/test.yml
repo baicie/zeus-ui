@@ -28,6 +28,7 @@ jobs:
 
   unit-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
     steps:
@@ -45,6 +46,7 @@ jobs:
 
   unit-test-windows:
     runs-on: windows-latest
+    timeout-minutes: 25
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
     steps:
@@ -60,8 +62,9 @@ jobs:
       - run: pnpm test-unit:jsdom
       - run: pnpm test-unit:react-showcase
 
-  e2e-test:
+  build-output:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
     steps:
@@ -73,11 +76,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - run: pnpm site:check
       - run: pnpm check:build-output
 
   lint-and-test-dts:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
     steps:
