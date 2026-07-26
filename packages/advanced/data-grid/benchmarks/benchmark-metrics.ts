@@ -1,72 +1,53 @@
-// packages/advanced/data-grid/benchmarks/benchmark-metrics.ts
-
 import type {
   DataGridColumn,
+  DataGridElement,
+  DataGridRangeChangeDetail,
   DataGridRowData,
-  DataGridVirtualSnapshot,
-  NormalizedDataGridColumn,
-} from '../src/types'
+} from '../src'
 
 import { performance } from 'node:perf_hooks'
 import process from 'node:process'
-import { createEmptyVirtualRange } from '@zeus-web/virtual'
-import {
-  applyDataGridColumnWidths,
-  createDataGridColumnWidthState,
-  createDataGridRows,
-  createDataGridRowVirtualizer,
-  getVisibleDataGridColumns,
-  normalizeDataGridColumns,
-  shouldUpdateDataGridVirtualSnapshot,
-} from '../src/core'
 
-export interface DataGridDomBudgetInput {
-  renderedRowCount: number
-  renderedColumnCount: number
-}
+type DataGridRuntimeHarness =
+  typeof import('../../../../e2e/advanced/data-grid/data-grid-runtime-harness')
 
-export interface DataGridDomBudget {
-  shellNodes: number
-  headerNodes: number
-  rowNodes: number
-  cellNodes: number
-  totalNodes: number
-}
-
-export interface DataGridBenchmarkRuntimeOptions {
+export interface DataGridBenchmarkInput {
+  name: string
   rows: DataGridRowData[]
   columns: DataGridColumn[]
   rowHeight: number
   overscan: number
+  viewportSize: number
 }
 
-export interface DataGridBenchmarkCounters {
-  normalizeColumns: number
-  createRows: number
-  createVirtualizer: number
-  snapshots: number
-  rangeChanges: number
+export interface DataGridScrollBenchmarkInput extends DataGridBenchmarkInput {
+  frames: number
 }
 
-export interface DataGridBenchmarkRuntime {
-  getColumns: () => NormalizedDataGridColumn[]
-  getSnapshot: (
-    scrollOffset: number,
-    viewportSize: number,
-  ) => DataGridVirtualSnapshot
-  scrollToOffset: (
-    scrollOffset: number,
-    viewportSize: number,
-  ) => DataGridVirtualSnapshot
-  updateRows: (rows: DataGridRowData[]) => void
-  updateColumns: (columns: DataGridColumn[]) => void
-  getCounters: () => DataGridBenchmarkCounters
+export interface DataGridUpdateBenchmarkInput extends DataGridBenchmarkInput {
+  nextRows: DataGridRowData[]
+  nextColumns: DataGridColumn[]
+}
+
+export interface DataGridDomSnapshot {
+  renderedRows: number
+  renderedColumns: number
+  renderedCells: number
+  totalElements: number
+  firstRenderedRowKey: string
+  lastRenderedRowIndex: number
+}
+
+export interface DataGridMemorySample {
+  heapUsed: number
+  heapTotal: number
+  rss: number
 }
 
 export interface DataGridMemoryTrend {
   heapUsedDelta: number
-  heapTotalDelta?: number
-  rssDelta?: number
+  heapTotalDelta: number
+  rssDelta: number
 }
 
 export interface DataGridRenderBenchmarkResult {
@@ -74,33 +55,30 @@ export interface DataGridRenderBenchmarkResult {
   rowCount: number
   columnCount: number
   firstRenderMs: number
-  renderedRows: number
-  renderedColumns: number
-  estimatedDomNodes: DataGridDomBudget
+  dom: DataGridDomSnapshot
   totalSize: number
-  memoryBefore?: DataGridMemorySample
-  memoryAfter?: DataGridMemorySample
-  memoryTrend?: DataGridMemoryTrend
+  memoryBefore: DataGridMemorySample
+  memoryAfter: DataGridMemorySample
+  memoryTrend: DataGridMemoryTrend
 }
 
 export interface DataGridScrollBenchmarkResult {
   name: string
   frames: number
-  durationMs: number
-  averageFrameCostMs: number
-  /**
-   * Node model-loop estimated FPS.
-   * This is NOT browser rAF FPS — it reflects the pure data-model
-   * loop cost, not real DOM rendering or compositor thread activity.
-   */
-  estimatedFps: number
+  frameDurationMs: number
+  averageFrameLatencyMs: number
+  framesPerSecond: number
   rangeChanges: number
   renderedRowsMax: number
+  renderedCellsMax: number
   renderedRowsBudget: number
-  counters: DataGridBenchmarkCounters
-  memoryBefore?: DataGridMemorySample
-  memoryAfter?: DataGridMemorySample
-  memoryTrend?: DataGridMemoryTrend
+  rowCountAfterScroll: number
+  columnCountAfterScroll: number
+  lastItemIndexAfterScroll: number
+  lastRenderedRowIndexAfterScroll: number
+  memoryBefore: DataGridMemorySample
+  memoryAfter: DataGridMemorySample
+  memoryTrend: DataGridMemoryTrend
 }
 
 export interface DataGridUpdateBenchmarkResult {
@@ -108,52 +86,58 @@ export interface DataGridUpdateBenchmarkResult {
   initialRenderMs: number
   rowsUpdateMs: number
   columnsUpdateMs: number
-  counters: DataGridBenchmarkCounters
-  memoryBefore?: DataGridMemorySample
-  memoryAfter?: DataGridMemorySample
-  memoryTrend?: DataGridMemoryTrend
+  rowCountAfterUpdate: number
+  columnCountAfterUpdate: number
+  totalSizeAfterRowsUpdate: number
+  domAfterRowsUpdate: DataGridDomSnapshot
+  domAfterColumnsUpdate: DataGridDomSnapshot
+  firstCellTextAfterColumnsUpdate: string
+  memoryBefore: DataGridMemorySample
+  memoryAfter: DataGridMemorySample
+  memoryTrend: DataGridMemoryTrend
 }
 
-export interface DataGridMemorySample {
-  heapUsed: number
-  heapTotal?: number
-  rss?: number
+interface MountedBenchmarkRun<T> {
+  run: (grid: DataGridElement, harness: DataGridRuntimeHarness) => Promise<T>
 }
 
-function cloneEmptyDataGridSnapshot(): DataGridVirtualSnapshot {
+interface MountedBenchmarkRunFactory<T> {
+  (): MountedBenchmarkRun<T>
+}
+
+export type DataGridBenchmarkKind = 'render' | 'scroll' | 'update'
+
+export const DATA_GRID_BENCHMARK_RESULT_PREFIX = '[data-grid:benchmark]'
+
+export function formatDataGridBenchmarkResult(
+  kind: DataGridBenchmarkKind,
+  result:
+    | DataGridRenderBenchmarkResult
+    | DataGridScrollBenchmarkResult
+    | DataGridUpdateBenchmarkResult,
+): string {
+  return `${DATA_GRID_BENCHMARK_RESULT_PREFIX} ${JSON.stringify({ kind, result })}`
+}
+
+export function captureDataGridDomSnapshot(
+  grid: DataGridElement,
+): DataGridDomSnapshot {
+  const rows = grid.querySelectorAll<HTMLElement>('[data-slot="data-grid-row"]')
+  const firstRow = rows.length > 0 ? rows[0] : undefined
+  const lastRow = rows.length > 0 ? rows[rows.length - 1] : undefined
+  const lastRowIndex = lastRow ? lastRow.getAttribute('data-row-index') : null
+
   return {
-    range: createEmptyVirtualRange(),
-    items: [],
-    totalSize: 0,
-  }
-}
-
-export function estimateDataGridDomBudget(
-  input: DataGridDomBudgetInput,
-): DataGridDomBudget {
-  const renderedRowCount = Math.max(0, input.renderedRowCount)
-  const renderedColumnCount = Math.max(0, input.renderedColumnCount)
-
-  // 当前结构：
-  // Host + viewport + header + spacer + body + empty。
-  const shellNodes = 6
-
-  // 每个 header cell 包含：
-  // header-cell + header-label + resize-handle。
-  const headerNodes = renderedColumnCount * 3
-
-  // 每个 body row 是一个 row 节点。
-  const rowNodes = renderedRowCount
-
-  // 当前横向未虚拟化，所以 cell = rendered rows × visible columns。
-  const cellNodes = renderedRowCount * renderedColumnCount
-
-  return {
-    shellNodes,
-    headerNodes,
-    rowNodes,
-    cellNodes,
-    totalNodes: shellNodes + headerNodes + rowNodes + cellNodes,
+    renderedRows: rows.length,
+    renderedColumns: grid.querySelectorAll(
+      '[data-slot="data-grid-header-cell"]',
+    ).length,
+    renderedCells: grid.querySelectorAll('[data-slot="data-grid-cell"]').length,
+    totalElements: grid.querySelectorAll('*').length + 1,
+    firstRenderedRowKey: firstRow
+      ? firstRow.getAttribute('data-row-key') || ''
+      : '',
+    lastRenderedRowIndex: lastRowIndex === null ? -1 : Number(lastRowIndex),
   }
 }
 
@@ -162,288 +146,24 @@ export function getRenderedRowsBudget(
   rowHeight: number,
   overscan: number,
 ): number {
-  // 纵向虚拟化在 scroll 边界 offset 时，会多露出半行
-  // （顶部 / 底部各占一行的部分），所以 max visible rows 用
-  // floor(viewport/rowHeight) + 1，而不是 ceil。
   const safeRowHeight = Math.max(1, rowHeight)
   const visibleRows = Math.floor(Math.max(0, viewportSize) / safeRowHeight) + 1
 
   return visibleRows + Math.max(0, overscan) * 2
 }
 
-export function createDataGridBenchmarkRuntime(
-  options: DataGridBenchmarkRuntimeOptions,
-): DataGridBenchmarkRuntime {
-  let rowsSource = options.rows
-  let columnsSource = options.columns
-
-  const counters: DataGridBenchmarkCounters = {
-    normalizeColumns: 0,
-    createRows: 0,
-    createVirtualizer: 0,
-    snapshots: 0,
-    rangeChanges: 0,
-  }
-
-  let currentSnapshot = cloneEmptyDataGridSnapshot()
-
-  let columns = normalizeColumns(columnsSource)
-  let rows = normalizeRows(rowsSource)
-  let virtualizer = createVirtualizer(rows)
-
-  function normalizeColumns(
-    source: DataGridColumn[],
-  ): NormalizedDataGridColumn[] {
-    counters.normalizeColumns += 1
-
-    const baseColumns = normalizeDataGridColumns(source)
-    const widths = createDataGridColumnWidthState(baseColumns)
-
-    return getVisibleDataGridColumns(
-      applyDataGridColumnWidths(baseColumns, widths),
-    )
-  }
-
-  function normalizeRows(source: DataGridRowData[]) {
-    counters.createRows += 1
-    return createDataGridRows(source)
-  }
-
-  function createVirtualizer(nextRows = rows) {
-    counters.createVirtualizer += 1
-
-    return createDataGridRowVirtualizer({
-      rows: nextRows,
-      rowHeight: options.rowHeight,
-      overscan: options.overscan,
-    })
-  }
-
-  function getSnapshot(
-    scrollOffset: number,
-    viewportSize: number,
-  ): DataGridVirtualSnapshot {
-    counters.snapshots += 1
-
-    const nextSnapshot = virtualizer.getSnapshot(scrollOffset, viewportSize)
-
-    if (shouldUpdateDataGridVirtualSnapshot(currentSnapshot, nextSnapshot)) {
-      counters.rangeChanges += 1
-      currentSnapshot = nextSnapshot
-    }
-
-    return nextSnapshot
-  }
-
-  return {
-    getColumns() {
-      return columns
-    },
-
-    getSnapshot,
-
-    scrollToOffset(scrollOffset, viewportSize) {
-      return getSnapshot(scrollOffset, viewportSize)
-    },
-
-    updateRows(nextRows) {
-      rowsSource = nextRows
-      rows = normalizeRows(rowsSource)
-      virtualizer = createVirtualizer(rows)
-      currentSnapshot = cloneEmptyDataGridSnapshot()
-    },
-
-    updateColumns(nextColumns) {
-      columnsSource = nextColumns
-      columns = normalizeColumns(columnsSource)
-    },
-
-    getCounters() {
-      return { ...counters }
-    },
-  }
-}
-
 export function getDataGridMemoryTrend(
-  before: DataGridMemorySample | undefined,
-  after: DataGridMemorySample | undefined,
-): DataGridMemoryTrend | undefined {
-  if (!before || !after) {
-    return undefined
-  }
-
+  before: DataGridMemorySample,
+  after: DataGridMemorySample,
+): DataGridMemoryTrend {
   return {
     heapUsedDelta: after.heapUsed - before.heapUsed,
-    heapTotalDelta:
-      before.heapTotal === undefined || after.heapTotal === undefined
-        ? undefined
-        : after.heapTotal - before.heapTotal,
-    rssDelta:
-      before.rss === undefined || after.rss === undefined
-        ? undefined
-        : after.rss - before.rss,
+    heapTotalDelta: after.heapTotal - before.heapTotal,
+    rssDelta: after.rss - before.rss,
   }
 }
 
-export function measureDataGridFirstRender(input: {
-  name: string
-  rows: DataGridRowData[]
-  columns: DataGridColumn[]
-  rowHeight: number
-  overscan: number
-  viewportSize: number
-}): DataGridRenderBenchmarkResult {
-  const memoryBefore = sampleDataGridMemory()
-  const start = performance.now()
-
-  const runtime = createDataGridBenchmarkRuntime({
-    rows: input.rows,
-    columns: input.columns,
-    rowHeight: input.rowHeight,
-    overscan: input.overscan,
-  })
-
-  const snapshot = runtime.getSnapshot(0, input.viewportSize)
-  const columns = runtime.getColumns()
-
-  const firstRenderMs = performance.now() - start
-  const memoryAfter = sampleDataGridMemory()
-
-  return {
-    name: input.name,
-    rowCount: input.rows.length,
-    columnCount: input.columns.length,
-    firstRenderMs,
-    renderedRows: snapshot.items.length,
-    renderedColumns: columns.length,
-    estimatedDomNodes: estimateDataGridDomBudget({
-      renderedRowCount: snapshot.items.length,
-      renderedColumnCount: columns.length,
-    }),
-    totalSize: snapshot.totalSize,
-    memoryBefore,
-    memoryAfter,
-    memoryTrend: getDataGridMemoryTrend(memoryBefore, memoryAfter),
-  }
-}
-
-export function measureDataGridScroll(input: {
-  name: string
-  rows: DataGridRowData[]
-  columns: DataGridColumn[]
-  rowHeight: number
-  overscan: number
-  viewportSize: number
-  frames: number
-}): DataGridScrollBenchmarkResult {
-  const runtime = createDataGridBenchmarkRuntime({
-    rows: input.rows,
-    columns: input.columns,
-    rowHeight: input.rowHeight,
-    overscan: input.overscan,
-  })
-
-  const maxScrollOffset = Math.max(
-    0,
-    input.rows.length * input.rowHeight - input.viewportSize,
-  )
-
-  const memoryBefore = sampleDataGridMemory()
-  const start = performance.now()
-  let renderedRowsMax = 0
-
-  for (let frame = 0; frame < input.frames; frame += 1) {
-    const ratio = input.frames <= 1 ? 1 : frame / (input.frames - 1)
-    const offset = Math.round(maxScrollOffset * ratio)
-    const snapshot = runtime.scrollToOffset(offset, input.viewportSize)
-
-    renderedRowsMax = Math.max(renderedRowsMax, snapshot.items.length)
-  }
-
-  const durationMs = performance.now() - start
-  const memoryAfter = sampleDataGridMemory()
-  const counters = runtime.getCounters()
-
-  const averageFrameCostMs = durationMs / Math.max(1, input.frames)
-  const estimatedFps =
-    averageFrameCostMs <= 0
-      ? Number.POSITIVE_INFINITY
-      : 1000 / averageFrameCostMs
-
-  return {
-    name: input.name,
-    frames: input.frames,
-    durationMs,
-    averageFrameCostMs,
-    estimatedFps,
-    rangeChanges: counters.rangeChanges,
-    renderedRowsMax,
-    renderedRowsBudget: getRenderedRowsBudget(
-      input.viewportSize,
-      input.rowHeight,
-      input.overscan,
-    ),
-    counters,
-    memoryBefore,
-    memoryAfter,
-    memoryTrend: getDataGridMemoryTrend(memoryBefore, memoryAfter),
-  }
-}
-
-export function measureDataGridUpdates(input: {
-  name: string
-  rows: DataGridRowData[]
-  nextRows: DataGridRowData[]
-  columns: DataGridColumn[]
-  nextColumns: DataGridColumn[]
-  rowHeight: number
-  overscan: number
-  viewportSize: number
-}): DataGridUpdateBenchmarkResult {
-  const memoryBefore = sampleDataGridMemory()
-
-  const initialStart = performance.now()
-  const runtime = createDataGridBenchmarkRuntime({
-    rows: input.rows,
-    columns: input.columns,
-    rowHeight: input.rowHeight,
-    overscan: input.overscan,
-  })
-  runtime.getSnapshot(0, input.viewportSize)
-  const initialRenderMs = performance.now() - initialStart
-
-  const rowsUpdateStart = performance.now()
-  runtime.updateRows(input.nextRows)
-  runtime.getSnapshot(0, input.viewportSize)
-  const rowsUpdateMs = performance.now() - rowsUpdateStart
-
-  const columnsUpdateStart = performance.now()
-  runtime.updateColumns(input.nextColumns)
-  runtime.getSnapshot(0, input.viewportSize)
-  const columnsUpdateMs = performance.now() - columnsUpdateStart
-
-  const memoryAfter = sampleDataGridMemory()
-
-  return {
-    name: input.name,
-    initialRenderMs,
-    rowsUpdateMs,
-    columnsUpdateMs,
-    counters: runtime.getCounters(),
-    memoryBefore,
-    memoryAfter,
-    memoryTrend: getDataGridMemoryTrend(memoryBefore, memoryAfter),
-  }
-}
-
-export function sampleDataGridMemory(): DataGridMemorySample | undefined {
-  if (
-    typeof process === 'undefined' ||
-    typeof process.memoryUsage !== 'function'
-  ) {
-    return undefined
-  }
-
+export function sampleDataGridMemory(): DataGridMemorySample {
   const memory = process.memoryUsage()
 
   return {
@@ -451,4 +171,217 @@ export function sampleDataGridMemory(): DataGridMemorySample | undefined {
     heapTotal: memory.heapTotal,
     rss: memory.rss,
   }
+}
+
+function mountBenchmarkGrid(
+  input: DataGridBenchmarkInput,
+  harness: DataGridRuntimeHarness,
+): Promise<DataGridElement> {
+  return harness
+    .mountDataGrid({
+      rows: input.rows,
+      columns: input.columns,
+      rowHeight: input.rowHeight,
+      overscan: input.overscan,
+      virtual: true,
+    })
+    .then(grid => {
+      const viewport = harness.getViewport(grid)
+      harness.setElementClientHeight(viewport, input.viewportSize)
+      grid.refreshViewport()
+
+      return harness.nextFrame().then(() => grid)
+    })
+}
+
+function runMountedBenchmark<T>(
+  input: DataGridBenchmarkInput,
+  createBenchmarkRun: MountedBenchmarkRunFactory<T>,
+): Promise<T> {
+  return import('../../../../e2e/advanced/data-grid/data-grid-runtime-harness').then(
+    harness => {
+      harness.cleanupDataGridFixtures()
+      const benchmark = createBenchmarkRun()
+
+      return mountBenchmarkGrid(input, harness)
+        .then(grid => benchmark.run(grid, harness))
+        .then(
+          result => {
+            harness.cleanupDataGridFixtures()
+            return result
+          },
+          error => {
+            harness.cleanupDataGridFixtures()
+            throw error
+          },
+        )
+    },
+  )
+}
+
+export function measureDataGridFirstRender(
+  input: DataGridBenchmarkInput,
+): Promise<DataGridRenderBenchmarkResult> {
+  return runMountedBenchmark(input, () => {
+    const memoryBefore = sampleDataGridMemory()
+    const start = performance.now()
+
+    return {
+      run(grid) {
+        const firstRenderMs = performance.now() - start
+        const memoryAfter = sampleDataGridMemory()
+
+        return Promise.resolve({
+          name: input.name,
+          rowCount: input.rows.length,
+          columnCount: input.columns.length,
+          firstRenderMs,
+          dom: captureDataGridDomSnapshot(grid),
+          totalSize: grid.getTotalSize(),
+          memoryBefore,
+          memoryAfter,
+          memoryTrend: getDataGridMemoryTrend(memoryBefore, memoryAfter),
+        })
+      },
+    }
+  })
+}
+
+export function measureDataGridScroll(
+  input: DataGridScrollBenchmarkInput,
+): Promise<DataGridScrollBenchmarkResult> {
+  return runMountedBenchmark(input, () => ({
+    run(grid, harness) {
+      const collector = harness.collectEvents<DataGridRangeChangeDetail>(
+        grid,
+        'range-change',
+      )
+      const memoryBefore = sampleDataGridMemory()
+      const frames = Math.max(1, Math.floor(input.frames))
+      const maxScrollOffset = Math.max(
+        0,
+        input.rows.length * input.rowHeight - input.viewportSize,
+      )
+      let frameDurationMs = 0
+      let renderedRowsMax = 0
+      let renderedCellsMax = 0
+      let lastRenderedRowIndexAfterScroll = -1
+      let sequence = Promise.resolve()
+
+      for (let frame = 0; frame < frames; frame += 1) {
+        const ratio = frames <= 1 ? 1 : frame / (frames - 1)
+        const offset = Math.round(maxScrollOffset * ratio)
+
+        sequence = sequence.then(() => {
+          const frameStart = performance.now()
+
+          grid.scrollToOffset(offset)
+
+          return harness.nextFrame().then(() => {
+            frameDurationMs += performance.now() - frameStart
+            const dom = captureDataGridDomSnapshot(grid)
+            renderedRowsMax = Math.max(renderedRowsMax, dom.renderedRows)
+            renderedCellsMax = Math.max(renderedCellsMax, dom.renderedCells)
+            lastRenderedRowIndexAfterScroll = dom.lastRenderedRowIndex
+          })
+        })
+      }
+
+      return sequence.then(
+        () => {
+          const averageFrameLatencyMs = frameDurationMs / frames
+          const memoryAfter = sampleDataGridMemory()
+          const itemsAfterScroll = grid.getItems()
+          const result: DataGridScrollBenchmarkResult = {
+            name: input.name,
+            frames,
+            frameDurationMs,
+            averageFrameLatencyMs,
+            framesPerSecond:
+              averageFrameLatencyMs <= 0
+                ? Number.POSITIVE_INFINITY
+                : 1000 / averageFrameLatencyMs,
+            rangeChanges: collector.events.length,
+            renderedRowsMax,
+            renderedCellsMax,
+            renderedRowsBudget: getRenderedRowsBudget(
+              input.viewportSize,
+              input.rowHeight,
+              input.overscan,
+            ),
+            rowCountAfterScroll: grid.getRows().length,
+            columnCountAfterScroll: grid.getColumns().length,
+            lastItemIndexAfterScroll:
+              itemsAfterScroll.length > 0
+                ? itemsAfterScroll[itemsAfterScroll.length - 1].index
+                : -1,
+            lastRenderedRowIndexAfterScroll,
+            memoryBefore,
+            memoryAfter,
+            memoryTrend: getDataGridMemoryTrend(memoryBefore, memoryAfter),
+          }
+
+          collector.dispose()
+          return result
+        },
+        error => {
+          collector.dispose()
+          throw error
+        },
+      )
+    },
+  }))
+}
+
+export function measureDataGridUpdates(
+  input: DataGridUpdateBenchmarkInput,
+): Promise<DataGridUpdateBenchmarkResult> {
+  return runMountedBenchmark(input, () => {
+    const memoryBefore = sampleDataGridMemory()
+    const initialStart = performance.now()
+
+    return {
+      run(grid, harness) {
+        const initialRenderMs = performance.now() - initialStart
+        const rowsUpdateStart = performance.now()
+
+        grid.setRows(input.nextRows)
+
+        return harness.nextFrame().then(() => {
+          const rowsUpdateMs = performance.now() - rowsUpdateStart
+          const totalSizeAfterRowsUpdate = grid.getTotalSize()
+          const domAfterRowsUpdate = captureDataGridDomSnapshot(grid)
+          const columnsUpdateStart = performance.now()
+
+          grid.setColumns(input.nextColumns)
+
+          return harness.nextFrame().then(() => {
+            const columnsUpdateMs = performance.now() - columnsUpdateStart
+            const domAfterColumnsUpdate = captureDataGridDomSnapshot(grid)
+            const firstCell = grid.querySelector<HTMLElement>(
+              '[data-slot="data-grid-cell"]',
+            )
+            const memoryAfter = sampleDataGridMemory()
+
+            return {
+              name: input.name,
+              initialRenderMs,
+              rowsUpdateMs,
+              columnsUpdateMs,
+              rowCountAfterUpdate: grid.getRows().length,
+              columnCountAfterUpdate: grid.getColumns().length,
+              totalSizeAfterRowsUpdate,
+              domAfterRowsUpdate,
+              domAfterColumnsUpdate,
+              firstCellTextAfterColumnsUpdate:
+                firstCell && firstCell.textContent ? firstCell.textContent : '',
+              memoryBefore,
+              memoryAfter,
+              memoryTrend: getDataGridMemoryTrend(memoryBefore, memoryAfter),
+            }
+          })
+        })
+      },
+    }
+  })
 }

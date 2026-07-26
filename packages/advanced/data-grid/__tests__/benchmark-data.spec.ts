@@ -77,12 +77,7 @@ describe('data-grid benchmark data', () => {
       }),
     ])
 
-    expect(Object.keys(rows[0] ?? {})).toEqual([
-      'id',
-      'index',
-      'col_1',
-      'col_2',
-    ])
+    expect(Object.keys(rows[0])).toEqual(['id', 'index', 'col_1', 'col_2'])
   })
 
   it('can create dense rows for opt-in memory benchmarks', () => {

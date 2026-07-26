@@ -1,5 +1,3 @@
-// packages/advanced/data-grid/benchmarks/data-grid-update.bench.ts
-
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -8,13 +6,15 @@ import {
   createDataGridBenchmarkRows,
   DATA_GRID_BENCHMARK_SCENARIOS,
 } from './benchmark-data'
-import { measureDataGridUpdates } from './benchmark-metrics'
+import {
+  formatDataGridBenchmarkResult,
+  measureDataGridUpdates,
+} from './benchmark-metrics'
 
 describe('data-grid update benchmark', () => {
   for (const scenario of DATA_GRID_BENCHMARK_SCENARIOS) {
-    it(`captures rows/columns update baseline: ${scenario.name}`, () => {
+    it(`captures real rows/columns update baseline: ${scenario.name}`, () => {
       const dataset = createDataGridBenchmarkDataset(scenario)
-
       const nextRows = createDataGridBenchmarkRows(
         scenario.rowCount,
         scenario.columnCount,
@@ -24,30 +24,37 @@ describe('data-grid update benchmark', () => {
       )
       const nextColumns = createDataGridBenchmarkColumns(scenario.columnCount)
 
-      const result = measureDataGridUpdates({
-        ...scenario,
-        ...dataset,
+      nextColumns[0].header = 'Updated Column 1'
+      nextColumns[0].field = 'col_2'
+
+      return measureDataGridUpdates({
+        name: scenario.name,
+        rows: dataset.rows,
+        columns: dataset.columns,
+        rowHeight: scenario.rowHeight,
+        viewportSize: scenario.viewportSize,
+        overscan: scenario.overscan,
         nextRows,
         nextColumns,
+      }).then(result => {
+        console.info(formatDataGridBenchmarkResult('update', result))
+
+        expect(result.initialRenderMs).toBeGreaterThanOrEqual(0)
+        expect(result.rowsUpdateMs).toBeGreaterThanOrEqual(0)
+        expect(result.columnsUpdateMs).toBeGreaterThanOrEqual(0)
+        expect(result.rowCountAfterUpdate).toBe(scenario.rowCount)
+        expect(result.columnCountAfterUpdate).toBe(scenario.columnCount)
+        expect(result.totalSizeAfterRowsUpdate).toBe(
+          scenario.rowCount * scenario.rowHeight,
+        )
+        expect(result.domAfterRowsUpdate.renderedCells).toBeGreaterThan(0)
+        expect(result.domAfterRowsUpdate.firstRenderedRowKey).toBe('row_1_1')
+        expect(result.domAfterColumnsUpdate.renderedColumns).toBe(
+          scenario.columnCount,
+        )
+        expect(result.firstCellTextAfterColumnsUpdate).toBe('R1-C2')
+        expect(result.memoryTrend).toBeDefined()
       })
-
-      expect(result.initialRenderMs).toBeGreaterThanOrEqual(0)
-      expect(result.rowsUpdateMs).toBeGreaterThanOrEqual(0)
-      expect(result.columnsUpdateMs).toBeGreaterThanOrEqual(0)
-
-      // 初始一次 + rows update 一次。
-      expect(result.counters.createRows).toBe(2)
-
-      // 初始一次 + rows update 重建 virtualizer 一次。
-      expect(result.counters.createVirtualizer).toBe(2)
-
-      // 初始一次 + columns update 一次。
-      expect(result.counters.normalizeColumns).toBe(2)
-
-      // initial / rows update / columns update 后各取过一次 snapshot。
-      expect(result.counters.snapshots).toBe(3)
-
-      expect(result.memoryTrend).toBeDefined()
     })
   }
 })

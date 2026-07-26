@@ -19,9 +19,7 @@ export interface DataGridBenchmarkRowsOptions {
   seed?: number
 }
 
-export interface DataGridBenchmarkDatasetOptions extends DataGridBenchmarkRowsOptions {}
-
-export const DATA_GRID_BENCHMARK_SCENARIOS = [
+export const DATA_GRID_BENCHMARK_SCENARIOS: DataGridBenchmarkScenario[] = [
   {
     name: '10k rows x 20 columns',
     rowCount: 10_000,
@@ -46,7 +44,7 @@ export const DATA_GRID_BENCHMARK_SCENARIOS = [
     viewportSize: 480,
     overscan: 4,
   },
-] satisfies DataGridBenchmarkScenario[]
+]
 
 export function resolveDataGridBenchmarkDataMode(): DataGridBenchmarkDataMode {
   return process.env.ZEUS_DATA_GRID_BENCH_DENSE === '1' ? 'dense' : 'sparse'
@@ -82,8 +80,11 @@ export function createDataGridBenchmarkRows(
   assertPositiveInteger(rowCount, 'rowCount')
   assertPositiveInteger(columnCount, 'columnCount')
 
-  const dataMode = options.dataMode ?? resolveDataGridBenchmarkDataMode()
-  const seed = options.seed ?? 0
+  const dataMode =
+    options.dataMode === undefined
+      ? resolveDataGridBenchmarkDataMode()
+      : options.dataMode
+  const seed = options.seed === undefined ? 0 : options.seed
 
   return Array.from({ length: rowCount }, (_, rowIndex) => {
     const row: DataGridRowData = {
@@ -115,7 +116,7 @@ export function createDataGridBenchmarkRows(
 
 export function createDataGridBenchmarkDataset(
   scenario: DataGridBenchmarkScenario,
-  options: DataGridBenchmarkDatasetOptions = {},
+  options: DataGridBenchmarkRowsOptions = {},
 ): {
   rows: DataGridRowData[]
   columns: DataGridColumn[]

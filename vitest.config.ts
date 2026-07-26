@@ -1,6 +1,9 @@
-import { resolve } from 'node:path'
-import vue from '@vitejs/plugin-vue'
+import type { Alias, Plugin } from 'vite'
 
+import { resolve } from 'node:path'
+import { transformAsync } from '@babel/core'
+import vue from '@vitejs/plugin-vue'
+import zeusCompiler from '@zeus-js/compiler'
 import { configDefaults, defineConfig } from 'vitest/config'
 
 import { entries } from './scripts/config/aliases'
@@ -15,6 +18,11 @@ const zeusEsmPath = resolve(
   'node_modules/@zeus-js/zeus/dist/zeus.esm-browser.js',
 )
 
+const zeusBundlerEsmPath = resolve(
+  process.cwd(),
+  'node_modules/@zeus-js/zeus/dist/zeus.esm-bundler.js',
+)
+
 // ESM bundler imports @zeus-js/runtime-dom which also has a CJS index.js.
 // Alias it to its ESM bundle so transitive deps resolve correctly in jsdom.
 const runtimeDomEsmPath = resolve(
@@ -26,6 +34,69 @@ const showcaseSharedPath = resolve(
   process.cwd(),
   'examples/showcase-shared/src/index.ts',
 )
+
+function dataGridCompiler(): Plugin {
+  return {
+    name: 'zeus:data-grid-test-compiler',
+    enforce: 'pre',
+    transform(code, id) {
+      if (
+        !/[\\/]packages[\\/]advanced[\\/]data-grid[\\/]src[\\/].*\.tsx$/.test(
+          id,
+        )
+      ) {
+        return null
+      }
+
+      return transformAsync(code, {
+        filename: id,
+        babelrc: false,
+        configFile: false,
+        sourceMaps: true,
+        parserOpts: {
+          plugins: ['typescript', 'jsx'],
+        },
+        plugins: [
+          [
+            zeusCompiler,
+            {
+              moduleName: '@zeus-js/runtime-dom',
+            },
+          ],
+        ],
+      }).then(result => {
+        if (!result || !result.code) return null
+
+        return {
+          code: result.code,
+          map: result.map,
+        }
+      })
+    },
+  }
+}
+
+function createDataGridRuntimeAliases(
+  additionalAliases: Alias[] = [],
+): Alias[] {
+  const workspaceAliases: Alias[] = Object.entries(entries).map(
+    ([find, replacement]) => ({
+      find,
+      replacement,
+    }),
+  )
+
+  return [
+    {
+      find: /^@zeus-js\/zeus$/,
+      replacement: zeusBundlerEsmPath,
+    },
+    {
+      find: /^@zeus-js\/runtime-dom$/,
+      replacement: runtimeDomEsmPath,
+    },
+  ].concat(additionalAliases, workspaceAliases)
+}
 
 export default defineConfig({
   define: {
@@ -72,7 +143,6 @@ export default defineConfig({
           include: [
             'packages/**/*.test.ts',
             'packages/**/*.spec.ts',
-            'packages/**/*.bench.ts',
             'packages/**/*.test.tsx',
             'packages/**/*.spec.tsx',
             'scripts/checks/__tests__/**/*.test.ts',
@@ -106,7 +176,6 @@ export default defineConfig({
           include: [
             'packages/**/*.test.ts',
             'packages/**/*.spec.ts',
-            'packages/**/*.bench.ts',
             'packages/**/*.test.tsx',
             'packages/**/*.spec.tsx',
 
@@ -404,6 +473,35 @@ export default defineConfig({
 
       {
         extends: true,
+        plugins: [dataGridCompiler()],
+        test: {
+          name: 'data-grid-benchmark',
+          environment: 'jsdom',
+          include: ['packages/advanced/data-grid/benchmarks/**/*.bench.ts'],
+          pool: 'forks',
+          fileParallelism: false,
+          testTimeout: 60_000,
+        },
+        resolve: {
+          conditions: ['import', 'module', 'browser', 'default'],
+          alias: createDataGridRuntimeAliases(),
+        },
+        ssr: {
+          noExternal: ['@zeus-js/zeus', '@zeus-js/runtime-dom'],
+          resolve: {
+            externalConditions: ['import', 'module', 'browser', 'default'],
+          },
+        },
+        server: {
+          deps: {
+            inline: ['@zeus-js/zeus', '@zeus-js/runtime-dom'],
+          },
+        },
+      },
+
+      {
+        extends: true,
+        plugins: [dataGridCompiler()],
         test: {
           name: 'e2e',
           environment: 'jsdom',
@@ -412,15 +510,7 @@ export default defineConfig({
         },
         resolve: {
           conditions: ['import', 'module', 'browser', 'default'],
-          alias: [
-            {
-              find: /^@zeus-js\/zeus$/,
-              replacement: zeusEsmPath,
-            },
-            {
-              find: /^@zeus-js\/runtime-dom$/,
-              replacement: runtimeDomEsmPath,
-            },
+          alias: createDataGridRuntimeAliases([
             {
               find: /^react$/,
               replacement: resolve(
@@ -435,11 +525,7 @@ export default defineConfig({
                 'examples/vite-react/node_modules/react-dom/client.js',
               ),
             },
-            ...Object.entries(entries).map(([find, replacement]) => ({
-              find,
-              replacement,
-            })),
-          ],
+          ]),
         },
         ssr: {
           noExternal: ['@zeus-js/zeus', '@zeus-js/runtime-dom'],
