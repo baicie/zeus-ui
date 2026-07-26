@@ -62,11 +62,11 @@ describe('virtual-list advanced component protocol', () => {
       methods: {
         getRange: {
           name: 'getRange',
-          returns: 'VirtualRange',
+          returns: 'unknown',
         },
         getItems: {
           name: 'getItems',
-          returns: 'VirtualItem[]',
+          returns: 'unknown[]',
         },
         getTotalSize: {
           name: 'getTotalSize',

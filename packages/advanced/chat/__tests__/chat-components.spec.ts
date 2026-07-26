@@ -93,7 +93,7 @@ describe('chat advanced component protocol', () => {
         },
         getMessages: {
           name: 'getMessages',
-          returns: 'NormalizedChatMessageData[]',
+          returns: 'unknown[]',
         },
         scrollToBottom: {
           name: 'scrollToBottom',
