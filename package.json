@@ -1,7 +1,7 @@
 {
   "name": "zeus-ui-workspace",
   "type": "module",
-  "version": "0.0.0",
+  "version": "0.1.0-beta.0",
   "private": true,
   "packageManager": "pnpm@10.33.4",
   "engines": {
@@ -41,6 +41,7 @@
     "release:verify:strict": "tsx scripts/checks/release/check-release-readiness.ts --strict",
     "release:verify:pack": "tsx scripts/checks/release/check-release-tarballs.ts",
     "release:final": "tsx scripts/checks/release/check-release-final.ts",
+    "check:phase24-release": "tsx scripts/checks/release/check-phase24-release.ts",
     "version:packages": "tsx scripts/commands/version-packages.ts",
     "ci-publish": "tsx scripts/commands/publish.ts",
     "preinstall": "npx only-allow pnpm",
@@ -134,7 +135,8 @@
     "vite": "^8.0.16",
     "vitepress": "^1.6.4",
     "vitest": "^4.1.9",
-    "vue": "^3.5.38"
+    "vue": "^3.5.38",
+    "yaml": "^2.9.0"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged && pnpm check",

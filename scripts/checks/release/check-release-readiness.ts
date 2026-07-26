@@ -6,6 +6,8 @@ import { resolve } from 'node:path'
 import pc from 'picocolors'
 
 import {
+  countWorkspacePackages,
+  expectedWorkspacePackageCounts,
   getUniqueVersions,
   listPublishablePackages,
   repositoryUrl,
@@ -185,6 +187,30 @@ function checkRootReadmeAndLicense(errors: string[]): void {
 
   if (!existsSync(resolve(process.cwd(), 'LICENSE'))) {
     errors.push('Root LICENSE is required')
+  }
+}
+
+function checkPublishablePackageSet(
+  packages: WorkspacePackage[],
+  errors: string[],
+): void {
+  const counts = countWorkspacePackages(packages)
+  const expected = expectedWorkspacePackageCounts
+
+  if (counts.total !== expected.total) {
+    errors.push(
+      `Release set must contain ${expected.total} packages. Found: ${counts.total}`,
+    )
+  }
+
+  if (
+    counts.base !== expected.base ||
+    counts.primitive !== expected.primitive ||
+    counts.advanced !== expected.advanced
+  ) {
+    errors.push(
+      `Release set must contain ${expected.base} base, ${expected.primitive} primitive and ${expected.advanced} advanced packages. Found: ${counts.base}/${counts.primitive}/${counts.advanced}`,
+    )
   }
 }
 
@@ -487,10 +513,7 @@ function main(): void {
   const errors: string[] = []
 
   checkRootReadmeAndLicense(errors)
-
-  if (packages.length === 0) {
-    errors.push('No publishable packages found.')
-  }
+  checkPublishablePackageSet(packages, errors)
 
   const versions = getUniqueVersions(packages)
 

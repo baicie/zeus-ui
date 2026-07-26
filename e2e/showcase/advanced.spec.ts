@@ -5,23 +5,43 @@ import { advancedShowcaseTarget, withShowcasePage } from './utils/browser'
 import { collectPageErrors } from './utils/page-errors'
 
 describe('advanced showcase', () => {
-  it('renders advanced component demos', () => {
+  it('renders the data grid demo', () => {
     return withShowcasePage(advancedShowcaseTarget, page => {
       const errors = collectPageErrors(page)
 
       return page
-        .goto('/')
+        .goto('/data-grid')
         .then(() =>
           expectPage(
             page.getByText('Advanced Component Showcase'),
           ).toBeVisible(),
         )
         .then(() => expectPage(page.locator('zw-data-grid')).toBeVisible())
-        .then(() => expectPage(page.locator('zw-chat')).toBeVisible())
-        .then(() => expectPage(page.locator('zw-virtual-list')).toBeVisible())
         .then(() =>
           expectPage(page.locator('zw-data-grid')).toContainText('MRR'),
         )
+        .then(() => errors.assertClean())
+    })
+  })
+
+  it('renders the chat demo', () => {
+    return withShowcasePage(advancedShowcaseTarget, page => {
+      const errors = collectPageErrors(page)
+
+      return page
+        .goto('/chat')
+        .then(() => expectPage(page.locator('zw-chat')).toBeVisible())
+        .then(() => errors.assertClean())
+    })
+  })
+
+  it('renders the virtual list demo', () => {
+    return withShowcasePage(advancedShowcaseTarget, page => {
+      const errors = collectPageErrors(page)
+
+      return page
+        .goto('/virtual-list')
+        .then(() => expectPage(page.locator('zw-virtual-list')).toBeVisible())
         .then(() => errors.assertClean())
     })
   })
@@ -31,10 +51,15 @@ describe('advanced showcase', () => {
       const errors = collectPageErrors(page)
 
       return page
-        .goto('/')
-        .then(() => page.getByRole('button', { name: 'Send' }).click())
+        .goto('/chat')
         .then(() =>
-          expectPage(page.locator('[data-send-output]')).toContainText(
+          page
+            .getByRole('textbox', { name: 'Message ChatGPT' })
+            .fill('Summarize the grid'),
+        )
+        .then(() => page.getByRole('button', { name: 'Send message' }).click())
+        .then(() =>
+          expectPage(page.locator('.event-output')).toContainText(
             'Summarize the grid',
           ),
         )
