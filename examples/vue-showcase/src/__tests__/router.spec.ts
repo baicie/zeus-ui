@@ -21,6 +21,9 @@ describe('vue showcase router', () => {
 
     expect(wrapper.text()).toContain('Zeus Web component laboratory')
     expect(wrapper.text()).toContain('Vue router showcase')
+    expect(globalThis.window.scrollTo).toHaveBeenCalledWith(
+      expect.objectContaining({ top: 0 }),
+    )
   })
 
   it('renders the component index page', async () => {
