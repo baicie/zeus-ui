@@ -44,6 +44,7 @@ export interface ChatMessageData {
 }
 
 export interface ChatElement extends HTMLElement {
+  componentOnReady: () => Promise<ChatElement>
   messages?: ChatMessageData[]
   loading?: boolean
   disabled?: boolean
