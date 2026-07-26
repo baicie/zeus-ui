@@ -34,6 +34,8 @@ export const Skeleton = defineElement<SkeletonProps, SkeletonElement>(
       data-variant={() => props.variant}
       data-animated={() => (props.animated ? '' : undefined)}
       aria-hidden={() => 'true'}
-    />
+    >
+      {null}
+    </Host>
   ),
 )
