@@ -26,6 +26,11 @@ export const advancedShowcaseTarget: ShowcaseTarget = {
   baseURL: 'http://127.0.0.1:5176',
 }
 
+export const docsShowcaseTarget: ShowcaseTarget = {
+  name: 'docs',
+  baseURL: 'http://127.0.0.1:5175/zeus-ui/',
+}
+
 export type ShowcasePageCallback<T> = (
   page: Page,
   context: BrowserContext,

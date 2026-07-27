@@ -29,22 +29,25 @@ const playgroundClass = computed(() => {
   ]
 })
 
-onMounted(async () => {
-  await Promise.all([
-    import('@zeus-web/button/wc'),
-    import('@zeus-web/checkbox/wc'),
-    import('@zeus-web/dialog/wc'),
-    import('@zeus-web/input/wc'),
-    import('@zeus-web/switch/wc'),
-    import('@zeus-web/tabs/wc'),
-  ])
-
-  ready.value = true
+onMounted(() => {
+  return Promise.all([
+    import('@zeus-web/button/wc/auto'),
+    import('@zeus-web/checkbox/wc/auto'),
+    import('@zeus-web/dialog/wc/auto'),
+    import('@zeus-web/input/wc/auto'),
+    import('@zeus-web/switch/wc/auto'),
+    import('@zeus-web/tabs/wc/auto'),
+  ]).then(() => {
+    ready.value = true
+  })
 })
 
 function stringifyDetail(detail: unknown): string {
   if (!detail || typeof detail !== 'object') {
-    return String(detail ?? '')
+    if (detail === undefined) return ''
+    if (detail === null) return ''
+
+    return String(detail)
   }
 
   try {
@@ -72,25 +75,29 @@ function handlePress(event: Event): void {
 
 function handleValueChange(event: Event): void {
   const customEvent = event as CustomEvent<{ value?: string }>
-  inputValue.value = customEvent.detail?.value ?? ''
+  const detail = customEvent.detail
+  inputValue.value = detail && detail.value !== undefined ? detail.value : ''
   pushLog('value-change', customEvent.detail)
 }
 
 function handleCheckedChange(event: Event): void {
   const customEvent = event as CustomEvent<{ checked?: boolean }>
-  checked.value = Boolean(customEvent.detail?.checked)
+  const detail = customEvent.detail
+  checked.value = Boolean(detail && detail.checked)
   pushLog('checked-change', customEvent.detail)
 }
 
 function handleSwitchChange(event: Event): void {
   const customEvent = event as CustomEvent<{ checked?: boolean }>
-  switched.value = Boolean(customEvent.detail?.checked)
+  const detail = customEvent.detail
+  switched.value = Boolean(detail && detail.checked)
   pushLog('switch checked-change', customEvent.detail)
 }
 
 function handleOpenChange(event: Event): void {
   const customEvent = event as CustomEvent<{ open?: boolean }>
-  dialogOpen.value = Boolean(customEvent.detail?.open)
+  const detail = customEvent.detail
+  dialogOpen.value = Boolean(detail && detail.open)
   pushLog('open-change', customEvent.detail)
 }
 

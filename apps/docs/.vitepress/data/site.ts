@@ -239,6 +239,10 @@ export const playgroundItems: DocsNavItem[] = [
     text: 'Interactive Playground',
     link: '/playground/',
   },
+  {
+    text: 'Data Grid',
+    link: '/playground/data-grid/',
+  },
 ]
 
 export const sidebar: DocsSidebarGroup[] = [

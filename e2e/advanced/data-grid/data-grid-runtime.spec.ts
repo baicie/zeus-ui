@@ -589,6 +589,70 @@ describe('zw-data-grid runtime', () => {
     collector.dispose()
   })
 
+  it('updates the virtual spacer when rows are assigned after columns', () => {
+    return mountDataGrid({
+      rows: [],
+      columns: [],
+      virtual: true,
+      rowHeight: 40,
+    }).then(grid => {
+      grid.columns = createWideColumns(10)
+
+      return nextFrame()
+        .then(() => {
+          grid.rows = createWideRows(100)
+          return nextFrame()
+        })
+        .then(() => {
+          const spacer = grid.querySelector<HTMLElement>(
+            '[data-slot="data-grid-spacer"]',
+          )
+
+          if (!spacer) throw new Error('Data Grid spacer not found.')
+
+          expect(grid.getTotalSize()).toBe(4_000)
+          expect(spacer.style.height).toBe('4000px')
+        })
+    })
+  })
+
+  it('updates the virtual spacer when row layout measurements change', () => {
+    return mountDataGrid({
+      rows: createWideRows(100),
+      columns: createWideColumns(10),
+      virtual: true,
+      rowHeight: 40,
+    }).then(grid => {
+      const spacer = grid.querySelector<HTMLElement>(
+        '[data-slot="data-grid-spacer"]',
+      )
+
+      if (!spacer) throw new Error('Data Grid spacer not found.')
+
+      grid.rowHeight = 48
+
+      return nextFrame()
+        .then(() => {
+          expect(grid.getTotalSize()).toBe(4_800)
+          expect(spacer.style.height).toBe('4800px')
+
+          grid.measure(0, 80)
+          return nextFrame()
+        })
+        .then(() => {
+          expect(grid.getTotalSize()).toBe(4_832)
+          expect(spacer.style.height).toBe('4832px')
+
+          grid.resetMeasurements()
+          return nextFrame()
+        })
+        .then(() => {
+          expect(grid.getTotalSize()).toBe(4_800)
+          expect(spacer.style.height).toBe('4800px')
+        })
+    })
+  })
+
   it('virtualizes columns using the horizontal viewport and keeps true aria indexes', () => {
     const columns = createWideColumns(100)
     const rows = createWideRows(20)

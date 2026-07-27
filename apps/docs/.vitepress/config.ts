@@ -6,6 +6,7 @@ const siteBase = nodeProcess.env.DOCS_BASE ?? '/'
 
 export default defineConfig({
   base: siteBase,
+  cacheDir: nodeProcess.env.ZEUS_DOCS_CACHE_DIR,
   title: 'Zeus Web',
   description:
     'Headless Web Components, shadcn-like registry and AI metadata built on Zeus.',
@@ -21,6 +22,15 @@ export default defineConfig({
       },
     },
   },
+  vite: {
+    optimizeDeps: {
+      include: [
+        '@zeus-web/data-grid > @zeus-js/runtime-dom',
+        '@zeus-web/data-grid > @zeus-js/web-c-runtime',
+        '@zeus-web/data-grid > @zeus-js/zeus',
+      ],
+    },
+  },
   head: [
     ['meta', { name: 'theme-color', content: '#111827' }],
     ['meta', { property: 'og:title', content: 'Zeus Web' }],
@@ -34,7 +44,7 @@ export default defineConfig({
     ],
   ],
   themeConfig: {
-    logo: 'logo.svg',
+    logo: '/logo.svg',
     nav: topNav,
     sidebar,
     outline: {

@@ -1,7 +1,11 @@
-import type { ViteDevServer } from 'vite'
 import { resolve } from 'node:path'
 import process from 'node:process'
 import { createServer } from 'vite'
+import { createServer as createVitePressServer } from 'vitepress'
+
+interface CloseableServer {
+  close: () => Promise<void>
+}
 
 interface ShowcaseServerConfig {
   root: string
@@ -23,9 +27,14 @@ const showcaseServers: ShowcaseServerConfig[] = [
   },
 ]
 
+const docsServer: ShowcaseServerConfig = {
+  root: 'apps/docs',
+  port: 5175,
+}
+
 function startShowcaseServer(
   config: ShowcaseServerConfig,
-): Promise<ViteDevServer> {
+): Promise<CloseableServer> {
   const root = resolve(process.cwd(), config.root)
 
   return createServer({
@@ -39,15 +48,36 @@ function startShowcaseServer(
   }).then(server => server.listen())
 }
 
+function startDocsServer(): Promise<CloseableServer> {
+  const root = resolve(process.cwd(), docsServer.root)
+  process.env.ZEUS_DOCS_CACHE_DIR = resolve(
+    process.cwd(),
+    'node_modules/.cache/vitepress-showcase-e2e',
+  )
+
+  return createVitePressServer(root, {
+    base: '/zeus-ui/',
+    host: '127.0.0.1',
+    port: docsServer.port,
+    strictPort: true,
+  }).then(server => server.listen())
+}
+
 export default function setup() {
-  const servers: ViteDevServer[] = []
+  const servers: CloseableServer[] = []
 
   return Promise.all(
-    showcaseServers.map(config =>
-      startShowcaseServer(config).then(server => {
-        servers.push(server)
-      }),
-    ),
+    showcaseServers
+      .map(config =>
+        startShowcaseServer(config).then(server => {
+          servers.push(server)
+        }),
+      )
+      .concat(
+        startDocsServer().then(server => {
+          servers.push(server)
+        }),
+      ),
   ).then(() => {
     return function teardown() {
       return Promise.all(servers.map(server => server.close())).then(() => {})

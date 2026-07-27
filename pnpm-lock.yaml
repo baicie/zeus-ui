@@ -143,9 +143,15 @@ importers:
       '@zeus-web/checkbox':
         specifier: workspace:*
         version: link:../../packages/primitives/checkbox
+      '@zeus-web/data-grid':
+        specifier: workspace:*
+        version: link:../../packages/advanced/data-grid
       '@zeus-web/dialog':
         specifier: workspace:*
         version: link:../../packages/primitives/dialog
+      '@zeus-web/icons':
+        specifier: workspace:*
+        version: link:../../packages/icons
       '@zeus-web/input':
         specifier: workspace:*
         version: link:../../packages/primitives/input
