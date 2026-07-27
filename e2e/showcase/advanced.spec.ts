@@ -18,7 +18,19 @@ describe('advanced showcase', () => {
         )
         .then(() => expectPage(page.locator('zw-data-grid')).toBeVisible())
         .then(() =>
-          expectPage(page.locator('zw-data-grid')).toContainText('MRR'),
+          expectPage(page.locator('zw-data-grid')).toHaveAttribute(
+            'data-row-count',
+            '100000',
+          ),
+        )
+        .then(() =>
+          expectPage(page.locator('zw-data-grid')).toHaveAttribute(
+            'data-column-count',
+            '100',
+          ),
+        )
+        .then(() =>
+          expectPage(page.locator('zw-data-grid')).toContainText('Record'),
         )
         .then(() => errors.assertClean())
     })
