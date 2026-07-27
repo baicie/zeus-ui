@@ -78,4 +78,32 @@ describe('ci workflow contract', () => {
 
     expect(getObject(defaults, 'run')).toEqual({ shell: 'bash' })
   })
+
+  it('validates docs in pull requests and deploys only from main', () => {
+    const workflow = readWorkflow('docs.yml')
+    const triggers = getObject(workflow, 'on')
+    const jobs = getObject(workflow, 'jobs')
+    const docs = getObject(jobs, 'docs')
+    const deploy = getObject(jobs, 'build-and-deploy')
+
+    expect(triggers.pull_request).toBeNull()
+    expect(triggers).not.toHaveProperty('workflow_dispatch')
+    expect(workflow.permissions).toEqual({ contents: 'read' })
+    expect(docs.if).toBe("github.event_name == 'pull_request'")
+    expect(docs['timeout-minutes']).toBe(30)
+    expect(getRunCommands(docs)).toEqual([
+      'pnpm install --frozen-lockfile',
+      'pnpm showcase:e2e:deps',
+      'pnpm docs:check',
+      'pnpm docs:build',
+    ])
+    expect(deploy.if).toBe(
+      "github.event_name == 'push' && github.ref == 'refs/heads/main'",
+    )
+    expect(deploy.permissions).toEqual({
+      contents: 'read',
+      pages: 'write',
+      'id-token': 'write',
+    })
+  })
 })
