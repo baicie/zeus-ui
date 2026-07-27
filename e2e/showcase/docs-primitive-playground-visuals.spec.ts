@@ -42,7 +42,7 @@ describe('docs primitive playground visuals', () => {
       )
 
       return page
-        .goto('playground/separator/')
+        .goto('components/separator')
         .then(() =>
           expectPage(playground).toHaveAttribute('data-ready', 'true'),
         )
@@ -79,7 +79,7 @@ describe('docs primitive playground visuals', () => {
       const skeletons = playground.locator('zw-skeleton')
 
       return page
-        .goto('playground/skeleton/')
+        .goto('components/skeleton')
         .then(() =>
           expectPage(playground).toHaveAttribute('data-ready', 'true'),
         )
@@ -106,7 +106,7 @@ describe('docs primitive playground visuals', () => {
       )
 
       return page
-        .goto('playground/progress/')
+        .goto('components/progress')
         .then(() =>
           expectPage(playground).toHaveAttribute('data-ready', 'true'),
         )
@@ -133,7 +133,7 @@ describe('docs primitive playground visuals', () => {
       const alerts = playground.locator('zw-alert')
 
       return page
-        .goto('playground/alert/')
+        .goto('components/alert')
         .then(() =>
           expectPage(playground).toHaveAttribute('data-ready', 'true'),
         )

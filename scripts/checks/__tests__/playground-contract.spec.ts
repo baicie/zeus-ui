@@ -1,4 +1,7 @@
-import type { PlaygroundComponent } from '../../../apps/docs/.vitepress/data/playground-manifest'
+import type {
+  ComponentCatalogItem,
+  ComponentCategoryDefinition,
+} from '../../../apps/docs/.vitepress/data/component-catalog'
 import type { PlaygroundSourceSet } from '../../../apps/docs/.vitepress/data/playground-sources'
 import type { PlaygroundContractOptions } from '../docs/playground-contract'
 
@@ -17,21 +20,35 @@ interface Fixture {
 
 const fixtureRoots: string[] = []
 
-const buttonComponent: PlaygroundComponent = {
+const generalCategory: ComponentCategoryDefinition = {
+  id: 'general',
+  label: 'General',
+  description: 'General fixture.',
+}
+
+const advancedCategory: ComponentCategoryDefinition = {
+  id: 'advanced',
+  label: 'Advanced',
+  description: 'Advanced fixture.',
+}
+
+const buttonComponent: ComponentCatalogItem = {
   name: 'button',
   title: 'Button',
   packageName: '@zeus-web/button',
-  group: 'primitives',
-  route: '/playground/button/',
+  packageGroup: 'primitives',
+  category: 'general',
+  route: '/components/button',
   description: 'Button fixture.',
 }
 
-const dataGridComponent: PlaygroundComponent = {
+const dataGridComponent: ComponentCatalogItem = {
   name: 'data-grid',
   title: 'Data Grid',
   packageName: '@zeus-web/data-grid',
-  group: 'advanced',
-  route: '/playground/data-grid/',
+  packageGroup: 'advanced',
+  category: 'advanced',
+  route: '/components/data-grid',
   description: 'Data Grid fixture.',
 }
 
@@ -139,31 +156,29 @@ function createValidFixture(): Fixture {
   })
 
   const generatedContent = '<ComponentPlayground name="button" />\n'
-  writeFixtureFile(
-    root,
-    'apps/docs/playground/button/index.md',
-    generatedContent,
-  )
+  writeFixtureFile(root, 'apps/docs/components/button.md', generatedContent)
 
   return {
     root,
     options: {
-      components: [buttonComponent],
+      catalog: [buttonComponent],
+      categories: [generalCategory],
       sources: {
         button: createButtonSources(),
       },
       generatedDocs: [
         {
-          path: 'apps/docs/playground/button/index.md',
+          path: 'apps/docs/components/button.md',
           content: generatedContent,
         },
       ],
       sidebarItems: [
         {
-          link: '/playground/',
-        },
-        {
-          link: '/playground/button/',
+          items: [
+            {
+              link: '/components/button',
+            },
+          ],
         },
       ],
       runtimeSource: createRuntimeSource(),
@@ -181,16 +196,17 @@ afterEach(() => {
 })
 
 describe('playground contract', () => {
-  it('keeps the real workspace component packages and Playgrounds aligned', () => {
+  it('keeps the real workspace component packages and docs aligned', () => {
     const result = checkPlaygroundContract()
 
     expect(result.errors).toEqual([])
     expect(result.valid).toBe(true)
-    expect(result.componentCount).toBeGreaterThan(0)
+    expect(result.componentCount).toBe(25)
+    expect(result.categoryCount).toBe(7)
     expect(result.packageNames).toHaveLength(result.componentCount)
   })
 
-  it('reports a public component package without a Playground definition', () => {
+  it('reports a public component package without a catalog entry', () => {
     const fixture = createValidFixture()
     writeComponentPackage(fixture.root, 'input')
 
@@ -198,7 +214,7 @@ describe('playground contract', () => {
 
     expect(result.valid).toBe(false)
     expect(result.errors).toContain(
-      'Missing Playground definition for @zeus-web/input.',
+      'Missing component catalog entry for @zeus-web/input.',
     )
   })
 
@@ -233,24 +249,115 @@ describe('playground contract', () => {
     )
   })
 
-  it('reports duplicate Playground routes', () => {
+  it('reports duplicate canonical component routes', () => {
     const fixture = createValidFixture()
-    const duplicate: PlaygroundComponent = {
+    const duplicate: ComponentCatalogItem = {
       name: 'button',
       title: 'Duplicate button',
       packageName: '@zeus-web/button',
-      group: 'primitives',
-      route: '/playground/button/',
+      packageGroup: 'primitives',
+      category: 'general',
+      route: '/components/button',
       description: 'Duplicate route fixture.',
     }
 
-    fixture.options.components = [buttonComponent, duplicate]
+    fixture.options.catalog = [buttonComponent, duplicate]
 
     const result = checkPlaygroundContract(fixture.root, fixture.options)
 
     expect(result.valid).toBe(false)
     expect(result.errors).toContain(
-      'Duplicate Playground route "/playground/button/".',
+      'Duplicate component catalog route "/components/button".',
+    )
+  })
+
+  it('reports package groups and canonical routes that do not match packages', () => {
+    const fixture = createValidFixture()
+    const invalidComponent: ComponentCatalogItem = {
+      name: 'button',
+      title: 'Button',
+      packageName: '@zeus-web/button',
+      packageGroup: 'advanced',
+      category: 'general',
+      route: '/components/not-button',
+      description: 'Invalid catalog fixture.',
+    }
+
+    fixture.options.catalog = [invalidComponent]
+
+    const result = checkPlaygroundContract(fixture.root, fixture.options)
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain(
+      '@zeus-web/button packageGroup must be "primitives".',
+    )
+    expect(result.errors).toContain(
+      '@zeus-web/button canonical component route must be "/components/button".',
+    )
+  })
+
+  it('reports empty categories and recursively duplicated sidebar routes', () => {
+    const fixture = createValidFixture()
+
+    fixture.options.categories = [generalCategory, advancedCategory]
+    fixture.options.sidebarItems = [
+      {
+        items: [
+          {
+            link: '/components/button',
+          },
+          {
+            items: [
+              {
+                link: '/components/button',
+              },
+            ],
+          },
+        ],
+      },
+    ]
+
+    const result = checkPlaygroundContract(fixture.root, fixture.options)
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain(
+      'Component category "advanced" must contain at least one component.',
+    )
+    expect(result.errors).toContain(
+      'Component sidebar must contain "/components/button" exactly once; received 2.',
+    )
+  })
+
+  it('reports unknown categories and missing category definitions', () => {
+    const fixture = createValidFixture()
+    const unknownCategory = Object.assign({}, generalCategory)
+
+    Reflect.set(unknownCategory, 'id', 'unknown')
+    fixture.options.categories = [unknownCategory]
+
+    const result = checkPlaygroundContract(fixture.root, fixture.options)
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain('Unknown component category "unknown".')
+    expect(result.errors).toContain(
+      '@zeus-web/button category "general" has no category definition.',
+    )
+  })
+
+  it('rejects legacy standalone Playground markdown', () => {
+    const fixture = createValidFixture()
+
+    writeFixtureFile(
+      fixture.root,
+      'apps/docs/playground/button/index.md',
+      '# Legacy Playground\n',
+    )
+
+    const result = checkPlaygroundContract(fixture.root, fixture.options)
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain(
+      'Legacy Playground markdown must be removed: apps/docs/playground/button/index.md.',
     )
   })
 
@@ -301,12 +408,13 @@ describe('playground contract', () => {
     const generatedContent = '<DataGridPlayground />\n'
     writeFixtureFile(
       root,
-      'apps/docs/playground/data-grid/index.md',
+      'apps/docs/components/data-grid.md',
       generatedContent,
     )
 
     const result = checkPlaygroundContract(root, {
-      components: [dataGridComponent],
+      catalog: [dataGridComponent],
+      categories: [advancedCategory],
       sources: {
         'data-grid': {
           webComponent: {
@@ -328,16 +436,17 @@ describe('playground contract', () => {
       },
       generatedDocs: [
         {
-          path: 'apps/docs/playground/data-grid/index.md',
+          path: 'apps/docs/components/data-grid.md',
           content: generatedContent,
         },
       ],
       sidebarItems: [
         {
-          link: '/playground/',
-        },
-        {
-          link: '/playground/data-grid/',
+          items: [
+            {
+              link: '/components/data-grid',
+            },
+          ],
         },
       ],
       runtimeSource: "onMounted(() => import('@zeus-web/data-grid/wc/auto'))\n",

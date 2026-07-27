@@ -20,11 +20,12 @@ describe('docs data grid playground', () => {
       const windowStatus = page.getByTestId(WINDOW_TEST_ID)
 
       return page
-        .goto('playground/data-grid/')
+        .goto('components/data-grid')
         .then(() =>
           expectPage(
             page.getByRole('heading', {
-              name: /Data Grid Playground/i,
+              level: 1,
+              name: 'Data Grid',
             }),
           ).toBeVisible(),
         )

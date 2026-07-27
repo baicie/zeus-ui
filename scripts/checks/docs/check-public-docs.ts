@@ -90,9 +90,10 @@ const requiredContent: Record<string, string[]> = {
     '@zeus-web/ui',
   ],
   'apps/docs/components/index.md': [
-    'Registry status',
+    '25 public component packages',
+    'one canonical page with a live preview',
+    '<ComponentDirectory />',
     'Current registry components',
-    'Components marked as `Planned` currently expose primitive package documentation only.',
   ],
   'apps/docs/components/checkbox.md': ['Registry source: not available yet.'],
 }

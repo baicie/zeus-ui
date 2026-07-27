@@ -1,4 +1,8 @@
-import type { PlaygroundComponent } from '../../../apps/docs/.vitepress/data/playground-manifest'
+import type {
+  ComponentCatalogItem,
+  ComponentCategory,
+  ComponentCategoryDefinition,
+} from '../../../apps/docs/.vitepress/data/component-catalog'
 import type {
   PlaygroundSource,
   PlaygroundSourceSet,
@@ -6,12 +10,18 @@ import type {
 import type { GeneratedDoc } from '../../docs/component-docs'
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { relative, resolve } from 'node:path'
 
-import { playgroundComponents } from '../../../apps/docs/.vitepress/data/playground-manifest'
+import {
+  componentCatalog,
+  componentCategories,
+} from '../../../apps/docs/.vitepress/data/component-catalog'
 import { playgroundSources } from '../../../apps/docs/.vitepress/data/playground-sources'
-import { playgroundItems } from '../../../apps/docs/.vitepress/data/site'
-import { generatePlaygroundDocs } from '../../docs/playground-docs'
+import { componentCategoryGroups } from '../../../apps/docs/.vitepress/data/site'
+import {
+  createComponentDocsContext,
+  generateComponentDocs,
+} from '../../docs/component-docs'
 
 interface PackageJson {
   name?: string
@@ -23,7 +33,7 @@ interface PackageJson {
 interface ComponentPackage {
   name: string
   componentName: string
-  group: PlaygroundComponent['group']
+  packageGroup: ComponentCatalogItem['packageGroup']
   exports: Record<string, unknown>
 }
 
@@ -35,13 +45,15 @@ interface FrameworkContract {
 }
 
 interface SidebarItem {
-  link: string
+  link?: string
+  items?: readonly SidebarItem[]
 }
 
 type PlaygroundSources = Partial<Record<string, PlaygroundSourceSet>>
 
 export interface PlaygroundContractOptions {
-  components?: readonly PlaygroundComponent[]
+  catalog?: readonly ComponentCatalogItem[]
+  categories?: readonly ComponentCategoryDefinition[]
   sources?: PlaygroundSources
   generatedDocs?: readonly GeneratedDoc[]
   sidebarItems?: readonly SidebarItem[]
@@ -52,19 +64,30 @@ export interface PlaygroundContractResult {
   valid: boolean
   errors: string[]
   componentCount: number
+  categoryCount: number
   packageNames: string[]
 }
 
 const componentPackageRoots = [
   {
     dir: 'packages/primitives',
-    group: 'primitives',
+    packageGroup: 'primitives',
   },
   {
     dir: 'packages/advanced',
-    group: 'advanced',
+    packageGroup: 'advanced',
   },
 ] as const
+
+const validCategories: ComponentCategory[] = [
+  'general',
+  'layout',
+  'navigation',
+  'data-entry',
+  'data-display',
+  'feedback',
+  'advanced',
+]
 
 const frameworkContracts: FrameworkContract[] = [
   {
@@ -159,7 +182,7 @@ function readComponentPackages(
       packages.push({
         name: packageJson.name,
         componentName: packageJson.name.slice('@zeus-web/'.length),
-        group: packageRoot.group,
+        packageGroup: packageRoot.packageGroup,
         exports: packageJson.exports || {},
       })
     }
@@ -169,41 +192,41 @@ function readComponentPackages(
 }
 
 function pushDuplicateErrors(
-  components: readonly PlaygroundComponent[],
+  components: readonly ComponentCatalogItem[],
   errors: string[],
 ): void {
   for (const name of findDuplicates(
     components.map(component => component.name),
   )) {
-    errors.push(`Duplicate Playground definition name "${name}".`)
+    errors.push(`Duplicate component catalog name "${name}".`)
   }
 
   for (const packageName of findDuplicates(
     components.map(component => component.packageName),
   )) {
-    errors.push(`Duplicate Playground package name "${packageName}".`)
+    errors.push(`Duplicate component catalog package name "${packageName}".`)
   }
 
   for (const route of findDuplicates(
     components.map(component => component.route),
   )) {
-    errors.push(`Duplicate Playground route "${route}".`)
+    errors.push(`Duplicate component catalog route "${route}".`)
   }
 }
 
 function checkDefinitionCoverage(
   packages: ComponentPackage[],
-  components: readonly PlaygroundComponent[],
+  components: readonly ComponentCatalogItem[],
   errors: string[],
 ): void {
   const packagesByName = new Map(packages.map(pkg => [pkg.name, pkg]))
-  const componentsByPackage = new Map<string, PlaygroundComponent>(
+  const componentsByPackage = new Map<string, ComponentCatalogItem>(
     components.map(component => [component.packageName, component]),
   )
 
   for (const pkg of packages) {
     if (!componentsByPackage.has(pkg.name)) {
-      errors.push(`Missing Playground definition for ${pkg.name}.`)
+      errors.push(`Missing component catalog entry for ${pkg.name}.`)
     }
   }
 
@@ -212,28 +235,70 @@ function checkDefinitionCoverage(
 
     if (!pkg) {
       errors.push(
-        `Playground definition "${component.name}" has no matching public component package.`,
+        `Component catalog entry "${component.name}" has no matching public component package.`,
       )
       continue
     }
 
     if (component.name !== pkg.componentName) {
       errors.push(
-        `${component.packageName} Playground name must be "${pkg.componentName}".`,
+        `${component.packageName} catalog name must be "${pkg.componentName}".`,
       )
     }
 
-    if (component.group !== pkg.group) {
+    if (component.packageGroup !== pkg.packageGroup) {
       errors.push(
-        `${component.packageName} Playground group must be "${pkg.group}".`,
+        `${component.packageName} packageGroup must be "${pkg.packageGroup}".`,
       )
     }
 
-    const expectedRoute = `/playground/${component.name}/`
+    const expectedRoute = `/components/${component.name}`
 
     if (component.route !== expectedRoute) {
       errors.push(
-        `${component.packageName} Playground route must be "${expectedRoute}".`,
+        `${component.packageName} canonical component route must be "${expectedRoute}".`,
+      )
+    }
+  }
+}
+
+function checkCategories(
+  components: readonly ComponentCatalogItem[],
+  categories: readonly ComponentCategoryDefinition[],
+  errors: string[],
+): void {
+  const validCategoryIds = new Set<string>(validCategories)
+  const categoryIds = categories.map(category => category.id)
+
+  for (const duplicate of findDuplicates(categoryIds)) {
+    errors.push(`Duplicate component category "${duplicate}".`)
+  }
+
+  for (const category of categories) {
+    if (!validCategoryIds.has(category.id)) {
+      errors.push(`Unknown component category "${category.id}".`)
+    }
+
+    if (!components.some(component => component.category === category.id)) {
+      errors.push(
+        `Component category "${category.id}" must contain at least one component.`,
+      )
+    }
+  }
+
+  const definedCategories = new Set<string>(categoryIds)
+
+  for (const component of components) {
+    if (!validCategoryIds.has(component.category)) {
+      errors.push(
+        `${component.packageName} uses unknown component category "${component.category}".`,
+      )
+      continue
+    }
+
+    if (!definedCategories.has(component.category)) {
+      errors.push(
+        `${component.packageName} category "${component.category}" has no category definition.`,
       )
     }
   }
@@ -281,7 +346,7 @@ function checkSource(
 
 function checkFrameworkSources(
   packages: ComponentPackage[],
-  components: readonly PlaygroundComponent[],
+  components: readonly ComponentCatalogItem[],
   sourcesByComponent: PlaygroundSources,
   errors: string[],
 ): void {
@@ -326,11 +391,11 @@ function checkFrameworkSources(
   }
 }
 
-function expectedDocPath(component: PlaygroundComponent): string {
-  return `apps/docs/playground/${component.name}/index.md`
+function expectedDocPath(component: ComponentCatalogItem): string {
+  return `apps/docs/components/${component.name}.md`
 }
 
-function expectedPlaygroundMarkup(component: PlaygroundComponent): string {
+function expectedPlaygroundMarkup(component: ComponentCatalogItem): string {
   if (component.name === 'data-grid') return '<DataGridPlayground />'
 
   return `<ComponentPlayground name="${component.name}" />`
@@ -344,42 +409,44 @@ function loadGeneratedDocs(
   if (override) return override
 
   try {
-    return generatePlaygroundDocs(root)
+    return generateComponentDocs(createComponentDocsContext(root), root)
   } catch (error) {
-    errors.push(`Unable to generate Playground docs: ${String(error)}`)
+    errors.push(`Unable to generate component docs: ${String(error)}`)
     return []
   }
 }
 
-function checkGeneratedRoutes(
+function checkGeneratedComponentDocs(
   root: string,
-  components: readonly PlaygroundComponent[],
+  components: readonly ComponentCatalogItem[],
   generatedDocs: readonly GeneratedDoc[],
   errors: string[],
 ): void {
-  const generatedPlaygroundDocs = generatedDocs.filter(doc =>
-    doc.path.startsWith('apps/docs/playground/'),
+  const generatedComponentDocs = generatedDocs.filter(
+    doc =>
+      doc.path.startsWith('apps/docs/components/') &&
+      doc.path !== 'apps/docs/components/index.md',
   )
-  const generatedPaths = generatedPlaygroundDocs.map(doc => doc.path)
+  const generatedPaths = generatedComponentDocs.map(doc => doc.path)
   const expectedPaths = components.map(expectedDocPath)
 
   for (const duplicate of findDuplicates(generatedPaths)) {
-    errors.push(`Duplicate generated Playground path "${duplicate}".`)
+    errors.push(`Duplicate generated component doc path "${duplicate}".`)
   }
 
   for (const path of unique(generatedPaths)) {
     if (!expectedPaths.includes(path)) {
-      errors.push(`Generated Playground route "${path}" has no definition.`)
+      errors.push(`Generated component doc "${path}" has no catalog entry.`)
     }
   }
 
   for (const component of components) {
     const path = expectedDocPath(component)
-    const generatedDoc = generatedPlaygroundDocs.find(doc => doc.path === path)
+    const generatedDoc = generatedComponentDocs.find(doc => doc.path === path)
 
     if (!generatedDoc) {
       errors.push(
-        `Missing generated Playground route for ${component.packageName}: ${path}.`,
+        `Missing generated component doc for ${component.packageName}: ${path}.`,
       )
       continue
     }
@@ -393,7 +460,7 @@ function checkGeneratedRoutes(
     const absolutePath = resolve(root, path)
 
     if (!existsSync(absolutePath)) {
-      errors.push(`Missing generated Playground file: ${path}.`)
+      errors.push(`Missing generated component file: ${path}.`)
       continue
     }
 
@@ -402,6 +469,30 @@ function checkGeneratedRoutes(
     if (!current.includes(expectedMarkup)) {
       errors.push(`${path} must contain "${expectedMarkup}".`)
     }
+  }
+}
+
+function findMarkdownFiles(directory: string): string[] {
+  if (!existsSync(directory)) return []
+
+  return readdirSync(directory, {
+    withFileTypes: true,
+  }).flatMap(entry => {
+    const path = resolve(directory, entry.name)
+
+    if (entry.isDirectory()) return findMarkdownFiles(path)
+    return entry.isFile() && entry.name.endsWith('.md') ? [path] : []
+  })
+}
+
+function checkLegacyPlaygroundDocs(root: string, errors: string[]): void {
+  const docsRoot = resolve(root, 'apps/docs')
+  const playgroundRoot = resolve(docsRoot, 'playground')
+
+  for (const path of findMarkdownFiles(playgroundRoot)) {
+    const relativePath = relative(root, path).split('\\').join('/')
+
+    errors.push(`Legacy Playground markdown must be removed: ${relativePath}.`)
   }
 }
 
@@ -438,16 +529,16 @@ function checkDocsDependencies(
 }
 
 function checkSidebar(
-  components: readonly PlaygroundComponent[],
+  components: readonly ComponentCatalogItem[],
   sidebarItems: readonly SidebarItem[],
   errors: string[],
 ): void {
   const expectedRoutes = new Set<string>(
     components.map(component => component.route),
   )
-  const componentRoutes = sidebarItems
-    .map(item => item.link)
-    .filter(link => link !== '/playground/')
+  const componentRoutes = flattenSidebarLinks(sidebarItems).filter(
+    link => link !== '/components/',
+  )
 
   for (const component of components) {
     const count = componentRoutes.filter(
@@ -456,16 +547,25 @@ function checkSidebar(
 
     if (count !== 1) {
       errors.push(
-        `Playground sidebar must contain "${component.route}" exactly once; received ${count}.`,
+        `Component sidebar must contain "${component.route}" exactly once; received ${count}.`,
       )
     }
   }
 
   for (const route of unique(componentRoutes)) {
     if (!expectedRoutes.has(route)) {
-      errors.push(`Playground sidebar route "${route}" has no definition.`)
+      errors.push(`Component sidebar route "${route}" has no catalog entry.`)
     }
   }
+}
+
+function flattenSidebarLinks(items: readonly SidebarItem[]): string[] {
+  return items.flatMap(item => {
+    const ownLink = item.link ? [item.link] : []
+    const childLinks = item.items ? flattenSidebarLinks(item.items) : []
+
+    return ownLink.concat(childLinks)
+  })
 }
 
 function escapeRegExp(value: string): string {
@@ -499,7 +599,7 @@ function hasImportCall(runtimeSource: string, importPath: string): boolean {
 
 function checkRuntime(
   root: string,
-  components: readonly PlaygroundComponent[],
+  components: readonly ComponentCatalogItem[],
   runtimeSourceOverride: string | undefined,
   errors: string[],
 ): void {
@@ -572,18 +672,24 @@ export function checkPlaygroundContract(
 ): PlaygroundContractResult {
   const errors: string[] = []
   const components =
-    options.components === undefined ? playgroundComponents : options.components
+    options.catalog === undefined ? componentCatalog : options.catalog
+  const categories =
+    options.categories === undefined ? componentCategories : options.categories
   const sources =
     options.sources === undefined ? playgroundSources : options.sources
   const packages = readComponentPackages(root, errors)
   const generatedDocs = loadGeneratedDocs(root, options.generatedDocs, errors)
   const sidebarItems =
-    options.sidebarItems === undefined ? playgroundItems : options.sidebarItems
+    options.sidebarItems === undefined
+      ? componentCategoryGroups
+      : options.sidebarItems
 
   pushDuplicateErrors(components, errors)
   checkDefinitionCoverage(packages, components, errors)
+  checkCategories(components, categories, errors)
   checkFrameworkSources(packages, components, sources, errors)
-  checkGeneratedRoutes(root, components, generatedDocs, errors)
+  checkGeneratedComponentDocs(root, components, generatedDocs, errors)
+  checkLegacyPlaygroundDocs(root, errors)
   checkDocsDependencies(root, packages, errors)
   checkSidebar(components, sidebarItems, errors)
   checkRuntime(root, components, options.runtimeSource, errors)
@@ -592,6 +698,7 @@ export function checkPlaygroundContract(
     valid: errors.length === 0,
     errors,
     componentCount: components.length,
+    categoryCount: categories.length,
     packageNames: packages.map(pkg => pkg.name),
   }
 }

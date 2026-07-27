@@ -514,9 +514,9 @@
   font-size: 14px;
 }
 
-.component-playground-page .VPDoc .container,
-.component-playground-page .VPDoc .content,
-.component-playground-page .VPDoc .content-container {
+.component-docs-page .VPDoc .container,
+.component-docs-page .VPDoc .content,
+.component-docs-page .VPDoc .content-container {
   max-width: 1180px;
 }
 
@@ -546,14 +546,38 @@
   color: var(--playground-danger);
 }
 
-.playground-directory {
+.component-directory {
+  display: grid;
+  gap: 32px;
+  margin: 32px 0;
+}
+
+.component-directory__section {
+  min-width: 0;
+}
+
+.component-directory__header {
+  margin-bottom: 14px;
+}
+
+.component-directory__header h2 {
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.component-directory__header p {
+  margin: 6px 0 0;
+  color: var(--vp-c-text-2);
+}
+
+.component-directory__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 14px;
-  margin: 24px 0;
 }
 
-.playground-directory__card {
+.component-directory__card {
   min-width: 0;
   display: grid;
   gap: 8px;
@@ -569,37 +593,36 @@
     box-shadow 120ms ease;
 }
 
-.playground-directory__card:hover {
+.component-directory__card:hover {
   border-color: var(--vp-c-brand-1);
   transform: translateY(-2px);
   box-shadow: var(--vp-shadow-2);
 }
 
-.playground-directory__card strong {
+.component-directory__card strong {
   font-size: 17px;
 }
 
-.playground-directory__card > span:not(.playground-directory__group) {
+.component-directory__card > span:not(.component-directory__package) {
   color: var(--vp-c-text-2);
   line-height: 1.5;
 }
 
-.playground-directory__group {
+.component-directory__package {
   color: var(--vp-c-brand-1);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  overflow-wrap: anywhere;
 }
 
-.playground-directory__frameworks {
+.component-directory__frameworks {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 4px;
 }
 
-.playground-directory__frameworks small {
+.component-directory__frameworks small {
   border: 1px solid var(--vp-c-divider);
   border-radius: 999px;
   padding: 2px 7px;

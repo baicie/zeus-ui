@@ -13,7 +13,7 @@ describe('docs chat playground', () => {
       const sentText = 'Playground regression message'
 
       return page
-        .goto('playground/chat/')
+        .goto('components/chat')
         .then(() => expectPage(playground).toBeVisible())
         .then(() => expectPage(messages).toHaveCount(3))
         .then(() => expectPage(playground).not.toContainText('No messages yet'))

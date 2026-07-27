@@ -8,7 +8,10 @@ import type {
 import { expect as expectPage } from '@playwright/test'
 import { describe, expect, it } from 'vitest'
 
-import { playgroundComponents } from '../../apps/docs/.vitepress/data/playground-manifest'
+import {
+  componentCatalog,
+  componentCategories,
+} from '../../apps/docs/.vitepress/data/component-catalog'
 import { playgroundSources } from '../../apps/docs/.vitepress/data/playground-sources'
 import { docsShowcaseTarget, withShowcasePage } from './utils/browser'
 import { collectPageErrors } from './utils/page-errors'
@@ -34,7 +37,7 @@ function getFrameworkImportPath(source: PlaygroundSource): string {
 }
 
 function getFrameworkExpectations(
-  component: (typeof playgroundComponents)[number],
+  component: (typeof componentCatalog)[number],
 ): FrameworkExpectation[] {
   const sources = playgroundSources[component.name]
 
@@ -57,7 +60,7 @@ function getFrameworkExpectations(
 
 function expectLivePreview(
   page: Page,
-  component: (typeof playgroundComponents)[number],
+  component: (typeof componentCatalog)[number],
 ): Promise<void> {
   if (component.name === 'data-grid') {
     return expectPage(
@@ -80,7 +83,7 @@ function expectLivePreview(
 
 function expectFrameworkSources(
   page: Page,
-  component: (typeof playgroundComponents)[number],
+  component: (typeof componentCatalog)[number],
 ): Promise<void> {
   const codeGroup = page.locator('.vp-code-group').last()
   const labels = codeGroup.locator('.tabs label')
@@ -145,22 +148,22 @@ describe('docs component playgrounds', () => {
     return withShowcasePage(docsShowcaseTarget, page => {
       const errors = collectPageErrors(page)
 
-      return playgroundComponents
+      return componentCatalog
         .reduce((promise, component) => {
           return promise
-            .then(() => page.goto(`playground/${component.name}/`))
+            .then(() => page.goto(`components/${component.name}`))
             .then(response => {
               expect(response).not.toBeNull()
               expect(response && response.ok()).toBe(true)
               expect(new URL(page.url()).pathname).toBe(
-                `/zeus-ui/playground/${component.name}/`,
+                `/zeus-ui/components/${component.name}`,
               )
             })
             .then(() =>
               expectPage(
                 page.getByRole('heading', {
                   level: 1,
-                  name: `${component.title} Playground`,
+                  name: component.title,
                 }),
               ).toBeVisible(),
             )
@@ -180,17 +183,42 @@ describe('docs component playgrounds', () => {
           width: 390,
           height: 844,
         })
-        .then(() => page.goto('playground/'))
+        .then(() => page.goto('components/'))
         .then(() =>
-          expectPage(page.locator('[data-playground-link]')).toHaveCount(
-            playgroundComponents.length,
+          expectPage(page.locator('[data-component-category]')).toHaveCount(
+            componentCategories.length,
           ),
         )
         .then(() =>
-          page.locator('[data-playground-link="button"]').getAttribute('href'),
+          Promise.all(
+            componentCategories.map(category => {
+              return expectPage(
+                page.getByRole('heading', {
+                  level: 2,
+                  name: category.label,
+                }),
+              ).toBeVisible()
+            }),
+          ),
         )
-        .then(href => expect(href).toBe('/zeus-ui/playground/button/'))
-        .then(() => page.goto('playground/button/'))
+        .then(() =>
+          expectPage(page.locator('[data-component-link]')).toHaveCount(
+            componentCatalog.length,
+          ),
+        )
+        .then(() => {
+          return Promise.all(
+            componentCatalog.map(component => {
+              return page
+                .locator(`[data-component-link="${component.name}"]`)
+                .getAttribute('href')
+                .then(href =>
+                  expect(href).toBe(`/zeus-ui/components/${component.name}`),
+                )
+            }),
+          )
+        })
+        .then(() => page.goto('components/button'))
         .then(() =>
           expectPage(
             page.locator('.component-playground[data-playground="button"]'),

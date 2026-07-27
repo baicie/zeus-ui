@@ -1,4 +1,4 @@
-import type { PlaygroundComponentName } from './playground-manifest'
+import type { ComponentName } from './component-catalog'
 
 export type PlaygroundFramework = 'webComponent' | 'react' | 'vue'
 
@@ -15,7 +15,7 @@ export interface PlaygroundSourceSet {
 }
 
 interface PrimitiveSourceOptions {
-  name: PlaygroundComponentName
+  name: ComponentName
   title: string
   symbols: string[]
   webComponentMarkup: string
@@ -903,10 +903,7 @@ const advancedSources = {
   },
 }
 
-export const playgroundSources: Record<
-  PlaygroundComponentName,
-  PlaygroundSourceSet
-> = {
+export const playgroundSources: Record<ComponentName, PlaygroundSourceSet> = {
   button: primitiveSources.button,
   input: primitiveSources.input,
   checkbox: primitiveSources.checkbox,
