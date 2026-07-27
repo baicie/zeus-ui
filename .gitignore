@@ -130,6 +130,7 @@ dist
 # VitePress build output and cache
 docs/.vitepress/dist
 docs/.vitepress/cache
+apps/docs/.vitepress/cache
 
 # Docusaurus cache and generated files
 .docusaurus

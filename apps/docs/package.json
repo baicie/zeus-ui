@@ -11,7 +11,9 @@
   "devDependencies": {
     "@zeus-web/button": "workspace:*",
     "@zeus-web/checkbox": "workspace:*",
+    "@zeus-web/data-grid": "workspace:*",
     "@zeus-web/dialog": "workspace:*",
+    "@zeus-web/icons": "workspace:*",
     "@zeus-web/input": "workspace:*",
     "@zeus-web/switch": "workspace:*",
     "@zeus-web/tabs": "workspace:*"

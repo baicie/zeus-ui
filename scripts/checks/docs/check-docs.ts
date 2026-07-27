@@ -179,6 +179,15 @@ const requiredDocs: RequiredDoc[] = [
       '@zeus-web/<component>/wc imports',
     ],
   },
+  {
+    path: 'playground/data-grid/index.md',
+    mustContain: [
+      '# High-performance Data Grid',
+      '<DataGridPlayground />',
+      '100,000 rows',
+      '1,000 columns',
+    ],
+  },
 ]
 
 const forbiddenPatterns = [
@@ -277,6 +286,7 @@ function checkVitePressConfig(): string[] {
   for (const text of [
     "import { defineConfig } from 'vitepress'",
     "import { sidebar, topNav } from './data/site'",
+    "logo: '/logo.svg'",
     'nav: topNav',
     'sidebar',
   ]) {
@@ -294,6 +304,7 @@ function checkVitePressConfig(): string[] {
     '/components/',
     ...componentDocs.map(c => `/components/${c}`),
     '/playground/',
+    '/playground/data-grid/',
     '/examples/react-vite',
     '/examples/next-app',
     '/examples/native-wc',

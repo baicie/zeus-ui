@@ -336,9 +336,11 @@ function setup(
   let shouldSyncActiveCellFromProps = true
   let modelVersion = 0
   const rowRenderVersion = state(0)
+  const rowLayoutRenderVersion = state(0)
   const columnRenderVersion = state(0)
   const columnRangeRenderVersion = state(0)
   let shouldRefreshRowsForRender = false
+  let shouldRefreshRowLayoutForRender = false
   let shouldRefreshColumnsForRender = false
   let builtModelVersion = -1
   const scheduler = createRafScheduler()
@@ -456,6 +458,14 @@ function setup(
       shouldRefreshRowsForRender = true
     }
 
+    if (
+      changes.rowsChanged ||
+      changes.reasons.includes('rowHeight') ||
+      changes.reasons.includes('virtual')
+    ) {
+      shouldRefreshRowLayoutForRender = true
+    }
+
     if (changes.columnsChanged) {
       shouldRefreshColumnsForRender = true
       baseColumns = normalizeDataGridColumns(columnsSource)
@@ -539,6 +549,11 @@ function setup(
     if (shouldRefreshRowsForRender) {
       shouldRefreshRowsForRender = false
       rowRenderVersion.value += 1
+    }
+
+    if (shouldRefreshRowLayoutForRender) {
+      shouldRefreshRowLayoutForRender = false
+      rowLayoutRenderVersion.value += 1
     }
 
     if (shouldRefreshColumnsForRender) {
@@ -1228,6 +1243,7 @@ function setup(
         Number.isFinite(size)
       ) {
         virtualizer.measure(index, size)
+        rowLayoutRenderVersion.value += 1
       }
 
       updateRange()
@@ -1236,6 +1252,7 @@ function setup(
     resetMeasurements(): void {
       rebuildModels()
       virtualizer.resetMeasurements()
+      rowLayoutRenderVersion.value += 1
       updateRange()
     },
 
@@ -1337,6 +1354,7 @@ function setup(
   }
 
   const getSpacerStyle = (): Record<string, string> => {
+    void rowLayoutRenderVersion.value
     void columnRangeRenderVersion.value
 
     if (!props.virtual) return { display: 'none' }
