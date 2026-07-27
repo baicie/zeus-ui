@@ -3,11 +3,11 @@ import { basename, resolve } from 'node:path'
 
 import ts from 'typescript'
 
-import { playgroundComponents } from '../../../apps/docs/.vitepress/data/playground-manifest'
+import { componentCatalog } from '../../../apps/docs/.vitepress/data/component-catalog'
 import { playgroundSources } from '../../../apps/docs/.vitepress/data/playground-sources'
 import {
-  generatePlaygroundDocs,
   getSupportedPlaygroundFrameworks,
+  renderEmbeddedPlayground,
 } from '../playground-docs'
 
 const FRAMEWORK_SOURCE_KEYS = {
@@ -28,7 +28,7 @@ function createReactSourceProgram(): {
   const virtualSources = new Map<string, VirtualSource>()
   const paths: Record<string, string[]> = {}
 
-  for (const component of playgroundComponents) {
+  for (const component of componentCatalog) {
     const source = playgroundSources[component.name].react
 
     if (!source) continue
@@ -43,7 +43,7 @@ function createReactSourceProgram(): {
       source: source.code,
     })
     paths[`${component.packageName}/react`] = [
-      `packages/${component.group}/${component.name}/dist/react/index.d.ts`,
+      `packages/${component.packageGroup}/${component.name}/dist/react/index.d.ts`,
     ]
   }
 
@@ -146,14 +146,14 @@ describe('playground docs generator', () => {
         })
     })
 
-    expect(playgroundComponents).toHaveLength(25)
+    expect(componentCatalog).toHaveLength(25)
     expect(
-      playgroundComponents.map(component => component.packageName).sort(),
+      componentCatalog.map(component => component.packageName).sort(),
     ).toEqual(packageNames.sort())
   })
 
   it('keeps framework sources aligned with package exports', () => {
-    for (const component of playgroundComponents) {
+    for (const component of componentCatalog) {
       const supported = getSupportedPlaygroundFrameworks(component)
       const sources = playgroundSources[component.name]
 
@@ -165,7 +165,7 @@ describe('playground docs generator', () => {
         const packagePath = resolve(
           process.cwd(),
           'packages',
-          component.group,
+          component.packageGroup,
           component.name,
           'package.json',
         )
@@ -181,7 +181,7 @@ describe('playground docs generator', () => {
 
   it('has no strict TypeScript diagnostics in any React Playground snippet', () => {
     const result = createReactSourceProgram()
-    const reactSourceCount = playgroundComponents.filter(component => {
+    const reactSourceCount = componentCatalog.filter(component => {
       return Boolean(playgroundSources[component.name].react)
     }).length
 
@@ -189,34 +189,36 @@ describe('playground docs generator', () => {
     expect(result.diagnostics).toEqual([])
   }, 15_000)
 
-  it('generates an independent route with framework code groups', () => {
-    const docs = generatePlaygroundDocs()
-
-    expect(docs).toHaveLength(25)
-    expect(docs.map(doc => doc.path)).toContain(
-      'apps/docs/playground/button/index.md',
+  it('renders framework code groups inside the canonical component page', () => {
+    const button = componentCatalog.find(
+      component => component.name === 'button',
     )
-    expect(docs.map(doc => doc.path)).toContain(
-      'apps/docs/playground/data-grid/index.md',
+    const dataGrid = componentCatalog.find(
+      component => component.name === 'data-grid',
     )
 
-    const button = docs.find(
-      doc => doc.path === 'apps/docs/playground/button/index.md',
+    expect(button).toBeDefined()
+    expect(dataGrid).toBeDefined()
+
+    const buttonSource = renderEmbeddedPlayground(
+      button!,
+      playgroundSources.button,
     )
-    const dataGrid = docs.find(
-      doc => doc.path === 'apps/docs/playground/data-grid/index.md',
+    const dataGridSource = renderEmbeddedPlayground(
+      dataGrid!,
+      playgroundSources['data-grid'],
     )
 
-    expect(button?.content).toContain('<ComponentPlayground name="button" />')
-    expect(button?.content).toContain('[Web Component]')
-    expect(button?.content).toContain('[React]')
-    expect(button?.content).toContain('[Vue]')
-    expect(button?.content).toContain('@zeus-web/button/wc/auto')
-    expect(button?.content).toContain('@zeus-web/button/react')
-    expect(button?.content).toContain('@zeus-web/button/vue')
+    expect(buttonSource).toContain('<ComponentPlayground name="button" />')
+    expect(buttonSource).toContain('[Web Component]')
+    expect(buttonSource).toContain('[React]')
+    expect(buttonSource).toContain('[Vue]')
+    expect(buttonSource).toContain('@zeus-web/button/wc/auto')
+    expect(buttonSource).toContain('@zeus-web/button/react')
+    expect(buttonSource).toContain('@zeus-web/button/vue')
 
-    expect(dataGrid?.content).toContain('<DataGridPlayground />')
-    expect(dataGrid?.content).toContain('100,000 rows')
-    expect(dataGrid?.content).toContain('1,000 columns')
+    expect(dataGridSource).toContain('<DataGridPlayground />')
+    expect(dataGridSource).toContain('100,000 rows')
+    expect(dataGridSource).toContain('1,000 columns')
   })
 })

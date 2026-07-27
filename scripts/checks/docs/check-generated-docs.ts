@@ -5,13 +5,10 @@ import pc from 'picocolors'
 
 import { generateComponentDocs } from '../../docs/component-docs'
 import { formatGeneratedDocs } from '../../docs/format-generated-docs'
-import { generatePlaygroundDocs } from '../../docs/playground-docs'
 
 async function main(): Promise<void> {
   const errors: string[] = []
-  const docs = await formatGeneratedDocs(
-    generateComponentDocs().concat(generatePlaygroundDocs()),
-  )
+  const docs = await formatGeneratedDocs(generateComponentDocs())
   const generatedPaths = new Set(docs.map(doc => doc.path))
 
   for (const doc of docs) {
@@ -62,16 +59,19 @@ async function main(): Promise<void> {
 
   if (existsSync(playgroundDir)) {
     for (const entry of readdirSync(playgroundDir, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue
+      if (entry.isFile() && entry.name.endsWith('.md')) {
+        errors.push(
+          `Remove legacy standalone Playground doc: apps/docs/playground/${entry.name}`,
+        )
+        continue
+      }
 
       const docPath = `apps/docs/playground/${entry.name}/index.md`
       const file = resolve(playgroundDir, entry.name, 'index.md')
 
       if (!existsSync(file)) continue
 
-      if (!generatedPaths.has(docPath)) {
-        errors.push(`Remove stale generated Playground: ${docPath}`)
-      }
+      errors.push(`Remove legacy standalone Playground doc: ${docPath}`)
     }
   }
 
