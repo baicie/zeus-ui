@@ -9,6 +9,9 @@ import type {
   DataGridColumnResizeDetail,
   DataGridColumnResizeEndDetail,
   DataGridColumnResizeStartDetail,
+  DataGridColumnVirtualItem,
+  DataGridColumnVirtualRange,
+  DataGridColumnVirtualSnapshot,
   DataGridNavigationKey,
   DataGridRangeChangeDetail,
   DataGridRow,
@@ -44,6 +47,7 @@ import {
   applyDataGridColumnWidths,
   areDataGridActiveCellsEqual,
   createDataGridActiveCell,
+  createDataGridColumnVirtualizer,
   createDataGridColumnWidthState,
   createDataGridControlledSortState,
   createDataGridControlledStateController,
@@ -66,7 +70,6 @@ import {
   getDataGridHeaderRowAriaIndex,
   getDataGridResizeHandleAriaLabel,
   getDataGridRowByKey,
-  getTotalColumnWidth,
   getVisibleDataGridColumns,
   moveDataGridActiveCell,
   normalizeDataGridColumns,
@@ -74,6 +77,7 @@ import {
   resizeDataGridColumn,
   resizeDataGridColumnByDelta,
   shouldEmitDataGridViewportResize,
+  shouldUpdateDataGridColumnVirtualSnapshot,
   shouldUpdateDataGridVirtualSnapshot,
   sortDataGridRows,
 } from '../core'
@@ -83,6 +87,7 @@ export interface DataGridProps {
   columns?: DataGridColumn[]
   rowHeight?: number
   overscan?: number
+  overscanColumns?: number
   virtual?: boolean
   selectionMode?: DataGridSelectionMode
   selectedKeys?: DataGridRowKey[]
@@ -100,6 +105,7 @@ export interface DataGridElement extends HTMLElement {
   columns?: DataGridColumn[]
   rowHeight?: number
   overscan?: number
+  overscanColumns?: number
   virtual?: boolean
   selectionMode?: 'none' | 'single' | 'multiple'
   selectedKeys?: DataGridRowKey[]
@@ -128,8 +134,12 @@ export interface DataGridElement extends HTMLElement {
   getRange: () => DataGridVirtualRange
   getItems: () => DataGridVirtualItem[]
   getTotalSize: () => number
+  getColumnRange: () => DataGridColumnVirtualRange
+  getColumnItems: () => DataGridColumnVirtualItem[]
+  getTotalColumnSize: () => number
   scrollToIndex: (index: number, align?: VirtualScrollAlign) => void
   scrollToOffset: (offset: number) => void
+  scrollToColumn: (index: number, align?: VirtualScrollAlign) => void
   measure: (index?: number, size?: number) => void
   resetMeasurements: () => void
   resizeColumn: (columnId: string, width: number, nativeEvent?: Event) => void
@@ -167,6 +177,8 @@ interface ResizeSession {
   startWidth: number
 }
 
+const FALLBACK_COLUMN_VIEWPORT_SIZE = 640
+
 function resolveRows(props: DataGridProps): DataGridRowData[] {
   return Array.isArray(props.rows) ? props.rows : []
 }
@@ -184,6 +196,12 @@ function resolveRowHeight(props: DataGridProps): number {
 function resolveOverscan(props: DataGridProps): number {
   const value = props.overscan ?? 4
   if (!Number.isFinite(value) || value < 0) return 4
+  return Math.floor(value)
+}
+
+function resolveColumnOverscan(props: DataGridProps): number {
+  const value = props.overscanColumns === undefined ? 2 : props.overscanColumns
+  if (!Number.isFinite(value) || value < 0) return 2
   return Math.floor(value)
 }
 
@@ -209,8 +227,16 @@ function getScrollOffset(viewport: HTMLElement | undefined): number {
   return viewport?.scrollTop ?? 0
 }
 
+function getColumnScrollOffset(viewport: HTMLElement | undefined): number {
+  return viewport ? viewport.scrollLeft : 0
+}
+
 function getViewportClientHeight(viewport: HTMLElement | undefined): number {
   return viewport?.clientHeight ?? 0
+}
+
+function getViewportClientWidth(viewport: HTMLElement | undefined): number {
+  return viewport ? viewport.clientWidth : 0
 }
 
 function setScrollOffset(
@@ -221,7 +247,23 @@ function setScrollOffset(
   viewport.scrollTop = Math.max(0, offset)
 }
 
+function setColumnScrollOffset(
+  viewport: HTMLElement | undefined,
+  offset: number,
+): void {
+  if (!viewport) return
+  viewport.scrollLeft = Math.max(0, offset)
+}
+
 function cloneEmptySnapshot(): DataGridVirtualSnapshot {
+  return {
+    range: createEmptyVirtualRange(),
+    items: [],
+    totalSize: 0,
+  }
+}
+
+function cloneEmptyColumnSnapshot(): DataGridColumnVirtualSnapshot {
   return {
     range: createEmptyVirtualRange(),
     items: [],
@@ -277,7 +319,12 @@ function setup(
     rowHeight: resolveRowHeight(props),
     overscan: resolveOverscan(props),
   })
+  let columnVirtualizer = createDataGridColumnVirtualizer({
+    columns: visibleColumns,
+    overscan: resolveColumnOverscan(props),
+  })
   let currentSnapshot = cloneEmptySnapshot()
+  let currentColumnSnapshot = cloneEmptyColumnSnapshot()
   const renderVersion = state(0)
   let activeCell = createInitialDataGridActiveCell({
     rows: visibleRows,
@@ -285,14 +332,17 @@ function setup(
     rowKey: props.activeRowKey,
     columnId: props.activeColumnId,
   })
+  const activeCellRenderVersion = state(0)
   let shouldSyncActiveCellFromProps = true
   let modelVersion = 0
   const rowRenderVersion = state(0)
   const columnRenderVersion = state(0)
+  const columnRangeRenderVersion = state(0)
   let shouldRefreshRowsForRender = false
   let shouldRefreshColumnsForRender = false
-  let signature = ''
+  let builtModelVersion = -1
   const scheduler = createRafScheduler()
+  const focusScheduler = createRafScheduler()
 
   const viewportMeasure = createDataGridViewportMeasureController()
   let viewportMeasurement: DataGridViewportMeasurement =
@@ -308,6 +358,7 @@ function setup(
     activeColumnId: props.activeColumnId,
     rowHeight: resolveRowHeight(props),
     overscan: resolveOverscan(props),
+    overscanColumns: resolveColumnOverscan(props),
     virtual: resolveVirtual(props),
     selectionMode: resolveSelectionMode(props.selectionMode),
     resizable: resolveResizable(props),
@@ -324,6 +375,7 @@ function setup(
     activeColumnId: props.activeColumnId,
     rowHeight: resolveRowHeight(props),
     overscan: resolveOverscan(props),
+    overscanColumns: resolveColumnOverscan(props),
     virtual: resolveVirtual(props),
     selectionMode: resolveSelectionMode(props.selectionMode),
     resizable: resolveResizable(props),
@@ -387,7 +439,7 @@ function setup(
   }
 
   const scheduleFocusActiveCellElement = (): void => {
-    scheduler.schedule(() => {
+    focusScheduler.schedule(() => {
       focusActiveCellElement()
     })
   }
@@ -433,32 +485,15 @@ function setup(
     modelVersion += 1
   }
 
-  const getSignature = (): string => {
+  const rebuildModels = (): void => {
     syncControlledSources()
 
-    return JSON.stringify({
-      modelVersion,
-      columnWidths,
-      sort,
-      rowHeight: resolveRowHeight(props),
-      overscan: resolveOverscan(props),
-      virtual: resolveVirtual(props),
-      selectionMode: resolveSelectionMode(props.selectionMode),
-      resizable: resolveResizable(props),
-      keyboardNavigation: resolveKeyboardNavigation(props),
-    })
-  }
-
-  const rebuildModels = (): void => {
-    const nextSignature = getSignature()
-
-    if (nextSignature === signature) return
+    if (builtModelVersion === modelVersion) return
 
     const shouldRestoreActiveCellFocus =
       (shouldRefreshRowsForRender || shouldRefreshColumnsForRender) &&
       isActiveCellElementFocused()
 
-    signature = nextSignature
     baseColumns = normalizeDataGridColumns(columnsSource)
     columns = applyDataGridColumnWidths(baseColumns, columnWidths)
     visibleColumns = getVisibleDataGridColumns(columns)
@@ -473,8 +508,12 @@ function setup(
       rowHeight: resolveRowHeight(props),
       overscan: resolveOverscan(props),
     })
+    columnVirtualizer = createDataGridColumnVirtualizer({
+      columns: visibleColumns,
+      overscan: resolveColumnOverscan(props),
+    })
 
-    activeCell = createInitialDataGridActiveCell({
+    const nextActiveCell = createInitialDataGridActiveCell({
       rows: visibleRows,
       columns: visibleColumns,
       rowKey: shouldSyncActiveCellFromProps
@@ -484,8 +523,18 @@ function setup(
         ? props.activeColumnId
         : (activeCell?.columnId ?? props.activeColumnId),
     })
+
+    if (!areDataGridActiveCellsEqual(activeCell, nextActiveCell)) {
+      activeCell = nextActiveCell
+      activeCellRenderVersion.value += 1
+    } else {
+      activeCell = nextActiveCell
+    }
+
     shouldSyncActiveCellFromProps = false
     currentSnapshot = cloneEmptySnapshot()
+    currentColumnSnapshot = cloneEmptyColumnSnapshot()
+    builtModelVersion = modelVersion
 
     if (shouldRefreshRowsForRender) {
       shouldRefreshRowsForRender = false
@@ -523,9 +572,26 @@ function setup(
     })
   }
 
-  const getSnapshot = (): DataGridVirtualSnapshot => {
-    rebuildModels()
+  const updateColumnSnapshotIfChanged = (
+    nextSnapshot: DataGridColumnVirtualSnapshot,
+  ): void => {
+    if (
+      !shouldUpdateDataGridColumnVirtualSnapshot(
+        currentColumnSnapshot,
+        nextSnapshot,
+      )
+    ) {
+      return
+    }
 
+    currentColumnSnapshot = nextSnapshot
+    columnRangeRenderVersion.value += 1
+  }
+
+  const getSnapshotFromModels = (
+    scrollOffset: number,
+    viewportSize: number,
+  ): DataGridVirtualSnapshot => {
     if (!props.virtual) {
       const rowHeight = resolveRowHeight(props)
       const total = visibleRows.length * rowHeight
@@ -549,21 +615,140 @@ function setup(
       }
     }
 
-    return virtualizer.getSnapshot(
+    return virtualizer.getSnapshot(scrollOffset, viewportSize)
+  }
+
+  const getSnapshot = (): DataGridVirtualSnapshot => {
+    rebuildModels()
+
+    return getSnapshotFromModels(
       getScrollOffset(viewport),
       getResolvedViewportSize(),
     )
   }
 
+  const getResolvedColumnViewportSize = (): number => {
+    const width = getViewportClientWidth(viewport)
+
+    return width > 0
+      ? width
+      : Math.min(
+          FALLBACK_COLUMN_VIEWPORT_SIZE,
+          columnVirtualizer.getTotalSize(),
+        )
+  }
+
+  const getColumnSnapshotFromModels = (
+    scrollOffset: number,
+    viewportSize: number,
+  ): DataGridColumnVirtualSnapshot => {
+    if (!props.virtual) {
+      const totalSize = columnVirtualizer.getTotalSize()
+
+      return {
+        range: {
+          start: 0,
+          end: visibleColumns.length - 1,
+          overscanStart: 0,
+          overscanEnd: visibleColumns.length - 1,
+        },
+        items: visibleColumns.map((column, index) => {
+          const start = columnVirtualizer.getOffsetForIndex(index)
+
+          return {
+            index,
+            key: column.id,
+            start,
+            size: column.width,
+            end: start + column.width,
+            data: column,
+          }
+        }),
+        totalSize,
+      }
+    }
+
+    return columnVirtualizer.getSnapshot(scrollOffset, viewportSize)
+  }
+
+  const getColumnSnapshot = (): DataGridColumnVirtualSnapshot => {
+    rebuildModels()
+
+    return getColumnSnapshotFromModels(
+      getColumnScrollOffset(viewport),
+      getResolvedColumnViewportSize(),
+    )
+  }
+
+  const getActiveDescendantForRender = (): string | undefined => {
+    void activeCellRenderVersion.value
+    void renderVersion.value
+    void rowRenderVersion.value
+    void columnRangeRenderVersion.value
+    void columnRenderVersion.value
+
+    rebuildModels()
+
+    const currentActiveCell = activeCell
+    if (!currentActiveCell) return undefined
+
+    const rowSnapshot =
+      currentSnapshot.items.length > 0
+        ? currentSnapshot
+        : getSnapshotFromModels(
+            getScrollOffset(viewport),
+            getResolvedViewportSize(),
+          )
+    const columnSnapshot =
+      currentColumnSnapshot.items.length > 0
+        ? currentColumnSnapshot
+        : getColumnSnapshotFromModels(
+            getColumnScrollOffset(viewport),
+            getResolvedColumnViewportSize(),
+          )
+    const hasRenderedRow = rowSnapshot.items.some(
+      item => item.index === currentActiveCell.rowIndex,
+    )
+    const hasRenderedColumn = columnSnapshot.items.some(
+      item => item.index === currentActiveCell.columnIndex,
+    )
+
+    if (!hasRenderedRow || !hasRenderedColumn) return undefined
+
+    return getDataGridActiveDescendant(
+      currentActiveCell,
+      getDataGridActiveCellId,
+    )
+  }
+
+  const isActiveCellForRender = (
+    rowKey: DataGridRowKey,
+    columnId: string,
+  ): boolean => {
+    void activeCellRenderVersion.value
+
+    return Boolean(
+      activeCell &&
+      activeCell.rowKey === rowKey &&
+      activeCell.columnId === columnId,
+    )
+  }
+
   const updateRange = (nativeEvent?: Event): void => {
     rebuildModels()
-    measureViewport()
 
     const scrollOffset = getScrollOffset(viewport)
-    const viewportSize = getResolvedViewportSize()
-    const nextSnapshot = getSnapshot()
+    const viewportSize = measureViewport().size
+    const nextSnapshot = getSnapshotFromModels(scrollOffset, viewportSize)
+    const nextColumnSnapshot = getColumnSnapshotFromModels(
+      getColumnScrollOffset(viewport),
+      getResolvedColumnViewportSize(),
+    )
 
-    emitSnapshotIfChanged(nextSnapshot, scrollOffset, viewportSize)
+    batch(() => {
+      emitSnapshotIfChanged(nextSnapshot, scrollOffset, viewportSize)
+      updateColumnSnapshotIfChanged(nextColumnSnapshot)
+    })
 
     if (nativeEvent) {
       ctx.emit.scrollOffsetChange({
@@ -575,6 +760,22 @@ function setup(
 
   const scheduleUpdateRange = (nativeEvent?: Event): void => {
     scheduler.schedule(() => updateRange(nativeEvent))
+  }
+
+  const scrollToColumnIndex = (
+    index: number,
+    align: VirtualScrollAlign = 'start',
+  ): void => {
+    rebuildModels()
+
+    const offset = columnVirtualizer.getOffsetForIndex(
+      index,
+      align,
+      getResolvedColumnViewportSize(),
+    )
+
+    setColumnScrollOffset(viewport, offset)
+    updateRange()
   }
 
   const connectViewportObserver = (element: HTMLElement): void => {
@@ -616,7 +817,6 @@ function setup(
       props.selectedKeys = selection.getState().keys
       commitControlledState()
       modelVersion += 1
-      signature = ''
     })
   }
 
@@ -626,7 +826,6 @@ function setup(
       props.sortDirection = sort ? sort.direction : undefined
       commitControlledState()
       modelVersion += 1
-      signature = ''
     })
   }
 
@@ -636,7 +835,6 @@ function setup(
       props.activeColumnId = activeCell ? activeCell.columnId : undefined
       commitControlledState()
       modelVersion += 1
-      signature = ''
     })
   }
 
@@ -648,6 +846,7 @@ function setup(
 
     const previousActiveCell = activeCell
     activeCell = nextActiveCell
+    activeCellRenderVersion.value += 1
     syncActiveCellPropsFromModel()
 
     ctx.emit.activeCellChange({
@@ -707,6 +906,7 @@ function setup(
 
     if (nextActiveCell) {
       ctx.host.scrollToIndex(nextActiveCell.rowIndex, 'center')
+      scrollToColumnIndex(nextActiveCell.columnIndex, 'center')
       scheduleFocusActiveCellElement()
     }
   }
@@ -750,6 +950,7 @@ function setup(
 
     if (nextActiveCell) {
       ctx.host.scrollToIndex(nextActiveCell.rowIndex, 'center')
+      scrollToColumnIndex(nextActiveCell.columnIndex, 'center')
       scheduleFocusActiveCellElement()
     }
   }
@@ -768,7 +969,7 @@ function setup(
     columns = result.columns
     visibleColumns = getVisibleDataGridColumns(columns)
     modelVersion += 1
-    signature = ''
+    updateRange()
 
     ctx.emit.columnResize({
       column: result.column,
@@ -817,7 +1018,7 @@ function setup(
     columns = result.columns
     visibleColumns = getVisibleDataGridColumns(columns)
     modelVersion += 1
-    signature = ''
+    scheduleUpdateRange()
 
     ctx.emit.columnResize({
       column: result.column,
@@ -880,7 +1081,6 @@ function setup(
         shouldRefreshRowsForRender = true
         syncHostProps()
         commitControlledState()
-        signature = ''
         updateRange()
       })
     },
@@ -896,7 +1096,6 @@ function setup(
         shouldRefreshColumnsForRender = true
         syncHostProps()
         commitControlledState()
-        signature = ''
         updateRange()
       })
     },
@@ -981,6 +1180,23 @@ function setup(
         : visibleRows.length * resolveRowHeight(props)
     },
 
+    getColumnRange(): DataGridColumnVirtualRange {
+      const snapshot = getColumnSnapshot()
+      currentColumnSnapshot = snapshot
+      return snapshot.range
+    },
+
+    getColumnItems(): DataGridColumnVirtualItem[] {
+      const snapshot = getColumnSnapshot()
+      currentColumnSnapshot = snapshot
+      return snapshot.items
+    },
+
+    getTotalColumnSize(): number {
+      rebuildModels()
+      return columnVirtualizer.getTotalSize()
+    },
+
     scrollToIndex(index: number, align: VirtualScrollAlign = 'start'): void {
       rebuildModels()
 
@@ -995,6 +1211,10 @@ function setup(
     scrollToOffset(offset: number): void {
       setScrollOffset(viewport, offset)
       updateRange()
+    },
+
+    scrollToColumn(index: number, align: VirtualScrollAlign = 'start'): void {
+      scrollToColumnIndex(index, align)
     },
 
     measure(index?: number, size?: number): void {
@@ -1031,7 +1251,6 @@ function setup(
       columns = result.columns
       visibleColumns = getVisibleDataGridColumns(columns)
       modelVersion += 1
-      signature = ''
       updateRange()
     },
 
@@ -1061,9 +1280,16 @@ function setup(
       rebuildModels()
 
       const rowIndex = visibleRows.findIndex(row => row.key === rowKey)
+      const columnIndex = visibleColumns.findIndex(
+        column => column.id === columnId,
+      )
 
       if (rowIndex >= 0) {
         ctx.host.scrollToIndex(rowIndex, 'center')
+      }
+
+      if (columnIndex >= 0) {
+        scrollToColumnIndex(columnIndex, 'center')
       }
 
       setActiveCellByKey(rowKey, columnId)
@@ -1072,7 +1298,12 @@ function setup(
 
     focusActiveCell(): void {
       rebuildModels()
-      focusActiveCellElement()
+
+      if (!activeCell) return
+
+      ctx.host.scrollToIndex(activeCell.rowIndex, 'center')
+      scrollToColumnIndex(activeCell.columnIndex, 'center')
+      scheduleFocusActiveCellElement()
     },
 
     refreshViewport(): void {
@@ -1094,23 +1325,55 @@ function setup(
     return getBodyRows()
   }
 
-  const getVisibleColumnsForRender = (): NormalizedDataGridColumn[] => {
+  const getVisibleColumnsForRender = (): DataGridColumnVirtualItem[] => {
+    void columnRangeRenderVersion.value
     void columnRenderVersion.value
-    return visibleColumns
+
+    if (currentColumnSnapshot.items.length === 0 && visibleColumns.length > 0) {
+      currentColumnSnapshot = getColumnSnapshot()
+    }
+
+    return currentColumnSnapshot.items
   }
 
   const getSpacerStyle = (): Record<string, string> => {
+    void columnRangeRenderVersion.value
+
     if (!props.virtual) return { display: 'none' }
 
     return {
       height: `${virtualizer.getTotalSize()}px`,
-      width: '1px',
+      width: `${columnVirtualizer.getTotalSize()}px`,
       pointerEvents: 'none',
     }
   }
 
-  const getGridTemplateColumns = (): string =>
-    visibleColumns.map(column => `${column.width}px`).join(' ')
+  const getGridTemplateColumns = (): string => {
+    const items = getVisibleColumnsForRender()
+    if (items.length === 0) return ''
+
+    const tracks: string[] = []
+
+    if (items[0].start > 0) {
+      tracks.push(`${items[0].start}px`)
+    }
+
+    for (const item of items) {
+      tracks.push(`${item.size}px`)
+    }
+
+    return tracks.join(' ')
+  }
+
+  const getGridColumnStart = (item: DataGridColumnVirtualItem): string => {
+    void columnRangeRenderVersion.value
+
+    const firstItem = currentColumnSnapshot.items[0]
+    if (!firstItem) return '1'
+
+    const leadingTrackCount = firstItem.start > 0 ? 1 : 0
+    return String(item.index - firstItem.index + leadingTrackCount + 1)
+  }
 
   const emitRowAction = (
     action: 'click' | 'dblclick' | 'keydown',
@@ -1164,9 +1427,7 @@ function setup(
         aria-label={() => props.ariaLabel}
         aria-rowcount={() => String(resolveRows(props).length + 1)}
         aria-colcount={() => String(visibleColumns.length)}
-        aria-activedescendant={() =>
-          getDataGridActiveDescendant(activeCell, getDataGridActiveCellId)
-        }
+        aria-activedescendant={() => getActiveDescendantForRender()}
         aria-multiselectable={() =>
           getDataGridAriaMultiSelectable(
             resolveSelectionMode(props.selectionMode),
@@ -1188,6 +1449,8 @@ function setup(
 
           viewportResizeObserver?.disconnect()
           viewportResizeObserver = undefined
+          scheduler.cancel()
+          focusScheduler.cancel()
 
           if (viewport) {
             viewport.removeEventListener('scroll', scheduleUpdateRange)
@@ -1204,105 +1467,159 @@ function setup(
           style={() => ({
             display: 'grid',
             gridTemplateColumns: getGridTemplateColumns(),
-            width: `${getTotalColumnWidth(columns)}px`,
+            width: `${columnVirtualizer.getTotalSize()}px`,
           })}
         >
           <For
             each={getVisibleColumnsForRender()}
-            by={column => `${columnRenderVersion.value}:${column.id}`}
+            by={item => `${columnRenderVersion.value}:${item.key}`}
           >
-            {(column, index) => (
-              <div
-                key={column.id}
-                part="header-cell"
-                data-slot="data-grid-header-cell"
-                data-column-id={column.id}
-                data-sortable={() => (column.sortable ? '' : undefined)}
-                data-resizable={() =>
-                  props.resizable && column.resizable ? '' : undefined
-                }
-                data-sort-direction={() =>
-                  sort?.columnId === column.id ? sort.direction : undefined
-                }
-                role="columnheader"
-                aria-colindex={() => String(getDataGridColumnAriaIndex(index))}
-                aria-sort={() => getDataGridAriaSort(column, sort)}
-                tabindex={0}
-                onClick={(nativeEvent: Event) => {
-                  applySort(column.id, undefined, nativeEvent)
-                }}
-                onKeyDown={(nativeEvent: KeyboardEvent) => {
-                  if (
-                    column.sortable &&
-                    (nativeEvent.key === 'Enter' || nativeEvent.key === ' ')
-                  ) {
-                    applySort(column.id, undefined, nativeEvent)
-                  }
-                }}
-              >
-                <span part="header-label" data-slot="data-grid-header-label">
-                  {column.header}
-                </span>
+            {item =>
+              (() => {
+                const column = item.data
+                const columnIndex = item.index
 
-                <span
-                  part="resize-handle"
-                  data-slot="data-grid-resize-handle"
-                  role="separator"
-                  aria-label={() => getDataGridResizeHandleAriaLabel(column)}
-                  aria-orientation="vertical"
-                  aria-valuenow={() => String(column.width)}
-                  aria-valuemin={() => String(column.minWidth)}
-                  aria-valuemax={() => String(column.maxWidth)}
-                  tabindex={() =>
-                    props.resizable && column.resizable ? 0 : undefined
-                  }
-                  hidden={() => !(props.resizable && column.resizable)}
-                  onPointerDown={(nativeEvent: PointerEvent) => {
-                    startResize(column, nativeEvent)
-                  }}
-                  onPointerMove={(nativeEvent: PointerEvent) => {
-                    moveResize(nativeEvent)
-                  }}
-                  onPointerUp={(nativeEvent: PointerEvent) => {
-                    endResize(nativeEvent)
-                  }}
-                  onPointerCancel={(nativeEvent: PointerEvent) => {
-                    endResize(nativeEvent)
-                  }}
-                  onKeyDown={(nativeEvent: KeyboardEvent) => {
-                    if (!props.resizable || !column.resizable) return
-
-                    if (nativeEvent.key === 'ArrowLeft') {
-                      nativeEvent.preventDefault()
-                      applyColumnResize(
-                        column.id,
-                        column.width - 16,
-                        nativeEvent,
-                      )
+                return (
+                  <div
+                    key={column.id}
+                    part="header-cell"
+                    data-slot="data-grid-header-cell"
+                    data-column-id={column.id}
+                    data-sortable={() => (column.sortable ? '' : undefined)}
+                    data-resizable={() =>
+                      props.resizable && column.resizable ? '' : undefined
                     }
-
-                    if (nativeEvent.key === 'ArrowRight') {
-                      nativeEvent.preventDefault()
-                      applyColumnResize(
-                        column.id,
-                        column.width + 16,
-                        nativeEvent,
-                      )
+                    data-sort-direction={() =>
+                      sort?.columnId === column.id ? sort.direction : undefined
                     }
-
-                    if (nativeEvent.key === 'Home') {
-                      nativeEvent.preventDefault()
-                      applyColumnResize(column.id, column.minWidth, nativeEvent)
+                    role="columnheader"
+                    aria-colindex={() =>
+                      String(getDataGridColumnAriaIndex(columnIndex))
                     }
+                    aria-sort={() => getDataGridAriaSort(column, sort)}
+                    tabindex={0}
+                    style={() => ({
+                      gridColumnStart: getGridColumnStart(item),
+                    })}
+                    onClick={(nativeEvent: Event) => {
+                      applySort(column.id, undefined, nativeEvent)
+                    }}
+                    onKeyDown={(nativeEvent: KeyboardEvent) => {
+                      if (
+                        column.sortable &&
+                        (nativeEvent.key === 'Enter' || nativeEvent.key === ' ')
+                      ) {
+                        applySort(column.id, undefined, nativeEvent)
+                      }
+                    }}
+                  >
+                    <span
+                      part="header-label"
+                      data-slot="data-grid-header-label"
+                    >
+                      {column.header}
+                    </span>
 
-                    if (nativeEvent.key === 'End') {
-                      nativeEvent.preventDefault()
-                      applyColumnResize(column.id, column.maxWidth, nativeEvent)
-                    }
-                  }}
-                />
-              </div>
-            )}
+                    <span
+                      part="resize-handle"
+                      data-slot="data-grid-resize-handle"
+                      role="separator"
+                      aria-label={() =>
+                        getDataGridResizeHandleAriaLabel(column)
+                      }
+                      aria-orientation="vertical"
+                      aria-valuenow={() => {
+                        void columnRangeRenderVersion.value
+
+                        const currentColumn = getDataGridColumnById(
+                          columns,
+                          column.id,
+                        )
+
+                        return String(
+                          currentColumn ? currentColumn.width : column.width,
+                        )
+                      }}
+                      aria-valuemin={() => String(column.minWidth)}
+                      aria-valuemax={() => String(column.maxWidth)}
+                      tabindex={() =>
+                        props.resizable && column.resizable ? 0 : undefined
+                      }
+                      hidden={() => !(props.resizable && column.resizable)}
+                      onPointerDown={(nativeEvent: PointerEvent) => {
+                        let currentColumn = getDataGridColumnById(
+                          columns,
+                          column.id,
+                        )
+
+                        if (!currentColumn) currentColumn = column
+
+                        startResize(currentColumn, nativeEvent)
+                      }}
+                      onPointerMove={(nativeEvent: PointerEvent) => {
+                        moveResize(nativeEvent)
+                      }}
+                      onPointerUp={(nativeEvent: PointerEvent) => {
+                        endResize(nativeEvent)
+                      }}
+                      onPointerCancel={(nativeEvent: PointerEvent) => {
+                        endResize(nativeEvent)
+                      }}
+                      onKeyDown={(nativeEvent: KeyboardEvent) => {
+                        const currentColumn = getDataGridColumnById(
+                          columns,
+                          column.id,
+                        )
+
+                        if (
+                          !props.resizable ||
+                          !currentColumn ||
+                          !currentColumn.resizable
+                        ) {
+                          return
+                        }
+
+                        if (nativeEvent.key === 'ArrowLeft') {
+                          nativeEvent.preventDefault()
+                          applyColumnResize(
+                            currentColumn.id,
+                            currentColumn.width - 16,
+                            nativeEvent,
+                          )
+                        }
+
+                        if (nativeEvent.key === 'ArrowRight') {
+                          nativeEvent.preventDefault()
+                          applyColumnResize(
+                            currentColumn.id,
+                            currentColumn.width + 16,
+                            nativeEvent,
+                          )
+                        }
+
+                        if (nativeEvent.key === 'Home') {
+                          nativeEvent.preventDefault()
+                          applyColumnResize(
+                            currentColumn.id,
+                            currentColumn.minWidth,
+                            nativeEvent,
+                          )
+                        }
+
+                        if (nativeEvent.key === 'End') {
+                          nativeEvent.preventDefault()
+                          applyColumnResize(
+                            currentColumn.id,
+                            currentColumn.maxWidth,
+                            nativeEvent,
+                          )
+                        }
+                      }}
+                    />
+                  </div>
+                )
+              })()
+            }
           </For>
         </div>
 
@@ -1345,7 +1662,7 @@ function setup(
                     style={() => ({
                       display: 'grid',
                       gridTemplateColumns: getGridTemplateColumns(),
-                      width: `${getTotalColumnWidth(columns)}px`,
+                      width: `${columnVirtualizer.getTotalSize()}px`,
                       transform: props.virtual
                         ? `translateY(${item.start}px)`
                         : undefined,
@@ -1370,13 +1687,12 @@ function setup(
                   >
                     <For
                       each={getVisibleColumnsForRender()}
-                      by={column => `${columnRenderVersion.value}:${column.id}`}
+                      by={item => `${columnRenderVersion.value}:${item.key}`}
                     >
-                      {(column, columnIndex) =>
+                      {item =>
                         (() => {
-                          const isActive =
-                            activeCell?.rowKey === row.key &&
-                            activeCell?.columnId === column.id
+                          const column = item.data
+                          const columnIndex = item.index
                           const cellId =
                             getDataGridActiveCellId({
                               rowIndex: row.index,
@@ -1394,8 +1710,15 @@ function setup(
                               data-column-id={column.id}
                               data-row-key={row.key}
                               data-align={column.align}
-                              data-active={() => (isActive ? '' : undefined)}
+                              data-active={() =>
+                                isActiveCellForRender(row.key, column.id)
+                                  ? ''
+                                  : undefined
+                              }
                               role="gridcell"
+                              style={() => ({
+                                gridColumnStart: getGridColumnStart(item),
+                              })}
                               aria-colindex={() =>
                                 String(getDataGridColumnAriaIndex(columnIndex))
                               }
@@ -1408,7 +1731,7 @@ function setup(
                               tabindex={() =>
                                 getDataGridCellTabIndex(
                                   props.keyboardNavigation !== false,
-                                  isActive,
+                                  isActiveCellForRender(row.key, column.id),
                                 )
                               }
                               onFocus={(nativeEvent: FocusEvent) => {
@@ -1502,6 +1825,10 @@ export const DataGrid = defineElement<
       overscan: prop(Number, {
         default: 4,
       }),
+      overscanColumns: prop(Number, {
+        attr: 'overscan-columns',
+        default: 2,
+      }),
       virtual: prop(Boolean, {
         reflect: true,
       }),
@@ -1549,7 +1876,7 @@ export const DataGrid = defineElement<
     },
     meta: {
       description:
-        'Headless data grid advanced component with controlled state, row virtualization, column resizing, keyboard navigation, selection and sorting.',
+        'Headless data grid advanced component with controlled state, two-axis virtualization, column resizing, keyboard navigation, selection and sorting.',
     },
   },
   setup,

@@ -26,6 +26,13 @@ describe('data-grid benchmark data', () => {
         rowCount: 100_000,
         columnCount: 100,
       }),
+      expect.objectContaining({
+        name: '100k rows x 1k columns',
+        rowCount: 100_000,
+        columnCount: 1_000,
+        viewportWidth: 640,
+        overscanColumns: 2,
+      }),
     ])
   })
 

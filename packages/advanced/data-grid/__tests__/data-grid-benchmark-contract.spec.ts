@@ -113,6 +113,8 @@ describe('data-grid benchmark contract', () => {
     expect(metrics).toContain('mountDataGrid')
     expect(metrics).toContain('captureDataGridDomSnapshot')
     expect(metrics).toContain('grid.scrollToOffset(offset)')
+    expect(metrics).toContain('viewport.scrollLeft = columnOffset')
+    expect(metrics).toContain('harness.setElementClientWidth')
     expect(metrics).toContain(
       'const ratio = frames <= 1 ? 1 : frame / (frames - 1)',
     )
@@ -126,6 +128,7 @@ describe('data-grid benchmark contract', () => {
     expect(scrollBench).toContain('result.renderedCellsMax')
     expect(scrollBench).toContain('result.rangeChanges')
     expect(scrollBench).toContain('result.lastItemIndexAfterScroll')
+    expect(scrollBench).toContain('result.lastColumnItemIndexAfterScroll')
     expect(scrollBench).toContain('result.lastRenderedRowIndexAfterScroll')
     expect(updateBench).toContain("nextColumns[0].field = 'col_2'")
     expect(updateBench).toContain(

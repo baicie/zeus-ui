@@ -39,6 +39,29 @@ describe('zw-data-grid accessibility runtime', () => {
     )
   })
 
+  it('updates active descendant and roving tabindex with the active cell', async () => {
+    const grid = await mountDataGrid({
+      activeRowKey: 'u1',
+      activeColumnId: 'name',
+    })
+    const viewport = getViewport(grid)
+    const previousCell = getCell(grid, 'u1', 'name')
+
+    grid.setActiveCell('u2', 'age')
+
+    await nextFrame()
+
+    const activeCell = getCell(grid, 'u2', 'age')
+    const activeDescendant = viewport.getAttribute('aria-activedescendant')
+
+    expect(activeDescendant).toBe('zg-cell-u2-age')
+    expect(grid.querySelector(`[id="${activeDescendant}"]`)).toBe(activeCell)
+    expect(previousCell.hasAttribute('data-active')).toBe(false)
+    expect(previousCell.getAttribute('tabindex')).toBe('-1')
+    expect(activeCell.hasAttribute('data-active')).toBe(true)
+    expect(activeCell.getAttribute('tabindex')).toBe('0')
+  })
+
   it('renders header aria-sort and aria-colindex', async () => {
     const grid = await mountDataGrid({
       sortColumn: 'age',

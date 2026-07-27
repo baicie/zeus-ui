@@ -33,7 +33,9 @@ describe('data-grid update benchmark', () => {
         columns: dataset.columns,
         rowHeight: scenario.rowHeight,
         viewportSize: scenario.viewportSize,
+        viewportWidth: scenario.viewportWidth,
         overscan: scenario.overscan,
+        overscanColumns: scenario.overscanColumns,
         nextRows,
         nextColumns,
       }).then(result => {
@@ -49,7 +51,7 @@ describe('data-grid update benchmark', () => {
         )
         expect(result.domAfterRowsUpdate.renderedCells).toBeGreaterThan(0)
         expect(result.domAfterRowsUpdate.firstRenderedRowKey).toBe('row_1_1')
-        expect(result.domAfterColumnsUpdate.renderedColumns).toBe(
+        expect(result.domAfterColumnsUpdate.renderedColumns).toBeLessThan(
           scenario.columnCount,
         )
         expect(result.firstCellTextAfterColumnsUpdate).toBe('R1-C2')

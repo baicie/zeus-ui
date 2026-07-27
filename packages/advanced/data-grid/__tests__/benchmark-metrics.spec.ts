@@ -4,6 +4,7 @@ import {
   DATA_GRID_BENCHMARK_RESULT_PREFIX,
   formatDataGridBenchmarkResult,
   getDataGridMemoryTrend,
+  getRenderedColumnsBudget,
   getRenderedRowsBudget,
 } from '../benchmarks/benchmark-metrics'
 
@@ -11,6 +12,17 @@ describe('data-grid benchmark metrics', () => {
   it('computes rendered row budget from viewport and overscan', () => {
     expect(getRenderedRowsBudget(480, 40, 4)).toBe(21)
     expect(getRenderedRowsBudget(400, 40, 4)).toBe(19)
+  })
+
+  it('computes a bounded rendered column budget', () => {
+    const columns = Array.from({ length: 100 }, (_, index) => ({
+      id: `column-${index}`,
+      width: 120,
+    }))
+
+    expect(getRenderedColumnsBudget(640, columns, 2)).toBe(11)
+    expect(getRenderedColumnsBudget(640, columns.slice(0, 8), 2)).toBe(8)
+    expect(getRenderedColumnsBudget(640, [], 2)).toBe(0)
   })
 
   it('computes memory trend deltas', () => {

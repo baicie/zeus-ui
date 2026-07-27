@@ -11,7 +11,9 @@ export interface DataGridBenchmarkScenario {
   columnCount: number
   rowHeight: number
   viewportSize: number
+  viewportWidth: number
   overscan: number
+  overscanColumns: number
 }
 
 export interface DataGridBenchmarkRowsOptions {
@@ -26,7 +28,9 @@ export const DATA_GRID_BENCHMARK_SCENARIOS: DataGridBenchmarkScenario[] = [
     columnCount: 20,
     rowHeight: 40,
     viewportSize: 480,
+    viewportWidth: 640,
     overscan: 4,
+    overscanColumns: 2,
   },
   {
     name: '100k rows x 20 columns',
@@ -34,7 +38,9 @@ export const DATA_GRID_BENCHMARK_SCENARIOS: DataGridBenchmarkScenario[] = [
     columnCount: 20,
     rowHeight: 40,
     viewportSize: 480,
+    viewportWidth: 640,
     overscan: 4,
+    overscanColumns: 2,
   },
   {
     name: '100k rows x 100 columns',
@@ -42,7 +48,19 @@ export const DATA_GRID_BENCHMARK_SCENARIOS: DataGridBenchmarkScenario[] = [
     columnCount: 100,
     rowHeight: 40,
     viewportSize: 480,
+    viewportWidth: 640,
     overscan: 4,
+    overscanColumns: 2,
+  },
+  {
+    name: '100k rows x 1k columns',
+    rowCount: 100_000,
+    columnCount: 1_000,
+    rowHeight: 40,
+    viewportSize: 480,
+    viewportWidth: 640,
+    overscan: 4,
+    overscanColumns: 2,
   },
 ]
 

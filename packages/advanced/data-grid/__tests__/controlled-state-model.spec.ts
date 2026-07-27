@@ -18,6 +18,7 @@ function createSources(overrides = {}) {
     activeColumnId: 'name',
     rowHeight: 40,
     overscan: 4,
+    overscanColumns: 2,
     virtual: true,
     selectionMode: 'multiple' as const,
     resizable: true,
@@ -142,6 +143,10 @@ describe('controlled state model', () => {
 
     expect(
       controller.update(createSources({ overscan: 8 })).layoutChanged,
+    ).toBe(true)
+
+    expect(
+      controller.update(createSources({ overscanColumns: 6 })).layoutChanged,
     ).toBe(true)
 
     expect(

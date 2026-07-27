@@ -17,7 +17,9 @@ export interface DataGridBenchmarkInput {
   columns: DataGridColumn[]
   rowHeight: number
   overscan: number
+  overscanColumns: number
   viewportSize: number
+  viewportWidth: number
 }
 
 export interface DataGridScrollBenchmarkInput extends DataGridBenchmarkInput {
@@ -70,11 +72,14 @@ export interface DataGridScrollBenchmarkResult {
   framesPerSecond: number
   rangeChanges: number
   renderedRowsMax: number
+  renderedColumnsMax: number
   renderedCellsMax: number
   renderedRowsBudget: number
+  renderedColumnsBudget: number
   rowCountAfterScroll: number
   columnCountAfterScroll: number
   lastItemIndexAfterScroll: number
+  lastColumnItemIndexAfterScroll: number
   lastRenderedRowIndexAfterScroll: number
   memoryBefore: DataGridMemorySample
   memoryAfter: DataGridMemorySample
@@ -152,6 +157,36 @@ export function getRenderedRowsBudget(
   return visibleRows + Math.max(0, overscan) * 2
 }
 
+export function getRenderedColumnsBudget(
+  viewportWidth: number,
+  columns: DataGridColumn[],
+  overscanColumns: number,
+): number {
+  const visibleColumns = columns.filter(column => !column.hidden)
+  if (visibleColumns.length === 0) return 0
+
+  let minimumColumnWidth = Number.POSITIVE_INFINITY
+
+  for (const column of visibleColumns) {
+    const width =
+      column.width !== undefined &&
+      Number.isFinite(column.width) &&
+      column.width > 0
+        ? column.width
+        : 160
+
+    minimumColumnWidth = Math.min(minimumColumnWidth, width)
+  }
+
+  const intersectingColumns =
+    Math.floor(Math.max(0, viewportWidth) / minimumColumnWidth) + 2
+
+  return Math.min(
+    visibleColumns.length,
+    intersectingColumns + Math.max(0, overscanColumns) * 2,
+  )
+}
+
 export function getDataGridMemoryTrend(
   before: DataGridMemorySample,
   after: DataGridMemorySample,
@@ -183,11 +218,13 @@ function mountBenchmarkGrid(
       columns: input.columns,
       rowHeight: input.rowHeight,
       overscan: input.overscan,
+      overscanColumns: input.overscanColumns,
       virtual: true,
     })
     .then(grid => {
       const viewport = harness.getViewport(grid)
       harness.setElementClientHeight(viewport, input.viewportSize)
+      harness.setElementClientWidth(viewport, input.viewportWidth)
       grid.refreshViewport()
 
       return harness.nextFrame().then(() => grid)
@@ -262,8 +299,14 @@ export function measureDataGridScroll(
         0,
         input.rows.length * input.rowHeight - input.viewportSize,
       )
+      const maxColumnScrollOffset = Math.max(
+        0,
+        grid.getTotalColumnSize() - input.viewportWidth,
+      )
+      const viewport = harness.getViewport(grid)
       let frameDurationMs = 0
       let renderedRowsMax = 0
+      let renderedColumnsMax = 0
       let renderedCellsMax = 0
       let lastRenderedRowIndexAfterScroll = -1
       let sequence = Promise.resolve()
@@ -271,16 +314,22 @@ export function measureDataGridScroll(
       for (let frame = 0; frame < frames; frame += 1) {
         const ratio = frames <= 1 ? 1 : frame / (frames - 1)
         const offset = Math.round(maxScrollOffset * ratio)
+        const columnOffset = Math.round(maxColumnScrollOffset * ratio)
 
         sequence = sequence.then(() => {
           const frameStart = performance.now()
 
+          viewport.scrollLeft = columnOffset
           grid.scrollToOffset(offset)
 
           return harness.nextFrame().then(() => {
             frameDurationMs += performance.now() - frameStart
             const dom = captureDataGridDomSnapshot(grid)
             renderedRowsMax = Math.max(renderedRowsMax, dom.renderedRows)
+            renderedColumnsMax = Math.max(
+              renderedColumnsMax,
+              dom.renderedColumns,
+            )
             renderedCellsMax = Math.max(renderedCellsMax, dom.renderedCells)
             lastRenderedRowIndexAfterScroll = dom.lastRenderedRowIndex
           })
@@ -292,6 +341,7 @@ export function measureDataGridScroll(
           const averageFrameLatencyMs = frameDurationMs / frames
           const memoryAfter = sampleDataGridMemory()
           const itemsAfterScroll = grid.getItems()
+          const columnItemsAfterScroll = grid.getColumnItems()
           const result: DataGridScrollBenchmarkResult = {
             name: input.name,
             frames,
@@ -303,17 +353,28 @@ export function measureDataGridScroll(
                 : 1000 / averageFrameLatencyMs,
             rangeChanges: collector.events.length,
             renderedRowsMax,
+            renderedColumnsMax,
             renderedCellsMax,
             renderedRowsBudget: getRenderedRowsBudget(
               input.viewportSize,
               input.rowHeight,
               input.overscan,
             ),
+            renderedColumnsBudget: getRenderedColumnsBudget(
+              input.viewportWidth,
+              input.columns,
+              input.overscanColumns,
+            ),
             rowCountAfterScroll: grid.getRows().length,
             columnCountAfterScroll: grid.getColumns().length,
             lastItemIndexAfterScroll:
               itemsAfterScroll.length > 0
                 ? itemsAfterScroll[itemsAfterScroll.length - 1].index
+                : -1,
+            lastColumnItemIndexAfterScroll:
+              columnItemsAfterScroll.length > 0
+                ? columnItemsAfterScroll[columnItemsAfterScroll.length - 1]
+                    .index
                 : -1,
             lastRenderedRowIndexAfterScroll,
             memoryBefore,
