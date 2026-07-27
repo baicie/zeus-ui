@@ -10,6 +10,10 @@ Styled native select component built on the zw-select primitive.
   <span class="zw-badge">Generated</span>
 </div>
 
+## Playground
+
+[Open the interactive select Playground](/playground/select/).
+
 ## Install
 
 This component does not have a registry template yet.

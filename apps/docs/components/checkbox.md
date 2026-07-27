@@ -10,6 +10,10 @@ Styled checkbox component built on the zw-checkbox primitive.
   <span class="zw-badge">Generated</span>
 </div>
 
+## Playground
+
+[Open the interactive checkbox Playground](/playground/checkbox/).
+
 ## Install
 
 This component does not have a registry template yet.

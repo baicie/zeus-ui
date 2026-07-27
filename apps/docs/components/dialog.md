@@ -10,6 +10,10 @@ Styled dialog component family built on zw-dialog primitives.
   <span class="zw-badge">Generated</span>
 </div>
 
+## Playground
+
+[Open the interactive dialog Playground](/playground/dialog/).
+
 ## Install
 
 This component does not have a registry template yet.

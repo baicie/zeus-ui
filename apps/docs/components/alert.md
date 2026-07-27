@@ -10,6 +10,10 @@ Styled alert component family built on zw-alert primitives.
   <span class="zw-badge">Generated</span>
 </div>
 
+## Playground
+
+[Open the interactive alert Playground](/playground/alert/).
+
 ## Install
 
 This component does not have a registry template yet.

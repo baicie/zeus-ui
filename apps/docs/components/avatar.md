@@ -10,6 +10,10 @@ Styled avatar component family built on zw-avatar primitives.
   <span class="zw-badge">Generated</span>
 </div>
 
+## Playground
+
+[Open the interactive avatar Playground](/playground/avatar/).
+
 ## Install
 
 This component does not have a registry template yet.

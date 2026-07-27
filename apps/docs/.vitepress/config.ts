@@ -25,6 +25,7 @@ export default defineConfig({
   vite: {
     optimizeDeps: {
       include: [
+        '@zeus-js/zeus/capabilities',
         '@zeus-web/data-grid > @zeus-js/runtime-dom',
         '@zeus-web/data-grid > @zeus-js/web-c-runtime',
         '@zeus-web/data-grid > @zeus-js/zeus',

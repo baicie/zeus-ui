@@ -10,6 +10,10 @@ Styled tooltip component family built on zw-tooltip primitives.
   <span class="zw-badge">Generated</span>
 </div>
 
+## Playground
+
+[Open the interactive tooltip Playground](/playground/tooltip/).
+
 ## Install
 
 This component does not have a registry template yet.

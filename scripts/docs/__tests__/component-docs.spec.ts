@@ -57,6 +57,8 @@ describe('component docs generator', () => {
     const source = renderComponentDoc(component!, registryItem)
 
     expect(source).toContain('# Button')
+    expect(source).toContain('## Playground')
+    expect(source).toContain('/playground/button/')
     expect(source).toContain('## Props')
     expect(source).toContain('## Events')
     expect(source).toContain('## Registry')

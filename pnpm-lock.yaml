@@ -137,12 +137,36 @@ importers:
 
   apps/docs:
     devDependencies:
+      '@zeus-web/accordion':
+        specifier: workspace:*
+        version: link:../../packages/primitives/accordion
+      '@zeus-web/agent-console':
+        specifier: workspace:*
+        version: link:../../packages/advanced/agent-console
+      '@zeus-web/alert':
+        specifier: workspace:*
+        version: link:../../packages/primitives/alert
+      '@zeus-web/avatar':
+        specifier: workspace:*
+        version: link:../../packages/primitives/avatar
+      '@zeus-web/badge':
+        specifier: workspace:*
+        version: link:../../packages/primitives/badge
       '@zeus-web/button':
         specifier: workspace:*
         version: link:../../packages/primitives/button
+      '@zeus-web/card':
+        specifier: workspace:*
+        version: link:../../packages/primitives/card
+      '@zeus-web/chat':
+        specifier: workspace:*
+        version: link:../../packages/advanced/chat
       '@zeus-web/checkbox':
         specifier: workspace:*
         version: link:../../packages/primitives/checkbox
+      '@zeus-web/collapsible':
+        specifier: workspace:*
+        version: link:../../packages/primitives/collapsible
       '@zeus-web/data-grid':
         specifier: workspace:*
         version: link:../../packages/advanced/data-grid
@@ -155,12 +179,42 @@ importers:
       '@zeus-web/input':
         specifier: workspace:*
         version: link:../../packages/primitives/input
+      '@zeus-web/label':
+        specifier: workspace:*
+        version: link:../../packages/primitives/label
+      '@zeus-web/progress':
+        specifier: workspace:*
+        version: link:../../packages/primitives/progress
+      '@zeus-web/radio-group':
+        specifier: workspace:*
+        version: link:../../packages/primitives/radio-group
+      '@zeus-web/revogrid-adapter':
+        specifier: workspace:*
+        version: link:../../packages/advanced/revogrid-adapter
+      '@zeus-web/select':
+        specifier: workspace:*
+        version: link:../../packages/primitives/select
+      '@zeus-web/separator':
+        specifier: workspace:*
+        version: link:../../packages/primitives/separator
+      '@zeus-web/skeleton':
+        specifier: workspace:*
+        version: link:../../packages/primitives/skeleton
       '@zeus-web/switch':
         specifier: workspace:*
         version: link:../../packages/primitives/switch
       '@zeus-web/tabs':
         specifier: workspace:*
         version: link:../../packages/primitives/tabs
+      '@zeus-web/textarea':
+        specifier: workspace:*
+        version: link:../../packages/primitives/textarea
+      '@zeus-web/tooltip':
+        specifier: workspace:*
+        version: link:../../packages/primitives/tooltip
+      '@zeus-web/virtual':
+        specifier: workspace:*
+        version: link:../../packages/advanced/virtual
 
   examples/advanced-showcase:
     dependencies:

@@ -50,13 +50,15 @@ function startShowcaseServer(
 
 function startDocsServer(): Promise<CloseableServer> {
   const root = resolve(process.cwd(), docsServer.root)
-  process.env.ZEUS_DOCS_CACHE_DIR = resolve(
-    process.cwd(),
-    'node_modules/.cache/vitepress-showcase-e2e',
-  )
+  process.env.DOCS_BASE = '/zeus-ui/'
+  if (!process.env.ZEUS_DOCS_CACHE_DIR) {
+    process.env.ZEUS_DOCS_CACHE_DIR = resolve(
+      process.cwd(),
+      'node_modules/.cache/vitepress-showcase-e2e',
+    )
+  }
 
   return createVitePressServer(root, {
-    base: '/zeus-ui/',
     host: '127.0.0.1',
     port: docsServer.port,
     strictPort: true,

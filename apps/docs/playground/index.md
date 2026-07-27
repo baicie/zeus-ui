@@ -1,27 +1,15 @@
 # Interactive Playground
 
-This playground renders the real Zeus Web Web Component entries inside the VitePress docs app.
-
-It validates:
-
-```txt
-1. @zeus-web/<component>/wc imports.
-2. Button, Input, Checkbox, Switch, Tabs and Dialog rendering.
-3. Custom events emitted by primitives.
-4. Theme and density controls in a docs environment.
-```
+Every public Zeus Web component package has an independent live Playground.
+Open a component to interact with its Web Component build and compare source
+for every framework the package actually exports.
 
 <ClientOnly>
-<ZeusPlayground />
+<PlaygroundDirectory />
 </ClientOnly>
 
 ## Notes
 
-The docs playground intentionally uses Web Components instead of React wrappers because VitePress is a Vue application.
-
-React usage is validated separately by:
-
-```bash
-pnpm --filter @zeus-web/example-react-vite build
-pnpm --filter @zeus-web/example-next-app build
-```
+The live preview uses the package's `wc/auto` entry because VitePress is a Vue
+application. Each page displays separate Web Component, React and Vue source
+only when the corresponding package export exists.

@@ -33,6 +33,14 @@ function getRunCommands(job: WorkflowObject): string[] {
     .map(step => String(step.run).trim())
 }
 
+function getNamedStep(job: WorkflowObject, name: string): WorkflowObject {
+  const step = getSteps(job).find(candidate => candidate.name === name)
+
+  if (!step) throw new Error(`Missing step: ${name}`)
+
+  return step
+}
+
 function readWorkflow(name: string): WorkflowObject {
   const source = readFileSync(
     resolve(process.cwd(), `.github/workflows/${name}`),
@@ -97,6 +105,9 @@ describe('ci workflow contract', () => {
       'pnpm docs:check',
       'pnpm docs:build',
     ])
+    expect(getNamedStep(docs, 'Build docs').env).toEqual({
+      DOCS_BASE: '/zeus-ui/',
+    })
     expect(deploy.if).toBe(
       "github.event_name == 'push' && github.ref == 'refs/heads/main'",
     )
@@ -104,6 +115,9 @@ describe('ci workflow contract', () => {
       contents: 'read',
       pages: 'write',
       'id-token': 'write',
+    })
+    expect(getNamedStep(deploy, 'Build docs').env).toEqual({
+      DOCS_BASE: '/zeus-ui/',
     })
   })
 })

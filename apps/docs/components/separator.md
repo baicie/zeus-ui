@@ -10,6 +10,10 @@ Styled separator component built on the zw-separator primitive.
   <span class="zw-badge">Generated</span>
 </div>
 
+## Playground
+
+[Open the interactive separator Playground](/playground/separator/).
+
 ## Install
 
 This component does not have a registry template yet.

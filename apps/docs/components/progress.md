@@ -10,6 +10,10 @@ Styled progress component built on the zw-progress primitive.
   <span class="zw-badge">Generated</span>
 </div>
 
+## Playground
+
+[Open the interactive progress Playground](/playground/progress/).
+
 ## Install
 
 This component does not have a registry template yet.

@@ -10,6 +10,10 @@ Styled label component built on the zw-label primitive.
   <span class="zw-badge">Generated</span>
 </div>
 
+## Playground
+
+[Open the interactive label Playground](/playground/label/).
+
 ## Install
 
 This component does not have a registry template yet.

@@ -5,9 +5,12 @@ import pc from 'picocolors'
 
 import { generateComponentDocs } from '../docs/component-docs'
 import { formatGeneratedDocs } from '../docs/format-generated-docs'
+import { generatePlaygroundDocs } from '../docs/playground-docs'
 
 async function main(): Promise<void> {
-  const docs = await formatGeneratedDocs(generateComponentDocs())
+  const docs = await formatGeneratedDocs(
+    generateComponentDocs().concat(generatePlaygroundDocs()),
+  )
 
   for (const doc of docs) {
     const file = resolve(process.cwd(), doc.path)

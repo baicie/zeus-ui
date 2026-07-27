@@ -10,6 +10,10 @@ Styled textarea component built on the zw-textarea primitive.
   <span class="zw-badge">Generated</span>
 </div>
 
+## Playground
+
+[Open the interactive textarea Playground](/playground/textarea/).
+
 ## Install
 
 This component does not have a registry template yet.
