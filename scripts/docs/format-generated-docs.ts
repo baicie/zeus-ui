@@ -4,6 +4,7 @@ import { format } from 'prettier'
 
 export async function formatGeneratedMarkdown(source: string): Promise<string> {
   return format(source, {
+    arrowParens: 'avoid',
     parser: 'markdown',
     proseWrap: 'preserve',
     singleQuote: true,

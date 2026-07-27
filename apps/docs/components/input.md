@@ -10,6 +10,10 @@ Styled text input component built on the zw-input primitive.
   <span class="zw-badge">Generated</span>
 </div>
 
+## Playground
+
+[Open the interactive input Playground](/playground/input/).
+
 ## Add
 
 ```bash

@@ -10,6 +10,10 @@ Styled radio group component built on zw-radio-group primitives.
   <span class="zw-badge">Generated</span>
 </div>
 
+## Playground
+
+[Open the interactive radio-group Playground](/playground/radio-group/).
+
 ## Install
 
 This component does not have a registry template yet.

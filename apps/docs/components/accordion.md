@@ -10,6 +10,10 @@ Styled accordion component family built on zw-accordion primitives.
   <span class="zw-badge">Generated</span>
 </div>
 
+## Playground
+
+[Open the interactive accordion Playground](/playground/accordion/).
+
 ## Install
 
 This component does not have a registry template yet.

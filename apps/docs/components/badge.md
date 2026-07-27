@@ -10,6 +10,10 @@ Styled badge component built on the zw-badge primitive.
   <span class="zw-badge">Generated</span>
 </div>
 
+## Playground
+
+[Open the interactive badge Playground](/playground/badge/).
+
 ## Install
 
 This component does not have a registry template yet.

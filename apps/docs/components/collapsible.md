@@ -10,6 +10,10 @@ Styled collapsible component family built on zw-collapsible primitives.
   <span class="zw-badge">Generated</span>
 </div>
 
+## Playground
+
+[Open the interactive collapsible Playground](/playground/collapsible/).
+
 ## Install
 
 This component does not have a registry template yet.

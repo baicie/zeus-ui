@@ -10,6 +10,10 @@ Styled button component built on the zw-button primitive.
   <span class="zw-badge">Generated</span>
 </div>
 
+## Playground
+
+[Open the interactive button Playground](/playground/button/).
+
 ## Add
 
 ```bash

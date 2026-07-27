@@ -18,6 +18,7 @@
     "packages/advanced/*/__tests__",
     "scripts/**/*",
     "apps/**/*",
+    "apps/docs/.vitepress/**/*",
     "examples/showcase-shared/src/**/*",
     "e2e/**/*"
   ],

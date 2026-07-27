@@ -5,6 +5,8 @@ import { resolve } from 'node:path'
 
 import pc from 'picocolors'
 
+import { playgroundComponents } from '../../../apps/docs/.vitepress/data/playground-manifest'
+
 interface RequiredDoc {
   path: string
   mustContain: string[]
@@ -13,28 +15,9 @@ interface RequiredDoc {
 const root = process.cwd()
 const docsRoot = resolve(root, 'apps/docs')
 
-const componentDocs = [
-  'button',
-  'input',
-  'checkbox',
-  'switch',
-  'tabs',
-  'dialog',
-  'label',
-  'textarea',
-  'radio-group',
-  'select',
-  'card',
-  'badge',
-  'separator',
-  'skeleton',
-  'alert',
-  'collapsible',
-  'accordion',
-  'tooltip',
-  'progress',
-  'avatar',
-]
+const componentDocs = playgroundComponents
+  .filter(component => component.group === 'primitives')
+  .map(component => component.name)
 
 function loadRegistry(): Registry {
   return JSON.parse(
@@ -175,17 +158,21 @@ const requiredDocs: RequiredDoc[] = [
     path: 'playground/index.md',
     mustContain: [
       '# Interactive Playground',
-      '<ZeusPlayground />',
-      '@zeus-web/<component>/wc imports',
+      '<PlaygroundDirectory />',
+      '`wc/auto`',
+      'React and Vue source',
     ],
   },
   {
     path: 'playground/data-grid/index.md',
     mustContain: [
-      '# High-performance Data Grid',
+      '# Data Grid Playground',
       '<DataGridPlayground />',
       '100,000 rows',
       '1,000 columns',
+      '[Web Component]',
+      '[React]',
+      '[Vue]',
     ],
   },
 ]
@@ -304,7 +291,6 @@ function checkVitePressConfig(): string[] {
     '/components/',
     ...componentDocs.map(c => `/components/${c}`),
     '/playground/',
-    '/playground/data-grid/',
     '/examples/react-vite',
     '/examples/next-app',
     '/examples/native-wc',
@@ -354,6 +340,10 @@ function checkComponentDocsErrors(components: string[]): string[] {
 
     if (!source.includes(`@zeus-web/${component}/wc`)) {
       errors.push(`${relativePath} must document @zeus-web/${component}/wc`)
+    }
+
+    if (!source.includes(`/playground/${component}/`)) {
+      errors.push(`${relativePath} must link to its interactive Playground`)
     }
 
     if (registryComponents.has(component)) {

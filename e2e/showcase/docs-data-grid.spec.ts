@@ -24,7 +24,7 @@ describe('docs data grid playground', () => {
         .then(() =>
           expectPage(
             page.getByRole('heading', {
-              name: /High-performance data grid/i,
+              name: /Data Grid Playground/i,
             }),
           ).toBeVisible(),
         )

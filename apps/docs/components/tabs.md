@@ -10,6 +10,10 @@ Styled tabs component family built on zw-tabs primitives.
   <span class="zw-badge">Generated</span>
 </div>
 
+## Playground
+
+[Open the interactive tabs Playground](/playground/tabs/).
+
 ## Install
 
 This component does not have a registry template yet.

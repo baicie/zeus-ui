@@ -10,6 +10,10 @@ Styled card component family built on zw-card primitives.
   <span class="zw-badge">Generated</span>
 </div>
 
+## Playground
+
+[Open the interactive card Playground](/playground/card/).
+
 ## Install
 
 This component does not have a registry template yet.

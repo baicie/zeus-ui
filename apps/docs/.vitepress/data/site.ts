@@ -1,3 +1,5 @@
+import { playgroundComponents } from './playground-manifest'
+
 export interface DocsNavItem {
   text: string
   link: string
@@ -236,14 +238,15 @@ export const componentIndexItem: DocsNavItem = {
 
 export const playgroundItems: DocsNavItem[] = [
   {
-    text: 'Interactive Playground',
+    text: 'Overview',
     link: '/playground/',
   },
-  {
-    text: 'Data Grid',
-    link: '/playground/data-grid/',
-  },
-]
+].concat(
+  playgroundComponents.map(component => ({
+    text: component.title,
+    link: component.route,
+  })),
+)
 
 export const sidebar: DocsSidebarGroup[] = [
   {

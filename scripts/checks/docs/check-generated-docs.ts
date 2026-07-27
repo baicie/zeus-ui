@@ -5,10 +5,13 @@ import pc from 'picocolors'
 
 import { generateComponentDocs } from '../../docs/component-docs'
 import { formatGeneratedDocs } from '../../docs/format-generated-docs'
+import { generatePlaygroundDocs } from '../../docs/playground-docs'
 
 async function main(): Promise<void> {
   const errors: string[] = []
-  const docs = await formatGeneratedDocs(generateComponentDocs())
+  const docs = await formatGeneratedDocs(
+    generateComponentDocs().concat(generatePlaygroundDocs()),
+  )
   const generatedPaths = new Set(docs.map(doc => doc.path))
 
   for (const doc of docs) {
@@ -51,6 +54,23 @@ async function main(): Promise<void> {
         errors.push(
           `Remove stale generated component doc: ${basename(docPath)}`,
         )
+      }
+    }
+  }
+
+  const playgroundDir = resolve(process.cwd(), 'apps/docs/playground')
+
+  if (existsSync(playgroundDir)) {
+    for (const entry of readdirSync(playgroundDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue
+
+      const docPath = `apps/docs/playground/${entry.name}/index.md`
+      const file = resolve(playgroundDir, entry.name, 'index.md')
+
+      if (!existsSync(file)) continue
+
+      if (!generatedPaths.has(docPath)) {
+        errors.push(`Remove stale generated Playground: ${docPath}`)
       }
     }
   }
