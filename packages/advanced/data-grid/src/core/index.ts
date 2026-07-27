@@ -1,6 +1,7 @@
 export * from './accessibility-model'
 export * from './column-model'
 export * from './column-resize-model'
+export * from './column-virtualizer'
 export * from './controlled-state-model'
 export * from './grid-virtualizer'
 export * from './navigation-model'

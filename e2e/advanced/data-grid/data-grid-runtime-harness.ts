@@ -66,6 +66,7 @@ export interface MountedDataGridOptions {
   selectionMode?: 'none' | 'single' | 'multiple'
   rowHeight?: number
   overscan?: number
+  overscanColumns?: number
   resizable?: boolean
   keyboardNavigation?: boolean
   selectedKeys?: string[]
@@ -112,6 +113,7 @@ export async function mountDataGrid(
   grid.columns = options.columns ?? runtimeColumns
   grid.rowHeight = options.rowHeight ?? 40
   grid.overscan = options.overscan ?? 2
+  grid.overscanColumns = options.overscanColumns ?? 2
   grid.virtual = options.virtual ?? false
   grid.selectionMode = options.selectionMode ?? 'multiple'
   grid.resizable = options.resizable ?? true
@@ -212,6 +214,16 @@ export function setElementClientHeight(
   Object.defineProperty(element, 'clientHeight', {
     configurable: true,
     value: clientHeight,
+  })
+}
+
+export function setElementClientWidth(
+  element: HTMLElement,
+  clientWidth: number,
+): void {
+  Object.defineProperty(element, 'clientWidth', {
+    configurable: true,
+    value: clientWidth,
   })
 }
 

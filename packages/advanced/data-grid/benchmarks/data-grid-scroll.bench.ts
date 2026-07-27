@@ -20,7 +20,9 @@ describe('data-grid scroll benchmark', () => {
         columns: dataset.columns,
         rowHeight: scenario.rowHeight,
         viewportSize: scenario.viewportSize,
+        viewportWidth: scenario.viewportWidth,
         overscan: scenario.overscan,
+        overscanColumns: scenario.overscanColumns,
         frames: 120,
       }).then(result => {
         console.info(formatDataGridBenchmarkResult('scroll', result))
@@ -32,12 +34,19 @@ describe('data-grid scroll benchmark', () => {
         expect(result.renderedRowsMax).toBeLessThanOrEqual(
           result.renderedRowsBudget,
         )
-        expect(result.renderedCellsMax).toBeLessThanOrEqual(
-          result.renderedRowsBudget * scenario.columnCount,
+        expect(result.renderedColumnsMax).toBeLessThanOrEqual(
+          result.renderedColumnsBudget,
         )
+        expect(result.renderedCellsMax).toBeLessThanOrEqual(
+          result.renderedRowsBudget * result.renderedColumnsBudget,
+        )
+        expect(result.renderedCellsMax).toBeLessThanOrEqual(600)
         expect(result.rowCountAfterScroll).toBe(scenario.rowCount)
         expect(result.columnCountAfterScroll).toBe(scenario.columnCount)
         expect(result.lastItemIndexAfterScroll).toBe(scenario.rowCount - 1)
+        expect(result.lastColumnItemIndexAfterScroll).toBe(
+          scenario.columnCount - 1,
+        )
         expect(result.lastRenderedRowIndexAfterScroll).toBe(
           scenario.rowCount - 1,
         )

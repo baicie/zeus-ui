@@ -9,13 +9,13 @@ export interface DataGridRowData {
 export interface DataGridColumn {
   id: string
   header: string
-  field: keyof DataGridRowData
+  field: string
   width: number
   sortable?: boolean
 }
 
 export interface DataGridElement extends HTMLElement {
-  rows?: DataGridRowData[]
+  rows?: Array<Record<string, unknown>>
   columns?: DataGridColumn[]
   selectionMode?: 'none' | 'single' | 'multiple'
   selectedKeys?: string[]
@@ -25,13 +25,21 @@ export interface DataGridElement extends HTMLElement {
   activeColumnId?: string
   rowHeight?: number
   overscan?: number
+  overscanColumns?: number
   virtual?: boolean
-  setRows?: (rows: DataGridRowData[]) => void
-  setColumns?: (columns: DataGridColumn[]) => void
-  refreshViewport?: () => void
-  getSort?: () => unknown
-  getSelection?: () => unknown
-  getActiveCell?: () => unknown
+  setRows: (rows: Array<Record<string, unknown>>) => void
+  setColumns: (columns: DataGridColumn[]) => void
+  refreshViewport: () => void
+  getSort: () => unknown
+  getSelection: () => unknown
+  getActiveCell: () =>
+    | {
+        rowKey?: string
+        columnId?: string
+      }
+    | undefined
+  scrollToIndex: (index: number, align?: 'start' | 'center' | 'end') => void
+  scrollToColumn: (index: number, align?: 'start' | 'center' | 'end') => void
 }
 
 export interface ChatMessageData {

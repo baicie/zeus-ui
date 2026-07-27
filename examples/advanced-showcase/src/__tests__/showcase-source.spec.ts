@@ -88,9 +88,15 @@ describe('advanced showcase source', () => {
 
   it('data-grid page shows event output as debug panel, not as a data row', () => {
     const source = read('src/pages/DataGridPage.tsx')
+    const dataSource = read('src/data/data-grid-performance-data.ts')
 
     expect(source).toContain('className="debug-panel"')
     expect(source).toContain('Debug output')
+    expect(source).toContain('getDataGridPerformanceDataset')
+    expect(source).toContain('grid.overscanColumns = 2')
+    expect(source).toContain("grid.scrollToColumn(79, 'center')")
+    expect(dataSource).toContain('DATA_GRID_ROW_COUNT = 100_000')
+    expect(dataSource).toContain('DATA_GRID_COLUMN_COUNT = 100')
     expect(source).not.toContain('<StatusNote>{note}</StatusNote>')
   })
 

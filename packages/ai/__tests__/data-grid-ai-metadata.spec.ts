@@ -25,6 +25,8 @@ describe('data-grid AI metadata', () => {
 
   it('describes zw-data-grid component', () => {
     expect(dataGrid?.components).toEqual(['zw-data-grid'])
+    expect(dataGrid?.summary).toContain('two-axis virtualization')
+    expect(dataGrid?.slots['zw-data-grid']).toEqual(['empty'])
     expect(dataGrid?.tags).toEqual(
       expect.arrayContaining([
         'data-grid',
@@ -41,10 +43,15 @@ describe('data-grid AI metadata', () => {
       expect.arrayContaining([
         'range-change',
         'scroll-offset-change',
+        'viewport-resize',
         'selection-change',
         'sort-change',
         'row-action',
         'cell-action',
+        'column-resize-start',
+        'column-resize',
+        'column-resize-end',
+        'active-cell-change',
       ]),
     )
 
@@ -65,10 +72,18 @@ describe('data-grid AI metadata', () => {
         'getRange',
         'getItems',
         'getTotalSize',
+        'getColumnRange',
+        'getColumnItems',
+        'getTotalColumnSize',
         'scrollToIndex',
         'scrollToOffset',
+        'scrollToColumn',
         'measure',
         'resetMeasurements',
+        'resizeColumn',
+        'getActiveCell',
+        'focusCell',
+        'refreshViewport',
       ]),
     )
   })

@@ -188,6 +188,14 @@ zw-data-grid [data-slot='data-grid-viewport'] {
   overflow: auto;
 }
 
+zw-data-grid.data-grid-performance {
+  margin-top: 12px;
+}
+
+zw-data-grid.data-grid-performance [data-slot='data-grid-viewport'] {
+  height: 420px;
+}
+
 zw-data-grid [data-slot='data-grid-header'] {
   position: sticky;
   top: 0;

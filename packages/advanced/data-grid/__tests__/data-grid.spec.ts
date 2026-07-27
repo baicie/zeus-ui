@@ -36,6 +36,10 @@ describe('data-grid component protocol', () => {
           type: 'number',
           default: 4,
         },
+        overscanColumns: {
+          type: 'number',
+          default: 2,
+        },
         virtual: {
           type: 'boolean',
           default: false,
@@ -170,12 +174,28 @@ describe('data-grid component protocol', () => {
           name: 'getTotalSize',
           returns: 'number',
         },
+        getColumnRange: {
+          name: 'getColumnRange',
+          returns: 'unknown',
+        },
+        getColumnItems: {
+          name: 'getColumnItems',
+          returns: 'unknown[]',
+        },
+        getTotalColumnSize: {
+          name: 'getTotalColumnSize',
+          returns: 'number',
+        },
         scrollToIndex: {
           name: 'scrollToIndex',
           returns: 'void',
         },
         scrollToOffset: {
           name: 'scrollToOffset',
+          returns: 'void',
+        },
+        scrollToColumn: {
+          name: 'scrollToColumn',
           returns: 'void',
         },
         measure: {
@@ -300,8 +320,10 @@ describe('data-grid component protocol', () => {
     )
   })
 
-  it('does not implement non-lite features', () => {
-    expect(source).not.toContain('columnVirtual')
+  it('uses a two-axis virtual window without unrelated advanced features', () => {
+    expect(source).toContain('createDataGridColumnVirtualizer')
+    expect(source).toContain('getColumnScrollOffset')
+    expect(source).toContain('scrollToColumn')
     expect(source).not.toContain('treeData')
     expect(source).not.toContain('groupBy')
     expect(source).not.toContain('filterModel')

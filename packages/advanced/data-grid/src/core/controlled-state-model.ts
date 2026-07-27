@@ -17,6 +17,7 @@ export interface DataGridControlledStateSources {
   activeColumnId?: string
   rowHeight: number
   overscan: number
+  overscanColumns: number
   virtual: boolean
   selectionMode: DataGridSelectionMode
   resizable: boolean
@@ -31,6 +32,7 @@ export type DataGridControlledStateChangeReason =
   | 'activeCell'
   | 'rowHeight'
   | 'overscan'
+  | 'overscanColumns'
   | 'virtual'
   | 'selectionMode'
   | 'resizable'
@@ -70,6 +72,7 @@ function normalizeSources(
     activeColumnId: sources.activeColumnId,
     rowHeight: sources.rowHeight,
     overscan: sources.overscan,
+    overscanColumns: sources.overscanColumns,
     virtual: Boolean(sources.virtual),
     selectionMode: sources.selectionMode,
     resizable: Boolean(sources.resizable),
@@ -117,6 +120,8 @@ export function createDataGridControlledStateController(
       next.activeColumnId !== current.activeColumnId
     const rowHeightChanged = next.rowHeight !== current.rowHeight
     const overscanChanged = next.overscan !== current.overscan
+    const overscanColumnsChanged =
+      next.overscanColumns !== current.overscanColumns
     const virtualChanged = next.virtual !== current.virtual
     const selectionModeChanged = next.selectionMode !== current.selectionMode
     const resizableChanged = next.resizable !== current.resizable
@@ -132,6 +137,7 @@ export function createDataGridControlledStateController(
     pushReason(reasons, 'activeCell', activeCellChanged)
     pushReason(reasons, 'rowHeight', rowHeightChanged)
     pushReason(reasons, 'overscan', overscanChanged)
+    pushReason(reasons, 'overscanColumns', overscanColumnsChanged)
     pushReason(reasons, 'virtual', virtualChanged)
     pushReason(reasons, 'selectionMode', selectionModeChanged)
     pushReason(reasons, 'resizable', resizableChanged)
@@ -145,7 +151,11 @@ export function createDataGridControlledStateController(
       selectedKeysChanged,
       sortChanged,
       activeCellChanged,
-      layoutChanged: rowHeightChanged || overscanChanged || virtualChanged,
+      layoutChanged:
+        rowHeightChanged ||
+        overscanChanged ||
+        overscanColumnsChanged ||
+        virtualChanged,
       selectionModeChanged,
       interactionChanged: resizableChanged || keyboardNavigationChanged,
     }

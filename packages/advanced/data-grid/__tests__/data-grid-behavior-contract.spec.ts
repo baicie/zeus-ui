@@ -38,6 +38,12 @@ describe('data-grid behavior contract', () => {
     expect(source).toContain('columnRenderVersion.value += 1')
   })
 
+  it('tracks column overscan as a layout input', () => {
+    expect(source).toContain('overscanColumns: resolveColumnOverscan(props)')
+    expect(source).toContain('createDataGridColumnVirtualizer')
+    expect(source).toContain('shouldUpdateDataGridColumnVirtualSnapshot')
+  })
+
   it('refreshes keyed rows when a controlled row keeps the same key', () => {
     expect(source).toContain('shouldRefreshRowsForRender = true')
     expect(source).toContain('rowRenderVersion.value += 1')
@@ -88,6 +94,13 @@ describe('data-grid behavior contract', () => {
     expect(source).not.toContain(
       'setActiveCellByKey(row.key, column.id, nativeEvent)\n                          moveActiveCellByKey',
     )
+  })
+
+  it('scrolls the horizontal virtual window during keyboard focus navigation', () => {
+    expect(source).toContain(
+      "scrollToColumnIndex(nextActiveCell.columnIndex, 'center')",
+    )
+    expect(source).toContain("scrollToColumnIndex(columnIndex, 'center')")
   })
 
   it('declares getSort and getActiveCell with undefined source return type', () => {

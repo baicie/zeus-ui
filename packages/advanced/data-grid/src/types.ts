@@ -84,6 +84,18 @@ export interface DataGridVirtualSnapshot {
   totalSize: number
 }
 
+export type DataGridColumnVirtualRange = VirtualRange
+
+export interface DataGridColumnVirtualItem extends VirtualItem<NormalizedDataGridColumn> {
+  data: NormalizedDataGridColumn
+}
+
+export interface DataGridColumnVirtualSnapshot {
+  range: DataGridColumnVirtualRange
+  items: DataGridColumnVirtualItem[]
+  totalSize: number
+}
+
 export interface DataGridActiveCell {
   rowIndex: number
   rowKey: DataGridRowKey

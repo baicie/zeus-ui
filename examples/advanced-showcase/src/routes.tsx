@@ -25,7 +25,7 @@ export const advancedShowcaseRoutes: AdvancedShowcaseRoute[] = [
     path: '/data-grid',
     label: 'Data Grid',
     description:
-      'Virtualized table with selection, sorting and keyboard state.',
+      'Two-axis virtualized table for 100k-row operational datasets.',
     Component: DataGridPage,
   },
   {
