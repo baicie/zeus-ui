@@ -51,6 +51,51 @@ describe('@zeus-web/themes', () => {
     expect(source).toContain("zw-dialog-content [part='content']")
   })
 
+  it('covers every documented component with default presentation css', () => {
+    const source = readThemeFile('components.css')
+    const componentTags = [
+      'accordion',
+      'agent-console',
+      'alert',
+      'avatar',
+      'badge',
+      'button',
+      'card',
+      'chat',
+      'checkbox',
+      'collapsible',
+      'data-grid',
+      'dialog',
+      'input',
+      'label',
+      'progress',
+      'radio-group',
+      'revogrid-adapter',
+      'select',
+      'separator',
+      'skeleton',
+      'switch',
+      'tabs',
+      'textarea',
+      'tooltip',
+      'virtual-list',
+    ]
+
+    for (const tag of componentTags) expect(source).toContain(`zw-${tag}`)
+  })
+
+  it('keeps overlays and advanced layouts usable in constrained views', () => {
+    const source = readThemeFile('components.css')
+
+    expect(source).toContain("zw-select[data-side='top']")
+    expect(source).toContain('--zw-select-available-height')
+    expect(source).toContain('overflow-wrap: anywhere;')
+    expect(source).toContain(
+      'grid-template-rows: auto auto minmax(0, 1fr) auto auto;',
+    )
+    expect(source).toContain('max-height: calc(100dvh - 2rem);')
+  })
+
   it('checks theme name guard', () => {
     expect(isThemeName('default')).toBe(true)
     expect(isThemeName('unknown')).toBe(false)
