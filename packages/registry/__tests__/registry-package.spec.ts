@@ -206,4 +206,25 @@ describe('@zeus-web/registry package contract', () => {
       "import { cn } from '@/lib/cn'",
     )
   })
+
+  it('styles the select draft as a custom popup control', () => {
+    const source = read('default/select.tsx')
+
+    expect(source).toContain('[&_[data-slot=select-native]]:sr-only')
+    expect(source).toContain('[&_[data-slot=select-control]]:relative')
+    expect(source).toContain('[&_[data-slot=select-content]]:absolute')
+    expect(source).toContain('[&_[data-slot=select-content]]:overflow-y-auto')
+    expect(source).toContain(
+      'data-[side=top]:[&_[data-slot=select-content]]:bottom-',
+    )
+    expect(source).toContain(
+      '[&_[data-slot=select-option][data-state=checked]_[data-slot=select-option-indicator]]:opacity-100',
+    )
+    expect(source).toContain(
+      'data-[invalid]:[&_[data-slot=select-trigger]]:border-destructive',
+    )
+    expect(source).toContain('data-[disabled]:cursor-not-allowed')
+
+    expect(getRegistryItemNames(readManifest())).not.toContain('select')
+  })
 })
