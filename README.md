@@ -99,8 +99,8 @@ import '@zeus-web/ui/input'
 
 ```ts
 import '@zeus-web/ui/styles.css'
-import '@zeus-web/button/wc'
-import '@zeus-web/input/wc'
+import '@zeus-web/button/wc/auto'
+import '@zeus-web/input/wc/auto'
 ```
 
 ## Advanced primitive 用法
@@ -136,7 +136,7 @@ import { Button } from '@zeus-web/button/vue'
 原生 Web Component primitive：
 
 ```ts
-import '@zeus-web/button/wc'
+import '@zeus-web/button/wc/auto'
 ```
 
 ```html

@@ -33,9 +33,7 @@ Choose the framework entry that matches your application.
 </script>
 
 <zw-tooltip>
-  <zw-tooltip-trigger>
-    <button type="button">Hover or focus</button>
-  </zw-tooltip-trigger>
+  <zw-tooltip-trigger>Hover or focus</zw-tooltip-trigger>
   <zw-tooltip-content>Copy link</zw-tooltip-content>
 </zw-tooltip>
 ```
@@ -101,7 +99,7 @@ import {
 Web Component entry:
 
 ```ts
-import '@zeus-web/tooltip/wc'
+import '@zeus-web/tooltip/wc/auto'
 ```
 
 ## Props
@@ -142,7 +140,7 @@ Internal selectors:
 
 Registry source: not available yet.
 
-The `tooltip` primitive is available through `@zeus-web/tooltip`, but it is not currently installable through `zweb add tooltip`.
+The `tooltip` primitive is available through `@zeus-web/tooltip`, but it is not currently installable through the CLI registry.
 
 Use the primitive package directly until a registry template is added.
 
@@ -163,5 +161,18 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'\n\nexport function Example() {\n  return (\n    <Tooltip>\n      <TooltipTrigger>Hover me</TooltipTrigger>\n      <TooltipContent>Tooltip content</TooltipContent>\n    </Tooltip>\n  )\n}
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@zeus-web/tooltip/react'
+
+export function Example() {
+  return (
+    <Tooltip>
+      <TooltipTrigger>Hover me</TooltipTrigger>
+      <TooltipContent>Tooltip content</TooltipContent>
+    </Tooltip>
+  )
+}
 ```

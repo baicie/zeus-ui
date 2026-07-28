@@ -86,14 +86,14 @@ import { Chat, ChatComposer, ChatMessage, ChatThread } from '@zeus-web/chat/vue'
 
 - Build AI chat, agent console or conversational assistant UIs.
 - Reuse the same chat behavior protocol across native Web Component, React and Vue.
-- Keep product styling free while reusing structure, events, methods and a11y semantics.
+- Keep product styling free while reusing structure, events, methods and accessibility semantics.
 
 ## When not to use
 
-- 不要把它当作模型请求库。
-- 不要在组件内部嵌入 provider 请求逻辑。
-- 不要把凭据、密钥或 token 放进组件属性。
-- 不要在 Phase 3 依赖 markdown 解析、代码高亮或文件上传传输层。
+- Do not treat it as a model request library.
+- Do not embed provider request logic inside the components.
+- Do not put credentials, secrets or tokens in component props.
+- Do not depend on Markdown parsing, syntax highlighting or file-upload transport in this phase.
 
 ## Install
 
@@ -234,12 +234,21 @@ pnpm add @zeus-web/chat
 
 Use the auto entry and compose chat, thread, message and composer with plain DOM.
 
-```html
-import '@zeus-web/chat/wc/auto' const chat = document.createElement('zw-chat')
-const thread = document.createElement('zw-chat-thread') const composer =
-document.createElement('zw-chat-composer') thread.slot = 'thread' composer.slot
-= 'composer' composer.addEventListener('send', event => { console.log((event as
-CustomEvent).detail.value) }) chat.append(thread, composer)
+```ts
+import '@zeus-web/chat/wc/auto'
+
+const chat = document.createElement('zw-chat')
+const thread = document.createElement('zw-chat-thread')
+const composer = document.createElement('zw-chat-composer')
+
+thread.slot = 'thread'
+composer.slot = 'composer'
+
+composer.addEventListener('send', event => {
+  console.log((event as CustomEvent).detail.value)
+})
+
+chat.append(thread, composer)
 document.body.append(chat)
 ```
 
@@ -252,9 +261,9 @@ import { Chat, ChatComposer, ChatThread } from '@zeus-web/chat/react'
 
 export function App() {
   return (
-    <Chat emptyText="暂无消息">
+    <Chat emptyText="No messages">
       <ChatThread slot="thread" />
-      <ChatComposer slot="composer" placeholder="输入消息..." />
+      <ChatComposer slot="composer" placeholder="Type a message..." />
     </Chat>
   )
 }
@@ -262,8 +271,8 @@ export function App() {
 
 ## AI usage hints
 
-- 生成 Chat UI 时优先组合 zw-chat、zw-chat-thread、zw-chat-message、zw-chat-composer。
-- 需要代码块时使用 zw-chat-code-block，不要把代码高亮库塞入 chat 根组件。
-- 需要 artifact / canvas 区域时使用 zw-chat-artifact 的对应 slot。
-- 需要工具调用展示时使用 zw-chat-tool-call。
-- 业务请求逻辑应该放在应用层，不应放在组件内部。
+- Compose zw-chat, zw-chat-thread, zw-chat-message and zw-chat-composer when generating a chat interface.
+- Use zw-chat-code-block for code; do not put a syntax-highlighting library in the chat root.
+- Use the matching zw-chat-artifact slot for an artifact or canvas area.
+- Use zw-chat-tool-call to display tool calls.
+- Keep business request logic in the application layer.

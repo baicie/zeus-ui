@@ -80,7 +80,7 @@ import { Checkbox } from '@zeus-web/checkbox/react'
 Web Component entry:
 
 ```ts
-import '@zeus-web/checkbox/wc'
+import '@zeus-web/checkbox/wc/auto'
 ```
 
 ## Props
@@ -128,7 +128,7 @@ Internal selectors:
 
 Registry source: not available yet.
 
-The `checkbox` primitive is available through `@zeus-web/checkbox`, but it is not currently installable through `zweb add checkbox`.
+The `checkbox` primitive is available through `@zeus-web/checkbox`, but it is not currently installable through the CLI registry.
 
 Use the primitive package directly until a registry template is added.
 
@@ -149,7 +149,7 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Checkbox } from '@/components/ui/checkbox'
+import { Checkbox } from '@zeus-web/checkbox/react'
 
 export function Example() {
   return <Checkbox>Accept terms</Checkbox>

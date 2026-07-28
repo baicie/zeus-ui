@@ -93,7 +93,7 @@ import { Alert, AlertTitle, AlertDescription } from '@zeus-web/alert/react'
 Web Component entry:
 
 ```ts
-import '@zeus-web/alert/wc'
+import '@zeus-web/alert/wc/auto'
 ```
 
 ## Props
@@ -133,7 +133,7 @@ Internal selectors:
 
 Registry source: not available yet.
 
-The `alert` primitive is available through `@zeus-web/alert`, but it is not currently installable through `zweb add alert`.
+The `alert` primitive is available through `@zeus-web/alert`, but it is not currently installable through the CLI registry.
 
 Use the primitive package directly until a registry template is added.
 
@@ -154,7 +154,7 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
+import { Alert, AlertTitle, AlertDescription } from '@zeus-web/alert/react'
 
 export function Example() {
   return (

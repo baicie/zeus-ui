@@ -131,7 +131,7 @@ Future package:
 
 Allowed responsibilities:
 
-- compose primitive `/wc` entries
+- compose primitive `/wc/auto` entries
 - provide styled CSS
 - provide `styles.css`
 - provide per-component CSS
@@ -266,7 +266,7 @@ import { Button } from '@zeus-web/button/react'
 or:
 
 ```ts
-import '@zeus-web/button/wc'
+import '@zeus-web/button/wc/auto'
 ```
 
 ## Compatibility policy

@@ -25,7 +25,7 @@ import { Separator } from '@zeus-web/separator/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/separator/wc'
+import '@zeus-web/separator/wc/auto'
 ```
 
 ```html

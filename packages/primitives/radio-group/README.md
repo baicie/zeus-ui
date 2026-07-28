@@ -25,7 +25,7 @@ import { RadioGroup } from '@zeus-web/radio-group/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/radio-group/wc'
+import '@zeus-web/radio-group/wc/auto'
 ```
 
 ```html

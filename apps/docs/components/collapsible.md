@@ -105,7 +105,7 @@ import {
 Web Component entry:
 
 ```ts
-import '@zeus-web/collapsible/wc'
+import '@zeus-web/collapsible/wc/auto'
 ```
 
 ## Props
@@ -145,7 +145,7 @@ Internal selectors:
 
 Registry source: not available yet.
 
-The `collapsible` primitive is available through `@zeus-web/collapsible`, but it is not currently installable through `zweb add collapsible`.
+The `collapsible` primitive is available through `@zeus-web/collapsible`, but it is not currently installable through the CLI registry.
 
 Use the primitive package directly until a registry template is added.
 
@@ -165,5 +165,18 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'\n\nexport function Example() {\n  return (\n    <Collapsible>\n      <CollapsibleTrigger>Toggle</CollapsibleTrigger>\n      <CollapsibleContent>Content</CollapsibleContent>\n    </Collapsible>\n  )\n}
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@zeus-web/collapsible/react'
+
+export function Example() {
+  return (
+    <Collapsible>
+      <CollapsibleTrigger>Toggle</CollapsibleTrigger>
+      <CollapsibleContent>Content</CollapsibleContent>
+    </Collapsible>
+  )
+}
 ```

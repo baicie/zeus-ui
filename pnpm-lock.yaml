@@ -209,6 +209,9 @@ importers:
       '@zeus-web/textarea':
         specifier: workspace:*
         version: link:../../packages/primitives/textarea
+      '@zeus-web/themes':
+        specifier: workspace:*
+        version: link:../../packages/themes
       '@zeus-web/tooltip':
         specifier: workspace:*
         version: link:../../packages/primitives/tooltip

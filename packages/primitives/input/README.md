@@ -25,7 +25,7 @@ import { Input } from '@zeus-web/input/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/input/wc'
+import '@zeus-web/input/wc/auto'
 ```
 
 ```html

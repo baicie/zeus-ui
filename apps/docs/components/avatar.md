@@ -91,7 +91,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@zeus-web/avatar/react'
 Web Component entry:
 
 ```ts
-import '@zeus-web/avatar/wc'
+import '@zeus-web/avatar/wc/auto'
 ```
 
 ## Props
@@ -132,7 +132,7 @@ Internal selectors:
 
 Registry source: not available yet.
 
-The `avatar` primitive is available through `@zeus-web/avatar`, but it is not currently installable through `zweb add avatar`.
+The `avatar` primitive is available through `@zeus-web/avatar`, but it is not currently installable through the CLI registry.
 
 Use the primitive package directly until a registry template is added.
 
@@ -153,5 +153,14 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'\n\nexport function Example() {\n  return (\n    <Avatar>\n      <AvatarImage src="/avatar.png" alt="User" />\n      <AvatarFallback>ZW</AvatarFallback>\n    </Avatar>\n  )\n}
+import { Avatar, AvatarFallback, AvatarImage } from '@zeus-web/avatar/react'
+
+export function Example() {
+  return (
+    <Avatar>
+      <AvatarImage src="/avatar.png" alt="User" />
+      <AvatarFallback>ZW</AvatarFallback>
+    </Avatar>
+  )
+}
 ```

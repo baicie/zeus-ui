@@ -81,8 +81,10 @@ const requiredContent: Record<string, string[]> = {
     '<zw-button variant="primary">Save</zw-button>',
   ],
   'apps/docs/.vitepress/data/site.ts': [
-    "text: 'Usage Modes'",
-    "link: '/guide/usage-modes'",
+    "label: 'usageModes'",
+    "path: '/guide/usage-modes'",
+    'getComponentCatalog',
+    'localizeDocsPath',
   ],
   'packages/ai/src/metadata.ts': [
     'Respect zeus-ui.json aliases',

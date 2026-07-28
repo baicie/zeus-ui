@@ -25,7 +25,7 @@ import { Tabs } from '@zeus-web/tabs/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/tabs/wc'
+import '@zeus-web/tabs/wc/auto'
 ```
 
 ```html

@@ -56,8 +56,8 @@ import '@zeus-web/ui'
 
 ```ts
 import '@zeus-web/ui/styles.css'
-import '@zeus-web/button/wc'
-import '@zeus-web/input/wc'
+import '@zeus-web/button/wc/auto'
+import '@zeus-web/input/wc/auto'
 ```
 
 ## Internal composition
@@ -66,12 +66,12 @@ import '@zeus-web/input/wc'
 @zeus-web/ui/button
   -> @zeus-web/themes/default.css
   -> ./button.css
-  -> @zeus-web/button/wc
+  -> @zeus-web/button/wc/auto
 
 @zeus-web/ui/input
   -> @zeus-web/themes/default.css
   -> ./input.css
-  -> @zeus-web/input/wc
+  -> @zeus-web/input/wc/auto
 ```
 
 ## CSS selector strategy

@@ -25,7 +25,7 @@ import { Checkbox } from '@zeus-web/checkbox/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/checkbox/wc'
+import '@zeus-web/checkbox/wc/auto'
 ```
 
 ```html

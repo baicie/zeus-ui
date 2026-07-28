@@ -25,7 +25,7 @@ import { Label } from '@zeus-web/label/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/label/wc'
+import '@zeus-web/label/wc/auto'
 ```
 
 ```html

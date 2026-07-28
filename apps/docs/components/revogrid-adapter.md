@@ -6,7 +6,7 @@ pageClass: component-docs-page
 
 # RevoGrid Adapter
 
-Use @zeus-web/revogrid-adapter to map Zeus DataGrid rows, columns, sorting and selection state to a `<revo-grid>` custom element without bundling RevoGrid itself.
+Use @zeus-web/revogrid-adapter to map Zeus Data Grid rows, columns, sorting and selection state to a `<revo-grid>` custom element without bundling RevoGrid itself.
 
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/revogrid-adapter</span>
@@ -80,17 +80,17 @@ const columns = [{ id: 'owner', field: 'owner', header: 'Owner' }]
 
 ## When to use
 
-- 应用已经注册了 `<revo-grid>` 真实实现并希望把 DataGrid 模型接入时使用。
-- 需要把现有 DataGrid 数据源桥接到 RevoGrid-compatible 表格组件时使用。
-- 需要跨 Native Web Component、React、Vue 复用同一套 adapter 行为协议时使用。
+- Use it when the application has registered a real `<revo-grid>` implementation and needs to connect a Data Grid model.
+- Bridge an existing Data Grid data source to a RevoGrid-compatible table component.
+- Reuse one adapter behavior protocol across native Web Component, React and Vue.
 
 ## When not to use
 
-- 不要把它当作模型请求库。
-- 不要在组件内部嵌入 provider 请求逻辑。
-- 不要把凭据、密钥或 token 放进组件属性。
-- 不要在 adapter 模板中导入 @revolist/revogrid 真实实现。
-- 不要在简单场景用 RevoGrid 替代内置 data-grid。
+- Do not treat it as a model request library.
+- Do not embed provider request logic inside the component.
+- Do not put credentials, secrets or tokens in component props.
+- Do not import the real @revolist/revogrid implementation in adapter templates.
+- Do not replace the built-in data-grid with RevoGrid for simple cases.
 
 ## Install
 
@@ -106,7 +106,7 @@ pnpm add @zeus-web/revogrid-adapter
 
 ### `zw-revogrid-adapter`
 
-- None.
+- No public members documented.
 
 ## Events
 
@@ -136,7 +136,7 @@ pnpm add @zeus-web/revogrid-adapter
 
 ### React package usage
 
-Use the generated RevoGrid adapter wrapper from the advanced package in React apps.
+Use the generated RevoGrid adapter wrapper from the advanced package in React applications.
 
 ```tsx
 import { RevoGridAdapter } from '@zeus-web/revogrid-adapter/react'
@@ -169,19 +169,23 @@ export function Example() {
 
 Use the auto entry when the host application is not React or Vue.
 
-```html
-import '@zeus-web/revogrid-adapter/wc/auto' const adapter =
-document.createElement('zw-revogrid-adapter') adapter.setAttribute('aria-label',
-'Users') adapter.setAttribute('selection-mode', 'multiple')
+```ts
+import '@zeus-web/revogrid-adapter/wc/auto'
+
+const adapter = document.createElement('zw-revogrid-adapter')
+adapter.setAttribute('aria-label', 'Users')
+adapter.setAttribute('selection-mode', 'multiple')
 adapter.setAttribute('sort-column', 'role')
-adapter.setAttribute('sort-direction', 'asc') adapter.columns = columns
-adapter.rows = rows document.body.append(adapter)
+adapter.setAttribute('sort-direction', 'asc')
+adapter.columns = columns
+adapter.rows = rows
+document.body.append(adapter)
 ```
 
 ## AI usage hints
 
-- 生成需要桥接到 RevoGrid 实现的表格时使用 revogrid-adapter，并把 `<revo-grid>` 注册交给应用层。
-- 需要 columns / rows / sorting / selection 时使用 DataGrid 模型以保持跨 adapter 行为一致。
-- 轻量场景继续用 data-grid。
-- 业务请求逻辑应该放在应用层，不应放在组件内部。
-- 不要在 revogrid-adapter 模板中导入 @revolist/revogrid 真实实现。
+- Use revogrid-adapter when generating a table that bridges to RevoGrid, and leave `<revo-grid>` registration to the application.
+- Use the Data Grid model for columns, rows, sorting and selection to keep adapter behavior consistent.
+- Continue to use data-grid for lightweight cases.
+- Keep business request logic in the application layer.
+- Do not import the real @revolist/revogrid implementation in revogrid-adapter templates.

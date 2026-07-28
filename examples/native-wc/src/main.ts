@@ -1,12 +1,12 @@
 /* eslint-disable no-restricted-globals, no-console */
 import '@zeus-web/themes/default.css'
 
-import '@zeus-web/button/wc'
-import '@zeus-web/checkbox/wc'
-import '@zeus-web/dialog/wc'
-import '@zeus-web/input/wc'
-import '@zeus-web/switch/wc'
-import '@zeus-web/tabs/wc'
+import '@zeus-web/button/wc/auto'
+import '@zeus-web/checkbox/wc/auto'
+import '@zeus-web/dialog/wc/auto'
+import '@zeus-web/input/wc/auto'
+import '@zeus-web/switch/wc/auto'
+import '@zeus-web/tabs/wc/auto'
 
 import './styles.css'
 

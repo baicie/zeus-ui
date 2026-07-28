@@ -12,11 +12,9 @@ describe('docs data grid playground', () => {
     return withShowcasePage(docsShowcaseTarget, page => {
       const errors = collectPageErrors(page)
       const grid = page.getByTestId(GRID_TEST_ID)
-      const applyButton = page.getByRole('button', { name: 'Apply data' })
+      const applyButton = page.getByTestId('data-grid-apply')
       const controls = page.locator('.data-grid-playground__controls')
-      const lastButton = page.getByRole('button', {
-        name: 'Jump to last row and column',
-      })
+      const lastButton = page.getByTestId('data-grid-jump-last')
       const windowStatus = page.getByTestId(WINDOW_TEST_ID)
 
       return page
@@ -57,14 +55,7 @@ describe('docs data grid playground', () => {
           }),
         )
         .then(controlsFit => expect(controlsFit).toBe(true))
-        .then(() =>
-          page
-            .getByRole('button', {
-              name: 'Select 100k x 100',
-              exact: true,
-            })
-            .click(),
-        )
+        .then(() => page.getByTestId('data-grid-dataset-100k-100').click())
         .then(() => expectPage(applyButton).toBeEnabled())
         .then(() => applyButton.click())
         .then(() =>
@@ -88,11 +79,7 @@ describe('docs data grid playground', () => {
             )
             .toBe(4_800_000),
         )
-        .then(() =>
-          page
-            .getByRole('button', { name: 'Reset widths', exact: true })
-            .click(),
-        )
+        .then(() => page.getByTestId('data-grid-reset-widths').click())
         .then(() => expectPage(lastButton).toBeEnabled())
         .then(() => lastButton.click())
         .then(() =>
@@ -115,9 +102,7 @@ describe('docs data grid playground', () => {
             ),
           ).toBeVisible(),
         )
-        .then(() =>
-          page.getByRole('button', { name: 'Select 100k x 1000' }).click(),
-        )
+        .then(() => page.getByTestId('data-grid-dataset-100k-1000').click())
         .then(() => expectPage(applyButton).toBeEnabled())
         .then(() => applyButton.click())
         .then(() =>
@@ -162,6 +147,54 @@ describe('docs data grid playground', () => {
           expect(cellCount).toBeGreaterThan(0)
           expect(cellCount).toBeLessThanOrEqual(300)
         })
+        .then(() => errors.assertClean())
+    })
+  })
+
+  it('localizes the Chinese controls without changing the virtualization budget', () => {
+    return withShowcasePage(docsShowcaseTarget, page => {
+      const errors = collectPageErrors(page)
+      const grid = page.getByTestId(GRID_TEST_ID)
+      const applyButton = page.getByTestId('data-grid-apply')
+      const lastButton = page.getByTestId('data-grid-jump-last')
+      const windowStatus = page.getByTestId(WINDOW_TEST_ID)
+
+      return page
+        .goto('zh/components/data-grid')
+        .then(() =>
+          expectPage(page.locator('html')).toHaveAttribute('lang', 'zh-CN'),
+        )
+        .then(() =>
+          expectPage(
+            page.getByRole('heading', {
+              level: 1,
+              name: '数据表格',
+            }),
+          ).toBeVisible(),
+        )
+        .then(() => expectPage(applyButton).toHaveText('应用数据'))
+        .then(() =>
+          expectPage(
+            page.locator('.data-grid-playground__metrics'),
+          ).toContainText('DOM 单元格'),
+        )
+        .then(() => expectPage(grid).toHaveAttribute('data-row-count', '10000'))
+        .then(() => expectPage(lastButton).toBeEnabled())
+        .then(() => page.getByTestId('data-grid-dataset-100k-1000').click())
+        .then(() => expectPage(applyButton).toBeEnabled())
+        .then(() => applyButton.click())
+        .then(() =>
+          expectPage(grid).toHaveAttribute('data-column-count', '1000'),
+        )
+        .then(() => grid.locator('[data-slot="data-grid-cell"]').count())
+        .then(cellCount => {
+          expect(cellCount).toBeGreaterThan(0)
+          expect(cellCount).toBeLessThanOrEqual(300)
+        })
+        .then(() => expectPage(lastButton).toBeEnabled())
+        .then(() => lastButton.click())
+        .then(() => expectPage(windowStatus).toContainText('共 100,000 行'))
+        .then(() => expectPage(windowStatus).toContainText('共 1,000 列'))
         .then(() => errors.assertClean())
     })
   })

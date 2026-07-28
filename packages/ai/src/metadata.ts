@@ -1,6 +1,56 @@
-import type { ZeusWebAiMetadata } from './types'
+import type {
+  ZeusWebAiComponent,
+  ZeusWebAiComponentName,
+  ZeusWebAiExample,
+  ZeusWebAiMetadata,
+} from './types'
 
-export const aiMetadata: ZeusWebAiMetadata = {
+const registryComponentNames = new Set<ZeusWebAiComponentName>([
+  'button',
+  'input',
+])
+
+export function isRegistryBackedAiComponent(
+  name: ZeusWebAiComponentName,
+): boolean {
+  return registryComponentNames.has(name)
+}
+
+function createPackageExamples(
+  component: ZeusWebAiComponent,
+): ZeusWebAiExample[] {
+  return component.examples.map(example => ({
+    title: example.title,
+    code: example.code.replace(
+      /@\/components\/ui\/([a-z0-9-]+)/g,
+      '@zeus-web/$1/react',
+    ),
+  }))
+}
+
+function createPublicComponentMetadata(
+  component: ZeusWebAiComponent,
+): ZeusWebAiComponent {
+  if (isRegistryBackedAiComponent(component.name)) return component
+
+  return {
+    name: component.name,
+    description: component.description,
+    primitivePackage: component.primitivePackage,
+    installCommand: component.installCommand,
+    reactImport: component.reactImport,
+    webComponentImport: component.webComponentImport,
+    dependencies: component.dependencies,
+    props: component.props,
+    events: component.events,
+    slots: component.slots,
+    examples: createPackageExamples(component),
+    styling: component.styling,
+    aiRules: component.aiRules,
+  }
+}
+
+const rawAiMetadata: ZeusWebAiMetadata = {
   schemaVersion: 1,
   packageName: '@zeus-web/ai',
   libraryName: 'Zeus Web',
@@ -88,7 +138,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
       registryCommand: 'zweb add button',
       installCommand: 'pnpm add @zeus-web/button',
       reactImport: "import { Button } from '@zeus-web/button/react'",
-      webComponentImport: "import '@zeus-web/button/wc'",
+      webComponentImport: "import '@zeus-web/button/wc/auto'",
       styledImport: "import { Button } from '@/components/ui/button'",
       sourceTarget: 'components/ui/button.tsx',
       dependencies: ['@zeus-web/button'],
@@ -201,7 +251,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
       registryCommand: 'zweb add input',
       installCommand: 'pnpm add @zeus-web/input',
       reactImport: "import { Input } from '@zeus-web/input/react'",
-      webComponentImport: "import '@zeus-web/input/wc'",
+      webComponentImport: "import '@zeus-web/input/wc/auto'",
       styledImport: "import { Input } from '@/components/ui/input'",
       sourceTarget: 'components/ui/input.tsx',
       dependencies: ['@zeus-web/input'],
@@ -324,7 +374,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
       registryCommand: 'zweb add checkbox',
       installCommand: 'pnpm add @zeus-web/checkbox',
       reactImport: "import { Checkbox } from '@zeus-web/checkbox/react'",
-      webComponentImport: "import '@zeus-web/checkbox/wc'",
+      webComponentImport: "import '@zeus-web/checkbox/wc/auto'",
       styledImport: "import { Checkbox } from '@/components/ui/checkbox'",
       sourceTarget: 'components/ui/checkbox.tsx',
       dependencies: ['@zeus-web/checkbox'],
@@ -435,7 +485,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
       registryCommand: 'zweb add switch',
       installCommand: 'pnpm add @zeus-web/switch',
       reactImport: "import { Switch } from '@zeus-web/switch/react'",
-      webComponentImport: "import '@zeus-web/switch/wc'",
+      webComponentImport: "import '@zeus-web/switch/wc/auto'",
       styledImport: "import { Switch } from '@/components/ui/switch'",
       sourceTarget: 'components/ui/switch.tsx',
       dependencies: ['@zeus-web/switch'],
@@ -528,7 +578,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
       installCommand: 'pnpm add @zeus-web/tabs',
       reactImport:
         "import { Tabs, TabsList, TabsTrigger, TabsContent } from '@zeus-web/tabs/react'",
-      webComponentImport: "import '@zeus-web/tabs/wc'",
+      webComponentImport: "import '@zeus-web/tabs/wc/auto'",
       styledImport:
         "import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'",
       sourceTarget: 'components/ui/tabs.tsx',
@@ -621,7 +671,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
       installCommand: 'pnpm add @zeus-web/dialog',
       reactImport:
         "import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription, DialogClose } from '@zeus-web/dialog/react'",
-      webComponentImport: "import '@zeus-web/dialog/wc'",
+      webComponentImport: "import '@zeus-web/dialog/wc/auto'",
       styledImport:
         "import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog'",
       sourceTarget: 'components/ui/dialog.tsx',
@@ -711,7 +761,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
       registryCommand: 'zweb add label',
       installCommand: 'pnpm add @zeus-web/label',
       reactImport: "import { Label } from '@zeus-web/label/react'",
-      webComponentImport: "import '@zeus-web/label/wc'",
+      webComponentImport: "import '@zeus-web/label/wc/auto'",
       styledImport: "import { Label } from '@/components/ui/label'",
       sourceTarget: 'components/ui/label.tsx',
       dependencies: ['@zeus-web/label'],
@@ -775,7 +825,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
       registryCommand: 'zweb add textarea',
       installCommand: 'pnpm add @zeus-web/textarea',
       reactImport: "import { Textarea } from '@zeus-web/textarea/react'",
-      webComponentImport: "import '@zeus-web/textarea/wc'",
+      webComponentImport: "import '@zeus-web/textarea/wc/auto'",
       styledImport: "import { Textarea } from '@/components/ui/textarea'",
       sourceTarget: 'components/ui/textarea.tsx',
       dependencies: ['@zeus-web/textarea'],
@@ -866,7 +916,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
       installCommand: 'pnpm add @zeus-web/radio-group',
       reactImport:
         "import { RadioGroup, RadioGroupItem } from '@zeus-web/radio-group/react'",
-      webComponentImport: "import '@zeus-web/radio-group/wc'",
+      webComponentImport: "import '@zeus-web/radio-group/wc/auto'",
       styledImport:
         "import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'",
       sourceTarget: 'components/ui/radio-group.tsx',
@@ -945,25 +995,55 @@ export const aiMetadata: ZeusWebAiMetadata = {
     {
       name: 'select',
       description:
-        'Styled native select component built on the zw-select primitive.',
+        'Accessible custom select with a combobox trigger and listbox popup.',
       primitivePackage: '@zeus-web/select',
       registryCommand: 'zweb add select',
       installCommand: 'pnpm add @zeus-web/select',
       reactImport: "import { Select } from '@zeus-web/select/react'",
-      webComponentImport: "import '@zeus-web/select/wc'",
+      webComponentImport: "import '@zeus-web/select/wc/auto'",
       styledImport: "import { Select } from '@/components/ui/select'",
       sourceTarget: 'components/ui/select.tsx',
       dependencies: ['@zeus-web/select'],
       props: [
         {
+          name: 'id',
+          type: 'string',
+          description:
+            'Base ID used to derive the internal trigger ID; the listbox keeps its generated ID.',
+        },
+        {
           name: 'value',
           type: 'string',
-          description: 'Controlled selected value.',
+          description: 'Current selected value.',
         },
         {
           name: 'defaultValue',
           type: 'string',
           description: 'Initial selected value.',
+        },
+        {
+          name: 'values',
+          type: 'string[]',
+          description:
+            'Current selected values in multiple mode. Pass as a JavaScript property.',
+        },
+        {
+          name: 'defaultValues',
+          type: 'string[]',
+          description:
+            'Initial selected values in multiple mode. Pass as a JavaScript property.',
+        },
+        {
+          name: 'placeholder',
+          type: 'string',
+          description: 'Text shown when no option is selected.',
+        },
+        {
+          name: 'size',
+          type: 'SelectSize',
+          description: 'Select control size.',
+          values: ['sm', 'md', 'lg'],
+          default: 'md',
         },
         {
           name: 'multiple',
@@ -976,9 +1056,39 @@ export const aiMetadata: ZeusWebAiMetadata = {
           description: 'Disables user interaction.',
         },
         {
+          name: 'required',
+          type: 'boolean',
+          description: 'Marks the select as required for form validation.',
+        },
+        {
+          name: 'invalid',
+          type: 'boolean',
+          description: 'Marks the select as invalid.',
+        },
+        {
+          name: 'name',
+          type: 'string',
+          description: 'Form field name used during submission.',
+        },
+        {
           name: 'ariaLabel',
           type: 'string',
           description: 'Accessible label for unlabeled selects.',
+        },
+        {
+          name: 'ariaLabelledby',
+          type: 'string',
+          description: 'ID reference for the visible select label.',
+        },
+        {
+          name: 'ariaDescribedby',
+          type: 'string',
+          description: 'ID reference for additional accessible description.',
+        },
+        {
+          name: 'ariaErrormessage',
+          type: 'string',
+          description: 'ID reference for the accessible error message.',
         },
       ],
       events: [
@@ -988,8 +1098,20 @@ export const aiMetadata: ZeusWebAiMetadata = {
           description: 'Emitted when selected value changes.',
           detail: { value: 'string', values: 'string[]', nativeEvent: 'Event' },
         },
+        {
+          name: 'focus-change',
+          reactName: 'onFocusChange',
+          description:
+            'Emitted when focus enters or leaves the select trigger.',
+          detail: { focused: 'boolean', nativeEvent: 'FocusEvent' },
+        },
       ],
-      slots: [{ name: 'default', description: 'Native option children.' }],
+      slots: [
+        {
+          name: 'default',
+          description: 'Option children used as the select data source.',
+        },
+      ],
       examples: [
         {
           title: 'React styled usage',
@@ -1009,12 +1131,30 @@ export const aiMetadata: ZeusWebAiMetadata = {
       ],
       styling: {
         usesTailwind: true,
-        themeTokens: ['border-input', 'ring-ring'],
-        internalSelectors: ['[data-slot=select]', '[data-slot=select-message]'],
+        themeTokens: [
+          'border-input',
+          'bg-popover',
+          'text-popover-foreground',
+          'bg-accent',
+          'ring-ring',
+        ],
+        internalSelectors: [
+          '[data-slot=select-trigger]',
+          '[data-slot=select-content]',
+          '[data-slot=select-option]',
+          '[data-slot=select-option-indicator]',
+          '[data-slot=select-message]',
+        ],
       },
       aiRules: {
-        do: ['Use Select for simple native option lists.'],
-        dont: ['Do not use Select for combobox/typeahead behavior yet.'],
+        do: [
+          'Use Select for single or multiple choice lists with keyboard navigation.',
+          'Use placeholder when the field has no initial selection.',
+          'Set values and defaultValues as JavaScript properties, not HTML attributes.',
+        ],
+        dont: [
+          'Do not use Select for free-form text entry or remote autocomplete.',
+        ],
       },
     },
     {
@@ -1025,7 +1165,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
       installCommand: 'pnpm add @zeus-web/card',
       reactImport:
         "import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@zeus-web/card/react'",
-      webComponentImport: "import '@zeus-web/card/wc'",
+      webComponentImport: "import '@zeus-web/card/wc/auto'",
       styledImport:
         "import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'",
       sourceTarget: 'components/ui/card.tsx',
@@ -1083,7 +1223,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
       registryCommand: 'zweb add badge',
       installCommand: 'pnpm add @zeus-web/badge',
       reactImport: "import { Badge } from '@zeus-web/badge/react'",
-      webComponentImport: "import '@zeus-web/badge/wc'",
+      webComponentImport: "import '@zeus-web/badge/wc/auto'",
       styledImport: "import { Badge } from '@/components/ui/badge'",
       sourceTarget: 'components/ui/badge.tsx',
       dependencies: ['@zeus-web/badge'],
@@ -1142,7 +1282,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
       registryCommand: 'zweb add separator',
       installCommand: 'pnpm add @zeus-web/separator',
       reactImport: "import { Separator } from '@zeus-web/separator/react'",
-      webComponentImport: "import '@zeus-web/separator/wc'",
+      webComponentImport: "import '@zeus-web/separator/wc/auto'",
       styledImport: "import { Separator } from '@/components/ui/separator'",
       sourceTarget: 'components/ui/separator.tsx',
       dependencies: ['@zeus-web/separator'],
@@ -1187,7 +1327,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
       registryCommand: 'zweb add skeleton',
       installCommand: 'pnpm add @zeus-web/skeleton',
       reactImport: "import { Skeleton } from '@zeus-web/skeleton/react'",
-      webComponentImport: "import '@zeus-web/skeleton/wc'",
+      webComponentImport: "import '@zeus-web/skeleton/wc/auto'",
       styledImport: "import { Skeleton } from '@/components/ui/skeleton'",
       sourceTarget: 'components/ui/skeleton.tsx',
       dependencies: ['@zeus-web/skeleton'],
@@ -1239,7 +1379,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
       installCommand: 'pnpm add @zeus-web/alert',
       reactImport:
         "import { Alert, AlertTitle, AlertDescription } from '@zeus-web/alert/react'",
-      webComponentImport: "import '@zeus-web/alert/wc'",
+      webComponentImport: "import '@zeus-web/alert/wc/auto'",
       styledImport:
         "import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'",
       sourceTarget: 'components/ui/alert.tsx',
@@ -1307,7 +1447,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
       installCommand: 'pnpm add @zeus-web/collapsible',
       reactImport:
         "import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@zeus-web/collapsible/react'",
-      webComponentImport: "import '@zeus-web/collapsible/wc'",
+      webComponentImport: "import '@zeus-web/collapsible/wc/auto'",
       styledImport:
         "import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'",
       sourceTarget: 'components/ui/collapsible.tsx',
@@ -1354,7 +1494,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
             '    </Collapsible>',
             '  )',
             '}',
-          ].join('\\n'),
+          ].join('\n'),
         },
       ],
       styling: {
@@ -1384,7 +1524,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
       installCommand: 'pnpm add @zeus-web/accordion',
       reactImport:
         "import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@zeus-web/accordion/react'",
-      webComponentImport: "import '@zeus-web/accordion/wc'",
+      webComponentImport: "import '@zeus-web/accordion/wc/auto'",
       styledImport:
         "import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'",
       sourceTarget: 'components/ui/accordion.tsx',
@@ -1438,7 +1578,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
             '    </Accordion>',
             '  )',
             '}',
-          ].join('\\n'),
+          ].join('\n'),
         },
       ],
       styling: {
@@ -1470,7 +1610,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
       installCommand: 'pnpm add @zeus-web/tooltip',
       reactImport:
         "import { Tooltip, TooltipContent, TooltipTrigger } from '@zeus-web/tooltip/react'",
-      webComponentImport: "import '@zeus-web/tooltip/wc'",
+      webComponentImport: "import '@zeus-web/tooltip/wc/auto'",
       styledImport:
         "import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'",
       sourceTarget: 'components/ui/tooltip.tsx',
@@ -1516,7 +1656,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
             '    </Tooltip>',
             '  )',
             '}',
-          ].join('\\n'),
+          ].join('\n'),
         },
       ],
       styling: {
@@ -1546,7 +1686,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
       registryCommand: 'zweb add progress',
       installCommand: 'pnpm add @zeus-web/progress',
       reactImport: "import { Progress } from '@zeus-web/progress/react'",
-      webComponentImport: "import '@zeus-web/progress/wc'",
+      webComponentImport: "import '@zeus-web/progress/wc/auto'",
       styledImport: "import { Progress } from '@/components/ui/progress'",
       sourceTarget: 'components/ui/progress.tsx',
       dependencies: ['@zeus-web/progress'],
@@ -1584,7 +1724,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
             'export function Example() {',
             '  return <Progress value={60} label="Upload progress" />',
             '}',
-          ].join('\\n'),
+          ].join('\n'),
         },
       ],
       styling: {
@@ -1609,7 +1749,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
       installCommand: 'pnpm add @zeus-web/avatar',
       reactImport:
         "import { Avatar, AvatarFallback, AvatarImage } from '@zeus-web/avatar/react'",
-      webComponentImport: "import '@zeus-web/avatar/wc'",
+      webComponentImport: "import '@zeus-web/avatar/wc/auto'",
       styledImport:
         "import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'",
       sourceTarget: 'components/ui/avatar.tsx',
@@ -1664,7 +1804,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
             '    </Avatar>',
             '  )',
             '}',
-          ].join('\\n'),
+          ].join('\n'),
         },
       ],
       styling: {
@@ -2269,3 +2409,7 @@ export const aiMetadata: ZeusWebAiMetadata = {
     },
   ],
 }
+
+export const aiMetadata: ZeusWebAiMetadata = Object.assign({}, rawAiMetadata, {
+  components: rawAiMetadata.components.map(createPublicComponentMetadata),
+})

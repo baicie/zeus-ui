@@ -31,10 +31,9 @@ describe.each(showcaseTargets)('$name showcase playground page', target => {
         )
         .then(() => expectPage(page.getByText('68%').first()).toBeVisible())
         .then(() =>
-          page
-            .getByRole('combobox', { name: 'Dashboard environment' })
-            .selectOption('staging'),
+          page.getByRole('combobox', { name: 'Dashboard environment' }).click(),
         )
+        .then(() => page.getByRole('option', { name: 'Staging' }).click())
         .then(() => expectPage(page.getByText('staging rollout')).toBeVisible())
         .then(() =>
           expectPage(page.getByText('environment-change')).toBeVisible(),

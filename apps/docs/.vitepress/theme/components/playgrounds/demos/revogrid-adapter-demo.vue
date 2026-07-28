@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 
+import { useLocalizedMessages } from '../../../composables/use-docs-locale'
+
 interface DataGridRow {
   id: string
   metric: string
@@ -47,26 +49,91 @@ interface AdapterChangeDetail {
   state?: unknown
 }
 
+const ui = useLocalizedMessages({
+  en: {
+    mrr: 'Monthly recurring revenue',
+    revenue: 'Revenue',
+    healthy: 'Healthy',
+    latency: 'P95 latency',
+    runtime: 'Runtime',
+    watch: 'Watch',
+    escalations: 'Open escalations',
+    support: 'Support',
+    action: 'Action',
+    metric: 'Metric',
+    owner: 'Owner',
+    status: 'Status',
+    value: 'Value',
+    initialNote:
+      'The adapter maps Zeus rows and columns without bundling RevoGrid itself.',
+    mapped: (rows: number, columns: number) =>
+      `Mapped ${rows} rows and ${columns} columns.`,
+    readFailed: 'The adapter state could not be read.',
+    adapterLabel: 'RevoGrid adapter mapping demo',
+    sortChanged: (direction: string) => `Owner sort changed to ${direction}.`,
+    attentionSelected: 'Selected the rows that need attention.',
+    cleared: 'Sort and selection cleared.',
+    column: 'Column',
+    toggleSort: 'Toggle owner sort',
+    selectAttention: 'Select attention rows',
+    reset: 'Reset',
+    previewLabel: 'Mapped RevoGrid state',
+    previewTitle: 'RevoGrid-compatible state',
+    previewDescription:
+      'No third-party grid is bundled; this table renders the adapter output.',
+  },
+  zh: {
+    mrr: '月度经常性收入',
+    revenue: '营收',
+    healthy: '正常',
+    latency: 'P95 延迟',
+    runtime: '运行时',
+    watch: '关注',
+    escalations: '待处理升级',
+    support: '支持',
+    action: '需处理',
+    metric: '指标',
+    owner: '负责人',
+    status: '状态',
+    value: '数值',
+    initialNote: '适配器映射 Zeus 行列数据，但不会打包 RevoGrid 本身。',
+    mapped: (rows: number, columns: number) =>
+      `已映射 ${rows} 行、${columns} 列。`,
+    readFailed: '无法读取适配器状态。',
+    adapterLabel: 'RevoGrid 适配器映射演示',
+    sortChanged: (direction: string) => `负责人排序已切换为 ${direction}。`,
+    attentionSelected: '已选中需要关注的行。',
+    cleared: '排序和选择已清除。',
+    column: '列',
+    toggleSort: '切换负责人排序',
+    selectAttention: '选择需关注行',
+    reset: '重置',
+    previewLabel: '映射后的 RevoGrid 状态',
+    previewTitle: 'RevoGrid 兼容状态',
+    previewDescription: '未打包第三方网格；下表直接渲染适配器输出。',
+  },
+})
+
 const gridRows: DataGridRow[] = [
   {
     id: 'mrr',
-    metric: 'Monthly recurring revenue',
-    owner: 'Revenue',
-    status: 'Healthy',
+    metric: ui.value.mrr,
+    owner: ui.value.revenue,
+    status: ui.value.healthy,
     value: '$128k',
   },
   {
     id: 'latency',
-    metric: 'P95 latency',
-    owner: 'Runtime',
-    status: 'Watch',
+    metric: ui.value.latency,
+    owner: ui.value.runtime,
+    status: ui.value.watch,
     value: '182ms',
   },
   {
     id: 'tickets',
-    metric: 'Open escalations',
-    owner: 'Support',
-    status: 'Action',
+    metric: ui.value.escalations,
+    owner: ui.value.support,
+    status: ui.value.action,
     value: '7',
   },
 ]
@@ -74,28 +141,28 @@ const gridRows: DataGridRow[] = [
 const gridColumns: DataGridColumn[] = [
   {
     id: 'metric',
-    header: 'Metric',
+    header: ui.value.metric,
     field: 'metric',
     width: 220,
     sortable: true,
   },
   {
     id: 'owner',
-    header: 'Owner',
+    header: ui.value.owner,
     field: 'owner',
     width: 140,
     sortable: true,
   },
   {
     id: 'status',
-    header: 'Status',
+    header: ui.value.status,
     field: 'status',
     width: 120,
     sortable: true,
   },
   {
     id: 'value',
-    header: 'Value',
+    header: ui.value.value,
     field: 'value',
     width: 110,
   },
@@ -107,9 +174,7 @@ const state = ref<RevoGridAdapterState>({
   source: [],
   selection: {},
 })
-const note = ref(
-  'The adapter maps Zeus rows and columns without bundling RevoGrid itself.',
-)
+const note = ref(ui.value.initialNote)
 const sortAscending = ref(true)
 
 let activeElement: RevoGridAdapterElement | null = null
@@ -151,7 +216,10 @@ function commitState(value: unknown): void {
   if (!nextState) return
 
   state.value = nextState
-  note.value = `Mapped ${nextState.source.length} rows and ${nextState.columns.length} columns.`
+  note.value = ui.value.mapped(
+    nextState.source.length,
+    nextState.columns.length,
+  )
 }
 
 function syncState(): void {
@@ -162,7 +230,7 @@ function syncState(): void {
   Promise.resolve(element.getState()).then(
     value => commitState(value),
     () => {
-      note.value = 'The adapter state could not be read.'
+      note.value = ui.value.readFailed
     },
   )
 }
@@ -195,7 +263,7 @@ function configureAdapter(element: RevoGridAdapterElement): void {
   element.selectedKeys = ['tickets']
   element.sortColumn = 'owner'
   element.sortDirection = 'asc'
-  element.setAttribute('aria-label', 'RevoGrid adapter mapping demo')
+  element.setAttribute('aria-label', ui.value.adapterLabel)
   scheduleRefresh()
 }
 
@@ -215,7 +283,7 @@ function setOwnerSort(): void {
   sortAscending.value = !sortAscending.value
 
   Promise.resolve(element.setSort('owner', direction)).then(() => {
-    note.value = `Owner sort changed to ${direction}.`
+    note.value = ui.value.sortChanged(direction)
     syncState()
   }, syncState)
 }
@@ -226,7 +294,7 @@ function selectAttentionRows(): void {
   if (!element || typeof element.setSelection !== 'function') return
 
   Promise.resolve(element.setSelection(['latency', 'tickets'])).then(() => {
-    note.value = 'Selected the rows that need attention.'
+    note.value = ui.value.attentionSelected
     syncState()
   }, syncState)
 }
@@ -247,7 +315,7 @@ function resetAdapter(): void {
   }
 
   Promise.all(actions).then(() => {
-    note.value = 'Sort and selection cleared.'
+    note.value = ui.value.cleared
     syncState()
   }, syncState)
 }
@@ -261,7 +329,7 @@ function columnKey(column: Record<string, unknown>, index: number): string {
 function columnLabel(column: Record<string, unknown>): string {
   if (typeof column.name === 'string') return column.name
   if (typeof column.prop === 'string') return column.prop
-  return 'Column'
+  return ui.value.column
 }
 
 function cellValue(
@@ -315,21 +383,21 @@ onUnmounted(() => {
 <template>
   <div class="advanced-demo" data-playground-demo="revogrid-adapter">
     <div class="demo-toolbar">
-      <button type="button" @click="setOwnerSort">Toggle owner sort</button>
+      <button type="button" @click="setOwnerSort">{{ ui.toggleSort }}</button>
       <button type="button" @click="selectAttentionRows">
-        Select attention rows
+        {{ ui.selectAttention }}
       </button>
-      <button type="button" @click="resetAdapter">Reset</button>
+      <button type="button" @click="resetAdapter">{{ ui.reset }}</button>
       <span aria-live="polite">{{ note }}</span>
     </div>
 
     <zw-revogrid-adapter ref="adapter" />
 
-    <section class="adapter-preview" aria-label="Mapped RevoGrid state">
+    <section class="adapter-preview" :aria-label="ui.previewLabel">
       <header>
-        <strong>RevoGrid-compatible state</strong>
+        <strong>{{ ui.previewTitle }}</strong>
         <span>
-          No third-party grid is bundled; this table renders the adapter output.
+          {{ ui.previewDescription }}
         </span>
       </header>
 

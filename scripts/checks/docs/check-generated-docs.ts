@@ -26,13 +26,26 @@ async function main(): Promise<void> {
     }
   }
 
-  const componentsDir = resolve(process.cwd(), 'apps/docs/components')
+  const componentDirectories = [
+    {
+      directory: resolve(process.cwd(), 'apps/docs/components'),
+      docsPath: 'apps/docs/components',
+    },
+    {
+      directory: resolve(process.cwd(), 'apps/docs/zh/components'),
+      docsPath: 'apps/docs/zh/components',
+    },
+  ]
 
-  if (existsSync(componentsDir)) {
-    for (const entry of readdirSync(componentsDir, { withFileTypes: true })) {
+  for (const componentDirectory of componentDirectories) {
+    if (!existsSync(componentDirectory.directory)) continue
+
+    for (const entry of readdirSync(componentDirectory.directory, {
+      withFileTypes: true,
+    })) {
       if (!entry.isFile() || !entry.name.endsWith('.md')) continue
 
-      const docPath = `apps/docs/components/${entry.name}`
+      const docPath = `${componentDirectory.docsPath}/${entry.name}`
 
       if (!generatedPaths.has(docPath)) {
         errors.push(
@@ -40,7 +53,10 @@ async function main(): Promise<void> {
         )
       }
 
-      const source = readFileSync(resolve(componentsDir, entry.name), 'utf-8')
+      const source = readFileSync(
+        resolve(componentDirectory.directory, entry.name),
+        'utf-8',
+      )
 
       if (
         source.includes(

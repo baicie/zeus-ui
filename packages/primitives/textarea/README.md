@@ -25,7 +25,7 @@ import { Textarea } from '@zeus-web/textarea/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/textarea/wc'
+import '@zeus-web/textarea/wc/auto'
 ```
 
 ```html

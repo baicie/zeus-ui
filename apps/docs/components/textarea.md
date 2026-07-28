@@ -80,7 +80,7 @@ import { Textarea } from '@zeus-web/textarea/react'
 Web Component entry:
 
 ```ts
-import '@zeus-web/textarea/wc'
+import '@zeus-web/textarea/wc/auto'
 ```
 
 ## Props
@@ -128,7 +128,7 @@ Internal selectors:
 
 Registry source: not available yet.
 
-The `textarea` primitive is available through `@zeus-web/textarea`, but it is not currently installable through `zweb add textarea`.
+The `textarea` primitive is available through `@zeus-web/textarea`, but it is not currently installable through the CLI registry.
 
 Use the primitive package directly until a registry template is added.
 
@@ -147,7 +147,7 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Textarea } from '@/components/ui/textarea'
+import { Textarea } from '@zeus-web/textarea/react'
 
 export function Example() {
   return <Textarea placeholder="Message" />

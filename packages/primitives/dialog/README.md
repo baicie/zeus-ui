@@ -25,7 +25,7 @@ import { Dialog } from '@zeus-web/dialog/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/dialog/wc'
+import '@zeus-web/dialog/wc/auto'
 ```
 
 ```html

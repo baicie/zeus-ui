@@ -4,6 +4,8 @@ import type {
   ZeusWebAiValidationResult,
 } from './types'
 
+import { isRegistryBackedAiComponent } from './metadata'
+
 const requiredComponents: ZeusWebAiComponentName[] = [
   'input',
   'button',
@@ -92,21 +94,9 @@ export function validateAiMetadata(
       )
     }
 
-    if (component.registryCommand !== `zweb add ${component.name}`) {
-      errors.push(
-        `${component.name}: registryCommand must be "zweb add ${component.name}"`,
-      )
-    }
-
     if (!component.installCommand.includes(`@zeus-web/${component.name}`)) {
       errors.push(
         `${component.name}: installCommand must include @zeus-web/${component.name}`,
-      )
-    }
-
-    if (component.sourceTarget !== `components/ui/${component.name}.tsx`) {
-      errors.push(
-        `${component.name}: sourceTarget must be components/ui/${component.name}.tsx`,
       )
     }
 
@@ -114,14 +104,75 @@ export function validateAiMetadata(
       errors.push(`${component.name}: reactImport must use per-component entry`)
     }
 
-    if (
-      !component.webComponentImport.includes(`@zeus-web/${component.name}/wc`)
-    ) {
-      errors.push(`${component.name}: webComponentImport must use wc entry`)
+    const expectedWebComponentImport = `import '@zeus-web/${component.name}/wc/auto'`
+
+    if (component.webComponentImport !== expectedWebComponentImport) {
+      errors.push(
+        `${component.name}: webComponentImport must be "${expectedWebComponentImport}"`,
+      )
     }
 
-    if (!component.styledImport.includes('@/components/ui/')) {
-      errors.push(`${component.name}: styledImport must use local ui alias`)
+    if (isRegistryBackedAiComponent(component.name)) {
+      if (component.registryCommand !== `zweb add ${component.name}`) {
+        errors.push(
+          `${component.name}: registryCommand must be "zweb add ${component.name}"`,
+        )
+      }
+
+      if (component.sourceTarget !== `components/ui/${component.name}.tsx`) {
+        errors.push(
+          `${component.name}: sourceTarget must be components/ui/${component.name}.tsx`,
+        )
+      }
+
+      if (
+        !component.styledImport ||
+        !component.styledImport.includes('@/components/ui/')
+      ) {
+        errors.push(`${component.name}: styledImport must use local ui alias`)
+      }
+    } else {
+      if (component.registryCommand !== undefined) {
+        errors.push(
+          `${component.name}: registryCommand must be omitted without a registry item`,
+        )
+      }
+
+      if (component.styledImport !== undefined) {
+        errors.push(
+          `${component.name}: styledImport must be omitted without a registry item`,
+        )
+      }
+
+      if (component.sourceTarget !== undefined) {
+        errors.push(
+          `${component.name}: sourceTarget must be omitted without a registry item`,
+        )
+      }
+
+      if (
+        component.examples.some(example =>
+          example.code.includes('@/components/ui/'),
+        )
+      ) {
+        errors.push(
+          `${component.name}: package-only examples must not use local registry imports`,
+        )
+      }
+
+      const packageReactEntry = `@zeus-web/${component.name}/react`
+      const packageWebComponentEntry = `@zeus-web/${component.name}/wc/auto`
+      if (
+        !component.examples.some(
+          example =>
+            example.code.includes(packageReactEntry) ||
+            example.code.includes(packageWebComponentEntry),
+        )
+      ) {
+        errors.push(
+          `${component.name}: package-only examples must use a public package entry`,
+        )
+      }
     }
 
     if (!component.dependencies.includes(`@zeus-web/${component.name}`)) {
@@ -145,7 +196,7 @@ export function validateAiMetadata(
 
   const advancedNames = new Set<string>()
 
-  for (const advanced of metadata.advancedComponents ?? []) {
+  for (const advanced of metadata.advancedComponents || []) {
     if (advancedNames.has(advanced.name)) {
       errors.push(`duplicated advanced component metadata: ${advanced.name}`)
     }

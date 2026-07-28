@@ -48,6 +48,18 @@ describe('docs primitive playground visuals', () => {
         )
         .then(() => expectPage(horizontal).toHaveCount(1))
         .then(() => expectPage(verticals).toHaveCount(2))
+        .then(() =>
+          expectPage(horizontal).toHaveAttribute(
+            'data-orientation',
+            'horizontal',
+          ),
+        )
+        .then(() =>
+          expectPage(verticals.first()).toHaveAttribute(
+            'data-orientation',
+            'vertical',
+          ),
+        )
         .then(() => horizontal.evaluate(readVisualMetrics))
         .then(metrics => expectVisibleSurface(metrics))
         .then(() =>

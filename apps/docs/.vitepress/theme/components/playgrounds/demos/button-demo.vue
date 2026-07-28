@@ -1,7 +1,27 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+import { useLocalizedMessages } from '../../../composables/use-docs-locale'
+
 const pressCount = ref(0)
+const messages = useLocalizedMessages({
+  en: {
+    primary: 'Primary',
+    outline: 'Outline',
+    delete: 'Delete',
+    loading: 'Loading',
+    disabled: 'Disabled',
+    pressEvents: 'Press events',
+  },
+  zh: {
+    primary: '主要按钮',
+    outline: '描边按钮',
+    delete: '删除',
+    loading: '加载中',
+    disabled: '已禁用',
+    pressEvents: '点击次数',
+  },
+})
 
 function handlePress(): void {
   pressCount.value += 1
@@ -11,13 +31,19 @@ function handlePress(): void {
 <template>
   <div class="primitive-demo" data-playground-demo="button">
     <div class="demo-row">
-      <zw-button variant="primary" @press="handlePress">Primary</zw-button>
-      <zw-button variant="outline" @press="handlePress">Outline</zw-button>
-      <zw-button variant="danger" @press="handlePress">Delete</zw-button>
-      <zw-button loading>Loading</zw-button>
-      <zw-button disabled>Disabled</zw-button>
+      <zw-button variant="primary" @press="handlePress">{{
+        messages.primary
+      }}</zw-button>
+      <zw-button variant="outline" @press="handlePress">{{
+        messages.outline
+      }}</zw-button>
+      <zw-button variant="danger" @press="handlePress">{{
+        messages.delete
+      }}</zw-button>
+      <zw-button loading>{{ messages.loading }}</zw-button>
+      <zw-button disabled>{{ messages.disabled }}</zw-button>
     </div>
-    <p class="demo-status">Press events: {{ pressCount }}</p>
+    <p class="demo-status">{{ messages.pressEvents }}: {{ pressCount }}</p>
   </div>
 </template>
 

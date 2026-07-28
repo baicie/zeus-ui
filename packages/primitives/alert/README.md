@@ -25,7 +25,7 @@ import { Alert } from '@zeus-web/alert/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/alert/wc'
+import '@zeus-web/alert/wc/auto'
 ```
 
 ```html

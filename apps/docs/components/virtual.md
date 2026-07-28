@@ -212,7 +212,7 @@ function updateRange(event: CustomEvent<VirtualRangeDetail>): void {
 
 ## When not to use
 
-- Do not treat this package as a model request library. 不要把它当作模型请求库。
+- Do not treat this package as a model request library.
 - Do not expect zw-virtual-list to render item content; the application owns the item renderer.
 - Do not use it for small collections where rendering every item is simpler and inexpensive.
 - Do not use the one-axis list as a substitute for @zeus-web/data-grid when rows and columns both need virtualization.
@@ -279,16 +279,26 @@ const middleOffset = virtualizer.getOffsetForIndex(5_000, {
 
 Listen for range changes and render only the items supplied by the headless list.
 
-```html
-import '@zeus-web/virtual/wc/auto' const list =
-document.querySelector('zw-virtual-list') const itemLayer =
-document.querySelector('#virtual-items') list.addEventListener('range-change',
-event => { const elements = event.detail.items.map(item => { const element =
-document.createElement('div') element.textContent = `Activity ${item.index + 1}`
-element.style.position = 'absolute' element.style.transform =
-`translateY(${item.start}px)` element.style.height = `${item.size}px` return
-element }) itemLayer.replaceChildren(...elements) }) list.scrollToIndex(5_000,
-'center')
+```ts
+import '@zeus-web/virtual/wc/auto'
+
+const list = document.querySelector('zw-virtual-list')
+const itemLayer = document.querySelector('#virtual-items')
+
+list.addEventListener('range-change', event => {
+  const elements = event.detail.items.map(item => {
+    const element = document.createElement('div')
+    element.textContent = `Activity ${item.index + 1}`
+    element.style.position = 'absolute'
+    element.style.transform = `translateY(${item.start}px)`
+    element.style.height = `${item.size}px`
+    return element
+  })
+
+  itemLayer.replaceChildren(...elements)
+})
+
+list.scrollToIndex(5_000, 'center')
 ```
 
 ### React wrapper usage
@@ -334,4 +344,4 @@ export function ActivityList() {
 - Give the viewport a bounded size and overflow so the component can measure a useful visible range.
 - Use scrollToIndex with start, center or end alignment for imperative navigation.
 - Use createVirtualizer directly when implementing a higher-level Zeus Web component.
-- Keep business request logic in the application layer. 业务请求逻辑应该放在应用层。
+- Keep business request logic in the application layer.

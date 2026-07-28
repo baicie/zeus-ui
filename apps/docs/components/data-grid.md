@@ -7,7 +7,7 @@ pageClass: component-docs-page data-grid-playground-page
 
 # Data Grid
 
-Use @zeus-web/data-grid to build headless data grids with two-axis virtualization, column model, row model, selection and sorting.
+Use @zeus-web/data-grid to build headless data grids with two-axis virtualization, column and row models, selection and sorting.
 
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/data-grid</span>
@@ -80,18 +80,18 @@ const columns = [
 
 ## When to use
 
-- 需要展示结构化表格数据时使用。
-- 需要轻量 DataGrid 而不是 AG Grid 级完整表格系统时使用。
-- 需要跨 Native Web Component、React、Vue 复用同一套 DataGrid 行为协议时使用。
-- 需要双轴虚拟滚动、单列排序、单选或多选时使用。
+- Display structured tabular data.
+- Use a lightweight Data Grid instead of a full AG Grid-scale table system.
+- Reuse one Data Grid behavior protocol across native Web Component, React and Vue.
+- Use two-axis virtual scrolling, single-column sorting and single or multiple selection.
 
 ## When not to use
 
-- 不要把它当作服务端数据源。
-- 不要在组件内部写真实请求逻辑。
-- 不要把它当作模型请求库。
-- 不要把鉴权信息、密钥、token 放入组件属性。
-- 不要在当前阶段依赖过滤器、树表、分组或单元格编辑器。
+- Do not treat it as a server-side data source.
+- Do not put real request logic inside the component.
+- Do not treat it as a model request library.
+- Do not put authentication data, secrets or tokens in component props.
+- Do not depend on filters, tree tables, grouping or cell editors in the current phase.
 
 ## Install
 
@@ -166,7 +166,7 @@ pnpm add @zeus-web/data-grid
 
 ### React package usage
 
-Use the generated DataGrid wrapper from the advanced package in React apps.
+Use the generated Data Grid wrapper from the advanced package in React applications.
 
 ```tsx
 import { DataGrid } from '@zeus-web/data-grid/react'
@@ -198,18 +198,23 @@ export function Example() {
 
 Use the auto entry when the host application is not React or Vue.
 
-```html
-import '@zeus-web/data-grid/wc/auto' const grid =
-document.createElement('zw-data-grid') grid.setAttribute('aria-label', 'Users')
-grid.setAttribute('virtual', '') grid.setAttribute('selection-mode', 'multiple')
-grid.columns = columns grid.rows = rows document.body.append(grid)
+```ts
+import '@zeus-web/data-grid/wc/auto'
+
+const grid = document.createElement('zw-data-grid')
+grid.setAttribute('aria-label', 'Users')
+grid.setAttribute('virtual', '')
+grid.setAttribute('selection-mode', 'multiple')
+grid.columns = columns
+grid.rows = rows
+document.body.append(grid)
 ```
 
 ## AI usage hints
 
-- 生成结构化数据表格时优先使用 data-grid，而不是手写复杂 div table。
-- 需要大量行数据时设置 virtual。
-- 需要选择行时设置 selectionMode="single" 或 selectionMode="multiple"。
-- 需要排序时在 column 上设置 sortable: true。
-- 业务请求逻辑应该放在应用层，不应放在组件内部。
-- 不要在 data-grid 中生成 provider、鉴权、远程请求或服务端数据源逻辑。
+- Prefer data-grid over a hand-written complex div table when generating structured data tables.
+- Enable virtual when rendering many rows.
+- Set selectionMode="single" or selectionMode="multiple" when rows must be selectable.
+- Set sortable: true on a column when sorting is required.
+- Keep business request logic in the application layer.
+- Do not generate provider, authentication, remote request or server-side data-source logic inside data-grid.

@@ -112,7 +112,7 @@ import {
 Web Component entry:
 
 ```ts
-import '@zeus-web/accordion/wc'
+import '@zeus-web/accordion/wc/auto'
 ```
 
 ## Props
@@ -155,7 +155,7 @@ Internal selectors:
 
 Registry source: not available yet.
 
-The `accordion` primitive is available through `@zeus-web/accordion`, but it is not currently installable through `zweb add accordion`.
+The `accordion` primitive is available through `@zeus-web/accordion`, but it is not currently installable through the CLI registry.
 
 Use the primitive package directly until a registry template is added.
 
@@ -176,5 +176,21 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'\n\nexport function Example() {\n  return (\n    <Accordion defaultValue="item-1" collapsible>\n      <AccordionItem value="item-1">\n        <AccordionTrigger>Question</AccordionTrigger>\n        <AccordionContent>Answer</AccordionContent>\n      </AccordionItem>\n    </Accordion>\n  )\n}
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@zeus-web/accordion/react'
+
+export function Example() {
+  return (
+    <Accordion defaultValue="item-1" collapsible>
+      <AccordionItem value="item-1">
+        <AccordionTrigger>Question</AccordionTrigger>
+        <AccordionContent>Answer</AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  )
+}
 ```

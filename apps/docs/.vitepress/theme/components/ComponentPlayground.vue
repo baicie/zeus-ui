@@ -6,6 +6,11 @@ import type { ComponentName } from '../../data/component-catalog'
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 
 import { findComponentCatalogItem } from '../../data/component-catalog'
+import {
+  useDocsLocale,
+  useLocalizedMessages,
+} from '../composables/use-docs-locale'
+import { componentPlaygroundMessages } from '../data/playground-i18n'
 
 type PlaygroundDensity = 'compact' | 'default' | 'large'
 type PlaygroundTheme = 'light' | 'dark'
@@ -89,9 +94,11 @@ const ready = ref(false)
 const errorMessage = ref('')
 const density = ref<PlaygroundDensity>('default')
 const theme = ref<PlaygroundTheme>('light')
+const { locale } = useDocsLocale()
+const messages = useLocalizedMessages(componentPlaygroundMessages)
 
 const definition = computed(() => {
-  return findComponentCatalogItem(props.name)
+  return findComponentCatalogItem(props.name, locale.value)
 })
 
 const playgroundClass = computed(() => {
@@ -118,7 +125,7 @@ onMounted(() => {
   const currentDemo = demo.value
 
   if (!loader || !currentDefinition || !currentDemo) {
-    errorMessage.value = `No Playground is registered for "${props.name}".`
+    errorMessage.value = messages.value.missingPlayground(props.name)
     return
   }
 
@@ -130,7 +137,7 @@ onMounted(() => {
       errorMessage.value =
         error instanceof Error
           ? error.message
-          : `Unable to load ${currentDefinition.title}.`
+          : messages.value.loadFailed(currentDefinition.title)
     },
   )
 })
@@ -145,40 +152,42 @@ onMounted(() => {
     <header class="component-playground__toolbar zeus-playground__toolbar">
       <div>
         <p class="component-playground__eyebrow zeus-playground__eyebrow">
-          Live Web Component preview
+          {{ messages.previewEyebrow }}
         </p>
         <h2>{{ definition ? definition.title : name }}</h2>
       </div>
 
       <div class="component-playground__controls zeus-playground__controls">
         <label>
-          Theme
+          {{ messages.themeLabel }}
           <select v-model="theme">
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
+            <option value="light">{{ messages.lightTheme }}</option>
+            <option value="dark">{{ messages.darkTheme }}</option>
           </select>
         </label>
 
         <label>
-          Density
+          {{ messages.densityLabel }}
           <select v-model="density">
-            <option value="compact">Compact</option>
-            <option value="default">Default</option>
-            <option value="large">Large</option>
+            <option value="compact">{{ messages.compactDensity }}</option>
+            <option value="default">{{ messages.defaultDensity }}</option>
+            <option value="large">{{ messages.largeDensity }}</option>
           </select>
         </label>
       </div>
     </header>
 
-    <p v-if="errorMessage" class="component-playground__error">
+    <p v-if="errorMessage" class="component-playground__error" role="alert">
       {{ errorMessage }}
     </p>
 
     <p
       v-else-if="!ready"
+      aria-live="polite"
       class="component-playground__loading zeus-playground__loading"
+      role="status"
     >
-      Loading {{ definition ? definition.title : name }}...
+      {{ messages.loading(definition ? definition.title : name) }}
     </p>
 
     <div v-else class="component-playground__preview">

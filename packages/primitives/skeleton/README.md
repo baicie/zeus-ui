@@ -25,7 +25,7 @@ import { Skeleton } from '@zeus-web/skeleton/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/skeleton/wc'
+import '@zeus-web/skeleton/wc/auto'
 ```
 
 ```html

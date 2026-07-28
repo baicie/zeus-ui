@@ -82,7 +82,7 @@ import { Skeleton } from '@zeus-web/skeleton/react'
 Web Component entry:
 
 ```ts
-import '@zeus-web/skeleton/wc'
+import '@zeus-web/skeleton/wc/auto'
 ```
 
 ## Props
@@ -116,7 +116,7 @@ Internal selectors:
 
 Registry source: not available yet.
 
-The `skeleton` primitive is available through `@zeus-web/skeleton`, but it is not currently installable through `zweb add skeleton`.
+The `skeleton` primitive is available through `@zeus-web/skeleton`, but it is not currently installable through the CLI registry.
 
 Use the primitive package directly until a registry template is added.
 
@@ -135,7 +135,7 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Skeleton } from '@/components/ui/skeleton'
+import { Skeleton } from '@zeus-web/skeleton/react'
 
 export function Example() {
   return <Skeleton className="h-4 w-12" />

@@ -114,7 +114,7 @@ Native usage must be styled by default.
 Advanced users may import primitives directly.
 
 ```ts
-import '@zeus-web/button/wc'
+import '@zeus-web/button/wc/auto'
 ```
 
 ```html

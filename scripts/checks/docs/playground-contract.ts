@@ -342,6 +342,59 @@ function checkSource(
       `${pkg.name} "${framework.sourceKey}" Playground source label must be "${framework.label}".`,
     )
   }
+
+  if (framework.sourceKey !== 'webComponent') return
+
+  const nonRegisteringEntry = `${pkg.name}/wc`
+
+  if (hasSideEffectImport(source.code, nonRegisteringEntry)) {
+    errors.push(
+      `${pkg.name} "webComponent" Playground source must not use the non-registering side-effect import "${nonRegisteringEntry}"; use "${expectedPath}".`,
+    )
+  }
+
+  for (const parent of [
+    'zw-dialog-trigger',
+    'zw-dialog-close',
+    'zw-tooltip-trigger',
+  ]) {
+    if (hasNestedElement(source.code, parent, 'button')) {
+      errors.push(
+        `${pkg.name} "webComponent" Playground source must not nest a native button inside <${parent}>.`,
+      )
+    }
+  }
+}
+
+function hasSideEffectImport(source: string, importPath: string): boolean {
+  const expression = new RegExp(
+    `(?:^|\\n)\\s*import\\s*['"]${escapeRegExp(importPath)}['"]\\s*;?`,
+    'm',
+  )
+
+  return expression.test(source)
+}
+
+function hasNestedElement(
+  source: string,
+  parent: string,
+  child: string,
+): boolean {
+  const expression = new RegExp(
+    `<${escapeRegExp(parent)}\\b[^>]*>([\\s\\S]*?)<\\/${escapeRegExp(parent)}>`,
+    'gi',
+  )
+  let match = expression.exec(source)
+
+  while (match) {
+    if (new RegExp(`<${escapeRegExp(child)}\\b`, 'i').test(match[1] || '')) {
+      return true
+    }
+
+    match = expression.exec(source)
+  }
+
+  return false
 }
 
 function checkFrameworkSources(
@@ -351,7 +404,9 @@ function checkFrameworkSources(
   errors: string[],
 ): void {
   const packagesByName = new Map(packages.map(pkg => [pkg.name, pkg]))
-  const componentNames = new Set(components.map(component => component.name))
+  const componentNames = new Set<string>(
+    components.map(component => component.name),
+  )
 
   for (const sourceName of Object.keys(sourcesByComponent)) {
     if (!componentNames.has(sourceName)) {
@@ -496,6 +551,41 @@ function checkLegacyPlaygroundDocs(root: string, errors: string[]): void {
   }
 }
 
+function checkDocumentedWebComponentImports(
+  root: string,
+  packages: ComponentPackage[],
+  errors: string[],
+): void {
+  const documentationRoots = [
+    'apps/docs',
+    'docs/design',
+    'packages/primitives',
+    'packages/advanced',
+    'packages/headless',
+  ]
+  const documentationFiles = documentationRoots.flatMap(documentationRoot =>
+    findMarkdownFiles(resolve(root, documentationRoot)),
+  )
+  const rootReadme = resolve(root, 'README.md')
+
+  if (existsSync(rootReadme)) documentationFiles.push(rootReadme)
+
+  for (const path of documentationFiles) {
+    const source = readFileSync(path, 'utf-8')
+    const relativePath = relative(root, path).split('\\').join('/')
+
+    for (const pkg of packages) {
+      const nonRegisteringEntry = `${pkg.name}/wc`
+
+      if (!hasSideEffectImport(source, nonRegisteringEntry)) continue
+
+      errors.push(
+        `${relativePath} must not use the non-registering side-effect import "${nonRegisteringEntry}"; use "${nonRegisteringEntry}/auto".`,
+      )
+    }
+  }
+}
+
 function checkDocsDependencies(
   root: string,
   packages: ComponentPackage[],
@@ -626,6 +716,19 @@ function checkRuntime(
     }
   }
 
+  if (!runtimeSource.includes('role="alert"')) {
+    errors.push('Playground runtime errors must use role="alert".')
+  }
+
+  if (
+    !runtimeSource.includes('role="status"') ||
+    !runtimeSource.includes('aria-live="polite"')
+  ) {
+    errors.push(
+      'Playground runtime loading feedback must use role="status" and aria-live="polite".',
+    )
+  }
+
   for (const component of components) {
     const componentEntry = `${component.packageName}/wc/auto`
     const hasComponentLoader =
@@ -690,6 +793,7 @@ export function checkPlaygroundContract(
   checkFrameworkSources(packages, components, sources, errors)
   checkGeneratedComponentDocs(root, components, generatedDocs, errors)
   checkLegacyPlaygroundDocs(root, errors)
+  checkDocumentedWebComponentImports(root, packages, errors)
   checkDocsDependencies(root, packages, errors)
   checkSidebar(components, sidebarItems, errors)
   checkRuntime(root, components, options.runtimeSource, errors)

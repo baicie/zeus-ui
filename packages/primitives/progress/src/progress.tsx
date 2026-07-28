@@ -45,6 +45,11 @@ export const Progress = defineElement<ProgressProps, ProgressElement>(
       data-value={() => String(getValue(props))}
       data-max={() => String(getMax(props))}
       data-percent={() => String(getPercent(props))}
+      style={() => {
+        const style: Record<string, string> = {}
+        style['--zw-progress-percent'] = `${getPercent(props)}%`
+        return style
+      }}
       role="progressbar"
       aria-label={() => props.label}
       aria-valuemin={() => (props.indeterminate ? undefined : '0')}

@@ -164,6 +164,8 @@ export default defineConfig({
             'packages/zeus-compat/**',
             // radio-group WC tests require jsdom, run in unit-jsdom instead.
             'packages/primitives/radio-group/__tests__/**',
+            // select WC runtime tests require jsdom, run in unit-jsdom instead.
+            'packages/primitives/select/__tests__/**',
           ],
         },
       },

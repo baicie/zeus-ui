@@ -162,8 +162,63 @@ const requiredDocs: RequiredDoc[] = [
       '@zeus-web/ui',
       'pnpm showcase:native',
       "import '@zeus-web/ui'",
-      '@zeus-web/button/wc',
+      "import '@zeus-web/button/wc/auto'",
     ],
+  },
+]
+
+const requiredChineseDocs: RequiredDoc[] = [
+  {
+    path: 'zh/index.md',
+    mustContain: ['Zeus Web', '开始使用', '/zh/guide/getting-started'],
+  },
+  {
+    path: 'zh/guide/getting-started.md',
+    mustContain: ['# 开始使用', 'zeus-ui.json', '@zeus-web/button/react'],
+  },
+  {
+    path: 'zh/guide/usage-modes.md',
+    mustContain: ['# 使用模式', '@zeus-web/ui', '@zeus-web/button/react'],
+  },
+  {
+    path: 'zh/guide/cli.md',
+    mustContain: ['# CLI', 'zweb init', 'zweb add'],
+  },
+  {
+    path: 'zh/guide/theming.md',
+    mustContain: ['# 主题', '--zeus-*', 'src/styles/zeus.css'],
+  },
+  {
+    path: 'zh/guide/icons.md',
+    mustContain: ['# 图标', '@zeus-web/icons/react', 'zweb icon list'],
+  },
+  {
+    path: 'zh/guide/registry.md',
+    mustContain: ['# Registry', '@zeus-web/registry', 'registry.json'],
+  },
+  {
+    path: 'zh/guide/ai.md',
+    mustContain: ['# AI', '@zeus-web/ai', 'zweb ai --cursor'],
+  },
+  {
+    path: 'zh/examples/react-vite.md',
+    mustContain: ['# React Vite 示例', '@zeus-web/example-react-vite'],
+  },
+  {
+    path: 'zh/examples/next-app.md',
+    mustContain: [
+      '# Next.js App Router 示例',
+      '@zeus-web/example-next-app',
+      '1. 本地 `src/components/ui/*` 组件。',
+      '2. 通过 `@zeus-web/button/react` 等路径按组件导入 React wrapper。',
+      '3. 使用 `"use client"` 声明 Client Component 边界。',
+      '4. 通过 `@zeus-web/themes/default.css` 导入主题。',
+      '5. 使用 `zeus-ui.json` 配置路径别名。',
+    ],
+  },
+  {
+    path: 'zh/examples/native-wc.md',
+    mustContain: ['# 原生 Web Components 示例', '@zeus-web/ui'],
   },
 ]
 
@@ -267,10 +322,13 @@ function checkVitePressConfig(): string[] {
 
   for (const text of [
     "import { defineConfig } from 'vitepress'",
-    "import { sidebar, topNav } from './data/site'",
+    "from './data/docs-i18n'",
+    "from './data/site'",
     "logo: '/logo.svg'",
-    'nav: topNav',
-    'sidebar',
+    'locales: {',
+    'root: {',
+    'zh: {',
+    'i18nRouting: true',
   ]) {
     if (!configSource.includes(text)) {
       errors.push(`VitePress config must contain "${text}"`)
@@ -293,17 +351,27 @@ function checkVitePressConfig(): string[] {
     }
   }
 
-  for (const component of componentDocs) {
-    if (!catalogSource.includes(component.route)) {
+  for (const text of [
+    'getComponentCatalog',
+    'getComponentCategories',
+    'localizeDocsPath',
+  ]) {
+    if (!siteSource.includes(text)) {
       errors.push(
-        `component-catalog.ts must contain route "${component.route}"`,
+        `data/site.ts must derive localized navigation from "${text}"`,
       )
     }
   }
 
-  for (const text of ['componentCatalog', 'componentCategories']) {
-    if (!siteSource.includes(text)) {
-      errors.push(`data/site.ts must derive navigation from "${text}"`)
+  if (!catalogSource.includes('componentIdentities')) {
+    errors.push(
+      'component-catalog.ts must keep locale-neutral component identities',
+    )
+  }
+
+  for (const text of ["title: 'Button'", "title: '按钮'"]) {
+    if (!catalogSource.includes(text)) {
+      errors.push(`component-catalog.ts must contain localized copy "${text}"`)
     }
   }
 
@@ -414,6 +482,27 @@ function checkComponentDocsErrors(
       if (!source.includes('Registry source: not available yet.')) {
         errors.push(`${relativePath} must document missing registry source`)
       }
+
+      for (const localePrefix of ['', 'zh/']) {
+        const localizedPath = `${localePrefix}components/${component.name}.md`
+        const localizedFile = filePath(localizedPath)
+
+        if (!existsSync(localizedFile)) continue
+
+        const localizedSource = readFileSync(localizedFile, 'utf-8')
+
+        if (localizedSource.includes(`@/components/ui/${component.name}`)) {
+          errors.push(
+            `${localizedPath} must not document unavailable registry import @/components/ui/${component.name}`,
+          )
+        }
+
+        if (localizedSource.includes(`zweb add ${component.name}`)) {
+          errors.push(
+            `${localizedPath} must not document unavailable command zweb add ${component.name}`,
+          )
+        }
+      }
     }
 
     errors.push(...checkForbiddenPatterns(relativePath, source))
@@ -425,7 +514,7 @@ function checkComponentDocsErrors(
 function main(): void {
   const errors: string[] = []
 
-  for (const doc of requiredDocs) {
+  for (const doc of requiredDocs.concat(requiredChineseDocs)) {
     errors.push(...checkFileExists(doc.path))
     if (errors.length === 0 || existsSync(filePath(doc.path))) {
       errors.push(...checkRequiredContent(doc))

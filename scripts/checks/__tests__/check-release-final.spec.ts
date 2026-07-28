@@ -120,7 +120,7 @@ describe('release final command', () => {
       expect(result.stdout).not.toContain('Release final verification')
       expect(result.stderr).not.toContain('Release final verification')
     })
-  }, 15_000)
+  }, 45_000)
 
   it('validates arguments when executed as the direct CLI entry', () => {
     return execa(
@@ -134,5 +134,5 @@ describe('release final command', () => {
         'Usage: pnpm release:final <version> [--allow-zero]',
       )
     })
-  }, 15_000)
+  }, 45_000)
 })

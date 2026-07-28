@@ -165,17 +165,13 @@ const primitiveSources = {
     ],
     webComponentMarkup: [
       '<zw-dialog>',
-      '  <zw-dialog-trigger>',
-      '    <button type="button">Open dialog</button>',
-      '  </zw-dialog-trigger>',
+      '  <zw-dialog-trigger>Open dialog</zw-dialog-trigger>',
       '  <zw-dialog-content>',
       '    <zw-dialog-title>Publish project?</zw-dialog-title>',
       '    <zw-dialog-description>',
       '      The project will become visible to everyone.',
       '    </zw-dialog-description>',
-      '    <zw-dialog-close>',
-      '      <button type="button">Cancel</button>',
-      '    </zw-dialog-close>',
+      '    <zw-dialog-close>Cancel</zw-dialog-close>',
       '  </zw-dialog-content>',
       '</zw-dialog>',
     ].join('\n'),
@@ -403,9 +399,7 @@ const primitiveSources = {
     symbols: ['Tooltip', 'TooltipContent', 'TooltipTrigger'],
     webComponentMarkup: [
       '<zw-tooltip>',
-      '  <zw-tooltip-trigger>',
-      '    <button type="button">Hover or focus</button>',
-      '  </zw-tooltip-trigger>',
+      '  <zw-tooltip-trigger>Hover or focus</zw-tooltip-trigger>',
       '  <zw-tooltip-content>Copy link</zw-tooltip-content>',
       '</zw-tooltip>',
     ].join('\n'),
@@ -421,11 +415,10 @@ const primitiveSources = {
     title: 'Progress',
     symbols: ['Progress'],
     webComponentMarkup:
-      '<zw-progress value="64" max="100" aria-label="Upload progress"></zw-progress>',
+      '<zw-progress value="64" max="100" label="Upload progress"></zw-progress>',
     frameworkMarkup:
-      '<Progress value={64} max={100} aria-label="Upload progress" />',
-    vueMarkup:
-      '<Progress :value="64" :max="100" aria-label="Upload progress" />',
+      '<Progress value={64} max={100} label="Upload progress" />',
+    vueMarkup: '<Progress :value="64" :max="100" label="Upload progress" />',
   }),
   avatar: createPrimitiveSources({
     name: 'avatar',

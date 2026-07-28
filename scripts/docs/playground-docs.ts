@@ -1,4 +1,5 @@
 import type { ComponentCatalogItem } from '../../apps/docs/.vitepress/data/component-catalog'
+import type { DocsLocale } from '../../apps/docs/.vitepress/data/docs-i18n'
 import type {
   PlaygroundFramework,
   PlaygroundSource,
@@ -7,6 +8,8 @@ import type {
 
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+
+import { getComponentDocsMessages } from './component-docs-i18n'
 
 interface FrameworkContract {
   exportPath: string
@@ -142,28 +145,26 @@ function renderPlaygroundComponent(component: ComponentCatalogItem): string {
 export function renderEmbeddedPlayground(
   component: ComponentCatalogItem,
   sources: PlaygroundSourceSet,
+  locale: DocsLocale = 'en',
   root = process.cwd(),
 ): string {
+  const messages = getComponentDocsMessages(locale)
   const performanceDescription =
     component.name === 'data-grid'
-      ? [
-          '',
-          'Explore two-axis virtualization across datasets with up to 100,000 rows and',
-          '1,000 columns.',
-        ]
+      ? ['', ...messages.dataGridPlaygroundDescription]
       : []
 
   return [
-    '## Playground',
+    `## ${messages.playground}`,
     ...performanceDescription,
     '',
     '<ClientOnly>',
     renderPlaygroundComponent(component),
     '</ClientOnly>',
     '',
-    '### Source',
+    `### ${messages.source}`,
     '',
-    'Choose the framework entry that matches your application.',
+    messages.sourceDescription,
     '',
     renderSourceCodeGroup(component, sources, root),
     '',

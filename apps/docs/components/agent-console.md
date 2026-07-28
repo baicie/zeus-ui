@@ -101,15 +101,15 @@ const messages = [
 
 ## When to use
 
-- Use when building an AI assistant console UI.
-- Use when you need a local state model for messages, tool calls, artifacts and diagnostics.
-- Use before adding a real provider adapter.
+- Use it when building an AI assistant console UI.
+- Use it when a local state model is needed for messages, tool calls, artifacts and diagnostics.
+- Use it before adding a real provider adapter.
 
 ## When not to use
 
-- 不要把它当作模型请求库。
-- Do not use as a direct OpenAI/Anthropic/DeepSeek client.
-- Do not use when you only need a basic chat transcript.
+- Do not treat it as a model request library.
+- Do not use it as a direct OpenAI, Anthropic or DeepSeek client.
+- Do not use it when only a basic chat transcript is needed.
 - Do not put API keys or network transport inside templates.
 
 ## Install
@@ -172,7 +172,7 @@ export function Example() {
 
 ## AI usage hints
 
-- 业务请求逻辑应该放在应用层，不应放在组件内部。
+- Keep business request logic in the application layer.
 - Generate local UI only.
 - Do not add fetch, WebSocket, EventSource or provider SDK usage.
-- Use appendMessage/startToolCall/addArtifact methods for local state transitions.
+- Use appendMessage, startToolCall and addArtifact methods for local state transitions.
