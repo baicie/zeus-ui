@@ -39,7 +39,7 @@ const docs: RequiredDoc[] = [
       "import '@zeus-web/ui/button'",
       "import { Button } from '@/components/ui/button'",
       "import { Button } from '@zeus-web/button/react'",
-      "import '@zeus-web/button/wc'",
+      "import '@zeus-web/button/wc/auto'",
     ],
   },
   {

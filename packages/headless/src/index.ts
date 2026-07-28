@@ -1,19 +1,19 @@
 // Aggregated headless Web Components for Zeus Web.
 //
-// This entry intentionally imports each primitive WC entry for side effects,
+// This entry intentionally imports each primitive auto-registration entry,
 // so `import '@zeus-web/headless'` registers all MVP primitives.
 //
 // For smaller bundles, users should import individual primitive entries:
 //
-//   import '@zeus-web/button/wc'
-//   import '@zeus-web/input/wc'
+//   import '@zeus-web/button/wc/auto'
+//   import '@zeus-web/input/wc/auto'
 
-import '@zeus-web/button/wc'
-import '@zeus-web/checkbox/wc'
-import '@zeus-web/dialog/wc'
-import '@zeus-web/input/wc'
-import '@zeus-web/switch/wc'
-import '@zeus-web/tabs/wc'
+import '@zeus-web/button/wc/auto'
+import '@zeus-web/checkbox/wc/auto'
+import '@zeus-web/dialog/wc/auto'
+import '@zeus-web/input/wc/auto'
+import '@zeus-web/switch/wc/auto'
+import '@zeus-web/tabs/wc/auto'
 
 export type { ButtonElement } from '@zeus-web/button'
 

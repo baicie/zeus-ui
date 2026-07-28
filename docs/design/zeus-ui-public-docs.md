@@ -62,7 +62,7 @@ import '@zeus-web/ui'
 ### Advanced primitive path
 
 ```ts
-import '@zeus-web/button/wc'
+import '@zeus-web/button/wc/auto'
 import { Button } from '@zeus-web/button/react'
 import { Button } from '@zeus-web/button/vue'
 ```
