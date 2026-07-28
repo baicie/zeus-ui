@@ -146,7 +146,7 @@ import { Button } from '@zeus-web/button/vue'
 Native primitive:
 
 ```ts
-import '@zeus-web/button/wc'
+import '@zeus-web/button/wc/auto'
 ```
 
 ```html

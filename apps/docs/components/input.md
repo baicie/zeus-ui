@@ -78,7 +78,7 @@ import { Input } from '@zeus-web/input/react'
 Web Component entry:
 
 ```ts
-import '@zeus-web/input/wc'
+import '@zeus-web/input/wc/auto'
 ```
 
 ## Props

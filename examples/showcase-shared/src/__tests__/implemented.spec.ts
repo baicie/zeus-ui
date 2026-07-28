@@ -1,3 +1,4 @@
+import { showcaseComponents } from '../components'
 import {
   getImplementedShowcaseComponents,
   getImplementedShowcasePackageNames,
@@ -24,5 +25,13 @@ describe('implemented showcase components', () => {
   it('recognizes implemented names', () => {
     expect(isImplementedShowcaseComponent('button')).toBe(true)
     expect(isImplementedShowcaseComponent('not-a-component')).toBe(false)
+  })
+
+  it('shows auto-registering Web Component imports', () => {
+    for (const component of showcaseComponents) {
+      expect(component.imports.webComponent).toBe(
+        `import '${component.packageName}/wc/auto'`,
+      )
+    }
   })
 })

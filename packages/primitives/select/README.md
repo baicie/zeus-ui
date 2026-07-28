@@ -25,7 +25,7 @@ import { Select } from '@zeus-web/select/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/select/wc'
+import '@zeus-web/select/wc/auto'
 ```
 
 ```html

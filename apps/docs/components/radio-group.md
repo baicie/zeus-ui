@@ -91,7 +91,7 @@ import { RadioGroup, RadioGroupItem } from '@zeus-web/radio-group/react'
 Web Component entry:
 
 ```ts
-import '@zeus-web/radio-group/wc'
+import '@zeus-web/radio-group/wc/auto'
 ```
 
 ## Props
@@ -134,7 +134,7 @@ Internal selectors:
 
 Registry source: not available yet.
 
-The `radio-group` primitive is available through `@zeus-web/radio-group`, but it is not currently installable through `zweb add radio-group`.
+The `radio-group` primitive is available through `@zeus-web/radio-group`, but it is not currently installable through the CLI registry.
 
 Use the primitive package directly until a registry template is added.
 
@@ -154,7 +154,7 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { RadioGroup, RadioGroupItem } from '@zeus-web/radio-group/react'
 
 export function Example() {
   return (

@@ -78,7 +78,7 @@ import { Button } from '@zeus-web/button/react'
 Web Component entry:
 
 ```ts
-import '@zeus-web/button/wc'
+import '@zeus-web/button/wc/auto'
 ```
 
 ## Props

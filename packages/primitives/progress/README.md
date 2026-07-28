@@ -25,7 +25,7 @@ import { Progress } from '@zeus-web/progress/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/progress/wc'
+import '@zeus-web/progress/wc/auto'
 ```
 
 ```html

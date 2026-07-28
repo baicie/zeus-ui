@@ -32,14 +32,14 @@ Choose the framework entry that matches your application.
   import '@zeus-web/progress/wc/auto'
 </script>
 
-<zw-progress value="64" max="100" aria-label="Upload progress"></zw-progress>
+<zw-progress value="64" max="100" label="Upload progress"></zw-progress>
 ```
 
 ```tsx [React]
 import { Progress } from '@zeus-web/progress/react'
 
 export function ProgressExample() {
-  return <Progress value={64} max={100} aria-label="Upload progress" />
+  return <Progress value={64} max={100} label="Upload progress" />
 }
 ```
 
@@ -49,7 +49,7 @@ import { Progress } from '@zeus-web/progress/vue'
 </script>
 
 <template>
-  <Progress :value="64" :max="100" aria-label="Upload progress" />
+  <Progress :value="64" :max="100" label="Upload progress" />
 </template>
 ```
 
@@ -80,7 +80,7 @@ import { Progress } from '@zeus-web/progress/react'
 Web Component entry:
 
 ```ts
-import '@zeus-web/progress/wc'
+import '@zeus-web/progress/wc/auto'
 ```
 
 ## Props
@@ -120,7 +120,7 @@ Internal selectors:
 
 Registry source: not available yet.
 
-The `progress` primitive is available through `@zeus-web/progress`, but it is not currently installable through `zweb add progress`.
+The `progress` primitive is available through `@zeus-web/progress`, but it is not currently installable through the CLI registry.
 
 Use the primitive package directly until a registry template is added.
 
@@ -139,5 +139,9 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Progress } from '@/components/ui/progress'\n\nexport function Example() {\n  return <Progress value={60} label="Upload progress" />\n}
+import { Progress } from '@zeus-web/progress/react'
+
+export function Example() {
+  return <Progress value={60} label="Upload progress" />
+}
 ```

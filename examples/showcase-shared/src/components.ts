@@ -32,7 +32,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
     imports: {
       react: "import { Button } from '@/components/ui/button'",
       vue: "import { Button } from '@zeus-web/button/vue'",
-      webComponent: "import '@zeus-web/button/wc'",
+      webComponent: "import '@zeus-web/button/wc/auto'",
       registry: 'zweb add button',
     },
     sections: [
@@ -91,7 +91,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
     imports: {
       react: "import { Input } from '@/components/ui/input'",
       vue: "import { Input } from '@zeus-web/input/vue'",
-      webComponent: "import '@zeus-web/input/wc'",
+      webComponent: "import '@zeus-web/input/wc/auto'",
       registry: 'zweb add input',
     },
     sections: [...formSections, 'icons'],
@@ -133,7 +133,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
     imports: {
       react: "import { Checkbox } from '@/components/ui/checkbox'",
       vue: "import { Checkbox } from '@zeus-web/checkbox/vue'",
-      webComponent: "import '@zeus-web/checkbox/wc'",
+      webComponent: "import '@zeus-web/checkbox/wc/auto'",
       registry: 'zweb add checkbox',
     },
     sections: formSections,
@@ -165,7 +165,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
     imports: {
       react: "import { Switch } from '@/components/ui/switch'",
       vue: "import { Switch } from '@zeus-web/switch/vue'",
-      webComponent: "import '@zeus-web/switch/wc'",
+      webComponent: "import '@zeus-web/switch/wc/auto'",
       registry: 'zweb add switch',
     },
     sections: formSections,
@@ -198,7 +198,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
       react:
         "import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'",
       vue: "import { Tabs, TabsList, TabsTrigger, TabsContent } from '@zeus-web/tabs/vue'",
-      webComponent: "import '@zeus-web/tabs/wc'",
+      webComponent: "import '@zeus-web/tabs/wc/auto'",
       registry: 'zweb add tabs',
     },
     sections: [
@@ -241,7 +241,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
       react:
         "import { Dialog, DialogTrigger, DialogContent, DialogTitle } from '@/components/ui/dialog'",
       vue: "import { Dialog, DialogTrigger, DialogContent, DialogTitle } from '@zeus-web/dialog/vue'",
-      webComponent: "import '@zeus-web/dialog/wc'",
+      webComponent: "import '@zeus-web/dialog/wc/auto'",
       registry: 'zweb add dialog',
     },
     sections: [
@@ -282,7 +282,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
     imports: {
       react: "import { Label } from '@/components/ui/label'",
       vue: "import { Label } from '@zeus-web/label/vue'",
-      webComponent: "import '@zeus-web/label/wc'",
+      webComponent: "import '@zeus-web/label/wc/auto'",
       registry: 'zweb add label',
     },
     sections: baseSections,
@@ -308,7 +308,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
     imports: {
       react: "import { Textarea } from '@/components/ui/textarea'",
       vue: "import { Textarea } from '@zeus-web/textarea/vue'",
-      webComponent: "import '@zeus-web/textarea/wc'",
+      webComponent: "import '@zeus-web/textarea/wc/auto'",
       registry: 'zweb add textarea',
     },
     sections: formSections,
@@ -337,7 +337,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
       react:
         "import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'",
       vue: "import { RadioGroup, RadioGroupItem } from '@zeus-web/radio-group/vue'",
-      webComponent: "import '@zeus-web/radio-group/wc'",
+      webComponent: "import '@zeus-web/radio-group/wc/auto'",
       registry: 'zweb add radio-group',
     },
     sections: formSections,
@@ -364,12 +364,12 @@ export const showcaseComponents: ShowcaseComponent[] = [
     routePath: '/components/select',
     packageName: '@zeus-web/select',
     group: 'Forms',
-    description: 'Native select primitive styled with Zeus Web tokens.',
+    description: 'Accessible custom select with a combobox trigger and popup.',
     registryCommand: 'zweb add select',
     imports: {
       react: "import { Select } from '@/components/ui/select'",
       vue: "import { Select } from '@zeus-web/select/vue'",
-      webComponent: "import '@zeus-web/select/wc'",
+      webComponent: "import '@zeus-web/select/wc/auto'",
       registry: 'zweb add select',
     },
     sections: formSections,
@@ -398,7 +398,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
       react:
         "import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'",
       vue: "import { Card, CardHeader, CardTitle, CardContent } from '@zeus-web/card/vue'",
-      webComponent: "import '@zeus-web/card/wc'",
+      webComponent: "import '@zeus-web/card/wc/auto'",
       registry: 'zweb add card',
     },
     sections: baseSections,
@@ -419,7 +419,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
     imports: {
       react: "import { Badge } from '@/components/ui/badge'",
       vue: "import { Badge } from '@zeus-web/badge/vue'",
-      webComponent: "import '@zeus-web/badge/wc'",
+      webComponent: "import '@zeus-web/badge/wc/auto'",
       registry: 'zweb add badge',
     },
     sections: [
@@ -448,7 +448,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
     imports: {
       react: "import { Separator } from '@/components/ui/separator'",
       vue: "import { Separator } from '@zeus-web/separator/vue'",
-      webComponent: "import '@zeus-web/separator/wc'",
+      webComponent: "import '@zeus-web/separator/wc/auto'",
       registry: 'zweb add separator',
     },
     sections: baseSections,
@@ -473,7 +473,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
     imports: {
       react: "import { Skeleton } from '@/components/ui/skeleton'",
       vue: "import { Skeleton } from '@zeus-web/skeleton/vue'",
-      webComponent: "import '@zeus-web/skeleton/wc'",
+      webComponent: "import '@zeus-web/skeleton/wc/auto'",
       registry: 'zweb add skeleton',
     },
     sections: [
@@ -506,7 +506,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
       react:
         "import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'",
       vue: "import { Alert, AlertTitle, AlertDescription } from '@zeus-web/alert/vue'",
-      webComponent: "import '@zeus-web/alert/wc'",
+      webComponent: "import '@zeus-web/alert/wc/auto'",
       registry: 'zweb add alert',
     },
     sections: [
@@ -536,7 +536,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
       react:
         "import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'",
       vue: "import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@zeus-web/collapsible/vue'",
-      webComponent: "import '@zeus-web/collapsible/wc'",
+      webComponent: "import '@zeus-web/collapsible/wc/auto'",
       registry: 'zweb add collapsible',
     },
     sections: [
@@ -578,7 +578,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
       react:
         "import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'",
       vue: "import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@zeus-web/accordion/vue'",
-      webComponent: "import '@zeus-web/accordion/wc'",
+      webComponent: "import '@zeus-web/accordion/wc/auto'",
       registry: 'zweb add accordion',
     },
     sections: [
@@ -620,7 +620,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
       react:
         "import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'",
       vue: "import { Tooltip, TooltipTrigger, TooltipContent } from '@zeus-web/tooltip/vue'",
-      webComponent: "import '@zeus-web/tooltip/wc'",
+      webComponent: "import '@zeus-web/tooltip/wc/auto'",
       registry: 'zweb add tooltip',
     },
     sections: [
@@ -649,7 +649,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
     imports: {
       react: "import { Progress } from '@/components/ui/progress'",
       vue: "import { Progress } from '@zeus-web/progress/vue'",
-      webComponent: "import '@zeus-web/progress/wc'",
+      webComponent: "import '@zeus-web/progress/wc/auto'",
       registry: 'zweb add progress',
     },
     sections: [
@@ -682,7 +682,7 @@ export const showcaseComponents: ShowcaseComponent[] = [
       react:
         "import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'",
       vue: "import { Avatar, AvatarImage, AvatarFallback } from '@zeus-web/avatar/vue'",
-      webComponent: "import '@zeus-web/avatar/wc'",
+      webComponent: "import '@zeus-web/avatar/wc/auto'",
       registry: 'zweb add avatar',
     },
     sections: [

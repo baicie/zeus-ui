@@ -1,7 +1,25 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+import { useLocalizedMessages } from '../../../composables/use-docs-locale'
+
 const progress = ref(64)
+const messages = useLocalizedMessages({
+  en: {
+    deployment: 'Deployment',
+    progressLabel: (value: number) => `Deployment ${value}% complete`,
+    decrease: 'Decrease',
+    increase: 'Increase',
+    preparing: 'Preparing deployment',
+  },
+  zh: {
+    deployment: '部署进度',
+    progressLabel: (value: number) => `部署已完成 ${value}%`,
+    decrease: '减少',
+    increase: '增加',
+    preparing: '正在准备部署',
+  },
+})
 
 function decrease(): void {
   progress.value = Math.max(0, progress.value - 10)
@@ -15,27 +33,26 @@ function increase(): void {
 <template>
   <div class="primitive-demo" data-playground-demo="progress">
     <div class="progress-label">
-      <span>Deployment</span>
+      <span>{{ messages.deployment }}</span>
       <strong>{{ progress }}%</strong>
     </div>
     <zw-progress
       :value="progress"
       max="100"
-      :label="`Deployment ${progress}% complete`"
-      :style="`--demo-progress: ${progress}%`"
+      :label="messages.progressLabel(progress)"
     />
     <div class="demo-actions">
       <button type="button" :disabled="progress === 0" @click="decrease">
-        Decrease
+        {{ messages.decrease }}
       </button>
       <button type="button" :disabled="progress === 100" @click="increase">
-        Increase
+        {{ messages.increase }}
       </button>
     </div>
     <div class="progress-label">
-      <span>Preparing deployment</span>
+      <span>{{ messages.preparing }}</span>
     </div>
-    <zw-progress :indeterminate="true" label="Preparing deployment" />
+    <zw-progress :indeterminate="true" :label="messages.preparing" />
   </div>
 </template>
 
@@ -51,31 +68,6 @@ function increase(): void {
   justify-content: space-between;
   gap: 1rem;
   align-items: center;
-}
-
-zw-progress {
-  position: relative;
-  display: block;
-  height: 0.625rem;
-  overflow: hidden;
-  background: var(--vp-c-divider);
-  border-radius: 999px;
-}
-
-:deep(zw-progress > [data-slot='progress-indicator']) {
-  display: block;
-  width: var(--demo-progress, 0%);
-  height: 100%;
-  background: var(--vp-c-brand-1);
-  border-radius: inherit;
-  transition: width 160ms ease;
-}
-
-:deep(
-  zw-progress[data-state='indeterminate'] > [data-slot='progress-indicator']
-) {
-  width: 35%;
-  transform: translateX(90%);
 }
 
 .demo-actions {

@@ -25,7 +25,7 @@ import { Avatar } from '@zeus-web/avatar/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/avatar/wc'
+import '@zeus-web/avatar/wc/auto'
 ```
 
 ```html

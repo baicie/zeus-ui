@@ -25,7 +25,7 @@ import { Switch } from '@zeus-web/switch/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/switch/wc'
+import '@zeus-web/switch/wc/auto'
 ```
 
 ```html

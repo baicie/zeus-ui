@@ -55,15 +55,48 @@ describe('@zeus-web/ai metadata', () => {
   })
 
   it('uses per-component primitive packages', () => {
+    const registryComponents = new Set(['button', 'input'])
+
     for (const component of aiMetadata.components) {
       expect(component.primitivePackage).toBe(`@zeus-web/${component.name}`)
-      expect(component.registryCommand).toBe(`zweb add ${component.name}`)
+      if (registryComponents.has(component.name)) {
+        expect(component.registryCommand).toBe(`zweb add ${component.name}`)
+        expect(component.styledImport).toContain(
+          `@/components/ui/${component.name}`,
+        )
+        expect(component.sourceTarget).toBe(
+          `components/ui/${component.name}.tsx`,
+        )
+      } else {
+        expect(component.registryCommand).toBeUndefined()
+        expect(component.styledImport).toBeUndefined()
+        expect(component.sourceTarget).toBeUndefined()
+      }
       expect(component.reactImport).toContain(
         `@zeus-web/${component.name}/react`,
       )
-      expect(component.webComponentImport).toContain(
-        `@zeus-web/${component.name}/wc`,
+      expect(component.webComponentImport).toBe(
+        `import '@zeus-web/${component.name}/wc/auto'`,
       )
+    }
+  })
+
+  it('keeps package-only examples usable without registry imports', () => {
+    const registryComponents = new Set(['button', 'input'])
+
+    for (const component of aiMetadata.components) {
+      if (registryComponents.has(component.name)) continue
+
+      expect(component.examples.length).toBeGreaterThan(0)
+      expect(component.examples).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ title: 'React styled usage' }),
+        ]),
+      )
+
+      const code = component.examples.map(example => example.code).join('\n')
+      expect(code).toContain(`@zeus-web/${component.name}/react`)
+      expect(code).not.toContain('@/components/ui/')
     }
   })
 
@@ -78,6 +111,8 @@ describe('@zeus-web/ai metadata', () => {
     expect(markdown).toContain('## button')
     expect(markdown).toContain('zweb add button')
     expect(markdown).toContain('@/components/ui/button')
+    expect(markdown).not.toContain('zweb add select')
+    expect(markdown).not.toContain('@/components/ui/select')
   })
 
   it('renders json guide', () => {
@@ -88,6 +123,14 @@ describe('@zeus-web/ai metadata', () => {
     expect(parsed.components).toHaveLength(20)
     expect(parsed.icons.packageName).toBe('@zeus-web/icons')
     expect(parsed.icons.recommendedIcons).toContain('check')
+
+    const select = parsed.components.find(
+      (component: { name: string }) => component.name === 'select',
+    )
+
+    expect(select).not.toHaveProperty('registryCommand')
+    expect(select).not.toHaveProperty('styledImport')
+    expect(select).not.toHaveProperty('sourceTarget')
   })
 
   it('includes chat advanced component metadata', () => {

@@ -89,7 +89,7 @@ import { Label } from '@zeus-web/label/react'
 Web Component entry:
 
 ```ts
-import '@zeus-web/label/wc'
+import '@zeus-web/label/wc/auto'
 ```
 
 ## Props
@@ -129,7 +129,7 @@ Internal selectors:
 
 Registry source: not available yet.
 
-The `label` primitive is available through `@zeus-web/label`, but it is not currently installable through `zweb add label`.
+The `label` primitive is available through `@zeus-web/label`, but it is not currently installable through the CLI registry.
 
 Use the primitive package directly until a registry template is added.
 
@@ -149,7 +149,7 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Label } from '@/components/ui/label'
+import { Label } from '@zeus-web/label/react'
 
 export function Example() {
   return <Label for="email">Email</Label>

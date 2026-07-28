@@ -16,6 +16,9 @@ import {
   shallowRef,
 } from 'vue'
 
+import { useLocalizedMessages } from '../composables/use-docs-locale'
+import { dataGridPlaygroundMessages } from '../data/playground-i18n'
+
 type DatasetPresetKey = '10k-20' | '100k-100' | '100k-1000'
 type PlaygroundSelectionMode = 'none' | 'single' | 'multiple'
 
@@ -86,7 +89,7 @@ const gridEventNames = [
 ]
 
 let cachedRows: PlaygroundRow[] = []
-const cachedColumns = new Map<number, PlaygroundColumn[]>()
+const cachedColumns = new Map<string, PlaygroundColumn[]>()
 
 const gridRef = shallowRef<DataGridElement | null>(null)
 const selectedPresetKey = ref<DatasetPresetKey>('10k-20')
@@ -104,7 +107,8 @@ const loadDuration = ref(0)
 const renderedCells = ref(0)
 const visibleRows = ref<IndexRange>({ start: 0, end: -1 })
 const visibleColumns = ref<IndexRange>({ start: 0, end: -1 })
-const statusMessage = ref('Loading component')
+const messages = useLocalizedMessages(dataGridPlaygroundMessages)
+const statusMessage = ref(messages.value.loadingComponent)
 
 let metricsFrame: number | undefined
 let settingsFrame: number | undefined
@@ -129,16 +133,17 @@ const windowLabel = computed(() => {
   const columnRange = visibleColumns.value
 
   if (rowRange.end < rowRange.start || columnRange.end < columnRange.start) {
-    return 'Measuring viewport'
+    return messages.value.measuringViewport
   }
 
-  return `Rows ${formatNumber(rowRange.start + 1)}-${formatNumber(
-    rowRange.end + 1,
-  )} of ${formatNumber(appliedPreset.value.rowCount)} | Columns ${formatNumber(
-    columnRange.start + 1,
-  )}-${formatNumber(columnRange.end + 1)} of ${formatNumber(
-    appliedPreset.value.columnCount,
-  )}`
+  return messages.value.windowRange(
+    formatNumber(rowRange.start + 1),
+    formatNumber(rowRange.end + 1),
+    formatNumber(appliedPreset.value.rowCount),
+    formatNumber(columnRange.start + 1),
+    formatNumber(columnRange.end + 1),
+    formatNumber(appliedPreset.value.columnCount),
+  )
 })
 
 function getPreset(key: DatasetPresetKey): DatasetPreset {
@@ -148,7 +153,7 @@ function getPreset(key: DatasetPresetKey): DatasetPreset {
 }
 
 function formatNumber(value: number): string {
-  return value.toLocaleString('en-US')
+  return value.toLocaleString(messages.value.numberLocale)
 }
 
 function readTime(): number {
@@ -187,14 +192,15 @@ function createRows(rowCount: number): PlaygroundRow[] {
 }
 
 function createColumns(columnCount: number): PlaygroundColumn[] {
-  const existingColumns = cachedColumns.get(columnCount)
+  const cacheKey = `${messages.value.numberLocale}:${columnCount}`
+  const existingColumns = cachedColumns.get(cacheKey)
   if (existingColumns) return existingColumns
 
   const columns = Array.from({ length: columnCount }, (_, columnIndex) => {
     if (columnIndex === 0) {
       return {
         id: 'record',
-        header: 'Record',
+        header: messages.value.recordHeader,
         field: 'record',
         width: 120,
         minWidth: 88,
@@ -206,7 +212,7 @@ function createColumns(columnCount: number): PlaygroundColumn[] {
 
     return {
       id: `column-${columnIndex + 1}`,
-      header: `Metric ${columnIndex + 1}`,
+      header: messages.value.metricHeader(columnIndex + 1),
       field: `metric_${(columnIndex - 1) % DATA_FIELD_COUNT}`,
       width: 140,
       minWidth: 88,
@@ -216,7 +222,7 @@ function createColumns(columnCount: number): PlaygroundColumn[] {
     }
   })
 
-  cachedColumns.set(columnCount, columns)
+  cachedColumns.set(cacheKey, columns)
   return columns
 }
 
@@ -365,7 +371,7 @@ function applySelectedDataset(): Promise<void> {
   const preset = selectedPreset.value
   loading.value = true
   errorMessage.value = ''
-  statusMessage.value = 'Preparing dataset'
+  statusMessage.value = messages.value.preparingDataset
 
   return nextAnimationFrame()
     .then(() => {
@@ -385,7 +391,7 @@ function applySelectedDataset(): Promise<void> {
       grid.selectedKeys = ['row-2']
       grid.activeRowKey = 'row-1'
       grid.activeColumnId = 'record'
-      grid.setAttribute('aria-label', 'High performance data grid playground')
+      grid.setAttribute('aria-label', messages.value.gridAriaLabel)
 
       appliedPresetKey.value = preset.key
       loadDuration.value = readTime() - startTime
@@ -395,13 +401,13 @@ function applySelectedDataset(): Promise<void> {
     .then(() => {
       ready.value = true
       loading.value = false
-      statusMessage.value = `${preset.label} ready`
+      statusMessage.value = messages.value.datasetReady(preset.label)
       scheduleMetrics()
     })
     .catch(error => {
       loading.value = false
       errorMessage.value = toErrorMessage(error)
-      statusMessage.value = 'Dataset failed to load'
+      statusMessage.value = messages.value.datasetFailed
     })
 }
 
@@ -431,7 +437,7 @@ function jumpToPosition(position: 'first' | 'middle' | 'last'): void {
     .then(() => grid.scrollToIndex(rowIndex, align))
     .then(() => nextAnimationFrame())
     .then(() => {
-      statusMessage.value = `${position} viewport`
+      statusMessage.value = messages.value.viewportPosition[position]
       readMetrics()
     })
     .catch(error => {
@@ -446,7 +452,7 @@ function resetColumnWidths(): void {
   Promise.resolve(grid.resetColumnWidths())
     .then(() => nextAnimationFrame())
     .then(() => {
-      statusMessage.value = 'Column widths reset'
+      statusMessage.value = messages.value.columnWidthsReset
       scheduleMetrics()
     })
     .catch(error => {
@@ -464,17 +470,19 @@ function handleGridEvent(event: Event): void {
   const detail = readEventDetail(event)
 
   if (event.type === 'selection-change' && detail && detail.selection) {
-    statusMessage.value = 'Selection updated'
+    statusMessage.value = messages.value.selectionUpdated
   } else if (event.type === 'sort-change' && detail) {
-    statusMessage.value = detail.sort ? 'Sort updated' : 'Sort cleared'
+    statusMessage.value = detail.sort
+      ? messages.value.sortUpdated
+      : messages.value.sortCleared
   } else if (event.type === 'column-resize-end') {
-    statusMessage.value = 'Column width updated'
+    statusMessage.value = messages.value.columnWidthUpdated
   } else if (event.type === 'active-cell-change' && detail) {
     statusMessage.value = detail.activeCell
-      ? 'Active cell updated'
-      : 'Active cell cleared'
+      ? messages.value.activeCellUpdated
+      : messages.value.activeCellCleared
   } else if (event.type === 'scroll-offset-change') {
-    statusMessage.value = 'Viewport moved'
+    statusMessage.value = messages.value.viewportMoved
   }
 
   scheduleMetrics()
@@ -497,7 +505,7 @@ onMounted(() => {
     .then(() => nextTick())
     .then(() => {
       const grid = gridRef.value
-      if (!grid) throw new Error('Data Grid element is unavailable.')
+      if (!grid) throw new Error(messages.value.componentUnavailable)
 
       bindGridEvents(grid)
       return grid.componentOnReady()
@@ -506,7 +514,7 @@ onMounted(() => {
     .catch(error => {
       loading.value = false
       errorMessage.value = toErrorMessage(error)
-      statusMessage.value = 'Component failed to load'
+      statusMessage.value = messages.value.componentFailed
     })
 })
 
@@ -526,38 +534,45 @@ onBeforeUnmount(() => {
 
 <template>
   <section class="data-grid-playground" :style="gridStyle">
-    <div class="data-grid-playground__metrics" aria-label="Dataset metrics">
+    <div
+      class="data-grid-playground__metrics"
+      :aria-label="messages.datasetMetricsLabel"
+    >
       <div>
-        <span>Rows</span>
+        <span>{{ messages.rows }}</span>
         <strong>{{ formatNumber(appliedPreset.rowCount) }}</strong>
       </div>
       <div>
-        <span>Columns</span>
+        <span>{{ messages.columns }}</span>
         <strong>{{ formatNumber(appliedPreset.columnCount) }}</strong>
       </div>
       <div>
-        <span>DOM cells</span>
+        <span>{{ messages.domCells }}</span>
         <strong>{{ formatNumber(renderedCells) }}</strong>
       </div>
       <div>
-        <span>Data prep</span>
+        <span>{{ messages.dataPreparation }}</span>
         <strong>{{ loadDuration.toFixed(1) }} ms</strong>
       </div>
     </div>
 
-    <div class="data-grid-playground__controls" aria-label="Grid controls">
+    <div
+      class="data-grid-playground__controls"
+      :aria-label="messages.controlsLabel"
+    >
       <fieldset
         class="data-grid-playground__control data-grid-playground__control--dataset"
       >
-        <legend>Dataset</legend>
+        <legend>{{ messages.dataset }}</legend>
         <div class="data-grid-playground__segments">
           <button
             v-for="preset in presets"
             :key="preset.key"
             type="button"
+            :data-testid="`data-grid-dataset-${preset.key}`"
             :aria-pressed="selectedPresetKey === preset.key"
             :data-active="selectedPresetKey === preset.key ? '' : undefined"
-            :aria-label="`Select ${preset.label}`"
+            :aria-label="messages.selectDataset(preset.label)"
             @click="choosePreset(preset.key)"
           >
             {{ preset.label }}
@@ -567,15 +582,16 @@ onBeforeUnmount(() => {
 
       <button
         type="button"
+        data-testid="data-grid-apply"
         class="data-grid-playground__apply"
         :disabled="loading || selectedPresetKey === appliedPresetKey"
         @click="applySelectedDataset"
       >
-        Apply data
+        {{ messages.applyData }}
       </button>
 
       <fieldset class="data-grid-playground__control">
-        <legend>Row height</legend>
+        <legend>{{ messages.rowHeight }}</legend>
         <div class="data-grid-playground__segments">
           <button
             v-for="height in rowHeightOptions"
@@ -594,7 +610,7 @@ onBeforeUnmount(() => {
         class="data-grid-playground__control data-grid-playground__control--slider"
       >
         <span
-          >Row overscan <output>{{ rowOverscan }}</output></span
+          >{{ messages.rowOverscan }} <output>{{ rowOverscan }}</output></span
         >
         <input
           v-model.number="rowOverscan"
@@ -610,7 +626,8 @@ onBeforeUnmount(() => {
         class="data-grid-playground__control data-grid-playground__control--slider"
       >
         <span
-          >Column overscan <output>{{ columnOverscan }}</output></span
+          >{{ messages.columnOverscan }}
+          <output>{{ columnOverscan }}</output></span
         >
         <input
           v-model.number="columnOverscan"
@@ -625,11 +642,11 @@ onBeforeUnmount(() => {
       <label
         class="data-grid-playground__control data-grid-playground__control--select"
       >
-        <span>Selection</span>
+        <span>{{ messages.selection }}</span>
         <select v-model="selectionMode" @change="applyRuntimeSettings">
-          <option value="none">None</option>
-          <option value="single">Single</option>
-          <option value="multiple">Multiple</option>
+          <option value="none">{{ messages.selectionNone }}</option>
+          <option value="single">{{ messages.selectionSingle }}</option>
+          <option value="multiple">{{ messages.selectionMultiple }}</option>
         </select>
       </label>
 
@@ -640,7 +657,7 @@ onBeforeUnmount(() => {
           @change="applyRuntimeSettings"
         />
         <span aria-hidden="true" />
-        Resizable
+        {{ messages.resizable }}
       </label>
 
       <label class="data-grid-playground__toggle">
@@ -650,26 +667,29 @@ onBeforeUnmount(() => {
           @change="applyRuntimeSettings"
         />
         <span aria-hidden="true" />
-        Keyboard
+        {{ messages.keyboard }}
       </label>
     </div>
 
-    <div class="data-grid-playground__commands" aria-label="Viewport commands">
+    <div
+      class="data-grid-playground__commands"
+      :aria-label="messages.viewportCommandsLabel"
+    >
       <div class="data-grid-playground__jump-group">
         <button
           type="button"
-          title="Jump to first row and column"
-          aria-label="Jump to first row and column"
+          :title="messages.jumpFirst"
+          :aria-label="messages.jumpFirst"
           :disabled="loading || !ready"
           @click="jumpToPosition('first')"
         >
           <ChevronUpIcon :size="16" aria-hidden="true" />
-          First
+          {{ messages.first }}
         </button>
         <button
           type="button"
-          title="Jump to middle row and column"
-          aria-label="Jump to middle row and column"
+          :title="messages.jumpMiddle"
+          :aria-label="messages.jumpMiddle"
           :disabled="loading || !ready"
           @click="jumpToPosition('middle')"
         >
@@ -677,23 +697,26 @@ onBeforeUnmount(() => {
             <ChevronRightIcon :size="14" />
             <ChevronDownIcon :size="14" />
           </span>
-          Middle
+          {{ messages.middle }}
         </button>
         <button
           type="button"
-          title="Jump to last row and column"
-          aria-label="Jump to last row and column"
+          data-testid="data-grid-jump-last"
+          :title="messages.jumpLast"
+          :aria-label="messages.jumpLast"
           :disabled="loading || !ready"
           @click="jumpToPosition('last')"
         >
           <ChevronDownIcon :size="16" aria-hidden="true" />
-          Last
+          {{ messages.last }}
         </button>
       </div>
 
       <button
         type="button"
-        title="Reset column widths"
+        data-testid="data-grid-reset-widths"
+        :title="messages.resetColumnWidths"
+        :aria-label="messages.resetColumnWidths"
         class="data-grid-playground__reset-widths"
         :disabled="loading || !ready"
         @click="resetColumnWidths"
@@ -702,7 +725,7 @@ onBeforeUnmount(() => {
           <ChevronLeftIcon :size="14" />
           <ChevronRightIcon :size="14" />
         </span>
-        Reset widths
+        {{ messages.resetWidths }}
       </button>
     </div>
 
@@ -712,7 +735,7 @@ onBeforeUnmount(() => {
 
     <div class="data-grid-playground__grid-frame" :aria-busy="loading">
       <div v-if="loading" class="data-grid-playground__loading" role="status">
-        Preparing {{ selectedPreset.label }}
+        {{ messages.preparing(selectedPreset.label) }}
       </div>
       <zw-data-grid
         ref="gridRef"
@@ -725,11 +748,11 @@ onBeforeUnmount(() => {
 
     <footer class="data-grid-playground__status">
       <p data-testid="data-grid-playground-window">
-        <span>Window</span>
+        <span>{{ messages.window }}</span>
         {{ windowLabel }}
       </p>
       <p>
-        <span>Event</span>
+        <span>{{ messages.event }}</span>
         {{ statusMessage }}
       </p>
     </footer>

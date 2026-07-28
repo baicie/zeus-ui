@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 
+import { useLocalizedMessages } from '../../../composables/use-docs-locale'
+
 type AgentStatus = 'idle' | 'running' | 'waiting' | 'complete' | 'error'
 type MessageStatus = 'pending' | 'streaming' | 'complete' | 'error'
 type ToolStatus = 'pending' | 'running' | 'complete' | 'error' | 'cancelled'
@@ -129,13 +131,122 @@ interface ArtifactSelectDetail {
   state?: unknown
 }
 
+const ui = useLocalizedMessages({
+  en: {
+    initialized: 'Local agent console initialized.',
+    instructions: 'Use the controls to exercise state transitions.',
+    summary: 'Workspace summary',
+    localDiagnostic: 'No provider configured; running local UI behavior only.',
+    waiting: 'Waiting for the Agent Console custom element.',
+    readFailed: 'The console state could not be read.',
+    consoleLabel: 'Local agent console',
+    ready: 'Agent Console ready. All actions stay local.',
+    actionFailed: 'The requested console action failed.',
+    appendedContent: 'A local message was appended through the exposed method.',
+    appended: 'Message appended.',
+    toolComplete: 'Tool call completed.',
+    toolFailed: 'Tool call failed.',
+    runNote: (index: number) => `Run note ${index}`,
+    artifactContent: 'Created from the standalone Agent Console playground.',
+    artifactAdded: 'Artifact added and selected.',
+    syntheticDiagnostic: 'Synthetic playground diagnostic.',
+    diagnosticAdded: 'Diagnostic added.',
+    statusChanged: (status: string) => `Status changed to ${status}.`,
+    artifactSelected: (id: string) => `Selected artifact “${id}”.`,
+    reset: 'Console state reset.',
+    agentEvent: (type: string) => `Agent event: ${type}`,
+    statusEvent: (status: string) => `Status event: ${status}`,
+    artifactEvent: (title: string) => `Artifact event: ${title}`,
+    resetEvent: 'Reset event received.',
+    message: 'Message',
+    runTool: 'Run tool',
+    artifact: 'Artifact',
+    diagnostic: 'Diagnostic',
+    status: 'Status',
+    resetButton: 'Reset',
+    noMessages: 'No messages after reset.',
+    toolCalls: 'Tool calls',
+    noToolCalls: 'No tool calls.',
+    artifacts: 'Artifacts',
+    noArtifacts: 'No artifacts.',
+    diagnostics: 'Diagnostics',
+    noDiagnostics: 'No diagnostics.',
+    noArtifactSelected: 'No artifact selected.',
+    system: 'System',
+    user: 'User',
+    assistant: 'Assistant',
+    tool: 'Tool',
+    idle: 'Idle',
+    running: 'Running',
+    waitingStatus: 'Waiting',
+    complete: 'Complete',
+    error: 'Error',
+    pending: 'Pending',
+    streaming: 'Streaming',
+    cancelled: 'Cancelled',
+  },
+  zh: {
+    initialized: '本地智能体控制台已初始化。',
+    instructions: '使用上方控件体验状态变化。',
+    summary: '工作区摘要',
+    localDiagnostic: '未配置服务；当前只运行本地 UI 行为。',
+    waiting: '正在等待 Agent Console 自定义元素。',
+    readFailed: '无法读取控制台状态。',
+    consoleLabel: '本地智能体控制台',
+    ready: 'Agent Console 已就绪，所有操作均在本地完成。',
+    actionFailed: '请求的控制台操作失败。',
+    appendedContent: '已通过公开方法追加一条本地消息。',
+    appended: '消息已追加。',
+    toolComplete: '工具调用已完成。',
+    toolFailed: '工具调用失败。',
+    runNote: (index: number) => `运行记录 ${index}`,
+    artifactContent: '由独立 Agent Console 交互演示创建。',
+    artifactAdded: '产物已添加并选中。',
+    syntheticDiagnostic: '模拟的交互演示诊断。',
+    diagnosticAdded: '诊断已添加。',
+    statusChanged: (status: string) => `状态已切换为 ${status}。`,
+    artifactSelected: (id: string) => `已选择产物“${id}”。`,
+    reset: '控制台状态已重置。',
+    agentEvent: (type: string) => `智能体事件：${type}`,
+    statusEvent: (status: string) => `状态事件：${status}`,
+    artifactEvent: (title: string) => `产物事件：${title}`,
+    resetEvent: '已收到重置事件。',
+    message: '消息',
+    runTool: '运行工具',
+    artifact: '产物',
+    diagnostic: '诊断',
+    status: '状态',
+    resetButton: '重置',
+    noMessages: '重置后暂无消息。',
+    toolCalls: '工具调用',
+    noToolCalls: '暂无工具调用。',
+    artifacts: '产物',
+    noArtifacts: '暂无产物。',
+    diagnostics: '诊断',
+    noDiagnostics: '暂无诊断。',
+    noArtifactSelected: '尚未选择产物。',
+    system: '系统',
+    user: '用户',
+    assistant: '助手',
+    tool: '工具',
+    idle: '空闲',
+    running: '运行中',
+    waitingStatus: '等待中',
+    complete: '已完成',
+    error: '错误',
+    pending: '待处理',
+    streaming: '输出中',
+    cancelled: '已取消',
+  },
+})
+
 const INITIAL_TIME = 1750000000000
 
 const initialMessages: AgentMessage[] = [
   {
     id: 'system',
     role: 'system',
-    content: 'Local agent console initialized.',
+    content: ui.value.initialized,
     status: 'complete',
     createdAt: INITIAL_TIME,
     updatedAt: INITIAL_TIME,
@@ -143,7 +254,7 @@ const initialMessages: AgentMessage[] = [
   {
     id: 'assistant',
     role: 'assistant',
-    content: 'Use the controls to exercise state transitions.',
+    content: ui.value.instructions,
     status: 'complete',
     createdAt: INITIAL_TIME + 1,
     updatedAt: INITIAL_TIME + 1,
@@ -166,7 +277,7 @@ const initialArtifacts: AgentArtifact[] = [
   {
     id: 'summary',
     kind: 'json',
-    title: 'Workspace summary',
+    title: ui.value.summary,
     content: {
       packages: 25,
       frameworks: ['web-component', 'react', 'vue'],
@@ -180,7 +291,7 @@ const initialDiagnostics: AgentDiagnostic[] = [
   {
     id: 'local-mode',
     level: 'info',
-    message: 'No provider configured; running local UI behavior only.',
+    message: ui.value.localDiagnostic,
     source: 'playground',
     createdAt: INITIAL_TIME + 4,
   },
@@ -188,7 +299,7 @@ const initialDiagnostics: AgentDiagnostic[] = [
 
 const consoleElement = ref<AgentConsoleElement | null>(null)
 const snapshot = ref<AgentSnapshot>(createInitialSnapshot())
-const note = ref('Waiting for the Agent Console custom element.')
+const note = ref(ui.value.waiting)
 const isReady = ref(false)
 
 let activeElement: AgentConsoleElement | null = null
@@ -201,6 +312,22 @@ const selectedArtifact = computed(() => {
 
   return snapshot.value.artifacts.find(artifact => artifact.id === selectedId)
 })
+
+function localizedState(value: string): string {
+  if (value === 'system') return ui.value.system
+  if (value === 'user') return ui.value.user
+  if (value === 'assistant') return ui.value.assistant
+  if (value === 'tool') return ui.value.tool
+  if (value === 'idle') return ui.value.idle
+  if (value === 'running') return ui.value.running
+  if (value === 'waiting') return ui.value.waitingStatus
+  if (value === 'complete') return ui.value.complete
+  if (value === 'error') return ui.value.error
+  if (value === 'pending') return ui.value.pending
+  if (value === 'streaming') return ui.value.streaming
+  if (value === 'cancelled') return ui.value.cancelled
+  return value
+}
 
 function createInitialSnapshot(): AgentSnapshot {
   return {
@@ -311,7 +438,7 @@ function syncFromElement(): void {
       if (activeElement === element) commitSnapshot(value)
     },
     () => {
-      note.value = 'The console state could not be read.'
+      note.value = ui.value.readFailed
     },
   )
 }
@@ -334,10 +461,10 @@ function configureConsole(element: AgentConsoleElement): void {
   element.diagnostics = initial.diagnostics.slice()
   element.status = initial.status
   element.selectedArtifactId = initial.selectedArtifactId
-  element.setAttribute('aria-label', 'Local agent console')
+  element.setAttribute('aria-label', ui.value.consoleLabel)
 
   isReady.value = true
-  note.value = 'Agent Console ready. All actions stay local.'
+  note.value = ui.value.ready
   scheduleSync()
 }
 
@@ -351,7 +478,7 @@ function finishAction(
       syncFromElement()
     },
     () => {
-      note.value = 'The requested console action failed.'
+      note.value = ui.value.actionFailed
       syncFromElement()
     },
   )
@@ -365,10 +492,10 @@ function appendMessage(): void {
   finishAction(
     element.appendMessage({
       role: 'assistant',
-      content: 'A local message was appended through the exposed method.',
+      content: ui.value.appendedContent,
       status: 'complete',
     }),
-    'Message appended.',
+    ui.value.appended,
   )
 }
 
@@ -399,11 +526,11 @@ function runTool(): void {
     )
     .then(
       () => {
-        note.value = 'Tool call completed.'
+        note.value = ui.value.toolComplete
         syncFromElement()
       },
       () => {
-        note.value = 'Tool call failed.'
+        note.value = ui.value.toolFailed
         syncFromElement()
       },
     )
@@ -417,10 +544,10 @@ function addArtifact(): void {
   finishAction(
     element.addArtifact({
       kind: 'text',
-      title: `Run note ${snapshot.value.artifacts.length + 1}`,
-      content: 'Created from the standalone Agent Console playground.',
+      title: ui.value.runNote(snapshot.value.artifacts.length + 1),
+      content: ui.value.artifactContent,
     }),
-    'Artifact added and selected.',
+    ui.value.artifactAdded,
   )
 }
 
@@ -432,10 +559,10 @@ function addDiagnostic(): void {
   finishAction(
     element.addDiagnostic({
       level: 'warning',
-      message: 'Synthetic playground diagnostic.',
+      message: ui.value.syntheticDiagnostic,
       source: 'playground',
     }),
-    'Diagnostic added.',
+    ui.value.diagnosticAdded,
   )
 }
 
@@ -450,7 +577,7 @@ function cycleStatus(): void {
 
   finishAction(
     element.setStatus(nextStatus),
-    `Status changed to ${nextStatus}.`,
+    ui.value.statusChanged(localizedState(nextStatus)),
   )
 }
 
@@ -461,7 +588,7 @@ function selectArtifact(artifactId: string): void {
 
   finishAction(
     element.selectArtifact(artifactId),
-    `Selected artifact “${artifactId}”.`,
+    ui.value.artifactSelected(artifactId),
   )
 }
 
@@ -470,7 +597,7 @@ function resetConsole(): void {
 
   if (!element || typeof element.reset !== 'function') return
 
-  finishAction(element.reset(), 'Console state reset.')
+  finishAction(element.reset(), ui.value.reset)
 }
 
 function handleAgentEvent(event: Event): void {
@@ -484,7 +611,7 @@ function handleAgentEvent(event: Event): void {
       ? detail.event.type
       : 'state-change'
 
-  note.value = `Agent event: ${eventType}`
+  note.value = ui.value.agentEvent(eventType)
 }
 
 function handleStatusChange(event: Event): void {
@@ -494,7 +621,7 @@ function handleStatusChange(event: Event): void {
   if (detail && detail.state) commitSnapshot(detail.state)
 
   if (detail && typeof detail.status === 'string') {
-    note.value = `Status event: ${detail.status}`
+    note.value = ui.value.statusEvent(localizedState(detail.status))
   }
 }
 
@@ -505,12 +632,12 @@ function handleArtifactSelect(event: Event): void {
   if (detail && detail.state) commitSnapshot(detail.state)
 
   if (detail && isArtifact(detail.artifact)) {
-    note.value = `Artifact event: ${detail.artifact.title}`
+    note.value = ui.value.artifactEvent(detail.artifact.title)
   }
 }
 
 function handleReset(): void {
-  note.value = 'Reset event received.'
+  note.value = ui.value.resetEvent
   syncFromElement()
 }
 
@@ -564,22 +691,22 @@ onUnmounted(() => {
   <div class="advanced-demo" data-playground-demo="agent-console">
     <div class="demo-toolbar">
       <button type="button" :disabled="!isReady" @click="appendMessage">
-        Message
+        {{ ui.message }}
       </button>
       <button type="button" :disabled="!isReady" @click="runTool">
-        Run tool
+        {{ ui.runTool }}
       </button>
       <button type="button" :disabled="!isReady" @click="addArtifact">
-        Artifact
+        {{ ui.artifact }}
       </button>
       <button type="button" :disabled="!isReady" @click="addDiagnostic">
-        Diagnostic
+        {{ ui.diagnostic }}
       </button>
       <button type="button" :disabled="!isReady" @click="cycleStatus">
-        Status
+        {{ ui.status }}
       </button>
       <button type="button" :disabled="!isReady" @click="resetConsole">
-        Reset
+        {{ ui.resetButton }}
       </button>
       <span aria-live="polite">{{ note }}</span>
     </div>
@@ -592,31 +719,31 @@ onUnmounted(() => {
           class="agent-message"
           :data-role="message.role"
         >
-          <strong>{{ message.role }}</strong>
+          <strong>{{ localizedState(message.role) }}</strong>
           <span>{{ message.content }}</span>
         </article>
         <p v-if="snapshot.messages.length === 0" class="empty-state">
-          No messages after reset.
+          {{ ui.noMessages }}
         </p>
       </div>
 
       <section v-bind="{ slot: 'tools' }" class="agent-panel">
-        <h3>Tool calls</h3>
+        <h3>{{ ui.toolCalls }}</h3>
         <div
           v-for="tool in snapshot.toolCalls"
           :key="tool.id"
           class="agent-tool"
         >
           <code>{{ tool.name }}</code>
-          <span>{{ tool.status }}</span>
+          <span>{{ localizedState(tool.status) }}</span>
         </div>
         <p v-if="snapshot.toolCalls.length === 0" class="empty-state">
-          No tool calls.
+          {{ ui.noToolCalls }}
         </p>
       </section>
 
       <section v-bind="{ slot: 'artifacts' }" class="agent-panel">
-        <h3>Artifacts</h3>
+        <h3>{{ ui.artifacts }}</h3>
         <button
           v-for="artifact in snapshot.artifacts"
           :key="artifact.id"
@@ -628,12 +755,12 @@ onUnmounted(() => {
           {{ artifact.title }}
         </button>
         <p v-if="snapshot.artifacts.length === 0" class="empty-state">
-          No artifacts.
+          {{ ui.noArtifacts }}
         </p>
       </section>
 
       <section v-bind="{ slot: 'diagnostics' }" class="agent-panel">
-        <h3>Diagnostics</h3>
+        <h3>{{ ui.diagnostics }}</h3>
         <p
           v-for="diagnostic in snapshot.diagnostics"
           :key="diagnostic.id"
@@ -644,7 +771,7 @@ onUnmounted(() => {
           {{ diagnostic.message }}
         </p>
         <p v-if="snapshot.diagnostics.length === 0" class="empty-state">
-          No diagnostics.
+          {{ ui.noDiagnostics }}
         </p>
       </section>
     </zw-agent-console>
@@ -654,7 +781,7 @@ onUnmounted(() => {
         <strong>{{ selectedArtifact.title }}</strong>
         <pre><code>{{ artifactContent(selectedArtifact) }}</code></pre>
       </template>
-      <p v-else>No artifact selected.</p>
+      <p v-else>{{ ui.noArtifactSelected }}</p>
     </section>
   </div>
 </template>

@@ -5,15 +5,21 @@ import type {
 } from '../../data/component-catalog'
 
 import { withBase } from 'vitepress'
+import { computed } from 'vue'
 
 import {
-  componentCatalog,
-  componentCategories,
+  getComponentCatalog,
+  getComponentCategories,
 } from '../../data/component-catalog'
 import { playgroundSources } from '../../data/playground-sources'
+import { useDocsLocale } from '../composables/use-docs-locale'
+
+const { locale } = useDocsLocale()
+const components = computed(() => getComponentCatalog(locale.value))
+const categories = computed(() => getComponentCategories(locale.value))
 
 function componentsInCategory(category: ComponentCategory) {
-  return componentCatalog.filter(component => component.category === category)
+  return components.value.filter(component => component.category === category)
 }
 
 function frameworkLabels(name: ComponentName) {
@@ -31,7 +37,7 @@ function frameworkLabels(name: ComponentName) {
 <template>
   <div class="component-directory">
     <section
-      v-for="category in componentCategories"
+      v-for="category in categories"
       :key="category.id"
       class="component-directory__section"
       :data-component-category="category.id"

@@ -124,7 +124,7 @@ import {
 Web Component entry:
 
 ```ts
-import '@zeus-web/card/wc'
+import '@zeus-web/card/wc/auto'
 ```
 
 ## Props
@@ -162,7 +162,7 @@ Internal selectors:
 
 Registry source: not available yet.
 
-The `card` primitive is available through `@zeus-web/card`, but it is not currently installable through `zweb add card`.
+The `card` primitive is available through `@zeus-web/card`, but it is not currently installable through the CLI registry.
 
 Use the primitive package directly until a registry template is added.
 
@@ -191,7 +191,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card'
+} from '@zeus-web/card/react'
 
 export function Example() {
   return (

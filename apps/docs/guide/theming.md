@@ -62,8 +62,8 @@ You can also import styles only:
 
 ```ts
 import '@zeus-web/ui/styles.css'
-import '@zeus-web/button/wc'
-import '@zeus-web/input/wc'
+import '@zeus-web/button/wc/auto'
+import '@zeus-web/input/wc/auto'
 ```
 
 ## Available theme names

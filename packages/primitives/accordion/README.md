@@ -25,7 +25,7 @@ import { Accordion } from '@zeus-web/accordion/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/accordion/wc'
+import '@zeus-web/accordion/wc/auto'
 ```
 
 ```html

@@ -33,17 +33,13 @@ Choose the framework entry that matches your application.
 </script>
 
 <zw-dialog>
-  <zw-dialog-trigger>
-    <button type="button">Open dialog</button>
-  </zw-dialog-trigger>
+  <zw-dialog-trigger>Open dialog</zw-dialog-trigger>
   <zw-dialog-content>
     <zw-dialog-title>Publish project?</zw-dialog-title>
     <zw-dialog-description>
       The project will become visible to everyone.
     </zw-dialog-description>
-    <zw-dialog-close>
-      <button type="button">Cancel</button>
-    </zw-dialog-close>
+    <zw-dialog-close>Cancel</zw-dialog-close>
   </zw-dialog-content>
 </zw-dialog>
 ```
@@ -134,7 +130,7 @@ import {
 Web Component entry:
 
 ```ts
-import '@zeus-web/dialog/wc'
+import '@zeus-web/dialog/wc/auto'
 ```
 
 ## Props
@@ -177,7 +173,7 @@ Internal selectors:
 
 Registry source: not available yet.
 
-The `dialog` primitive is available through `@zeus-web/dialog`, but it is not currently installable through `zweb add dialog`.
+The `dialog` primitive is available through `@zeus-web/dialog`, but it is not currently installable through the CLI registry.
 
 Use the primitive package directly until a registry template is added.
 
@@ -206,8 +202,8 @@ import {
   DialogContent,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
+} from '@zeus-web/dialog/react'
+import { Button } from '@zeus-web/button/react'
 
 export function Example() {
   return (

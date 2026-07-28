@@ -25,7 +25,7 @@ import { Tooltip } from '@zeus-web/tooltip/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/tooltip/wc'
+import '@zeus-web/tooltip/wc/auto'
 ```
 
 ```html

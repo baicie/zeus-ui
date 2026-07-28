@@ -80,7 +80,7 @@ import { Switch } from '@zeus-web/switch/react'
 Web Component entry:
 
 ```ts
-import '@zeus-web/switch/wc'
+import '@zeus-web/switch/wc/auto'
 ```
 
 ## Props
@@ -124,7 +124,7 @@ Internal selectors:
 
 Registry source: not available yet.
 
-The `switch` primitive is available through `@zeus-web/switch`, but it is not currently installable through `zweb add switch`.
+The `switch` primitive is available through `@zeus-web/switch`, but it is not currently installable through the CLI registry.
 
 Use the primitive package directly until a registry template is added.
 
@@ -144,7 +144,7 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Switch } from '@/components/ui/switch'
+import { Switch } from '@zeus-web/switch/react'
 
 export function Example() {
   return <Switch>Enable notifications</Switch>

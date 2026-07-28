@@ -1,5 +1,7 @@
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 
+import type { ComponentCatalogItem } from '../../apps/docs/.vitepress/data/component-catalog'
+import type { DocsLocale } from '../../apps/docs/.vitepress/data/docs-i18n'
 import type {
   PlaygroundSource,
   PlaygroundSourceSet,
@@ -9,8 +11,8 @@ import { expect as expectPage } from '@playwright/test'
 import { describe, expect, it } from 'vitest'
 
 import {
-  componentCatalog,
-  componentCategories,
+  getComponentCatalog,
+  getComponentCategories,
 } from '../../apps/docs/.vitepress/data/component-catalog'
 import { playgroundSources } from '../../apps/docs/.vitepress/data/playground-sources'
 import { docsShowcaseTarget, withShowcasePage } from './utils/browser'
@@ -20,6 +22,28 @@ interface FrameworkExpectation {
   importPath: string
   source: PlaygroundSource
 }
+
+interface DocsLocaleCase {
+  id: DocsLocale
+  lang: string
+  routePrefix: string
+  pathnamePrefix: string
+}
+
+const docsLocaleCases: DocsLocaleCase[] = [
+  {
+    id: 'en',
+    lang: 'en-US',
+    routePrefix: '',
+    pathnamePrefix: '/zeus-ui',
+  },
+  {
+    id: 'zh',
+    lang: 'zh-CN',
+    routePrefix: 'zh/',
+    pathnamePrefix: '/zeus-ui/zh',
+  },
+]
 
 const frameworkSourceKeys: Array<keyof PlaygroundSourceSet> = [
   'webComponent',
@@ -37,7 +61,7 @@ function getFrameworkImportPath(source: PlaygroundSource): string {
 }
 
 function getFrameworkExpectations(
-  component: (typeof componentCatalog)[number],
+  component: ComponentCatalogItem,
 ): FrameworkExpectation[] {
   const sources = playgroundSources[component.name]
 
@@ -58,14 +82,43 @@ function getFrameworkExpectations(
   )
 }
 
+function waitForZeusElements(root: Locator): Promise<void> {
+  return root.evaluate(element => {
+    const descendants = Array.from(element.querySelectorAll<HTMLElement>('*'))
+    const elements = [element, ...descendants].filter(item =>
+      item.localName.startsWith('zw-'),
+    )
+
+    return Promise.all(
+      elements.map(item => {
+        return globalThis.customElements
+          .whenDefined(item.localName)
+          .then(() => {
+            const componentOnReady = Reflect.get(item, 'componentOnReady')
+
+            if (typeof componentOnReady !== 'function') return undefined
+            return Reflect.apply(componentOnReady, item, [])
+          })
+      }),
+    ).then(() => {})
+  })
+}
+
 function expectLivePreview(
   page: Page,
-  component: (typeof componentCatalog)[number],
+  component: ComponentCatalogItem,
 ): Promise<void> {
   if (component.name === 'data-grid') {
-    return expectPage(
-      page.getByTestId('data-grid-playground-grid'),
-    ).toBeVisible()
+    const grid = page.getByTestId('data-grid-playground-grid')
+
+    return expectPage(grid)
+      .toBeVisible()
+      .then(() => waitForZeusElements(grid))
+      .then(() =>
+        expectPage(
+          grid.locator('[data-slot="data-grid-cell"]').first(),
+        ).toBeVisible(),
+      )
   }
 
   const playground = page.locator(
@@ -79,11 +132,12 @@ function expectLivePreview(
         playground.locator(`[data-playground-demo="${component.name}"]`),
       ).toBeVisible(),
     )
+    .then(() => waitForZeusElements(playground))
 }
 
 function expectFrameworkSources(
   page: Page,
-  component: (typeof componentCatalog)[number],
+  component: ComponentCatalogItem,
 ): Promise<void> {
   const codeGroup = page.locator('.vp-code-group').last()
   const labels = codeGroup.locator('.tabs label')
@@ -144,93 +198,125 @@ function expectFrameworkSources(
 }
 
 describe('docs component playgrounds', () => {
-  it('serves every public component with a live preview and framework sources', () => {
-    return withShowcasePage(docsShowcaseTarget, page => {
-      const errors = collectPageErrors(page)
+  for (const localeCase of docsLocaleCases) {
+    const componentCatalog = getComponentCatalog(localeCase.id)
+    const componentCategories = getComponentCategories(localeCase.id)
 
-      return componentCatalog
-        .reduce((promise, component) => {
-          return promise
-            .then(() => page.goto(`components/${component.name}`))
-            .then(response => {
-              expect(response).not.toBeNull()
-              expect(response && response.ok()).toBe(true)
-              expect(new URL(page.url()).pathname).toBe(
-                `/zeus-ui/components/${component.name}`,
+    it(`serves every ${localeCase.id} component with a live preview and framework sources`, () => {
+      return withShowcasePage(docsShowcaseTarget, page => {
+        const errors = collectPageErrors(page)
+
+        return componentCatalog
+          .reduce((promise, component) => {
+            return promise
+              .then(() =>
+                page.goto(
+                  `${localeCase.routePrefix}components/${component.name}`,
+                  { waitUntil: 'networkidle' },
+                ),
               )
-            })
-            .then(() =>
-              expectPage(
-                page.getByRole('heading', {
-                  level: 1,
-                  name: component.title,
-                }),
-              ).toBeVisible(),
-            )
-            .then(() => expectLivePreview(page, component))
-            .then(() => expectFrameworkSources(page, component))
-        }, Promise.resolve())
-        .then(() => errors.assertClean())
-    })
-  }, 120_000)
-
-  it('keeps the directory and a component Playground usable on mobile', () => {
-    return withShowcasePage(docsShowcaseTarget, page => {
-      const errors = collectPageErrors(page)
-
-      return page
-        .setViewportSize({
-          width: 390,
-          height: 844,
-        })
-        .then(() => page.goto('components/'))
-        .then(() =>
-          expectPage(page.locator('[data-component-category]')).toHaveCount(
-            componentCategories.length,
-          ),
-        )
-        .then(() =>
-          Promise.all(
-            componentCategories.map(category => {
-              return expectPage(
-                page.getByRole('heading', {
-                  level: 2,
-                  name: category.label,
-                }),
-              ).toBeVisible()
-            }),
-          ),
-        )
-        .then(() =>
-          expectPage(page.locator('[data-component-link]')).toHaveCount(
-            componentCatalog.length,
-          ),
-        )
-        .then(() => {
-          return Promise.all(
-            componentCatalog.map(component => {
-              return page
-                .locator(`[data-component-link="${component.name}"]`)
-                .getAttribute('href')
-                .then(href =>
-                  expect(href).toBe(`/zeus-ui/components/${component.name}`),
+              .then(response => {
+                expect(response).not.toBeNull()
+                expect(response && response.ok()).toBe(true)
+                expect(new URL(page.url()).pathname).toBe(
+                  `${localeCase.pathnamePrefix}/components/${component.name}`,
                 )
+              })
+              .then(() =>
+                expectPage(page.locator('html')).toHaveAttribute(
+                  'lang',
+                  localeCase.lang,
+                ),
+              )
+              .then(() =>
+                expectPage(
+                  page.getByRole('heading', {
+                    level: 1,
+                    name: component.title,
+                  }),
+                ).toBeVisible(),
+              )
+              .then(() => expectLivePreview(page, component))
+              .then(() => expectFrameworkSources(page, component))
+          }, Promise.resolve())
+          .then(() => errors.assertClean())
+      })
+    }, 180_000)
+
+    it(`keeps the ${localeCase.id} directory and component Playground usable on mobile`, () => {
+      return withShowcasePage(docsShowcaseTarget, page => {
+        const errors = collectPageErrors(page)
+
+        return page
+          .setViewportSize({
+            width: 390,
+            height: 844,
+          })
+          .then(() =>
+            page.goto(`${localeCase.routePrefix}components/`, {
+              waitUntil: 'networkidle',
             }),
           )
-        })
-        .then(() => page.goto('components/button'))
-        .then(() =>
-          expectPage(
-            page.locator('.component-playground[data-playground="button"]'),
-          ).toHaveAttribute('data-ready', 'true'),
-        )
-        .then(() =>
-          page.locator('.component-playground').evaluate(element => {
-            return element.scrollWidth <= element.clientWidth
-          }),
-        )
-        .then(fits => expect(fits).toBe(true))
-        .then(() => errors.assertClean())
+          .then(() =>
+            expectPage(page.locator('html')).toHaveAttribute(
+              'lang',
+              localeCase.lang,
+            ),
+          )
+          .then(() =>
+            expectPage(page.locator('[data-component-category]')).toHaveCount(
+              componentCategories.length,
+            ),
+          )
+          .then(() =>
+            Promise.all(
+              componentCategories.map(category => {
+                return expectPage(
+                  page.getByRole('heading', {
+                    level: 2,
+                    name: category.label,
+                  }),
+                ).toBeVisible()
+              }),
+            ),
+          )
+          .then(() =>
+            expectPage(page.locator('[data-component-link]')).toHaveCount(
+              componentCatalog.length,
+            ),
+          )
+          .then(() => {
+            return Promise.all(
+              componentCatalog.map(component => {
+                return page
+                  .locator(`[data-component-link="${component.name}"]`)
+                  .getAttribute('href')
+                  .then(href =>
+                    expect(href).toBe(
+                      `${localeCase.pathnamePrefix}/components/${component.name}`,
+                    ),
+                  )
+              }),
+            )
+          })
+          .then(() =>
+            page.goto(`${localeCase.routePrefix}components/button`, {
+              waitUntil: 'networkidle',
+            }),
+          )
+          .then(() =>
+            expectPage(
+              page.locator('.component-playground[data-playground="button"]'),
+            ).toHaveAttribute('data-ready', 'true'),
+          )
+          .then(() =>
+            page.locator('.component-playground').evaluate(element => {
+              return element.scrollWidth <= element.clientWidth
+            }),
+          )
+          .then(fits => expect(fits).toBe(true))
+          .then(() => errors.assertClean())
+      })
     })
-  })
+  }
 })

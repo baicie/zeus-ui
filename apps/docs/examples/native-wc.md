@@ -55,8 +55,8 @@ You can load only the styled CSS and register primitives separately:
 
 ```ts
 import '@zeus-web/ui/styles.css'
-import '@zeus-web/button/wc'
-import '@zeus-web/input/wc'
+import '@zeus-web/button/wc/auto'
+import '@zeus-web/input/wc/auto'
 ```
 
 ## Headless primitive path
@@ -64,8 +64,8 @@ import '@zeus-web/input/wc'
 Use primitive WC entries directly when you want to own the style layer:
 
 ```ts
-import '@zeus-web/button/wc'
-import '@zeus-web/input/wc'
+import '@zeus-web/button/wc/auto'
+import '@zeus-web/input/wc/auto'
 ```
 
 ```html

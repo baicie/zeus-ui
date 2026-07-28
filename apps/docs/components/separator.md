@@ -80,7 +80,7 @@ import { Separator } from '@zeus-web/separator/react'
 Web Component entry:
 
 ```ts
-import '@zeus-web/separator/wc'
+import '@zeus-web/separator/wc/auto'
 ```
 
 ## Props
@@ -113,7 +113,7 @@ Internal selectors:
 
 Registry source: not available yet.
 
-The `separator` primitive is available through `@zeus-web/separator`, but it is not currently installable through `zweb add separator`.
+The `separator` primitive is available through `@zeus-web/separator`, but it is not currently installable through the CLI registry.
 
 Use the primitive package directly until a registry template is added.
 
@@ -132,7 +132,7 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Separator } from '@/components/ui/separator'
+import { Separator } from '@zeus-web/separator/react'
 
 export function Example() {
   return <Separator />

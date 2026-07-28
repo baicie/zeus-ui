@@ -1,11 +1,27 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+import { useLocalizedMessages } from '../../../composables/use-docs-locale'
+
 interface ValueChangeDetail {
   value?: string
 }
 
-const value = ref('Ship the new component playground.')
+const messages = useLocalizedMessages({
+  en: {
+    releaseNotes: 'Release notes',
+    defaultValue: 'Ship the new component playground.',
+    placeholder: 'Describe this release',
+    characters: 'characters',
+  },
+  zh: {
+    releaseNotes: '发布说明',
+    defaultValue: '发布新的组件演练场。',
+    placeholder: '描述此版本',
+    characters: '个字符',
+  },
+})
+const value = ref(messages.value.defaultValue)
 
 function handleValueChange(event: Event): void {
   const customEvent = event as CustomEvent<ValueChangeDetail>
@@ -17,15 +33,17 @@ function handleValueChange(event: Event): void {
 <template>
   <div class="primitive-demo" data-playground-demo="textarea">
     <zw-textarea
-      aria-label="Release notes"
-      default-value="Ship the new component playground."
-      placeholder="Describe this release"
+      :aria-label="messages.releaseNotes"
+      :default-value="messages.defaultValue"
+      :placeholder="messages.placeholder"
       rows="4"
       maxlength="160"
       resize="vertical"
       @value-change="handleValueChange"
     />
-    <p class="demo-status">{{ value.length }} / 160 characters</p>
+    <p class="demo-status">
+      {{ value.length }} / 160 {{ messages.characters }}
+    </p>
   </div>
 </template>
 

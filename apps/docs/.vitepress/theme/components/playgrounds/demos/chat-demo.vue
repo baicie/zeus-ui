@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 
+import { useLocalizedMessages } from '../../../composables/use-docs-locale'
+
 type ChatRole = 'system' | 'user' | 'assistant' | 'tool'
 type ChatMessageStatus = 'idle' | 'streaming' | 'complete' | 'error' | 'aborted'
 
@@ -23,26 +25,74 @@ interface ChatSendDetail {
   value?: string
 }
 
+const ui = useLocalizedMessages({
+  en: {
+    welcome:
+      'This playground composes the real chat root, thread, message, typing, and composer elements.',
+    question: 'Can I send a message without a model provider?',
+    answer:
+      'Yes. The component owns local UI behavior; your application owns transport and model requests.',
+    prompt: 'Type a message and press Enter.',
+    you: 'You',
+    assistant: 'Assistant',
+    tool: 'Tool',
+    system: 'System',
+    typing: 'Assistant is preparing a local reply…',
+    sendEvent: (value: string) => `Send event: “${value}”`,
+    localReply:
+      'Local reply received. Connect this event to your own provider at the application boundary.',
+    resetEvent: 'Conversation reset.',
+    focusComposer: 'Focus composer',
+    reset: 'Reset',
+    assistantTitle: 'Zeus assistant',
+    localDemo: 'Local demo · no provider',
+    conversationLabel: 'Playground conversation',
+    composerLabel: 'Message Zeus assistant',
+    placeholder: 'Ask about the component contract',
+    send: 'Send',
+  },
+  zh: {
+    welcome: '此演示组合了真实的聊天根组件、会话、消息、输入状态和编辑器组件。',
+    question: '不接入模型服务也能发送消息吗？',
+    answer: '可以。组件负责本地 UI 行为，传输和模型请求由应用负责。',
+    prompt: '输入消息并按 Enter。',
+    you: '你',
+    assistant: '助手',
+    tool: '工具',
+    system: '系统',
+    typing: '助手正在准备本地回复……',
+    sendEvent: (value: string) => `发送事件：“${value}”`,
+    localReply: '已收到本地回复。请在应用边界将此事件接入自己的服务。',
+    resetEvent: '会话已重置。',
+    focusComposer: '聚焦编辑器',
+    reset: '重置',
+    assistantTitle: 'Zeus 助手',
+    localDemo: '本地演示 · 未接入服务',
+    conversationLabel: '交互演示会话',
+    composerLabel: '给 Zeus 助手发送消息',
+    placeholder: '询问组件契约',
+    send: '发送',
+  },
+})
+
 const initialMessages: ChatMessage[] = [
   {
     id: 'welcome',
     role: 'assistant',
     status: 'complete',
-    content:
-      'This playground composes the real chat root, thread, message, typing, and composer elements.',
+    content: ui.value.welcome,
   },
   {
     id: 'question',
     role: 'user',
     status: 'complete',
-    content: 'Can I send a message without a model provider?',
+    content: ui.value.question,
   },
   {
     id: 'answer',
     role: 'assistant',
     status: 'complete',
-    content:
-      'Yes. The component owns local UI behavior; your application owns transport and model requests.',
+    content: ui.value.answer,
   },
 ]
 
@@ -51,17 +101,17 @@ const composer = ref<ChatComposerElement | null>(null)
 const messageList = ref<HTMLElement | null>(null)
 const messages = ref<ChatMessage[]>(initialMessages.slice())
 const waiting = ref(false)
-const eventLabel = ref('Type a message and press Enter.')
+const eventLabel = ref(ui.value.prompt)
 
 let activeComposer: ChatComposerElement | null = null
 let replyTimer: ReturnType<typeof setTimeout> | undefined
 let messageSequence = 0
 
 function roleLabel(role: ChatRole): string {
-  if (role === 'user') return 'You'
-  if (role === 'assistant') return 'Assistant'
-  if (role === 'tool') return 'Tool'
-  return 'System'
+  if (role === 'user') return ui.value.you
+  if (role === 'assistant') return ui.value.assistant
+  if (role === 'tool') return ui.value.tool
+  return ui.value.system
 }
 
 function roleInitial(role: ChatRole): string {
@@ -124,7 +174,7 @@ function renderThread(): void {
   if (waiting.value) {
     const typing = container.ownerDocument.createElement('zw-chat-typing')
     typing.setAttribute('active', '')
-    typing.setAttribute('text', 'Assistant is preparing a local reply…')
+    typing.setAttribute('text', ui.value.typing)
     container.appendChild(typing)
   }
 }
@@ -151,7 +201,7 @@ function handleSend(event: Event): void {
     content: value,
   })
 
-  eventLabel.value = `Send event: “${value}”`
+  eventLabel.value = ui.value.sendEvent(value)
   waiting.value = true
   renderThread()
 
@@ -166,8 +216,7 @@ function handleSend(event: Event): void {
       id: `assistant-${messageSequence}`,
       role: 'assistant',
       status: 'complete',
-      content:
-        'Local reply received. Connect this event to your own provider at the application boundary.',
+      content: ui.value.localReply,
     })
   }, 450)
 }
@@ -188,7 +237,7 @@ function resetConversation(): void {
 
   waiting.value = false
   messages.value = initialMessages.slice()
-  eventLabel.value = 'Conversation reset.'
+  eventLabel.value = ui.value.resetEvent
   renderThread()
   scrollThread()
 }
@@ -222,20 +271,22 @@ onUnmounted(() => {
   <div class="advanced-demo" data-playground-demo="chat">
     <div class="demo-toolbar">
       <span aria-live="polite">{{ eventLabel }}</span>
-      <button type="button" @click="focusComposer">Focus composer</button>
-      <button type="button" @click="resetConversation">Reset</button>
+      <button type="button" @click="focusComposer">
+        {{ ui.focusComposer }}
+      </button>
+      <button type="button" @click="resetConversation">{{ ui.reset }}</button>
     </div>
 
     <zw-chat>
       <header v-bind="{ slot: 'header' }" class="chat-header">
-        <strong>Zeus assistant</strong>
-        <small>Local demo · no provider</small>
+        <strong>{{ ui.assistantTitle }}</strong>
+        <small>{{ ui.localDemo }}</small>
       </header>
 
       <zw-chat-thread
         ref="thread"
         v-bind="{ slot: 'thread' }"
-        aria-label="Playground conversation"
+        :aria-label="ui.conversationLabel"
       >
         <div ref="messageList" class="chat-message-list" />
       </zw-chat-thread>
@@ -244,11 +295,11 @@ onUnmounted(() => {
         ref="composer"
         v-bind="{ slot: 'composer' }"
         :loading="waiting"
-        aria-label="Message Zeus assistant"
-        placeholder="Ask about the component contract"
+        :aria-label="ui.composerLabel"
+        :placeholder="ui.placeholder"
         rows="2"
       >
-        <span v-bind="{ slot: 'submit' }">Send</span>
+        <span v-bind="{ slot: 'submit' }">{{ ui.send }}</span>
       </zw-chat-composer>
     </zw-chat>
   </div>

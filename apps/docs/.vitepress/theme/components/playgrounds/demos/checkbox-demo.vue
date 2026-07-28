@@ -1,11 +1,31 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+import { useLocalizedMessages } from '../../../composables/use-docs-locale'
+
 interface CheckedChangeDetail {
   checked?: boolean
 }
 
 const checked = ref(true)
+const messages = useLocalizedMessages({
+  en: {
+    emailNotifications: 'Email notifications',
+    partiallySelected: 'Partially selected',
+    unavailableOption: 'Unavailable option',
+    notifications: 'Notifications',
+    enabled: 'enabled',
+    disabled: 'disabled',
+  },
+  zh: {
+    emailNotifications: '邮件通知',
+    partiallySelected: '部分选中',
+    unavailableOption: '不可用选项',
+    notifications: '通知',
+    enabled: '已启用',
+    disabled: '已禁用',
+  },
+})
 
 function handleCheckedChange(event: Event): void {
   const customEvent = event as CustomEvent<CheckedChangeDetail>
@@ -18,13 +38,14 @@ function handleCheckedChange(event: Event): void {
   <div class="primitive-demo" data-playground-demo="checkbox">
     <div class="demo-stack">
       <zw-checkbox default-checked @checked-change="handleCheckedChange">
-        Email notifications
+        {{ messages.emailNotifications }}
       </zw-checkbox>
-      <zw-checkbox indeterminate>Partially selected</zw-checkbox>
-      <zw-checkbox disabled>Unavailable option</zw-checkbox>
+      <zw-checkbox indeterminate>{{ messages.partiallySelected }}</zw-checkbox>
+      <zw-checkbox disabled>{{ messages.unavailableOption }}</zw-checkbox>
     </div>
     <p class="demo-status">
-      Notifications: <strong>{{ checked ? 'enabled' : 'disabled' }}</strong>
+      {{ messages.notifications }}:
+      <strong>{{ checked ? messages.enabled : messages.disabled }}</strong>
     </p>
   </div>
 </template>

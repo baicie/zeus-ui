@@ -6,7 +6,7 @@ pageClass: component-docs-page
 
 # Select
 
-Styled native select component built on the zw-select primitive.
+Accessible custom select with a combobox trigger and listbox popup.
 
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/select</span>
@@ -91,30 +91,42 @@ import { Select } from '@zeus-web/select/react'
 Web Component entry:
 
 ```ts
-import '@zeus-web/select/wc'
+import '@zeus-web/select/wc/auto'
 ```
 
 ## Props
 
-| Prop           | Type      | Default | Description                             |
-| -------------- | --------- | ------- | --------------------------------------- |
-| `value`        | `string`  | -       | Controlled selected value.              |
-| `defaultValue` | `string`  | -       | Initial selected value.                 |
-| `multiple`     | `boolean` | -       | Enables multiple selection.             |
-| `disabled`     | `boolean` | -       | Disables user interaction.              |
-| `ariaLabel`    | `string`  | -       | Accessible label for unlabeled selects. |
+| Prop               | Type                                       | Default | Description                                                                         |
+| ------------------ | ------------------------------------------ | ------- | ----------------------------------------------------------------------------------- |
+| `id`               | `string`                                   | -       | Base ID used to derive the internal trigger ID; the listbox keeps its generated ID. |
+| `value`            | `string`                                   | -       | Current selected value.                                                             |
+| `defaultValue`     | `string`                                   | -       | Initial selected value.                                                             |
+| `values`           | `string[]`                                 | -       | Current selected values in multiple mode. Pass as a JavaScript property.            |
+| `defaultValues`    | `string[]`                                 | -       | Initial selected values in multiple mode. Pass as a JavaScript property.            |
+| `placeholder`      | `string`                                   | -       | Text shown when no option is selected.                                              |
+| `size`             | `SelectSize`<br />Values: `sm`, `md`, `lg` | `md`    | Select control size.                                                                |
+| `multiple`         | `boolean`                                  | -       | Enables multiple selection.                                                         |
+| `disabled`         | `boolean`                                  | -       | Disables user interaction.                                                          |
+| `required`         | `boolean`                                  | -       | Marks the select as required for form validation.                                   |
+| `invalid`          | `boolean`                                  | -       | Marks the select as invalid.                                                        |
+| `name`             | `string`                                   | -       | Form field name used during submission.                                             |
+| `ariaLabel`        | `string`                                   | -       | Accessible label for unlabeled selects.                                             |
+| `ariaLabelledby`   | `string`                                   | -       | ID reference for the visible select label.                                          |
+| `ariaDescribedby`  | `string`                                   | -       | ID reference for additional accessible description.                                 |
+| `ariaErrormessage` | `string`                                   | -       | ID reference for the accessible error message.                                      |
 
 ## Events
 
-| Event          | React prop      | Detail                                                | Description                          |
-| -------------- | --------------- | ----------------------------------------------------- | ------------------------------------ |
-| `value-change` | `onValueChange` | `value: string, values: string[], nativeEvent: Event` | Emitted when selected value changes. |
+| Event          | React prop      | Detail                                                | Description                                             |
+| -------------- | --------------- | ----------------------------------------------------- | ------------------------------------------------------- |
+| `value-change` | `onValueChange` | `value: string, values: string[], nativeEvent: Event` | Emitted when selected value changes.                    |
+| `focus-change` | `onFocusChange` | `focused: boolean, nativeEvent: FocusEvent`           | Emitted when focus enters or leaves the select trigger. |
 
 ## Slots
 
-| Slot      | Description             |
-| --------- | ----------------------- |
-| `default` | Native option children. |
+| Slot      | Description                                     |
+| --------- | ----------------------------------------------- |
+| `default` | Option children used as the select data source. |
 
 ## Styling
 
@@ -123,18 +135,24 @@ Uses Tailwind: yes
 Theme tokens:
 
 - `border-input`
+- `bg-popover`
+- `text-popover-foreground`
+- `bg-accent`
 - `ring-ring`
 
 Internal selectors:
 
-- `[data-slot=select]`
+- `[data-slot=select-trigger]`
+- `[data-slot=select-content]`
+- `[data-slot=select-option]`
+- `[data-slot=select-option-indicator]`
 - `[data-slot=select-message]`
 
 ## Registry
 
 Registry source: not available yet.
 
-The `select` primitive is available through `@zeus-web/select`, but it is not currently installable through `zweb add select`.
+The `select` primitive is available through `@zeus-web/select`, but it is not currently installable through the CLI registry.
 
 Use the primitive package directly until a registry template is added.
 
@@ -142,18 +160,20 @@ Use the primitive package directly until a registry template is added.
 
 Do:
 
-- Use Select for simple native option lists.
+- Use Select for single or multiple choice lists with keyboard navigation.
+- Use placeholder when the field has no initial selection.
+- Set values and defaultValues as JavaScript properties, not HTML attributes.
 
 Do not:
 
-- Do not use Select for combobox/typeahead behavior yet.
+- Do not use Select for free-form text entry or remote autocomplete.
 
 ## Examples
 
 ### React styled usage
 
 ```tsx
-import { Select } from '@/components/ui/select'
+import { Select } from '@zeus-web/select/react'
 
 export function Example() {
   return (

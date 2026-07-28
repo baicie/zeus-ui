@@ -51,9 +51,10 @@ function renderComponent(component: ZeusWebAiComponent): string {
   const props = component.props.length
     ? component.props
         .map(prop => {
-          const values = prop.values?.length
-            ? ` Values: ${prop.values.join(', ')}.`
-            : ''
+          const values =
+            prop.values && prop.values.length > 0
+              ? ` Values: ${prop.values.join(', ')}.`
+              : ''
           const defaultValue = prop.default ? ` Default: ${prop.default}.` : ''
 
           return `- \`${prop.name}\` (\`${prop.type}\`): ${prop.description}.${values}${defaultValue}`
@@ -86,15 +87,21 @@ function renderComponent(component: ZeusWebAiComponent): string {
       example => `### ${example.title}\n\n\`\`\`tsx\n${example.code}\n\`\`\``,
     )
     .join('\n\n')
+  const registryUsage =
+    component.registryCommand && component.styledImport
+      ? [
+          `Add command: \`${component.registryCommand}\``,
+          `Styled import: \`${component.styledImport}\``,
+        ]
+      : []
 
   return [
     `## ${component.name}`,
     '',
     component.description,
     '',
-    `Add command: \`${component.registryCommand}\``,
+    ...registryUsage,
     `Install command: \`${component.installCommand}\``,
-    `Styled import: \`${component.styledImport}\``,
     `Primitive React import: \`${component.reactImport}\``,
     `Web Component import: \`${component.webComponentImport}\``,
     '',
@@ -198,7 +205,7 @@ function renderAdvancedComponent(
 }
 
 export function renderAiMarkdown(metadata: ZeusWebAiMetadata): string {
-  const advanced = metadata.advancedComponents ?? []
+  const advanced = metadata.advancedComponents || []
 
   return [
     '# Zeus Web AI Guide',

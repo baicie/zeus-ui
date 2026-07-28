@@ -25,7 +25,7 @@ import { Badge } from '@zeus-web/badge/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/badge/wc'
+import '@zeus-web/badge/wc/auto'
 ```
 
 ```html

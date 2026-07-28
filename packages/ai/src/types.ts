@@ -63,12 +63,12 @@ export interface ZeusWebAiComponent {
   name: ZeusWebAiComponentName
   description: string
   primitivePackage: string
-  registryCommand: string
+  registryCommand?: string
   installCommand: string
   reactImport: string
   webComponentImport: string
-  styledImport: string
-  sourceTarget: string
+  styledImport?: string
+  sourceTarget?: string
   dependencies: string[]
   props: ZeusWebAiProp[]
   events: ZeusWebAiEvent[]

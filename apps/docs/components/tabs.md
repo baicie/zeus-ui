@@ -103,7 +103,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@zeus-web/tabs/react'
 Web Component entry:
 
 ```ts
-import '@zeus-web/tabs/wc'
+import '@zeus-web/tabs/wc/auto'
 ```
 
 ## Props
@@ -147,7 +147,7 @@ Internal selectors:
 
 Registry source: not available yet.
 
-The `tabs` primitive is available through `@zeus-web/tabs`, but it is not currently installable through `zweb add tabs`.
+The `tabs` primitive is available through `@zeus-web/tabs`, but it is not currently installable through the CLI registry.
 
 Use the primitive package directly until a registry template is added.
 
@@ -167,7 +167,7 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@zeus-web/tabs/react'
 
 export function Example() {
   return (

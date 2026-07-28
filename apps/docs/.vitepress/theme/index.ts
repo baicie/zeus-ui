@@ -5,6 +5,8 @@ import ComponentDirectory from './components/ComponentDirectory.vue'
 import ComponentPlayground from './components/ComponentPlayground.vue'
 import DataGridPlayground from './components/DataGridPlayground.vue'
 import ZeusPlayground from './components/ZeusPlayground.vue'
+import '@zeus-web/themes/default.css'
+import '@zeus-web/themes/components.css'
 import './style.css'
 
 export default {

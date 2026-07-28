@@ -25,7 +25,7 @@ import { Button } from '@zeus-web/button/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/button/wc'
+import '@zeus-web/button/wc/auto'
 ```
 
 ```html

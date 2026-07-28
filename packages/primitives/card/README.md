@@ -25,7 +25,7 @@ import { Card } from '@zeus-web/card/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/card/wc'
+import '@zeus-web/card/wc/auto'
 ```
 
 ```html

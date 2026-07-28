@@ -25,7 +25,7 @@ import { Collapsible } from '@zeus-web/collapsible/vue'
 ## Web Component
 
 ```ts
-import '@zeus-web/collapsible/wc'
+import '@zeus-web/collapsible/wc/auto'
 ```
 
 ```html

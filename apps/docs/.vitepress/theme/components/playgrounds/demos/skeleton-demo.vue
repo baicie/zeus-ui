@@ -19,8 +19,6 @@
 
 zw-skeleton {
   overflow: hidden;
-  background: var(--vp-c-divider);
-  border-radius: 0.375rem;
 }
 
 .demo-avatar {

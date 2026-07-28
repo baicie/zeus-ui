@@ -33,6 +33,7 @@
     "@zeus-web/switch": "workspace:*",
     "@zeus-web/tabs": "workspace:*",
     "@zeus-web/textarea": "workspace:*",
+    "@zeus-web/themes": "workspace:*",
     "@zeus-web/tooltip": "workspace:*",
     "@zeus-web/virtual": "workspace:*"
   }

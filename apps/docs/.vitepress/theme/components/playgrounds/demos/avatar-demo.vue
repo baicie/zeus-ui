@@ -1,3 +1,18 @@
+<script setup lang="ts">
+import { useLocalizedMessages } from '../../../composables/use-docs-locale'
+
+const messages = useLocalizedMessages({
+  en: {
+    platform: 'Component platform',
+    sizes: 'Avatar sizes',
+  },
+  zh: {
+    platform: '组件平台',
+    sizes: '头像尺寸',
+  },
+})
+</script>
+
 <template>
   <div class="primitive-demo" data-playground-demo="avatar">
     <div class="demo-profile">
@@ -6,10 +21,10 @@
       </zw-avatar>
       <div>
         <strong>Zeus Web</strong>
-        <p>Component platform</p>
+        <p>{{ messages.platform }}</p>
       </div>
     </div>
-    <div class="demo-row" aria-label="Avatar sizes">
+    <div class="demo-row" :aria-label="messages.sizes">
       <zw-avatar size="sm" image-status="error">
         <zw-avatar-fallback>SM</zw-avatar-fallback>
       </zw-avatar>

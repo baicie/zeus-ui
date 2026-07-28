@@ -80,7 +80,7 @@ import { Badge } from '@zeus-web/badge/react'
 Web Component entry:
 
 ```ts
-import '@zeus-web/badge/wc'
+import '@zeus-web/badge/wc/auto'
 ```
 
 ## Props
@@ -118,7 +118,7 @@ Internal selectors:
 
 Registry source: not available yet.
 
-The `badge` primitive is available through `@zeus-web/badge`, but it is not currently installable through `zweb add badge`.
+The `badge` primitive is available through `@zeus-web/badge`, but it is not currently installable through the CLI registry.
 
 Use the primitive package directly until a registry template is added.
 
@@ -137,7 +137,7 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Badge } from '@/components/ui/badge'
+import { Badge } from '@zeus-web/badge/react'
 
 export function Example() {
   return <Badge>New</Badge>

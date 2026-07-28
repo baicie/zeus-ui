@@ -11,6 +11,7 @@ import { dirname, join } from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { playgroundSources } from '../../../apps/docs/.vitepress/data/playground-sources'
 import { checkPlaygroundContract } from '../docs/playground-contract'
 
 interface Fixture {
@@ -140,7 +141,13 @@ function createRuntimeSource(includeDemo = true): string {
     lines.push("  button: () => import('./playgrounds/demos/button-demo.vue'),")
   }
 
-  lines.push('}', '')
+  lines.push(
+    '}',
+    '',
+    '<p v-if="errorMessage" role="alert">{{ errorMessage }}</p>',
+    '<p v-else-if="!ready" role="status" aria-live="polite">Loading</p>',
+    '',
+  )
   return lines.join('\n')
 }
 
@@ -204,6 +211,32 @@ describe('playground contract', () => {
     expect(result.componentCount).toBe(25)
     expect(result.categoryCount).toBe(7)
     expect(result.packageNames).toHaveLength(result.componentCount)
+  })
+
+  it('uses the public Progress label prop in every framework source', () => {
+    const sources = [
+      {
+        source: playgroundSources.progress.webComponent,
+        expected:
+          '<zw-progress value="64" max="100" label="Upload progress"></zw-progress>',
+      },
+      {
+        source: playgroundSources.progress.react,
+        expected: '<Progress value={64} max={100} label="Upload progress" />',
+      },
+      {
+        source: playgroundSources.progress.vue,
+        expected: '<Progress :value="64" :max="100" label="Upload progress" />',
+      },
+    ]
+
+    for (const { source, expected } of sources) {
+      expect(source).toBeDefined()
+      if (!source) continue
+
+      expect(source.code).toContain(expected)
+      expect(source.code).not.toContain('aria-label="Upload progress"')
+    }
   })
 
   it('reports a public component package without a catalog entry', () => {
@@ -389,6 +422,82 @@ describe('playground contract', () => {
     )
   })
 
+  it('requires accessible async Playground status messages', () => {
+    const fixture = createValidFixture()
+
+    fixture.options.runtimeSource = createRuntimeSource()
+      .replace(' role="alert"', '')
+      .replace(' role="status" aria-live="polite"', '')
+
+    const result = checkPlaygroundContract(fixture.root, fixture.options)
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain(
+      'Playground runtime errors must use role="alert".',
+    )
+    expect(result.errors).toContain(
+      'Playground runtime loading feedback must use role="status" and aria-live="polite".',
+    )
+  })
+
+  it('rejects non-registering Web Component side-effect imports', () => {
+    const fixture = createValidFixture()
+    const sources = createButtonSources()
+
+    sources.webComponent!.code += "\nimport '@zeus-web/button/wc'"
+    fixture.options.sources = {
+      button: sources,
+    }
+
+    const result = checkPlaygroundContract(fixture.root, fixture.options)
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain(
+      '@zeus-web/button "webComponent" Playground source must not use the non-registering side-effect import "@zeus-web/button/wc"; use "@zeus-web/button/wc/auto".',
+    )
+  })
+
+  it('rejects non-registering Web Component imports in public docs', () => {
+    const fixture = createValidFixture()
+
+    writeFixtureFile(
+      fixture.root,
+      'apps/docs/guide/web-components.md',
+      "```ts\nimport '@zeus-web/button/wc'\n```\n",
+    )
+
+    const result = checkPlaygroundContract(fixture.root, fixture.options)
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain(
+      'apps/docs/guide/web-components.md must not use the non-registering side-effect import "@zeus-web/button/wc"; use "@zeus-web/button/wc/auto".',
+    )
+  })
+
+  it('rejects nested native buttons in Web Component trigger elements', () => {
+    const fixture = createValidFixture()
+    const sources = createButtonSources()
+
+    sources.webComponent!.code = [
+      "import '@zeus-web/button/wc/auto'",
+      '<zw-dialog-trigger><button type="button">Open</button></zw-dialog-trigger>',
+      '<zw-tooltip-trigger><button type="button">Help</button></zw-tooltip-trigger>',
+    ].join('\n')
+    fixture.options.sources = {
+      button: sources,
+    }
+
+    const result = checkPlaygroundContract(fixture.root, fixture.options)
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain(
+      '@zeus-web/button "webComponent" Playground source must not nest a native button inside <zw-dialog-trigger>.',
+    )
+    expect(result.errors).toContain(
+      '@zeus-web/button "webComponent" Playground source must not nest a native button inside <zw-tooltip-trigger>.',
+    )
+  })
+
   it('accepts the dedicated Data Grid loader without a generic demo', () => {
     const root = mkdtempSync(
       join(tmpdir(), 'zeus-ui-playground-contract-grid-'),
@@ -449,7 +558,11 @@ describe('playground contract', () => {
           ],
         },
       ],
-      runtimeSource: "onMounted(() => import('@zeus-web/data-grid/wc/auto'))\n",
+      runtimeSource: [
+        "onMounted(() => import('@zeus-web/data-grid/wc/auto'))",
+        '<p role="alert">Error</p>',
+        '<p role="status" aria-live="polite">Loading</p>',
+      ].join('\n'),
     })
 
     expect(result.errors).toEqual([])

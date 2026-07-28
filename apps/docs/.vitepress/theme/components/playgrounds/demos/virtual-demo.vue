@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
 
+import { useLocalizedMessages } from '../../../composables/use-docs-locale'
+
 interface VirtualItem {
   index: number
   key: string
@@ -30,20 +32,55 @@ interface Activity {
   priority: string
 }
 
+const ui = useLocalizedMessages({
+  en: {
+    activity: (index: number) => `Activity ${index}`,
+    queued: 'Queued workload',
+    processing: 'Processing',
+    completed: 'Completed',
+    priority: 'Priority',
+    waiting: 'Waiting for the first visible range.',
+    visibleRange: (first: number, last: number, total: number, count: number) =>
+      `Visible ${first}–${last} of ${total}; ${count} DOM rows`,
+    emptyRange: (total: number) => `No rows visible; 0 of ${total} DOM rows`,
+    listLabel: 'Virtualized activity feed',
+    controlsLabel: 'Virtual list controls',
+    first: 'First',
+    middle: 'Middle',
+    last: 'Last',
+  },
+  zh: {
+    activity: (index: number) => `活动 ${index}`,
+    queued: '任务已排队',
+    processing: '处理中',
+    completed: '已完成',
+    priority: '优先',
+    waiting: '正在等待首个可见范围。',
+    visibleRange: (first: number, last: number, total: number, count: number) =>
+      `显示第 ${first}–${last} 项，共 ${total} 项；DOM 中有 ${count} 行`,
+    emptyRange: (total: number) => `没有可见行；DOM 中为 0/${total} 行`,
+    listLabel: '虚拟化活动列表',
+    controlsLabel: '虚拟列表控制',
+    first: '开头',
+    middle: '中间',
+    last: '末尾',
+  },
+})
+
 const activities: Activity[] = Array.from({ length: 500 }, (_, index) => ({
-  label: `Activity ${index + 1}`,
+  label: ui.value.activity(index + 1),
   description:
     index % 3 === 0
-      ? 'Queued workload'
+      ? ui.value.queued
       : index % 3 === 1
-        ? 'Processing'
-        : 'Completed',
-  priority: index % 11 === 0 ? 'Priority' : '',
+        ? ui.value.processing
+        : ui.value.completed,
+  priority: index % 11 === 0 ? ui.value.priority : '',
 }))
 
 const virtualList = ref<VirtualListElement | null>(null)
 const visibleItems = ref<VirtualItem[]>([])
-const rangeLabel = ref('Waiting for the first visible range.')
+const rangeLabel = ref(ui.value.waiting)
 
 let activeElement: VirtualListElement | null = null
 let measureFrame: number | undefined
@@ -71,8 +108,13 @@ function commitVisibleItems(value: unknown): void {
 
   rangeLabel.value =
     first && last
-      ? `Visible ${first.index + 1}–${last.index + 1} of ${activities.length}; ${nextItems.length} DOM rows`
-      : `No rows visible; 0 of ${activities.length} DOM rows`
+      ? ui.value.visibleRange(
+          first.index + 1,
+          last.index + 1,
+          activities.length,
+          nextItems.length,
+        )
+      : ui.value.emptyRange(activities.length)
 }
 
 function handleRangeChange(event: Event): void {
@@ -102,7 +144,7 @@ function configureVirtualList(element: VirtualListElement): void {
   element.count = activities.length
   element.estimateSize = 52
   element.overscan = 4
-  element.setAttribute('aria-label', 'Virtualized activity feed')
+  element.setAttribute('aria-label', ui.value.listLabel)
   scheduleMeasure()
 }
 
@@ -148,10 +190,10 @@ onUnmounted(() => {
 
 <template>
   <div class="advanced-demo" data-playground-demo="virtual">
-    <div class="demo-toolbar" aria-label="Virtual list controls">
-      <button type="button" @click="scrollTo(0)">First</button>
-      <button type="button" @click="scrollTo(249)">Middle</button>
-      <button type="button" @click="scrollTo(499)">Last</button>
+    <div class="demo-toolbar" :aria-label="ui.controlsLabel">
+      <button type="button" @click="scrollTo(0)">{{ ui.first }}</button>
+      <button type="button" @click="scrollTo(249)">{{ ui.middle }}</button>
+      <button type="button" @click="scrollTo(499)">{{ ui.last }}</button>
       <span>{{ rangeLabel }}</span>
     </div>
 
