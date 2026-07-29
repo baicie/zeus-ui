@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import {
   docsShowcaseTarget,
   showcaseTargets,
+  waitForZeusElements,
   withShowcasePage,
 } from './utils/browser'
 import { collectPageErrors } from './utils/page-errors'
@@ -69,6 +70,12 @@ function readTabsPanelStates(root: Locator): Promise<TabsPanelState[]> {
   })
 }
 
+function readVisibleTabsPanelStates(root: Locator): Promise<TabsPanelState[]> {
+  return readTabsPanelStates(root).then(states =>
+    states.filter(state => state.display !== 'none'),
+  )
+}
+
 function readInputPresentationState(
   control: Locator,
 ): Promise<InputPresentationState> {
@@ -104,29 +111,32 @@ describe.each(primitivePresentationTargets)(
         return page
           .goto(`${target.routePrefix}tabs`)
           .then(() => expectPage(tabs).toBeVisible())
-          .then(() => readTabsPanelStates(tabs))
-          .then(states => {
-            expect(states.filter(state => state.display !== 'none')).toEqual([
-              {
-                value: 'overview',
-                state: 'active',
-                hidden: false,
-                display: 'block',
-              },
-            ])
-          })
+          .then(() => waitForZeusElements(tabs))
+          .then(() =>
+            expectPage
+              .poll(() => readVisibleTabsPanelStates(tabs))
+              .toEqual([
+                {
+                  value: 'overview',
+                  state: 'active',
+                  hidden: false,
+                  display: 'block',
+                },
+              ]),
+          )
           .then(() => secondTrigger.click())
-          .then(() => readTabsPanelStates(tabs))
-          .then(states => {
-            expect(states.filter(state => state.display !== 'none')).toEqual([
-              {
-                value: target.secondTabValue,
-                state: 'active',
-                hidden: false,
-                display: 'block',
-              },
-            ])
-          })
+          .then(() =>
+            expectPage
+              .poll(() => readVisibleTabsPanelStates(tabs))
+              .toEqual([
+                {
+                  value: target.secondTabValue,
+                  state: 'active',
+                  hidden: false,
+                  display: 'block',
+                },
+              ]),
+          )
           .then(() => errors.assertClean())
       })
     })

@@ -1,4 +1,4 @@
-import type { Browser, BrowserContext, Page } from '@playwright/test'
+import type { Browser, BrowserContext, Locator, Page } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import process from 'node:process'
@@ -92,6 +92,28 @@ async function ensureArtifactDir(): Promise<string> {
   })
 
   return artifactDir
+}
+
+export function waitForZeusElements(root: Locator): Promise<void> {
+  return root.evaluate(element => {
+    const descendants = Array.from(element.querySelectorAll<HTMLElement>('*'))
+    const elements = [element, ...descendants].filter(item =>
+      item.localName.startsWith('zw-'),
+    )
+
+    return Promise.all(
+      elements.map(item => {
+        return globalThis.customElements
+          .whenDefined(item.localName)
+          .then(() => {
+            const componentOnReady = Reflect.get(item, 'componentOnReady')
+
+            if (typeof componentOnReady !== 'function') return undefined
+            return Reflect.apply(componentOnReady, item, [])
+          })
+      }),
+    ).then(() => {})
+  })
 }
 
 afterAll(() => {

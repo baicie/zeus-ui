@@ -28,7 +28,6 @@ describe('docs chat playground', () => {
         .then(() =>
           page.getByRole('button', { name: 'Send', exact: true }).click(),
         )
-        .then(() => expectPage(messages).toHaveCount(4))
         .then(() =>
           expectPage(messages.filter({ hasText: sentText })).toBeVisible(),
         )

@@ -1,7 +1,11 @@
 import { expect as expectPage } from '@playwright/test'
 import { describe, expect, it } from 'vitest'
 
-import { docsShowcaseTarget, withShowcasePage } from './utils/browser'
+import {
+  docsShowcaseTarget,
+  waitForZeusElements,
+  withShowcasePage,
+} from './utils/browser'
 import { collectPageErrors } from './utils/page-errors'
 
 interface ElementVisualMetrics {
@@ -235,6 +239,16 @@ describe('docs primitive playground visuals', () => {
           expectPage(playground).toHaveAttribute('data-ready', 'true'),
         )
         .then(() => expectPage(alerts).toHaveCount(3))
+        .then(() => waitForZeusElements(playground))
+        .then(() =>
+          expectPage
+            .poll(() =>
+              alerts.evaluateAll(elements =>
+                elements.map(element => element.getAttribute('data-variant')),
+              ),
+            )
+            .toEqual(['info', 'success', 'danger']),
+        )
         .then(() =>
           alerts.evaluateAll(elements => {
             return elements.map(element => {

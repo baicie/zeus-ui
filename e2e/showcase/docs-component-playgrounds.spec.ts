@@ -1,4 +1,4 @@
-import type { Locator, Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
 
 import type { ComponentCatalogItem } from '../../apps/docs/.vitepress/data/component-catalog'
 import type { DocsLocale } from '../../apps/docs/.vitepress/data/docs-i18n'
@@ -15,7 +15,11 @@ import {
   getComponentCategories,
 } from '../../apps/docs/.vitepress/data/component-catalog'
 import { playgroundSources } from '../../apps/docs/.vitepress/data/playground-sources'
-import { docsShowcaseTarget, withShowcasePage } from './utils/browser'
+import {
+  docsShowcaseTarget,
+  waitForZeusElements,
+  withShowcasePage,
+} from './utils/browser'
 import { collectPageErrors } from './utils/page-errors'
 
 interface FrameworkExpectation {
@@ -80,28 +84,6 @@ function getFrameworkExpectations(
     },
     [],
   )
-}
-
-function waitForZeusElements(root: Locator): Promise<void> {
-  return root.evaluate(element => {
-    const descendants = Array.from(element.querySelectorAll<HTMLElement>('*'))
-    const elements = [element, ...descendants].filter(item =>
-      item.localName.startsWith('zw-'),
-    )
-
-    return Promise.all(
-      elements.map(item => {
-        return globalThis.customElements
-          .whenDefined(item.localName)
-          .then(() => {
-            const componentOnReady = Reflect.get(item, 'componentOnReady')
-
-            if (typeof componentOnReady !== 'function') return undefined
-            return Reflect.apply(componentOnReady, item, [])
-          })
-      }),
-    ).then(() => {})
-  })
 }
 
 function expectLivePreview(
