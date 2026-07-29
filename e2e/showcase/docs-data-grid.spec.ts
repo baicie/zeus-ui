@@ -15,6 +15,7 @@ describe('docs data grid playground', () => {
       const applyButton = page.getByTestId('data-grid-apply')
       const controls = page.locator('.data-grid-playground__controls')
       const lastButton = page.getByTestId('data-grid-jump-last')
+      const logo = page.locator('img.VPImage.logo')
       const windowStatus = page.getByTestId(WINDOW_TEST_ID)
 
       return page
@@ -28,14 +29,17 @@ describe('docs data grid playground', () => {
           ).toBeVisible(),
         )
         .then(() =>
-          page.locator('img.VPImage.logo').evaluate(element => {
-            return (
-              Boolean(Reflect.get(element, 'complete')) &&
-              Number(Reflect.get(element, 'naturalWidth')) > 0
+          expectPage
+            .poll(() =>
+              logo.evaluate(element => {
+                return (
+                  Boolean(Reflect.get(element, 'complete')) &&
+                  Number(Reflect.get(element, 'naturalWidth')) > 0
+                )
+              }),
             )
-          }),
+            .toBe(true),
         )
-        .then(logoLoaded => expect(logoLoaded).toBe(true))
         .then(() => expectPage(grid).toBeVisible())
         .then(() => expectPage(grid).toHaveAttribute('data-row-count', '10000'))
         .then(() => expectPage(grid).toHaveAttribute('data-column-count', '20'))
