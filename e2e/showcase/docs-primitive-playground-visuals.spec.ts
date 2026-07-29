@@ -28,6 +28,91 @@ function expectVisibleSurface(metrics: ElementVisualMetrics): void {
 }
 
 describe('docs primitive playground visuals', () => {
+  it('shows only the active accordion panel', () => {
+    return withShowcasePage(docsShowcaseTarget, page => {
+      const errors = collectPageErrors(page)
+      const playground = page.locator(
+        '.component-playground[data-playground="accordion"]',
+      )
+      const accordion = playground.locator('zw-accordion')
+      const frameworksTrigger = accordion.locator(
+        'zw-accordion-item[data-value="frameworks"] [data-slot="accordion-trigger-button"]',
+      )
+
+      const readPanelStates = () =>
+        accordion.evaluate(element => {
+          return Array.from(element.querySelectorAll('zw-accordion-item')).map(
+            item => {
+              const content = item.querySelector('zw-accordion-content')
+
+              if (!content) throw new Error('Missing accordion content')
+
+              return {
+                value: item.getAttribute('data-value'),
+                state: item.getAttribute('data-state'),
+                hidden: content.hasAttribute('hidden'),
+                display: getComputedStyle(content).display,
+              }
+            },
+          )
+        })
+
+      return page
+        .goto('components/accordion')
+        .then(() =>
+          expectPage(playground).toHaveAttribute('data-ready', 'true'),
+        )
+        .then(() => expectPage(accordion).toHaveCount(1))
+        .then(() => expectPage(frameworksTrigger).toHaveCount(1))
+        .then(() =>
+          expectPage.poll(readPanelStates).toEqual([
+            {
+              value: 'performance',
+              state: 'open',
+              hidden: false,
+              display: 'block',
+            },
+            {
+              value: 'frameworks',
+              state: 'closed',
+              hidden: true,
+              display: 'none',
+            },
+            {
+              value: 'accessibility',
+              state: 'closed',
+              hidden: true,
+              display: 'none',
+            },
+          ]),
+        )
+        .then(() => frameworksTrigger.click())
+        .then(() =>
+          expectPage.poll(readPanelStates).toEqual([
+            {
+              value: 'performance',
+              state: 'closed',
+              hidden: true,
+              display: 'none',
+            },
+            {
+              value: 'frameworks',
+              state: 'open',
+              hidden: false,
+              display: 'block',
+            },
+            {
+              value: 'accessibility',
+              state: 'closed',
+              hidden: true,
+              display: 'none',
+            },
+          ]),
+        )
+        .then(() => errors.assertClean())
+    })
+  })
+
   it('renders horizontal and vertical separators as visible surfaces', () => {
     return withShowcasePage(docsShowcaseTarget, page => {
       const errors = collectPageErrors(page)
