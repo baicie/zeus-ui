@@ -62,7 +62,6 @@ const messages = useLocalizedMessages({
 }
 
 zw-accordion-content {
-  display: block;
   padding: 0.75rem 0;
   color: var(--vp-c-text-2);
 }
