@@ -1,0 +1,12 @@
+{
+  "extends": "../../scripts/config/tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "types": ["vite/client", "vitest/globals", "node"],
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "isolatedDeclarations": false
+  },
+  "include": ["*.ts", "src/**/*.ts"]
+}
