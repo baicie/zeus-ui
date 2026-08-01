@@ -549,6 +549,20 @@ export default defineConfig({
       {
         extends: true,
         test: {
+          name: 'web-c-instance-benchmark',
+          environment: 'node',
+          include: ['benchmarks/web-c-instances/*.bench.ts'],
+          globalSetup: ['benchmarks/web-c-instances/setup.ts'],
+          testTimeout: 120_000,
+          hookTimeout: 120_000,
+          pool: 'forks',
+          fileParallelism: false,
+        },
+      },
+
+      {
+        extends: true,
+        test: {
           name: 'showcase-e2e',
           environment: 'node',
           include: ['e2e/showcase/*.spec.ts'],

@@ -1,0 +1,26 @@
+{
+  "name": "@zeus-web/benchmark-web-c-instances",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "bench": "pnpm build:deps && vitest --root ../.. --project web-c-instance-benchmark --run --reporter=verbose",
+    "build:deps": "pnpm --filter @zeus-web/button build && pnpm --filter @zeus-web/accordion build",
+    "check": "pnpm build:deps && tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@zeus-web/accordion": "workspace:*",
+    "@zeus-web/button": "workspace:*",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "vue": "^3.5.38"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
+  }
+}
