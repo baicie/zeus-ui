@@ -2,6 +2,7 @@ packages:
   - 'packages/*'
   - 'packages/primitives/*'
   - 'packages/advanced/*'
+  - 'benchmarks/*'
   - 'apps/*'
   - 'examples/*'
 
