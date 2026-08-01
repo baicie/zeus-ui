@@ -1,119 +1,223 @@
+import type { Browser } from '@playwright/test'
+import type { WebCInstanceBenchmarkScenario } from './benchmark-config'
 import type {
-  WebCInstanceBenchmarkApi,
-  WebCInstanceBenchmarkInput,
-  WebCInstanceBenchmarkKind,
-  WebCMountMetric,
-  WebCOperationMetric,
-  WebCStructureSnapshot,
-} from './src/benchmark-types'
+  WebCInstanceBenchmarkChurnSampleResult,
+  WebCInstanceBenchmarkChurnSummary,
+  WebCInstanceBenchmarkReport,
+  WebCInstanceBenchmarkSampleResult,
+  WebCInstanceBenchmarkSummary,
+} from './benchmark-results'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 import { chromium } from '@playwright/test'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { resolveBenchmarkRunConfig } from './benchmark-config'
+import {
+  summarizeBenchmarkChurnSamples,
+  summarizeBenchmarkSamples,
+} from './benchmark-results'
+import { runBenchmarkChurnSample, runBenchmarkSample } from './benchmark-runner'
 
-import { describe, expect, it } from 'vitest'
-import { WEB_C_INSTANCE_BENCHMARK_KEY } from './src/benchmark-types'
+const BENCHMARK_RESULT_PREFIX = '[web-c-instance:benchmark]'
+const BENCHMARK_CHURN_PREFIX = '[web-c-instance:churn]'
+const RESULT_PATH = fileURLToPath(
+  new URL('../../temp/web-c-instance-benchmark-results.json', import.meta.url),
+)
+const runConfig = resolveBenchmarkRunConfig()
+const summaries: WebCInstanceBenchmarkSummary[] = []
+const churnSummaries: WebCInstanceBenchmarkChurnSummary[] = []
 
-const BENCHMARK_URL = 'http://127.0.0.1:5177'
+let browser: Browser | undefined
 
-describe('web-c instance benchmark infrastructure', () => {
-  it('runs a complete custom element lifecycle in Chromium', () => {
-    return chromium.launch({ headless: true }).then(browser => {
-      return browser
-        .newPage()
-        .then(page => {
-          return page
-            .goto(BENCHMARK_URL)
-            .then(() =>
-              page.waitForFunction(key => {
-                return typeof Reflect.get(globalThis, key) === 'object'
-              }, WEB_C_INSTANCE_BENCHMARK_KEY),
-            )
-            .then(() => {
-              return page.evaluate(
-                ({ key, kind }) => {
-                  const api = Reflect.get(
-                    globalThis,
-                    key,
-                  ) as WebCInstanceBenchmarkApi
-                  return api.prepare(kind)
-                },
-                {
-                  key: WEB_C_INSTANCE_BENCHMARK_KEY,
-                  kind: 'native-button' as WebCInstanceBenchmarkKind,
-                },
-              )
-            })
-            .then(() => {
-              return page.evaluate(
-                ({ key, input }) => {
-                  const api = Reflect.get(
-                    globalThis,
-                    key,
-                  ) as WebCInstanceBenchmarkApi
-                  return api.mount(input)
-                },
-                {
-                  key: WEB_C_INSTANCE_BENCHMARK_KEY,
-                  input: {
-                    kind: 'native-button',
-                    count: 10,
-                  } as WebCInstanceBenchmarkInput,
-                },
-              )
-            })
-            .then((metric: WebCMountMetric) => {
-              expect(metric.durationMs).toBeGreaterThanOrEqual(0)
-              expect(metric.structure).toEqual({
-                buttonCount: 10,
-                customElementCount: 10,
-                totalElementCount: 51,
-                updatedElementCount: 0,
-              })
-            })
-            .then(() => {
-              return page.evaluate(key => {
-                const api = Reflect.get(
-                  globalThis,
-                  key,
-                ) as WebCInstanceBenchmarkApi
-                return api.update()
-              }, WEB_C_INSTANCE_BENCHMARK_KEY)
-            })
-            .then((metric: WebCOperationMetric) => {
-              expect(metric.durationMs).toBeGreaterThanOrEqual(0)
-              return page.evaluate(key => {
-                const api = Reflect.get(
-                  globalThis,
-                  key,
-                ) as WebCInstanceBenchmarkApi
-                return api.snapshot()
-              }, WEB_C_INSTANCE_BENCHMARK_KEY)
-            })
-            .then((snapshot: WebCStructureSnapshot) => {
-              expect(snapshot.updatedElementCount).toBe(10)
-              return page.evaluate(key => {
-                const api = Reflect.get(
-                  globalThis,
-                  key,
-                ) as WebCInstanceBenchmarkApi
-                return api.disconnect().then(() => api.reconnect())
-              }, WEB_C_INSTANCE_BENCHMARK_KEY)
-            })
-            .then((metric: WebCOperationMetric) => {
-              expect(metric.durationMs).toBeGreaterThanOrEqual(0)
-              return page.evaluate(key => {
-                const api = Reflect.get(
-                  globalThis,
-                  key,
-                ) as WebCInstanceBenchmarkApi
-                return api.dispose()
-              }, WEB_C_INSTANCE_BENCHMARK_KEY)
-            })
-            .then((metric: WebCOperationMetric) => {
-              expect(metric.durationMs).toBeGreaterThanOrEqual(0)
-              return page.locator('zw-button').count()
-            })
-            .then(count => expect(count).toBe(0))
-        })
-        .finally(() => browser.close())
+function expectedValue(
+  count: number,
+  multiplier: number,
+  offset: number,
+): number {
+  return count * multiplier + offset
+}
+
+function assertFiniteDuration(value: number): void {
+  expect(Number.isFinite(value)).toBe(true)
+  expect(value).toBeGreaterThanOrEqual(0)
+}
+
+function assertSample(
+  sample: WebCInstanceBenchmarkSampleResult,
+  scenario: WebCInstanceBenchmarkScenario,
+): void {
+  assertFiniteDuration(sample.mountMs)
+  assertFiniteDuration(sample.updateMs)
+  assertFiniteDuration(sample.disconnectMs)
+  assertFiniteDuration(sample.reconnectMs)
+  assertFiniteDuration(sample.disposeMs)
+  expect(Number.isFinite(sample.heapMountedDeltaBytes)).toBe(true)
+  expect(Number.isFinite(sample.heapRetainedBytes)).toBe(true)
+
+  const expectedButtonCount = expectedValue(
+    sample.count,
+    scenario.buttonMultiplier,
+    0,
+  )
+  const expectedCustomElementCount = expectedValue(
+    sample.count,
+    scenario.customElementMultiplier,
+    scenario.customElementOffset,
+  )
+  const expectedTotalElementCount = expectedValue(
+    sample.count,
+    scenario.totalElementMultiplier,
+    scenario.totalElementOffset,
+  )
+  const expectedUpdatedElementCount = expectedValue(
+    sample.count,
+    scenario.updatedElementMultiplier,
+    scenario.updatedElementOffset,
+  )
+
+  expect(sample.mountStructure).toEqual({
+    buttonCount: expectedButtonCount,
+    customElementCount: expectedCustomElementCount,
+    totalElementCount: expectedTotalElementCount,
+    updatedElementCount: 0,
+  })
+  expect(sample.reconnectStructure).toEqual({
+    buttonCount: expectedButtonCount,
+    customElementCount: expectedCustomElementCount,
+    totalElementCount: expectedTotalElementCount,
+    updatedElementCount: expectedUpdatedElementCount,
+  })
+  expect(sample.documentCustomElementCountAfterDispose).toBe(0)
+}
+
+function runScenarioSamples(
+  scenario: WebCInstanceBenchmarkScenario,
+  count: number,
+): Promise<WebCInstanceBenchmarkSummary> {
+  const samples: WebCInstanceBenchmarkSampleResult[] = []
+  let sequence = Promise.resolve()
+
+  for (let sample = 1; sample <= runConfig.sampleCount; sample += 1) {
+    sequence = sequence.then(() => {
+      if (!browser) throw new Error('Benchmark browser is not available.')
+
+      return runBenchmarkSample(browser, scenario, count, sample).then(
+        result => {
+          assertSample(result, scenario)
+          samples.push(result)
+        },
+      )
     })
+  }
+
+  return sequence.then(() => summarizeBenchmarkSamples(samples))
+}
+
+function assertChurnSample(
+  sample: WebCInstanceBenchmarkChurnSampleResult,
+): void {
+  expect(sample.heapRetainedBytesByRound).toHaveLength(runConfig.churn.rounds)
+  expect(sample.documentCustomElementCountAfterDisposeByRound).toHaveLength(
+    runConfig.churn.rounds,
+  )
+
+  for (const value of sample.heapRetainedBytesByRound) {
+    expect(Number.isFinite(value)).toBe(true)
+  }
+
+  for (const count of sample.documentCustomElementCountAfterDisposeByRound) {
+    expect(count).toBe(0)
+  }
+}
+
+function runChurnScenarioSamples(
+  scenario: WebCInstanceBenchmarkScenario,
+): Promise<WebCInstanceBenchmarkChurnSummary> {
+  const samples: WebCInstanceBenchmarkChurnSampleResult[] = []
+  let sequence = Promise.resolve()
+
+  for (let sample = 1; sample <= runConfig.sampleCount; sample += 1) {
+    sequence = sequence.then(() => {
+      if (!browser) throw new Error('Benchmark browser is not available.')
+
+      return runBenchmarkChurnSample(
+        browser,
+        scenario,
+        runConfig.churn.count,
+        runConfig.churn.rounds,
+        sample,
+      ).then(result => {
+        assertChurnSample(result)
+        samples.push(result)
+      })
+    })
+  }
+
+  return sequence.then(() => summarizeBenchmarkChurnSamples(samples))
+}
+
+function writeReport(report: WebCInstanceBenchmarkReport): Promise<void> {
+  return mkdir(dirname(RESULT_PATH), { recursive: true }).then(() => {
+    return writeFile(
+      RESULT_PATH,
+      `${JSON.stringify(report, null, 2)}\n`,
+      'utf8',
+    )
+  })
+}
+
+beforeAll(() => {
+  return chromium
+    .launch({
+      headless: true,
+      args: ['--enable-precise-memory-info'],
+    })
+    .then(nextBrowser => {
+      browser = nextBrowser
+    })
+})
+
+afterAll(() => {
+  if (!browser) return Promise.resolve()
+
+  const report: WebCInstanceBenchmarkReport = {
+    generatedAt: new Date().toISOString(),
+    browserVersion: browser.version(),
+    profile: runConfig.profile,
+    sampleCount: runConfig.sampleCount,
+    summaries,
+    churnSummaries,
+  }
+
+  return writeReport(report)
+    .then(() => browser!.close())
+    .then(() => {
+      browser = undefined
+    })
+})
+
+describe('web-c instance benchmark', () => {
+  for (const scenario of runConfig.scenarios) {
+    for (const count of scenario.counts) {
+      it(`${scenario.label}: ${count} logical instances`, () => {
+        return runScenarioSamples(scenario, count).then(summary => {
+          summaries.push(summary)
+          console.info(BENCHMARK_RESULT_PREFIX, JSON.stringify(summary))
+        })
+      })
+    }
+  }
+
+  describe('same-page mount and dispose churn', () => {
+    for (const scenario of runConfig.churn.scenarios) {
+      it(`${scenario.label}: ${runConfig.churn.count} instances x ${runConfig.churn.rounds} rounds`, () => {
+        return runChurnScenarioSamples(scenario).then(summary => {
+          churnSummaries.push(summary)
+          console.info(BENCHMARK_CHURN_PREFIX, JSON.stringify(summary))
+        })
+      })
+    }
   })
 })

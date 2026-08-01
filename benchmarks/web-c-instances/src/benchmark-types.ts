@@ -4,6 +4,8 @@ export type WebCInstanceBenchmarkKind =
   | 'native-button-baseline'
   | 'native-button'
   | 'react-button'
+  | 'vue-button-baseline'
+  | 'vue-native-button'
   | 'vue-button'
   | 'native-accordion'
 

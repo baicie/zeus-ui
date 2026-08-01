@@ -187,12 +187,40 @@ function renderVueButtons(
   )
 }
 
-function createVueButtonState(count: number): BenchmarkScenarioState {
+function renderVueElementButtons(
+  count: number,
+  pressed: Ref<boolean>,
+  tagName: 'button' | 'zw-button',
+): ReturnType<typeof h> {
+  return h(
+    VueFragment,
+    null,
+    Array.from({ length: count }, (_, index) => {
+      const props =
+        tagName === 'button'
+          ? { key: index, disabled: pressed.value }
+          : { key: index, pressed: pressed.value }
+
+      return h(tagName, props, `Button ${index + 1}`)
+    }),
+  )
+}
+
+function createVueButtonState(
+  count: number,
+  mode: 'button' | 'custom-element' | 'wrapper',
+): BenchmarkScenarioState {
   const container = createContainer()
   const pressed = ref(false)
   const app: App = createApp({
     render() {
-      return renderVueButtons(count, pressed)
+      return mode === 'wrapper'
+        ? renderVueButtons(count, pressed)
+        : renderVueElementButtons(
+            count,
+            pressed,
+            mode === 'button' ? 'button' : 'zw-button',
+          )
     },
   })
 
@@ -274,8 +302,12 @@ function createScenarioState(
       return createNativeButtonState(input.count, 'zw-button')
     case 'react-button':
       return createReactButtonState(input.count)
+    case 'vue-button-baseline':
+      return createVueButtonState(input.count, 'button')
+    case 'vue-native-button':
+      return createVueButtonState(input.count, 'custom-element')
     case 'vue-button':
-      return createVueButtonState(input.count)
+      return createVueButtonState(input.count, 'wrapper')
     case 'native-accordion':
       return createNativeAccordionState(input.count)
   }
