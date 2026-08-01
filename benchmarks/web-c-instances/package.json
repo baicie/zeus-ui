@@ -6,7 +6,7 @@
   "scripts": {
     "bench": "pnpm build:deps && vitest --root ../.. --project web-c-instance-benchmark --run --reporter=verbose",
     "build:deps": "pnpm --filter @zeus-web/button build && pnpm --filter @zeus-web/accordion build",
-    "check": "tsc -p tsconfig.json --noEmit"
+    "check": "pnpm build:deps && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@zeus-web/accordion": "workspace:*",

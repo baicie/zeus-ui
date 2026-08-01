@@ -16,7 +16,6 @@
     "packages/*/__tests__",
     "packages/primitives/*/__tests__",
     "packages/advanced/*/__tests__",
-    "benchmarks/**/*",
     "scripts/**/*",
     "apps/**/*",
     "apps/docs/.vitepress/**/*",
