@@ -146,7 +146,7 @@ function createExpectedPeerRange(version: string): string {
   const match = /^(\d+)\.(\d+)\.\d+/.exec(version)
 
   if (!match) {
-    return `>=${version}`
+    return '*'
   }
 
   const major = Number(match[1])

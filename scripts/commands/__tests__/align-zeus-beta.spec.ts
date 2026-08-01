@@ -76,6 +76,44 @@ describe('alignZeusBeta', () => {
     })
   })
 
+  it('uses a valid peer range when aligning to a dist-tag', () => {
+    const root = createTempRoot()
+
+    writePackage(root, 'package.json', {
+      name: 'zeus-ui-workspace',
+      private: true,
+      devDependencies: {
+        '@zeus-js/zeus': '0.1.0-beta.8',
+      },
+    })
+
+    writePackage(root, 'packages/advanced/virtual/package.json', {
+      name: '@zeus-web/virtual',
+      peerDependencies: {
+        '@zeus-js/zeus': '>=0.1.0-beta.8 <0.2.0',
+      },
+    })
+
+    const result = alignZeusBeta({
+      root,
+      version: 'canary',
+    })
+
+    expect(result.peerRange).toBe('*')
+    expect(readPackage(root, 'package.json')).toMatchObject({
+      devDependencies: {
+        '@zeus-js/zeus': 'canary',
+      },
+    })
+    expect(
+      readPackage(root, 'packages/advanced/virtual/package.json'),
+    ).toMatchObject({
+      peerDependencies: {
+        '@zeus-js/zeus': '*',
+      },
+    })
+  })
+
   it('does not rewrite package.json files when already aligned', () => {
     const root = createTempRoot()
 

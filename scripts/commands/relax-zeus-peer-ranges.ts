@@ -16,24 +16,44 @@ function toForwardSlash(value: string): string {
 
 function listPackageJsonFiles(): string[] {
   const files: string[] = []
+  const packagesDir = join(root, 'packages')
 
-  for (const rel of ['packages', 'packages/primitives']) {
-    const abs = join(root, rel)
-
-    if (!existsSync(abs)) continue
-
-    for (const entry of readdirSync(abs, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue
-
-      const file = join(abs, entry.name, 'package.json')
-
-      if (existsSync(file)) {
-        files.push(file)
-      }
-    }
+  if (existsSync(packagesDir)) {
+    walkPackageJsonFiles(packagesDir, files)
   }
 
   return files.sort()
+}
+
+function walkPackageJsonFiles(dir: string, files: string[]): void {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const file = join(dir, entry.name)
+
+    if (entry.isDirectory()) {
+      if (shouldSkipDirectory(entry.name)) {
+        continue
+      }
+
+      walkPackageJsonFiles(file, files)
+      continue
+    }
+
+    if (entry.name === 'package.json') {
+      files.push(file)
+    }
+  }
+}
+
+function shouldSkipDirectory(name: string): boolean {
+  return (
+    name === 'node_modules' ||
+    name === 'dist' ||
+    name === '.git' ||
+    name === '.turbo' ||
+    name === '.vitepress' ||
+    name === '.next' ||
+    name === 'coverage'
+  )
 }
 
 const changedPackages: string[] = []
