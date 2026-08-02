@@ -45,6 +45,16 @@ describe('package rules', () => {
       },
       peerDependencies: {
         '@zeus-js/zeus': '>=0.1.0-beta.2 <0.2.0',
+        react: '>=18 || >=19',
+        vue: '>=3',
+      },
+      peerDependenciesMeta: {
+        react: {
+          optional: true,
+        },
+        vue: {
+          optional: true,
+        },
       },
       dependencies: {
         '@zeus-js/output-react-wrapper': '0.1.0-beta.2',
@@ -85,6 +95,16 @@ describe('package rules', () => {
       },
       peerDependencies: {
         '@zeus-js/zeus': '>=0.1.0-beta.2 <0.2.0',
+        react: '>=18 || >=19',
+        vue: '>=3',
+      },
+      peerDependenciesMeta: {
+        react: {
+          optional: true,
+        },
+        vue: {
+          optional: true,
+        },
       },
       dependencies: {
         '@zeus-js/runtime-dom': '0.1.0-beta.2',
@@ -101,6 +121,57 @@ describe('package rules', () => {
     )
     expect(result.errors).toContain(
       '@zeus-web/input: primitive package must depend on @zeus-js/output-vue-wrapper',
+    )
+  })
+
+  it('rejects component packages without optional framework peers', () => {
+    const root = createTempRoot()
+    const dir = join(root, 'packages/primitives/input')
+    mkdirSync(join(dir, 'src'), { recursive: true })
+
+    writeZeusRolldownConfig(join(root, 'rolldown.config.ts'))
+    writeJson(join(dir, 'package.json'), {
+      name: '@zeus-web/input',
+      scripts: {
+        build: 'rolldown -c ../../../rolldown.config.ts',
+      },
+      sideEffects: ['./dist/wc/index.js', './dist/wc/*.js'],
+      exports: {
+        '.': {},
+        './wc': {},
+        './wc/auto': {},
+        './react': {},
+        './vue': {},
+        './vue/global': {},
+        './custom-elements.json': {},
+        './zeus.components.json': {},
+      },
+      peerDependencies: {
+        '@zeus-js/zeus': '>=0.1.0-beta.2 <0.2.0',
+      },
+      dependencies: {
+        '@zeus-js/output-react-wrapper': '0.1.0-beta.2',
+        '@zeus-js/output-vue-wrapper': '0.1.0-beta.2',
+        '@zeus-js/runtime-dom': '0.1.0-beta.2',
+        '@zeus-js/web-c-runtime': '0.1.0-beta.2',
+        '@zeus-web/zeus-compat': 'workspace:*',
+      },
+    })
+
+    const result = validatePackageRules(root, join(dir, 'package.json'))
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain(
+      '@zeus-web/input: primitive package must peer depend on react >=18 || >=19',
+    )
+    expect(result.errors).toContain(
+      '@zeus-web/input: primitive package must peer depend on vue >=3',
+    )
+    expect(result.errors).toContain(
+      '@zeus-web/input: primitive package must mark peer react as optional',
+    )
+    expect(result.errors).toContain(
+      '@zeus-web/input: primitive package must mark peer vue as optional',
     )
   })
 
@@ -536,6 +607,16 @@ describe('package rules', () => {
       },
       peerDependencies: {
         '@zeus-js/zeus': '>=0.1.0-beta.5 <0.2.0',
+        react: '>=18 || >=19',
+        vue: '>=3',
+      },
+      peerDependenciesMeta: {
+        react: {
+          optional: true,
+        },
+        vue: {
+          optional: true,
+        },
       },
       dependencies: {
         '@zeus-js/output-react-wrapper': '0.1.0-beta.5',

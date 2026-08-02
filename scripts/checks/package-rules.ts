@@ -8,6 +8,7 @@ export interface PackageJsonLike {
   sideEffects?: boolean | string[]
   exports?: Record<string, unknown>
   peerDependencies?: Record<string, string>
+  peerDependenciesMeta?: Record<string, { optional?: boolean }>
   dependencies?: Record<string, string>
   optionalDependencies?: Record<string, string>
 }
@@ -22,6 +23,11 @@ type ComponentPackageKind = 'primitive' | 'advanced'
 const generatedWrapperRuntimeDependencies = [
   '@zeus-js/output-react-wrapper',
   '@zeus-js/output-vue-wrapper',
+] as const
+
+const optionalFrameworkPeerDependencies = [
+  ['react', '>=18 || >=19'],
+  ['vue', '>=3'],
 ] as const
 
 function toForwardSlash(p: string): string {
@@ -165,6 +171,24 @@ function validateComponentPackage(
   for (const dependency of generatedWrapperRuntimeDependencies) {
     if (!pkg.dependencies || !pkg.dependencies[dependency]) {
       errors.push(`${pkg.name}: ${label} must depend on ${dependency}`)
+    }
+  }
+
+  for (const [dependency, version] of optionalFrameworkPeerDependencies) {
+    if (!pkg.peerDependencies || pkg.peerDependencies[dependency] !== version) {
+      errors.push(
+        `${pkg.name}: ${label} must peer depend on ${dependency} ${version}`,
+      )
+    }
+
+    if (
+      !pkg.peerDependenciesMeta ||
+      !pkg.peerDependenciesMeta[dependency] ||
+      pkg.peerDependenciesMeta[dependency].optional !== true
+    ) {
+      errors.push(
+        `${pkg.name}: ${label} must mark peer ${dependency} as optional`,
+      )
     }
   }
 

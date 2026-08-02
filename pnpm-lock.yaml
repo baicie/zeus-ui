@@ -794,6 +794,12 @@ importers:
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.38(typescript@6.0.3)
 
   packages/advanced/chat:
     dependencies:
@@ -878,6 +884,12 @@ importers:
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
+      react:
+        specifier: '>=18 || >=19'
+        version: 19.2.7
+      vue:
+        specifier: '>=3'
+        version: 3.5.38(typescript@6.0.3)
 
   packages/advanced/virtual:
     dependencies:
