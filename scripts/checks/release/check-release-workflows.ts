@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
 
@@ -160,6 +160,12 @@ function expectNotMatch(
 ): void {
   if (forbidden.test(source)) {
     errors.push(`${label} must not match ${forbidden}`)
+  }
+}
+
+function expectPathAbsent(root: string, path: string, errors: string[]): void {
+  if (existsSync(resolve(root, path))) {
+    errors.push(`${path} must not exist`)
   }
 }
 
@@ -1174,6 +1180,9 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
 
 export function checkReleaseWorkflowContract(root = process.cwd()): string[] {
   const errors: string[] = []
+
+  expectPathAbsent(root, '.github/workflows/npm-dist-tag.yml', errors)
+  expectPathAbsent(root, 'scripts/commands/remove-npm-dist-tag.ts', errors)
 
   try {
     checkReleaseWorkflow(root, errors)
