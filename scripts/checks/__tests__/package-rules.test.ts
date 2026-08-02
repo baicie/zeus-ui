@@ -487,6 +487,9 @@ describe('package rules', () => {
         '.': {},
         './capabilities': {},
       },
+      dependencies: {
+        '@zeus-js/runtime-dom': '0.1.0-beta.8',
+      },
       peerDependencies: {
         '@zeus-js/zeus': '>=0.1.0-beta.2 <0.2.0',
       },
@@ -496,6 +499,31 @@ describe('package rules', () => {
 
     expect(result.valid).toBe(true)
     expect(result.errors).toEqual([])
+  })
+
+  it('rejects zeus-compat without its exported DOM runtime dependency', () => {
+    const root = createTempRoot()
+    const dir = join(root, 'packages/zeus-compat')
+
+    mkdirSync(dir, { recursive: true })
+
+    writeJson(join(dir, 'package.json'), {
+      name: '@zeus-web/zeus-compat',
+      exports: {
+        '.': {},
+        './capabilities': {},
+      },
+      peerDependencies: {
+        '@zeus-js/zeus': '>=0.1.0-beta.2 <0.2.0',
+      },
+    })
+
+    const result = validatePackageRules(root, join(dir, 'package.json'))
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain(
+      '@zeus-web/zeus-compat: must depend on @zeus-js/runtime-dom',
+    )
   })
 
   it('rejects zeus-compat packages that peer depend on Zeus internals', () => {

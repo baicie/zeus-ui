@@ -33,6 +33,9 @@
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "vitest --project unit-jsdom"
   },
+  "dependencies": {
+    "@zeus-js/runtime-dom": "0.1.0-beta.8"
+  },
   "peerDependencies": {
     "@zeus-js/zeus": "0.1.0-beta.8"
   }
