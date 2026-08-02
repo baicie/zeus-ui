@@ -19,6 +19,11 @@ export interface PackageRuleResult {
 
 type ComponentPackageKind = 'primitive' | 'advanced'
 
+const generatedWrapperRuntimeDependencies = [
+  '@zeus-js/output-react-wrapper',
+  '@zeus-js/output-vue-wrapper',
+] as const
+
 function toForwardSlash(p: string): string {
   return p.replace(/\\/g, '/')
 }
@@ -82,6 +87,7 @@ function validateZeusDependencyBoundary(
   },
 ): void {
   const allowedComponentRuntimeDependencies = new Set([
+    ...generatedWrapperRuntimeDependencies,
     '@zeus-js/runtime-dom',
     '@zeus-js/web-c-runtime',
   ])
@@ -154,6 +160,12 @@ function validateComponentPackage(
     errors.push(
       `${pkg.name}: ${label} must depend on @zeus-web/zeus-compat workspace:*`,
     )
+  }
+
+  for (const dependency of generatedWrapperRuntimeDependencies) {
+    if (!pkg.dependencies || !pkg.dependencies[dependency]) {
+      errors.push(`${pkg.name}: ${label} must depend on ${dependency}`)
+    }
   }
 
   for (const key of [
