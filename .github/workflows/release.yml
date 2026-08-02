@@ -32,9 +32,19 @@ jobs:
   validate-context:
     runs-on: ubuntu-latest
     permissions: {}
+    env:
+      VERSION: ${{ inputs.version }}
+      TAG: ${{ inputs.tag }}
     steps:
       - name: Verify release context
         run: test "$GITHUB_REF" = "refs/heads/main"
+
+      - name: Verify release channel
+        run: |
+          case "$VERSION" in
+            *-*) test "$TAG" = "beta" ;;
+            *) test "$TAG" = "latest" ;;
+          esac
 
   dry-run:
     needs: validate-context
@@ -78,7 +88,7 @@ jobs:
     permissions:
       contents: write
     outputs:
-      release_sha: ${{ steps.release_commit.outputs.sha }}
+      release_sha: ${{ steps.tag_release.outputs.sha }}
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
       VERSION: ${{ inputs.version }}
@@ -89,6 +99,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: main
+          persist-credentials: false
 
       - name: Verify dispatch revision
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
@@ -103,20 +114,34 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Configure Git identity
+      - name: Verify prepared release
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          test -z "$(git status --porcelain)"
+          pnpm release "$VERSION" --tag "$TAG" --skipGit
+          test -z "$(git status --porcelain)"
 
-      - name: Release
-        run: pnpm release "$VERSION" --tag "$TAG"
-
-      - name: Capture release commit
-        id: release_commit
+      - name: Tag release
+        id: tag_release
         run: |
-          release_sha="$(git rev-parse "refs/tags/v${VERSION}^{commit}")"
-          test "$(git rev-parse HEAD)" = "$release_sha"
+          release_sha="$(git rev-parse HEAD)"
+          tag_api="repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION"
+
+          test "$release_sha" = "$GITHUB_SHA"
+          main_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
+          test "$main_sha" = "$release_sha"
+
+          if tag_sha="$(gh api "$tag_api" --jq '.object.sha' 2>/dev/null)"; then
+            test "$tag_sha" = "$release_sha"
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              --raw-field ref="refs/tags/v$VERSION" \
+              --raw-field sha="$release_sha" >/dev/null
+          fi
+
+          test "$(gh api "$tag_api" --jq '.object.sha')" = "$release_sha"
           echo "sha=$release_sha" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
 
   dispatch-publish:
     needs: release
