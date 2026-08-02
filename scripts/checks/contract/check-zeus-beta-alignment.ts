@@ -2,6 +2,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import { createZeusPeerRequirement } from '../../release/zeus-peer-requirement'
+
 const DEFAULT_EXPECTED_ZEUS_VERSION = '0.1.0-beta.8'
 const ZEUS_SCOPE = '@zeus-js/'
 
@@ -273,17 +275,11 @@ function readPackageJson(file: string): PackageJson {
 }
 
 function createExpectedPeerRange(version: string): string {
-  const match = /^(\d+)\.(\d+)\.\d+/.exec(version)
-
-  if (!match) {
+  if (!/^\d+\.\d+\.\d+/.test(version)) {
     return `>=${version}`
   }
 
-  const major = Number(match[1])
-  const minor = Number(match[2])
-  const upperBound = major === 0 ? `<0.${minor + 1}.0` : `<${major + 1}.0.0`
-
-  return `>=${version} ${upperBound}`
+  return createZeusPeerRequirement(version)
 }
 
 function slash(value: string): string {

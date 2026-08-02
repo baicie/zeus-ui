@@ -652,6 +652,11 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
     'Publish package',
     'publish.jobs.publish',
   )
+  const verifyPublished = getNamedStep(
+    publish,
+    'Verify published packages',
+    'publish.jobs.publish',
+  )
   const verifyTag = getNamedStep(
     publish,
     'Verify release tag',
@@ -838,6 +843,7 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       'pnpm check:build-output',
       'pnpm release:verify:pack',
       'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
+      'pnpm release:verify:published --version "$VERSION" --tag "$TAG"',
     ],
     'publish.jobs.publish run command order',
     errors,
@@ -856,6 +862,25 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       NODE_AUTH_TOKEN: githubExpression('secrets.NPM_PUBLISH_TOKEN'),
     },
     'publish.jobs.publish.steps.Publish package.env',
+    errors,
+  )
+  expectEqual(
+    verifyPublished.run,
+    'pnpm release:verify:published --version "$VERSION" --tag "$TAG"',
+    'publish.jobs.publish.steps.Verify published packages.run',
+    errors,
+  )
+  expectEqual(
+    getObject(
+      verifyPublished,
+      'env',
+      'publish.jobs.publish.steps.Verify published packages',
+    ),
+    {
+      VERSION: githubExpression('inputs.version'),
+      TAG: githubExpression('inputs.tag'),
+    },
+    'publish.jobs.publish.steps.Verify published packages.env',
     errors,
   )
   expectNotContains(source, 'npm@latest', 'publish.yml', errors)

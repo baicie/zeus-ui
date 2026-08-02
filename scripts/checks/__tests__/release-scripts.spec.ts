@@ -104,6 +104,9 @@ describe('release script contract', () => {
     expect(packageJson.scripts['release:final']).toBe(
       'tsx scripts/checks/release/check-release-final.ts',
     )
+    expect(packageJson.scripts['release:verify:published']).toBe(
+      'tsx scripts/checks/release/check-published-packages.ts',
+    )
     expect(packageJson.scripts['check:phase24-release']).toBe(
       'tsx scripts/checks/release/check-phase24-release.ts',
     )
@@ -112,6 +115,9 @@ describe('release script contract', () => {
     )
     expect(packageJson.scripts['ci-publish']).toBe(
       'tsx scripts/commands/publish.ts',
+    )
+    expect(packageJson.scripts['npm:dist-tag:remove']).toBe(
+      'tsx scripts/commands/remove-npm-dist-tag.ts',
     )
   })
 
@@ -345,6 +351,7 @@ describe('release script contract', () => {
       step => step.run === 'pnpm install --frozen-lockfile',
     )
     const publishStep = getNamedStep(publish, 'Publish package')
+    const verifyPublished = getNamedStep(publish, 'Verify published packages')
     const verifyTag = getNamedStep(publish, 'Verify release tag')
     const verifyContext = getNamedStep(publish, 'Verify dispatch context')
 
@@ -439,6 +446,7 @@ describe('release script contract', () => {
       'pnpm check:build-output',
       'pnpm release:verify:pack',
       'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
+      'pnpm release:verify:published --version "$VERSION" --tag "$TAG"',
     ])
     expect(publishStep.run).toBe(
       'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
@@ -448,10 +456,66 @@ describe('release script contract', () => {
       TAG: githubExpression('inputs.tag'),
       NODE_AUTH_TOKEN: githubExpression('secrets.NPM_PUBLISH_TOKEN'),
     })
+    expect(verifyPublished.run).toBe(
+      'pnpm release:verify:published --version "$VERSION" --tag "$TAG"',
+    )
+    expect(getObject(verifyPublished, 'env')).toEqual({
+      VERSION: githubExpression('inputs.version'),
+      TAG: githubExpression('inputs.tag'),
+    })
     expect(source).not.toContain('npm@latest')
     expect(source).not.toContain('npm i -g')
     expect(source).not.toContain('default@')
     expect(source).not.toContain('--tag latest')
+    expect(source).not.toMatch(/uses:\s+\S+@v\d/)
+  })
+
+  it('removes npm dist-tags through the protected Release environment', () => {
+    const { source, workflow } = readWorkflow('npm-dist-tag.yml')
+    const triggers = getObject(workflow, 'on')
+    const workflowDispatch = getObject(triggers, 'workflow_dispatch')
+    const inputs = getObject(workflowDispatch, 'inputs')
+    const jobs = getObject(workflow, 'jobs')
+    const remove = getObject(jobs, 'remove')
+    const verifyContext = getNamedStep(remove, 'Verify dispatch context')
+    const checkout = getActionStep(remove, CHECKOUT_ACTION_REF)
+    const removeTag = getNamedStep(remove, 'Remove npm dist-tag')
+
+    expect(Object.keys(triggers)).toEqual(['workflow_dispatch'])
+    expect(inputs).toEqual({
+      version: {
+        description: 'Published version that currently owns the tag',
+        required: true,
+        type: 'string',
+      },
+      tag: {
+        description: 'npm dist-tag to remove',
+        required: true,
+        type: 'choice',
+        options: ['latest'],
+      },
+    })
+    expect(Object.keys(jobs)).toEqual(['remove'])
+    expect(remove.environment).toBe('Release')
+    expect(getObject(remove, 'permissions')).toEqual({ contents: 'read' })
+    expect(getActionRefs(remove)).toEqual(RELEASE_ACTION_REFS)
+    expect(getObject(remove, 'env')).toEqual({
+      VERSION: githubExpression('inputs.version'),
+      TAG: githubExpression('inputs.tag'),
+    })
+    expect(verifyContext.run).toBe('test "$GITHUB_REF" = "refs/heads/main"')
+    expect(getObject(checkout, 'with')).toEqual({
+      ref: 'main',
+      'persist-credentials': false,
+    })
+    expect(getRunCommands(remove)).toEqual([
+      'test "$GITHUB_REF" = "refs/heads/main"',
+      'pnpm install --frozen-lockfile',
+      'pnpm npm:dist-tag:remove --version "$VERSION" --tag "$TAG"',
+    ])
+    expect(getObject(removeTag, 'env')).toEqual({
+      NODE_AUTH_TOKEN: githubExpression('secrets.NPM_PUBLISH_TOKEN'),
+    })
     expect(source).not.toMatch(/uses:\s+\S+@v\d/)
   })
 })

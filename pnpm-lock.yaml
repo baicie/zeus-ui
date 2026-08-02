@@ -774,7 +774,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/chat':
         specifier: workspace:*
@@ -798,7 +798,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/virtual':
         specifier: workspace:*
@@ -822,7 +822,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/virtual':
         specifier: workspace:*
@@ -846,7 +846,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/data-grid':
         specifier: workspace:*
@@ -864,7 +864,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -941,7 +941,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -962,7 +962,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -983,7 +983,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -1004,7 +1004,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -1025,7 +1025,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -1046,7 +1046,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -1067,7 +1067,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -1088,7 +1088,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -1109,7 +1109,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -1130,7 +1130,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -1151,7 +1151,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -1172,7 +1172,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -1193,7 +1193,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -1214,7 +1214,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -1235,7 +1235,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -1256,7 +1256,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -1277,7 +1277,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -1298,7 +1298,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -1319,7 +1319,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -1340,7 +1340,7 @@ importers:
         specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
       '@zeus-web/zeus-compat':
         specifier: workspace:*
@@ -1441,7 +1441,7 @@ importers:
   packages/zeus-compat:
     dependencies:
       '@zeus-js/zeus':
-        specifier: '>=0.1.0-beta.8 <0.2.0'
+        specifier: 0.1.0-beta.8
         version: 0.1.0-beta.8
 
 packages:

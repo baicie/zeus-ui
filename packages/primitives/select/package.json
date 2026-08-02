@@ -59,7 +59,7 @@
     "test": "pnpm build && vitest --root ../../.. --project unit-jsdom packages/primitives/select/__tests__/select.spec.ts --run"
   },
   "peerDependencies": {
-    "@zeus-js/zeus": ">=0.1.0-beta.8 <0.2.0",
+    "@zeus-js/zeus": "0.1.0-beta.8",
     "react": ">=18 || >=19",
     "vue": ">=3"
   },
