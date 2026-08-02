@@ -45,6 +45,7 @@
     "check:phase24-release": "tsx scripts/checks/release/check-phase24-release.ts",
     "version:packages": "tsx scripts/commands/version-packages.ts",
     "ci-publish": "tsx scripts/commands/publish.ts",
+    "npm:dist-tag:remove": "tsx scripts/commands/remove-npm-dist-tag.ts",
     "preinstall": "npx only-allow pnpm",
     "postinstall": "simple-git-hooks",
     "docs:dev": "vitepress dev apps/docs",
