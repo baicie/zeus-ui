@@ -92,3 +92,9 @@ jobs:
           VERSION: ${{ inputs.version }}
           TAG: ${{ inputs.tag }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
+
+      - name: Verify published packages
+        run: pnpm release:verify:published --version "$VERSION" --tag "$TAG"
+        env:
+          VERSION: ${{ inputs.version }}
+          TAG: ${{ inputs.tag }}

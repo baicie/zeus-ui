@@ -104,6 +104,9 @@ describe('release script contract', () => {
     expect(packageJson.scripts['release:final']).toBe(
       'tsx scripts/checks/release/check-release-final.ts',
     )
+    expect(packageJson.scripts['release:verify:published']).toBe(
+      'tsx scripts/checks/release/check-published-packages.ts',
+    )
     expect(packageJson.scripts['check:phase24-release']).toBe(
       'tsx scripts/checks/release/check-phase24-release.ts',
     )
@@ -345,6 +348,7 @@ describe('release script contract', () => {
       step => step.run === 'pnpm install --frozen-lockfile',
     )
     const publishStep = getNamedStep(publish, 'Publish package')
+    const verifyPublished = getNamedStep(publish, 'Verify published packages')
     const verifyTag = getNamedStep(publish, 'Verify release tag')
     const verifyContext = getNamedStep(publish, 'Verify dispatch context')
 
@@ -439,6 +443,7 @@ describe('release script contract', () => {
       'pnpm check:build-output',
       'pnpm release:verify:pack',
       'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
+      'pnpm release:verify:published --version "$VERSION" --tag "$TAG"',
     ])
     expect(publishStep.run).toBe(
       'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
@@ -447,6 +452,13 @@ describe('release script contract', () => {
       VERSION: githubExpression('inputs.version'),
       TAG: githubExpression('inputs.tag'),
       NODE_AUTH_TOKEN: githubExpression('secrets.NPM_PUBLISH_TOKEN'),
+    })
+    expect(verifyPublished.run).toBe(
+      'pnpm release:verify:published --version "$VERSION" --tag "$TAG"',
+    )
+    expect(getObject(verifyPublished, 'env')).toEqual({
+      VERSION: githubExpression('inputs.version'),
+      TAG: githubExpression('inputs.tag'),
     })
     expect(source).not.toContain('npm@latest')
     expect(source).not.toContain('npm i -g')

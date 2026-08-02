@@ -40,6 +40,7 @@
     "release:verify": "tsx scripts/checks/release/check-release-readiness.ts",
     "release:verify:strict": "tsx scripts/checks/release/check-release-readiness.ts --strict",
     "release:verify:pack": "tsx scripts/checks/release/check-release-tarballs.ts",
+    "release:verify:published": "tsx scripts/checks/release/check-published-packages.ts",
     "release:final": "tsx scripts/checks/release/check-release-final.ts",
     "check:phase24-release": "tsx scripts/checks/release/check-phase24-release.ts",
     "version:packages": "tsx scripts/commands/version-packages.ts",
