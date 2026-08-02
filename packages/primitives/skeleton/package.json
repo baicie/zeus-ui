@@ -1,7 +1,7 @@
 {
   "name": "@zeus-web/skeleton",
   "type": "module",
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.2",
   "description": "Headless skeleton primitive for Zeus Web.",
   "license": "MIT",
   "repository": {

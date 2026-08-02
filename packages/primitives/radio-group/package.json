@@ -1,7 +1,7 @@
 {
   "name": "@zeus-web/radio-group",
   "type": "module",
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.2",
   "description": "Headless radio-group primitive for Zeus Web.",
   "license": "MIT",
   "repository": {
