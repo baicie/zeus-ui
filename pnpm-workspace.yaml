@@ -12,3 +12,4 @@ allowBuilds:
 
 overrides:
   chokidar: 4.0.2
+  vue: 3.5.38
