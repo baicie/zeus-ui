@@ -14,8 +14,9 @@ pnpm release:final 0.1.0-beta.0 --allow-zero
 The general form is `pnpm release:final <version> [--allow-zero]`.
 
 The final dry-run can temporarily update package versions, changelog files and
-the lockfile. Run it in a temporary worktree, or restore those local changes
-after verification.
+the lockfile. For a real release, run it on the release branch, keep the target
+version files and merge them through a pull request. For verification only, use
+a temporary worktree or restore the temporary changes afterwards.
 
 This runs:
 
@@ -155,34 +156,58 @@ release version must still be a valid, non-zero semver version.
 
 ## Before publishing
 
-1. Ensure working tree is clean.
-2. Run `pnpm release:final 0.1.0-beta.0 --allow-zero`.
-3. Run `pnpm release:plan`.
-4. Review package versions.
-5. Ensure the repository Actions secret `NPM_PUBLISH_TOKEN` and the `Release`
-   environment are configured.
-6. Dispatch the release workflow from `main`.
+1. Create a clean `release/<version>` branch from the latest `main`.
+2. Prepare the root and all 36 package versions with
+   `pnpm release <version> --tag <tag> --skipGit`.
+3. Run `pnpm release:final 0.1.0-beta.0 --allow-zero` when releasing from zero,
+   or pass the target version without `--allow-zero` for later releases.
+4. Run `pnpm release:plan --tag <tag>` and review every version change.
+5. Commit the prepared version files, open a pull request, wait for all required
+   checks and merge it into `main`.
+6. Ensure the repository Actions secret `NPM_PUBLISH_TOKEN` is configured, the
+   `Release` environment has a required reviewer, and an active tag ruleset
+   blocks updates and deletions for `refs/tags/v*`.
+7. Dispatch the release workflow from `main`, after confirming that it contains
+   the merged version pull request.
 
 The release workflow serializes releases per repository. A tokenless
 `validate-context` job fails explicitly when dispatch does not target `main`.
-Dry runs execute in a separate `contents: read` job with checkout credential
-persistence disabled.
-Only the real release job receives `contents: write`, configures the Git
-identity, and creates the release commit and tag. Neither job receives npm
-credentials. The release job exports the tag commit as `release_sha`, then a
-narrowly scoped `dispatch-publish` job starts a separate `publish.yml`
-`workflow_dispatch` run with `v<version>` as its workflow ref. This separate
-tag-scoped event is required so npm provenance receives the actual release
-`GITHUB_REF` and `GITHUB_SHA`, rather than the earlier release-dispatch commit.
+Prerelease versions must use the `beta` dist-tag, while stable versions must
+use `latest`. The publish workflow repeats the same check before npm access.
+Dry runs execute in a separate `contents: read` job. Both release checkouts
+have credential persistence disabled. Only the real release job receives
+`contents: write`, and only the `Tag release` step receives its GitHub token
+through a step-local `GH_TOKEN`; dependency installation and repository release
+scripts cannot reuse that credential. The job runs the release tool
+with `--skipGit` to verify the versions already merged through the pull request,
+and requires a clean worktree both before and after that verification. Just
+before tagging, it queries `main` through the GitHub refs API and fails unless
+the remote commit still equals the dispatch `GITHUB_SHA`. It creates the
+lightweight version ref through that API only when the remote tag is absent and
+safely reuses an existing tag only when it points directly to the same commit.
+The real release job never commits or pushes `main`, never force-pushes and
+never replaces or deletes a tag. Neither release job receives npm credentials.
+
+The release job exports the tag commit as `release_sha`, then a narrowly scoped
+`dispatch-publish` job starts a separate `publish.yml` `workflow_dispatch` run
+with `v<version>` as its workflow ref. This separate tag-scoped event is
+required so npm provenance receives the actual release `GITHUB_REF` and `GITHUB_SHA`,
+rather than the earlier release-dispatch commit.
 After any `Release` environment approval, publish explicitly fails unless its
 event ref/SHA matches version and `release_sha`. It checks out that immutable
-SHA with credential persistence disabled and verifies that `v<version>` still
-resolves to it. A fresh checkout has no ignored `dist/` outputs, so publish runs
+SHA with credential persistence disabled, verifies that `v<version>` resolves
+to it, refreshes the fixed remote `main` refspec, and runs
+`git merge-base --is-ancestor --` before installation to prove the release SHA
+belongs to protected `main`. A fresh checkout has no ignored `dist/` outputs,
+so publish runs
 `pnpm build`, `pnpm check:build-output` and `pnpm release:verify:pack` before
-`ci-publish`. It receives only `NPM_PUBLISH_TOKEN` and serializes publication
+`ci-publish`. It revalidates the remote version tag immediately before npm
+access. It receives only `NPM_PUBLISH_TOKEN` and serializes publication
 per npm dist-tag. The reusable `workflow_call` entry is subject to the same
 tag/SHA checks. All third-party Actions in these privileged workflows are
-pinned to a full commit SHA.
+pinned to a full commit SHA. The required environment review is the human gate;
+the active tag ruleset is the repository-level guarantee that release tags
+cannot be updated or deleted during the workflow.
 
 ## Non-goals
 

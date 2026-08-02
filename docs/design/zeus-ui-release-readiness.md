@@ -30,6 +30,15 @@ pnpm release:verify:pack
 pnpm release:final 0.1.0-beta.0 --allow-zero
 ```
 
+## Workflow security rules
+
+- Release checkouts disable credential persistence.
+- Only the tag step receives the contents-write GitHub token.
+- Publish proves the release SHA is an ancestor of remote `main` before install.
+- Publish revalidates the remote version tag immediately before npm access.
+- The `Release` environment requires review, and an active `refs/tags/v*`
+  ruleset blocks tag updates and deletions.
+
 ## Publishable package rules
 
 Every publishable package must:
@@ -89,7 +98,9 @@ Release workflow orchestration and permissions are enforced separately.
 Dry-run orchestration is read-only, checkout credentials are not persisted,
 and third-party Actions in the release path are pinned to full commit SHAs.
 An unprivileged validation job fails non-`main` dispatches explicitly.
-Publish checks out the captured release commit SHA, verifies the version tag,
+Prerelease versions must use `beta`; stable versions must use `latest`.
+Publish repeats this channel check before npm access.
+Publish checks out the captured merged `main` commit SHA, verifies the version tag,
 then performs a fresh build and tarball validation before contacting npm.
 Release dispatches publish as a separate tag-scoped run so npm provenance uses
 the release tag and commit rather than the earlier manual-dispatch context.

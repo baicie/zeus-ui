@@ -61,6 +61,16 @@ function getRunCommands(job: WorkflowObject, label: string): string[] {
     .map(step => String(step.run).trim())
 }
 
+function getStepOrder(job: WorkflowObject, label: string): string[] {
+  return getSteps(job, label).map((step, index) => {
+    if (typeof step.name === 'string') return step.name
+    if (typeof step.uses === 'string') return step.uses
+    if (typeof step.run === 'string') return String(step.run).trim()
+
+    throw new Error(`${label}.steps[${index}] must have name, uses, or run`)
+  })
+}
+
 export function githubExpression(value: string): string {
   const dollar = String.fromCharCode(36)
   return `${dollar}{{ ${value} }}`
@@ -131,17 +141,6 @@ function expectEqual(
   }
 }
 
-function expectContains(
-  source: string,
-  expected: string,
-  label: string,
-  errors: string[],
-): void {
-  if (!source.includes(expected)) {
-    errors.push(`${label} must contain "${expected}"`)
-  }
-}
-
 function expectNotContains(
   source: string,
   forbidden: string,
@@ -151,6 +150,52 @@ function expectNotContains(
   if (source.includes(forbidden)) {
     errors.push(`${label} must not contain "${forbidden}"`)
   }
+}
+
+function expectNotMatch(
+  source: string,
+  forbidden: RegExp,
+  label: string,
+  errors: string[],
+): void {
+  if (forbidden.test(source)) {
+    errors.push(`${label} must not match ${forbidden}`)
+  }
+}
+
+function expectFailClosedStep(
+  step: WorkflowObject,
+  label: string,
+  errors: string[],
+): void {
+  expectEqual(step.if, undefined, `${label}.if`, errors)
+  expectEqual(
+    step['continue-on-error'],
+    undefined,
+    `${label}.continue-on-error`,
+    errors,
+  )
+  expectEqual(step.shell, undefined, `${label}.shell`, errors)
+}
+
+function expectFailClosedRunSteps(
+  job: WorkflowObject,
+  label: string,
+  errors: string[],
+): void {
+  expectEqual(job.defaults, undefined, `${label}.defaults`, errors)
+  expectEqual(
+    job['continue-on-error'],
+    undefined,
+    `${label}.continue-on-error`,
+    errors,
+  )
+
+  getSteps(job, label).forEach((step, index) => {
+    if (typeof step.run === 'string') {
+      expectFailClosedStep(step, `${label}.steps[${index}]`, errors)
+    }
+  })
 }
 
 function checkReleaseWorkflow(root: string, errors: string[]): void {
@@ -208,6 +253,11 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
     'Verify release context',
     'release.jobs.validate-context',
   )
+  const validateChannelStep = getNamedStep(
+    validateContext,
+    'Verify release channel',
+    'release.jobs.validate-context',
+  )
   const checkout = getActionStep(
     release,
     CHECKOUT_ACTION_REF,
@@ -228,15 +278,14 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
     'Dry-run release',
     'release.jobs.dry-run',
   )
-  const gitIdentity = getNamedStep(
+  const realRelease = getNamedStep(
     release,
-    'Configure Git identity',
+    'Verify prepared release',
     'release.jobs.release',
   )
-  const realRelease = getNamedStep(release, 'Release', 'release.jobs.release')
-  const captureRelease = getNamedStep(
+  const tagRelease = getNamedStep(
     release,
-    'Capture release commit',
+    'Tag release',
     'release.jobs.release',
   )
   const dispatchPublishStep = getNamedStep(
@@ -314,6 +363,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
     'release.permissions',
     errors,
   )
+  expectEqual(workflow.defaults, undefined, 'release.defaults', errors)
   expectEqual(
     getObject(workflow, 'concurrency', 'release'),
     {
@@ -342,9 +392,29 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
     errors,
   )
   expectEqual(
+    getObject(validateContext, 'env', 'release.jobs.validate-context'),
+    {
+      VERSION: githubExpression('inputs.version'),
+      TAG: githubExpression('inputs.tag'),
+    },
+    'release.jobs.validate-context.env',
+    errors,
+  )
+  expectEqual(
     validateContextStep.run,
     'test "$GITHUB_REF" = "refs/heads/main"',
     'release.jobs.validate-context.steps.Verify release context.run',
+    errors,
+  )
+  expectEqual(
+    String(validateChannelStep.run).trim(),
+    [
+      'case "$VERSION" in',
+      '  *-*) test "$TAG" = "beta" ;;',
+      '  *) test "$TAG" = "latest" ;;',
+      'esac',
+    ].join('\n'),
+    'release.jobs.validate-context.steps.Verify release channel.run',
     errors,
   )
   expectEqual(
@@ -447,7 +517,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
   expectEqual(
     getObject(release, 'outputs', 'release.jobs.release'),
     {
-      release_sha: githubExpression('steps.release_commit.outputs.sha'),
+      release_sha: githubExpression('steps.tag_release.outputs.sha'),
     },
     'release.jobs.release.outputs',
     errors,
@@ -470,7 +540,11 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
   )
   expectEqual(
     getObject(checkout, 'with', 'release.jobs.release.checkout'),
-    { 'fetch-depth': 0, ref: 'main' },
+    {
+      'fetch-depth': 0,
+      ref: 'main',
+      'persist-credentials': false,
+    },
     'release.jobs.release.checkout.with',
     errors,
   )
@@ -487,49 +561,63 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
     errors,
   )
   expectEqual(
-    gitIdentity.if,
-    undefined,
-    'release.jobs.release.steps.Configure Git identity.if',
-    errors,
-  )
-  expectContains(
-    String(gitIdentity.run),
-    'git config user.name "github-actions[bot]"',
-    'release.jobs.release.steps.Configure Git identity.run',
-    errors,
-  )
-  expectContains(
-    String(gitIdentity.run),
-    'git config user.email "41898282+github-actions[bot]@users.noreply.github.com"',
-    'release.jobs.release.steps.Configure Git identity.run',
-    errors,
-  )
-  expectEqual(
     realRelease.if,
     undefined,
-    'release.jobs.release.steps.Release.if',
+    'release.jobs.release.steps.Verify prepared release.if',
     errors,
   )
   expectEqual(
-    realRelease.run,
-    'pnpm release "$VERSION" --tag "$TAG"',
-    'release.jobs.release.steps.Release.run',
-    errors,
-  )
-  expectEqual(
-    captureRelease.id,
-    'release_commit',
-    'release.jobs.release.steps.Capture release commit.id',
-    errors,
-  )
-  expectEqual(
-    String(captureRelease.run).trim(),
+    String(realRelease.run).trim(),
     [
-      `release_sha="$(git rev-parse "refs/tags/v${shellVariable('VERSION')}^{commit}")"`,
-      'test "$(git rev-parse HEAD)" = "$release_sha"',
+      'test -z "$(git status --porcelain)"',
+      'pnpm release "$VERSION" --tag "$TAG" --skipGit',
+      'test -z "$(git status --porcelain)"',
+    ].join('\n'),
+    'release.jobs.release.steps.Verify prepared release.run',
+    errors,
+  )
+  expectEqual(
+    String(tagRelease.run).trim(),
+    [
+      'release_sha="$(git rev-parse HEAD)"',
+      'tag_api="repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION"',
+      '',
+      'test "$release_sha" = "$GITHUB_SHA"',
+      'main_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq \'.object.sha\')"',
+      'test "$main_sha" = "$release_sha"',
+      '',
+      'if tag_sha="$(gh api "$tag_api" --jq \'.object.sha\' 2>/dev/null)"; then',
+      '  test "$tag_sha" = "$release_sha"',
+      'else',
+      '  gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \\',
+      '    --raw-field ref="refs/tags/v$VERSION" \\',
+      '    --raw-field sha="$release_sha" >/dev/null',
+      'fi',
+      '',
+      'test "$(gh api "$tag_api" --jq \'.object.sha\')" = "$release_sha"',
       'echo "sha=$release_sha" >> "$GITHUB_OUTPUT"',
     ].join('\n'),
-    'release.jobs.release.steps.Capture release commit.run',
+    'release.jobs.release.steps.Tag release.run',
+    errors,
+  )
+  expectEqual(
+    tagRelease.id,
+    'tag_release',
+    'release.jobs.release.steps.Tag release.id',
+    errors,
+  )
+  expectEqual(
+    getObject(tagRelease, 'env', 'release.jobs.release.steps.Tag release'),
+    { GH_TOKEN: githubExpression('github.token') },
+    'release.jobs.release.steps.Tag release.env',
+    errors,
+  )
+  expectEqual(
+    releaseSteps
+      .filter(step => JSON.stringify(step.env || '').includes('github.token'))
+      .map(step => step.name),
+    ['Tag release'],
+    'release.jobs.release GitHub token steps',
     errors,
   )
   expectNotContains(
@@ -610,10 +698,122 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
     'release.jobs.dispatch-publish.steps.Dispatch publish workflow.env',
     errors,
   )
+  expectEqual(
+    getStepOrder(validateContext, 'release.jobs.validate-context'),
+    ['Verify release context', 'Verify release channel'],
+    'release.jobs.validate-context step order',
+    errors,
+  )
+  expectEqual(
+    getStepOrder(dryRunJob, 'release.jobs.dry-run'),
+    [
+      CHECKOUT_ACTION_REF,
+      'Verify dispatch revision',
+      PNPM_SETUP_ACTION_REF,
+      SETUP_NODE_ACTION_REF,
+      'pnpm install --frozen-lockfile',
+      'Dry-run release',
+    ],
+    'release.jobs.dry-run step order',
+    errors,
+  )
+  expectEqual(
+    getStepOrder(release, 'release.jobs.release'),
+    [
+      CHECKOUT_ACTION_REF,
+      'Verify dispatch revision',
+      PNPM_SETUP_ACTION_REF,
+      SETUP_NODE_ACTION_REF,
+      'pnpm install --frozen-lockfile',
+      'Verify prepared release',
+      'Tag release',
+    ],
+    'release.jobs.release step order',
+    errors,
+  )
+  expectEqual(
+    getStepOrder(dispatchPublish, 'release.jobs.dispatch-publish'),
+    ['Dispatch publish workflow'],
+    'release.jobs.dispatch-publish step order',
+    errors,
+  )
+  expectFailClosedRunSteps(
+    validateContext,
+    'release.jobs.validate-context',
+    errors,
+  )
+  expectFailClosedRunSteps(dryRunJob, 'release.jobs.dry-run', errors)
+  expectFailClosedRunSteps(release, 'release.jobs.release', errors)
+  expectFailClosedRunSteps(
+    dispatchPublish,
+    'release.jobs.dispatch-publish',
+    errors,
+  )
+  expectEqual(
+    getRunCommands(validateContext, 'release.jobs.validate-context'),
+    [
+      'test "$GITHUB_REF" = "refs/heads/main"',
+      [
+        'case "$VERSION" in',
+        '  *-*) test "$TAG" = "beta" ;;',
+        '  *) test "$TAG" = "latest" ;;',
+        'esac',
+      ].join('\n'),
+    ],
+    'release.jobs.validate-context run command order',
+    errors,
+  )
+  expectEqual(
+    getRunCommands(dryRunJob, 'release.jobs.dry-run'),
+    [
+      'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
+      'pnpm install --frozen-lockfile',
+      'pnpm release "$VERSION" --tag "$TAG" --dry',
+    ],
+    'release.jobs.dry-run run command order',
+    errors,
+  )
+  expectEqual(
+    getRunCommands(release, 'release.jobs.release'),
+    [
+      'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
+      'pnpm install --frozen-lockfile',
+      [
+        'test -z "$(git status --porcelain)"',
+        'pnpm release "$VERSION" --tag "$TAG" --skipGit',
+        'test -z "$(git status --porcelain)"',
+      ].join('\n'),
+      String(tagRelease.run).trim(),
+    ],
+    'release.jobs.release run command order',
+    errors,
+  )
+  expectEqual(
+    getRunCommands(dispatchPublish, 'release.jobs.dispatch-publish'),
+    [String(dispatchPublishStep.run).trim()],
+    'release.jobs.dispatch-publish run command order',
+    errors,
+  )
   expectNotContains(source, 'github.event.inputs', 'release.yml', errors)
   expectNotContains(source, 'secrets: inherit', 'release.yml', errors)
   expectNotContains(source, 'NPM_PUBLISH_TOKEN', 'release.yml', errors)
   expectNotContains(source, 'default@', 'release.yml', errors)
+  expectNotContains(source, '--force', 'release.yml', errors)
+  expectNotMatch(source, /^\s*git tag\s+-d(?:\s|$)/m, 'release.yml', errors)
+  expectNotMatch(
+    source,
+    /^\s*git push\b[^\n]*--delete(?:\s|$)/m,
+    'release.yml',
+    errors,
+  )
+  expectNotMatch(
+    source,
+    /^\s*git push\b[^\n]+refs\/heads\/main/m,
+    'release.yml',
+    errors,
+  )
+  expectNotMatch(source, /^\s+git push\s*$/m, 'release.yml', errors)
+  expectNotMatch(source, /^\s*git push(?:\s|$)/m, 'release.yml', errors)
 }
 
 function checkPublishWorkflow(root: string, errors: string[]): void {
@@ -662,6 +862,16 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
     'Verify release tag',
     'publish.jobs.publish',
   )
+  const checkoutIndex = publishSteps.indexOf(checkout)
+  const verifyTagIndex = publishSteps.indexOf(verifyTag)
+  const installIndex = publishSteps.findIndex(
+    step => step.run === 'pnpm install --frozen-lockfile',
+  )
+  const revalidateTag = getNamedStep(
+    publish,
+    'Revalidate release tag',
+    'publish.jobs.publish',
+  )
   const verifyContext = getNamedStep(
     publish,
     'Verify dispatch context',
@@ -678,6 +888,7 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
     errors,
   )
   expectEqual(Object.keys(jobs), ['publish'], 'publish.jobs', errors)
+  expectEqual(workflow.defaults, undefined, 'publish.defaults', errors)
   expectEqual(publish.if, undefined, 'publish.jobs.publish.if', errors)
   expectEqual(
     publishCommands.length,
@@ -770,6 +981,10 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
   expectEqual(
     String(verifyContext.run).trim(),
     [
+      'case "$VERSION" in',
+      '  *-*) test "$TAG" = "beta" ;;',
+      '  *) test "$TAG" = "latest" ;;',
+      'esac',
       'test "$GITHUB_REF" = "refs/tags/v$VERSION"',
       'test "$GITHUB_SHA" = "$RELEASE_SHA"',
     ].join('\n'),
@@ -784,6 +999,7 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
     ),
     {
       VERSION: githubExpression('inputs.version'),
+      TAG: githubExpression('inputs.tag'),
       RELEASE_SHA: githubExpression('inputs.release_sha'),
     },
     'publish.jobs.publish.steps.Verify dispatch context.env',
@@ -804,6 +1020,8 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
     [
       'test "$(git rev-parse HEAD)" = "$RELEASE_SHA"',
       `test "$(git rev-parse "refs/tags/v${shellVariable('VERSION')}^{commit}")" = "$RELEASE_SHA"`,
+      'git fetch --no-tags origin "+refs/heads/main:refs/remotes/origin/main"',
+      'git merge-base --is-ancestor -- "$RELEASE_SHA" refs/remotes/origin/main',
     ].join('\n'),
     'publish.jobs.publish.steps.Verify release tag.run',
     errors,
@@ -828,26 +1046,91 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
     errors,
   )
   expectEqual(
+    checkoutIndex < verifyTagIndex,
+    true,
+    'publish.jobs.publish checkout precedes release tag verification',
+    errors,
+  )
+  expectEqual(
+    verifyTagIndex < installIndex,
+    true,
+    'publish.jobs.publish release tag verification precedes install',
+    errors,
+  )
+  expectEqual(
     runCommands,
     [
       [
+        'case "$VERSION" in',
+        '  *-*) test "$TAG" = "beta" ;;',
+        '  *) test "$TAG" = "latest" ;;',
+        'esac',
         'test "$GITHUB_REF" = "refs/tags/v$VERSION"',
         'test "$GITHUB_SHA" = "$RELEASE_SHA"',
       ].join('\n'),
       [
         'test "$(git rev-parse HEAD)" = "$RELEASE_SHA"',
         `test "$(git rev-parse "refs/tags/v${shellVariable('VERSION')}^{commit}")" = "$RELEASE_SHA"`,
+        'git fetch --no-tags origin "+refs/heads/main:refs/remotes/origin/main"',
+        'git merge-base --is-ancestor -- "$RELEASE_SHA" refs/remotes/origin/main',
       ].join('\n'),
       'pnpm install --frozen-lockfile',
       'pnpm build',
       'pnpm check:build-output',
       'pnpm release:verify:pack',
+      [
+        'remote_tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" --jq \'.object.sha\')"',
+        'test "$remote_tag_sha" = "$RELEASE_SHA"',
+      ].join('\n'),
       'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
       'pnpm release:verify:published --version "$VERSION" --tag "$TAG"',
     ],
     'publish.jobs.publish run command order',
     errors,
   )
+  expectEqual(
+    String(revalidateTag.run).trim(),
+    [
+      'remote_tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" --jq \'.object.sha\')"',
+      'test "$remote_tag_sha" = "$RELEASE_SHA"',
+    ].join('\n'),
+    'publish.jobs.publish.steps.Revalidate release tag.run',
+    errors,
+  )
+  expectEqual(
+    getObject(
+      revalidateTag,
+      'env',
+      'publish.jobs.publish.steps.Revalidate release tag',
+    ),
+    {
+      VERSION: githubExpression('inputs.version'),
+      RELEASE_SHA: githubExpression('inputs.release_sha'),
+      GH_TOKEN: githubExpression('github.token'),
+    },
+    'publish.jobs.publish.steps.Revalidate release tag.env',
+    errors,
+  )
+  expectEqual(
+    getStepOrder(publish, 'publish.jobs.publish'),
+    [
+      'Verify dispatch context',
+      CHECKOUT_ACTION_REF,
+      'Verify release tag',
+      PNPM_SETUP_ACTION_REF,
+      SETUP_NODE_ACTION_REF,
+      'pnpm install --frozen-lockfile',
+      'Build packages',
+      'Verify build outputs',
+      'Verify release tarballs',
+      'Revalidate release tag',
+      'Publish package',
+      'Verify published packages',
+    ],
+    'publish.jobs.publish step order',
+    errors,
+  )
+  expectFailClosedRunSteps(publish, 'publish.jobs.publish', errors)
   expectEqual(
     publishStep.run,
     'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',

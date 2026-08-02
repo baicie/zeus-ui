@@ -1,7 +1,7 @@
 {
   "name": "@zeus-web/agent-console",
   "type": "module",
-  "version": "0.1.0-beta.0",
+  "version": "0.1.0-beta.1",
   "description": "Headless agent console advanced component for Zeus Web.",
   "license": "MIT",
   "repository": {

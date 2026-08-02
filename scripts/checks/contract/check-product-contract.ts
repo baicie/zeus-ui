@@ -802,12 +802,21 @@ function checkPhase24Release(errors: string[]): void {
       '`GITHUB_REF` and `GITHUB_SHA`',
       'pnpm check:build-output',
       'pnpm release:verify:pack',
+      '`--skipGit`',
+      'merge them through a pull request',
+      'never commits or pushes `main`',
+      'safely reuses an existing tag only when',
+      'Prerelease versions must use the `beta` dist-tag',
+      'only the `Tag release` step receives its GitHub token',
+      '`git merge-base --is-ancestor --`',
+      'revalidates the remote version tag immediately before',
+      'active tag ruleset',
     ],
     errors,
   )
   mustNotContain(
     'docs/release/release-readiness.md',
-    ['pnpm release:final\n', 'default@'],
+    ['pnpm release:final\n', 'default@', 'creates the release commit and tag'],
     errors,
   )
   mustContain(
@@ -815,6 +824,7 @@ function checkPhase24Release(errors: string[]): void {
     [
       'Package-local `README.md` files are optional.',
       'Source maps are allowed only under `dist/`.',
+      'Prerelease versions must use `beta`; stable versions must use `latest`.',
     ],
     errors,
   )
@@ -843,12 +853,31 @@ function checkPhase24Release(errors: string[]): void {
       'pnpm release:verify:pack',
       'release workflow 不接收 npm token',
       'pnpm release:final 0.1.0-beta.0 --allow-zero',
+      '`--skipGit`',
+      '目标版本文件先在',
+      '不会创建 commit 或推送 `main`',
+      '同一 SHA',
+      'npm registry 要求每个包始终存在 `latest`',
+      '预发布版本必须使用 `beta`，稳定版本必须使用 `latest`',
+      '只有 `Tag release` 步骤接收步骤级 `GH_TOKEN`',
+      '`git merge-base --is-ancestor --`',
+      '真正写入 npm 前再次查询远端版本 tag',
+      '`refs/tags/v*` tag ruleset',
     ],
     errors,
   )
   mustNotContain(
     'docs/mvp/release.md',
-    ['default@', '包含 30 个 npm 包', 'secrets: inherit'],
+    [
+      'default@',
+      '包含 30 个 npm 包',
+      'secrets: inherit',
+      '交互式发版（推荐）',
+      '配置 Git 身份后完成 git commit',
+      '自动完成 commit + `v<version>` tag + push',
+      '# 发版 + 立即发布',
+      'git checkout -- .',
+    ],
     errors,
   )
 }

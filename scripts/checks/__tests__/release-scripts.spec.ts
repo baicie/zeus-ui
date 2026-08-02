@@ -55,6 +55,31 @@ function getRunCommands(job: WorkflowObject): string[] {
     .map(step => String(step.run).trim())
 }
 
+function getStepOrder(job: WorkflowObject): string[] {
+  return getSteps(job).map((step, index) => {
+    if (typeof step.name === 'string') return step.name
+    if (typeof step.uses === 'string') return step.uses
+    if (typeof step.run === 'string') return String(step.run).trim()
+
+    throw new Error(`steps[${index}] must have name, uses, or run`)
+  })
+}
+
+function expectFailClosedStep(step: WorkflowObject): void {
+  expect(step.if).toBeUndefined()
+  expect(step['continue-on-error']).toBeUndefined()
+  expect(step.shell).toBeUndefined()
+}
+
+function expectFailClosedRunSteps(job: WorkflowObject): void {
+  expect(job.defaults).toBeUndefined()
+  expect(job['continue-on-error']).toBeUndefined()
+
+  getSteps(job)
+    .filter(step => typeof step.run === 'string')
+    .forEach(expectFailClosedStep)
+}
+
 function getNamedStep(job: WorkflowObject, name: string): WorkflowObject {
   const step = getSteps(job).find(candidate => candidate.name === name)
 
@@ -171,12 +196,15 @@ describe('release script contract', () => {
       validateContext,
       'Verify release context',
     )
+    const validateChannelStep = getNamedStep(
+      validateContext,
+      'Verify release channel',
+    )
     const dryRunRevision = getNamedStep(dryRunJob, 'Verify dispatch revision')
     const revision = getNamedStep(release, 'Verify dispatch revision')
     const dryRun = getNamedStep(dryRunJob, 'Dry-run release')
-    const gitIdentity = getNamedStep(release, 'Configure Git identity')
-    const realRelease = getNamedStep(release, 'Release')
-    const captureRelease = getNamedStep(release, 'Capture release commit')
+    const realRelease = getNamedStep(release, 'Verify prepared release')
+    const tagRelease = getNamedStep(release, 'Tag release')
     const dispatchPublishStep = getNamedStep(
       dispatchPublish,
       'Dispatch publish workflow',
@@ -211,6 +239,7 @@ describe('release script contract', () => {
       type: 'boolean',
     })
     expect(getObject(workflow, 'permissions')).toEqual({ contents: 'read' })
+    expect(workflow.defaults).toBeUndefined()
     expect(concurrency).toEqual({
       group: `release-${githubExpression('github.repository')}`,
       'cancel-in-progress': false,
@@ -218,8 +247,20 @@ describe('release script contract', () => {
     expect(validateContext['runs-on']).toBe('ubuntu-latest')
     expect(getObject(validateContext, 'permissions')).toEqual({})
     expect(getActionRefs(validateContext)).toEqual([])
+    expect(getObject(validateContext, 'env')).toEqual({
+      VERSION: githubExpression('inputs.version'),
+      TAG: githubExpression('inputs.tag'),
+    })
     expect(validateContextStep.run).toBe(
       'test "$GITHUB_REF" = "refs/heads/main"',
+    )
+    expect(String(validateChannelStep.run).trim()).toBe(
+      [
+        'case "$VERSION" in',
+        '  *-*) test "$TAG" = "beta" ;;',
+        '  *) test "$TAG" = "latest" ;;',
+        'esac',
+      ].join('\n'),
     )
     expect(dryRunJob.needs).toBe('validate-context')
     expect(dryRunJob.if).toBe(
@@ -256,7 +297,7 @@ describe('release script contract', () => {
     )
     expect(getObject(release, 'permissions')).toEqual({ contents: 'write' })
     expect(getObject(release, 'outputs')).toEqual({
-      release_sha: githubExpression('steps.release_commit.outputs.sha'),
+      release_sha: githubExpression('steps.tag_release.outputs.sha'),
     })
     expect(getObject(release, 'env')).toEqual({
       PUPPETEER_SKIP_DOWNLOAD: 'true',
@@ -267,25 +308,47 @@ describe('release script contract', () => {
     expect(getObject(checkout, 'with')).toEqual({
       'fetch-depth': 0,
       ref: 'main',
+      'persist-credentials': false,
     })
     expect(revision.run).toBe('test "$(git rev-parse HEAD)" = "$GITHUB_SHA"')
-    expect(gitIdentity.if).toBeUndefined()
-    expect(String(gitIdentity.run)).toContain(
-      'git config user.name "github-actions[bot]"',
-    )
-    expect(String(gitIdentity.run)).toContain(
-      'git config user.email "41898282+github-actions[bot]@users.noreply.github.com"',
-    )
     expect(realRelease.if).toBeUndefined()
-    expect(realRelease.run).toBe('pnpm release "$VERSION" --tag "$TAG"')
-    expect(captureRelease.id).toBe('release_commit')
-    expect(String(captureRelease.run).trim()).toBe(
+    expect(String(realRelease.run).trim()).toBe(
       [
-        `release_sha="$(git rev-parse "refs/tags/v${shellVariable('VERSION')}^{commit}")"`,
-        'test "$(git rev-parse HEAD)" = "$release_sha"',
+        'test -z "$(git status --porcelain)"',
+        'pnpm release "$VERSION" --tag "$TAG" --skipGit',
+        'test -z "$(git status --porcelain)"',
+      ].join('\n'),
+    )
+    expect(String(tagRelease.run).trim()).toBe(
+      [
+        'release_sha="$(git rev-parse HEAD)"',
+        'tag_api="repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION"',
+        '',
+        'test "$release_sha" = "$GITHUB_SHA"',
+        'main_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq \'.object.sha\')"',
+        'test "$main_sha" = "$release_sha"',
+        '',
+        'if tag_sha="$(gh api "$tag_api" --jq \'.object.sha\' 2>/dev/null)"; then',
+        '  test "$tag_sha" = "$release_sha"',
+        'else',
+        '  gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \\',
+        '    --raw-field ref="refs/tags/v$VERSION" \\',
+        '    --raw-field sha="$release_sha" >/dev/null',
+        'fi',
+        '',
+        'test "$(gh api "$tag_api" --jq \'.object.sha\')" = "$release_sha"',
         'echo "sha=$release_sha" >> "$GITHUB_OUTPUT"',
       ].join('\n'),
     )
+    expect(tagRelease.id).toBe('tag_release')
+    expect(getObject(tagRelease, 'env')).toEqual({
+      GH_TOKEN: githubExpression('github.token'),
+    })
+    expect(
+      releaseSteps
+        .filter(step => JSON.stringify(step.env || '').includes('github.token'))
+        .map(step => step.name),
+    ).toEqual(['Tag release'])
     expect(JSON.stringify(release)).not.toContain('NPM_TOKEN')
     expect(JSON.stringify(release)).not.toContain('NODE_AUTH_TOKEN')
 
@@ -319,10 +382,68 @@ describe('release script contract', () => {
     expect(getObject(dispatchPublishStep, 'env')).toEqual({
       GH_TOKEN: githubExpression('github.token'),
     })
+    expect(getStepOrder(validateContext)).toEqual([
+      'Verify release context',
+      'Verify release channel',
+    ])
+    expect(getStepOrder(dryRunJob)).toEqual([
+      CHECKOUT_ACTION_REF,
+      'Verify dispatch revision',
+      PNPM_SETUP_ACTION_REF,
+      SETUP_NODE_ACTION_REF,
+      'pnpm install --frozen-lockfile',
+      'Dry-run release',
+    ])
+    expect(getStepOrder(release)).toEqual([
+      CHECKOUT_ACTION_REF,
+      'Verify dispatch revision',
+      PNPM_SETUP_ACTION_REF,
+      SETUP_NODE_ACTION_REF,
+      'pnpm install --frozen-lockfile',
+      'Verify prepared release',
+      'Tag release',
+    ])
+    expect(getStepOrder(dispatchPublish)).toEqual(['Dispatch publish workflow'])
+    ;[validateContext, dryRunJob, release, dispatchPublish].forEach(
+      expectFailClosedRunSteps,
+    )
+    expect(getRunCommands(validateContext)).toEqual([
+      'test "$GITHUB_REF" = "refs/heads/main"',
+      [
+        'case "$VERSION" in',
+        '  *-*) test "$TAG" = "beta" ;;',
+        '  *) test "$TAG" = "latest" ;;',
+        'esac',
+      ].join('\n'),
+    ])
+    expect(getRunCommands(dryRunJob)).toEqual([
+      'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
+      'pnpm install --frozen-lockfile',
+      'pnpm release "$VERSION" --tag "$TAG" --dry',
+    ])
+    expect(getRunCommands(release)).toEqual([
+      'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
+      'pnpm install --frozen-lockfile',
+      [
+        'test -z "$(git status --porcelain)"',
+        'pnpm release "$VERSION" --tag "$TAG" --skipGit',
+        'test -z "$(git status --porcelain)"',
+      ].join('\n'),
+      String(tagRelease.run).trim(),
+    ])
+    expect(getRunCommands(dispatchPublish)).toEqual([
+      String(dispatchPublishStep.run).trim(),
+    ])
     expect(source).not.toContain('github.event.inputs')
     expect(source).not.toContain('secrets: inherit')
     expect(source).not.toContain('NPM_PUBLISH_TOKEN')
     expect(source).not.toContain('default@')
+    expect(source).not.toContain('--force')
+    expect(source).not.toMatch(/^\s*git tag\s+-d(?:\s|$)/m)
+    expect(source).not.toMatch(/^\s*git push\b[^\n]*--delete(?:\s|$)/m)
+    expect(source).not.toMatch(/^\s*git push\b[^\n]+refs\/heads\/main/m)
+    expect(source).not.toMatch(/^\s+git push\s*$/m)
+    expect(source).not.toMatch(/^\s*git push(?:\s|$)/m)
     expect(source).not.toMatch(/uses:\s+\S+@v\d/)
   })
 
@@ -350,9 +471,15 @@ describe('release script contract', () => {
     const install = getSteps(publish).find(
       step => step.run === 'pnpm install --frozen-lockfile',
     )
+    const checkoutIndex = publishSteps.indexOf(checkout)
+    const installIndex = publishSteps.findIndex(
+      step => step.run === 'pnpm install --frozen-lockfile',
+    )
     const publishStep = getNamedStep(publish, 'Publish package')
     const verifyPublished = getNamedStep(publish, 'Verify published packages')
     const verifyTag = getNamedStep(publish, 'Verify release tag')
+    const verifyTagIndex = publishSteps.indexOf(verifyTag)
+    const revalidateTag = getNamedStep(publish, 'Revalidate release tag')
     const verifyContext = getNamedStep(publish, 'Verify dispatch context')
 
     expect(Object.keys(triggers)).toEqual([
@@ -360,6 +487,7 @@ describe('release script contract', () => {
       'workflow_dispatch',
     ])
     expect(Object.keys(jobs)).toEqual(['publish'])
+    expect(workflow.defaults).toBeUndefined()
     expect(publish.if).toBeUndefined()
     expect(publishCommands).toHaveLength(1)
     expect(inlineReleaseCommands).toHaveLength(0)
@@ -408,12 +536,17 @@ describe('release script contract', () => {
     expect(publish.environment).toBe('Release')
     expect(String(verifyContext.run).trim()).toBe(
       [
+        'case "$VERSION" in',
+        '  *-*) test "$TAG" = "beta" ;;',
+        '  *) test "$TAG" = "latest" ;;',
+        'esac',
         'test "$GITHUB_REF" = "refs/tags/v$VERSION"',
         'test "$GITHUB_SHA" = "$RELEASE_SHA"',
       ].join('\n'),
     )
     expect(getObject(verifyContext, 'env')).toEqual({
       VERSION: githubExpression('inputs.version'),
+      TAG: githubExpression('inputs.tag'),
       RELEASE_SHA: githubExpression('inputs.release_sha'),
     })
     expect(getObject(checkout, 'with')).toEqual({
@@ -425,6 +558,8 @@ describe('release script contract', () => {
       [
         'test "$(git rev-parse HEAD)" = "$RELEASE_SHA"',
         `test "$(git rev-parse "refs/tags/v${shellVariable('VERSION')}^{commit}")" = "$RELEASE_SHA"`,
+        'git fetch --no-tags origin "+refs/heads/main:refs/remotes/origin/main"',
+        'git merge-base --is-ancestor -- "$RELEASE_SHA" refs/remotes/origin/main',
       ].join('\n'),
     )
     expect(getObject(verifyTag, 'env')).toEqual({
@@ -432,25 +567,63 @@ describe('release script contract', () => {
       RELEASE_SHA: githubExpression('inputs.release_sha'),
     })
     expect(install).toBeDefined()
+    expect(checkoutIndex).toBeLessThan(verifyTagIndex)
+    expect(verifyTagIndex).toBeLessThan(installIndex)
     expect(runCommands).toEqual([
       [
+        'case "$VERSION" in',
+        '  *-*) test "$TAG" = "beta" ;;',
+        '  *) test "$TAG" = "latest" ;;',
+        'esac',
         'test "$GITHUB_REF" = "refs/tags/v$VERSION"',
         'test "$GITHUB_SHA" = "$RELEASE_SHA"',
       ].join('\n'),
       [
         'test "$(git rev-parse HEAD)" = "$RELEASE_SHA"',
         `test "$(git rev-parse "refs/tags/v${shellVariable('VERSION')}^{commit}")" = "$RELEASE_SHA"`,
+        'git fetch --no-tags origin "+refs/heads/main:refs/remotes/origin/main"',
+        'git merge-base --is-ancestor -- "$RELEASE_SHA" refs/remotes/origin/main',
       ].join('\n'),
       'pnpm install --frozen-lockfile',
       'pnpm build',
       'pnpm check:build-output',
       'pnpm release:verify:pack',
+      [
+        'remote_tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" --jq \'.object.sha\')"',
+        'test "$remote_tag_sha" = "$RELEASE_SHA"',
+      ].join('\n'),
       'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
       'pnpm release:verify:published --version "$VERSION" --tag "$TAG"',
     ])
     expect(publishStep.run).toBe(
       'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
     )
+    expect(String(revalidateTag.run).trim()).toBe(
+      [
+        'remote_tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" --jq \'.object.sha\')"',
+        'test "$remote_tag_sha" = "$RELEASE_SHA"',
+      ].join('\n'),
+    )
+    expect(getObject(revalidateTag, 'env')).toEqual({
+      VERSION: githubExpression('inputs.version'),
+      RELEASE_SHA: githubExpression('inputs.release_sha'),
+      GH_TOKEN: githubExpression('github.token'),
+    })
+    expect(getStepOrder(publish)).toEqual([
+      'Verify dispatch context',
+      CHECKOUT_ACTION_REF,
+      'Verify release tag',
+      PNPM_SETUP_ACTION_REF,
+      SETUP_NODE_ACTION_REF,
+      'pnpm install --frozen-lockfile',
+      'Build packages',
+      'Verify build outputs',
+      'Verify release tarballs',
+      'Revalidate release tag',
+      'Publish package',
+      'Verify published packages',
+    ])
+    expectFailClosedRunSteps(publish)
     expect(getObject(publishStep, 'env')).toEqual({
       VERSION: githubExpression('inputs.version'),
       TAG: githubExpression('inputs.tag'),

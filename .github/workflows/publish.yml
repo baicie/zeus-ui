@@ -47,10 +47,15 @@ jobs:
     steps:
       - name: Verify dispatch context
         run: |
+          case "$VERSION" in
+            *-*) test "$TAG" = "beta" ;;
+            *) test "$TAG" = "latest" ;;
+          esac
           test "$GITHUB_REF" = "refs/tags/v$VERSION"
           test "$GITHUB_SHA" = "$RELEASE_SHA"
         env:
           VERSION: ${{ inputs.version }}
+          TAG: ${{ inputs.tag }}
           RELEASE_SHA: ${{ inputs.release_sha }}
 
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -63,6 +68,8 @@ jobs:
         run: |
           test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
           test "$(git rev-parse "refs/tags/v${VERSION}^{commit}")" = "$RELEASE_SHA"
+          git fetch --no-tags origin "+refs/heads/main:refs/remotes/origin/main"
+          git merge-base --is-ancestor -- "$RELEASE_SHA" refs/remotes/origin/main
         env:
           VERSION: ${{ inputs.version }}
           RELEASE_SHA: ${{ inputs.release_sha }}
@@ -85,6 +92,15 @@ jobs:
 
       - name: Verify release tarballs
         run: pnpm release:verify:pack
+
+      - name: Revalidate release tag
+        run: |
+          remote_tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" --jq '.object.sha')"
+          test "$remote_tag_sha" = "$RELEASE_SHA"
+        env:
+          VERSION: ${{ inputs.version }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          GH_TOKEN: ${{ github.token }}
 
       - name: Publish package
         run: pnpm run ci-publish --version "$VERSION" --tag "$TAG"
