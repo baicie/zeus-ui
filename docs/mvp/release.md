@@ -314,7 +314,9 @@ pnpm ci-publish --version 0.1.0 --tag latest --no-skip-existing
 
 npm registry 要求每个包始终存在 `latest`。首次使用 `beta` 发布包时，registry 可能让 `beta` 和 `latest` 同时指向该首个预发布版本；不得删除 `latest`、unpublish 或发布占位稳定版。后续 beta 只推进 `beta`，`latest` 保持原值，直到首个稳定版使用 `latest` 发布。
 
-因此发布 `0.1.0-beta.1` 后的预期是 `beta = 0.1.0-beta.1`、`latest = 0.1.0-beta.0`。
+因此发布纠正版 `0.1.0-beta.2` 后的预期是 `beta = 0.1.0-beta.2`、
+`latest = 0.1.0-beta.0`。已经发布的 `0.1.0-beta.1` 必须保持不可变，不得覆盖、删除或
+重新发布。
 
 ### dry-run 后本地有改动
 
@@ -349,4 +351,5 @@ git diff  # 确认根目录和 36 个发布包版本符合预期
 
 1. Release workflow 的 release job 和 `dispatch-publish` job 是否执行成功（tag 指向已合并的 `main` SHA 并触发发布）
 2. 独立的 Publish to NPM run 是否执行成功（事件 ref/SHA、version、dist-tag 与 release 输出一致）
-3. npm 确认包已上线（`npm view @zeus-web/react versions --json`）
+3. 36 个 npm 包是否都存在目标版本、SLSA provenance v1，且 `beta` 指向目标版本、`latest` 保持原稳定通道值
+4. 执行 `pnpm release:verify:published --version 0.1.0-beta.2 --tag beta`，确认所有根入口及 25 个 `/react`、`/vue` 子入口在隔离安装后通过类型检查和 Vite bundle，并通过 runtime 与 CLI smoke

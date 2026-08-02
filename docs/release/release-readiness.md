@@ -75,7 +75,9 @@ This runs `pnpm pack --dry-run --json` for every publishable package and validat
 - tarball does not include scripts
 - tarball may include `dist/**/*.map`
 - tarball does not include `*.tsbuildinfo` or `*.log`
-- tarball does not include `src/`, tests, examples, or scripts
+- every bare import in packed `dist/**/*.js` and `dist/**/*.d.ts` is declared
+  in `dependencies`, `peerDependencies` or `optionalDependencies`
+- component manifests do not reuse a component prop name as a React named slot
 
 ## Package-specific checks
 
@@ -136,6 +138,27 @@ The built `dist/index.js` must start with:
 ```
 #!/usr/bin/env node
 ```
+
+## Published package verification
+
+After npm publication, run the verifier against the immutable version and its
+release channel:
+
+```bash
+pnpm release:verify:published --version 0.1.0-beta.2 --tag beta
+```
+
+This verifies that all 36 packages expose the exact version, the requested
+dist-tag and SLSA provenance v1. It then creates an isolated consumer outside
+the workspace, installs its own TypeScript and Vite toolchain, and checks:
+
+- every browser-safe package root entry
+- all 25 component `./react` entries
+- all 25 component `./vue` entries
+- TypeScript declaration resolution
+- a production Vite bundle
+- the `@zeus-web/zeus-compat` runtime surface
+- the `zweb --help` CLI smoke path
 
 ## Development verification
 
