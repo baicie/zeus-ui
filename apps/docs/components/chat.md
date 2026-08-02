@@ -122,7 +122,7 @@ pnpm add @zeus-web/chat
 - `artifact`
 - `composer`
 - `empty`
-- `loading`
+- `loadingContent`
 
 ### `zw-chat-message`
 
@@ -141,8 +141,8 @@ pnpm add @zeus-web/chat
 
 ### `zw-chat-code-block`
 
-- `filename`
-- `language`
+- `filenameContent`
+- `languageContent`
 - `actions`
 - `default`
 
