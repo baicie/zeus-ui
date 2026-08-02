@@ -246,7 +246,7 @@ export function AgentConsole({
         <div className="text-muted-foreground">No tool calls yet.</div>
       </div>
 
-      <div slot="artifacts" className="space-y-2 text-sm">
+      <div slot="artifactsContent" className="space-y-2 text-sm">
         <div className="font-medium">Artifacts</div>
         {artifacts.map(artifact => (
           <div key={artifact.id} className="rounded-md border p-2">
@@ -255,7 +255,7 @@ export function AgentConsole({
         ))}
       </div>
 
-      <div slot="diagnostics" className="space-y-2 text-sm">
+      <div slot="diagnosticsContent" className="space-y-2 text-sm">
         <div className="font-medium">Diagnostics</div>
         <div className="text-muted-foreground">No diagnostics.</div>
       </div>
@@ -383,7 +383,7 @@ const consoleClass = computed(() =>
       <div class="text-muted-foreground">No tool calls yet.</div>
     </div>
 
-    <div slot="artifacts" class="space-y-2 text-sm">
+    <div slot="artifactsContent" class="space-y-2 text-sm">
       <div class="font-medium">Artifacts</div>
       <div
         v-for="artifact in artifacts"
@@ -394,7 +394,7 @@ const consoleClass = computed(() =>
       </div>
     </div>
 
-    <div slot="diagnostics" class="space-y-2 text-sm">
+    <div slot="diagnosticsContent" class="space-y-2 text-sm">
       <div class="font-medium">Diagnostics</div>
       <div class="text-muted-foreground">No diagnostics.</div>
     </div>
@@ -511,7 +511,12 @@ export type ZeusWebAiAdvancedComponentName =
   tags: ['agent', 'console', 'chat', 'tools', 'artifacts', 'diagnostics'],
   components: ['zw-agent-console'],
   slots: {
-    'zw-agent-console': ['timeline', 'tools', 'artifacts', 'diagnostics'],
+    'zw-agent-console': [
+      'timeline',
+      'tools',
+      'artifactsContent',
+      'diagnosticsContent',
+    ],
   },
   events: {
     'zw-agent-console': [

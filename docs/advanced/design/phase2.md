@@ -173,13 +173,13 @@ emptyText?: string
 
 ## Slots 契约
 
-`zw-chat` slots：`header` / `sidebar` / `thread` / `empty` / `loading` / `artifact` / `composer`。
+`zw-chat` slots：`header` / `sidebar` / `thread` / `empty` / `loadingContent` / `artifact` / `composer`。
 
 `zw-chat-message` slots：`avatar` / `header` / `default` / `footer` / `actions`。
 
 `zw-chat-composer` slots：`prefix` / `attachments` / `submit` / `suffix`。
 
-`zw-chat-code-block` slots：`filename` / `language` / `actions` / `default`。
+`zw-chat-code-block` slots：`filenameContent` / `languageContent` / `actions` / `default`。
 
 `zw-chat-tool-call` slots：`summary` / `input` / `output` / `error` / `actions`。
 

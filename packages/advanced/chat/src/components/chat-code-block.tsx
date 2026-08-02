@@ -43,11 +43,11 @@ function setup(
       <figure part="figure" data-slot="chat-code-block">
         <figcaption part="header" data-slot="chat-code-block-header">
           <span part="filename" data-slot="chat-code-block-filename">
-            <Slot name="filename">{props.filename ?? ''}</Slot>
+            <Slot name="filenameContent">{props.filename ?? ''}</Slot>
           </span>
 
           <span part="language" data-slot="chat-code-block-language">
-            <Slot name="language">{props.language ?? ''}</Slot>
+            <Slot name="languageContent">{props.language ?? ''}</Slot>
           </span>
 
           <div part="actions" data-slot="chat-code-block-actions">

@@ -357,7 +357,7 @@ function setup(
           aria-label="Artifacts"
           data-selected-artifact-id={() => state.selectedArtifactId}
         >
-          <Slot name="artifacts" />
+          <Slot name="artifactsContent" />
         </aside>
 
         <aside
@@ -365,7 +365,7 @@ function setup(
           data-slot="agent-console-diagnostics"
           aria-label="Diagnostics"
         >
-          <Slot name="diagnostics" />
+          <Slot name="diagnosticsContent" />
         </aside>
       </section>
     </Host>

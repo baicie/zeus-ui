@@ -182,7 +182,7 @@ function setup(
           </div>
 
           <div part="loading" data-slot="chat-loading">
-            <Slot name="loading" />
+            <Slot name="loadingContent" />
           </div>
         </main>
 
