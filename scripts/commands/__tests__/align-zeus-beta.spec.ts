@@ -18,7 +18,7 @@ afterEach(() => {
 })
 
 describe('alignZeusBeta', () => {
-  it('updates @zeus-js dependency fields and @zeus-js/zeus peer range', () => {
+  it('pins prerelease @zeus-js/zeus peers to the baseline version', () => {
     const root = createTempRoot()
 
     writePackage(root, 'package.json', {
@@ -50,7 +50,7 @@ describe('alignZeusBeta', () => {
     })
 
     expect(result.version).toBe('0.1.0-beta.8')
-    expect(result.peerRange).toBe('>=0.1.0-beta.8 <0.2.0')
+    expect(result.peerRange).toBe('0.1.0-beta.8')
     expect(result.changedFiles).toHaveLength(2)
 
     expect(readPackage(root, 'package.json')).toMatchObject({
@@ -65,7 +65,7 @@ describe('alignZeusBeta', () => {
       readPackage(root, 'packages/advanced/data-grid/package.json'),
     ).toMatchObject({
       peerDependencies: {
-        '@zeus-js/zeus': '>=0.1.0-beta.8 <0.2.0',
+        '@zeus-js/zeus': '0.1.0-beta.8',
         react: '>=18 || >=19',
       },
       dependencies: {
@@ -114,6 +114,39 @@ describe('alignZeusBeta', () => {
     })
   })
 
+  it('keeps a compatible peer range for stable baselines', () => {
+    const root = createTempRoot()
+
+    writePackage(root, 'package.json', {
+      name: 'zeus-ui-workspace',
+      private: true,
+      devDependencies: {
+        '@zeus-js/zeus': '0.1.0-beta.8',
+      },
+    })
+
+    writePackage(root, 'packages/advanced/virtual/package.json', {
+      name: '@zeus-web/virtual',
+      peerDependencies: {
+        '@zeus-js/zeus': '0.1.0-beta.8',
+      },
+    })
+
+    const result = alignZeusBeta({
+      root,
+      version: '0.1.0',
+    })
+
+    expect(result.peerRange).toBe('>=0.1.0 <0.2.0')
+    expect(
+      readPackage(root, 'packages/advanced/virtual/package.json'),
+    ).toMatchObject({
+      peerDependencies: {
+        '@zeus-js/zeus': '>=0.1.0 <0.2.0',
+      },
+    })
+  })
+
   it('does not rewrite package.json files when already aligned', () => {
     const root = createTempRoot()
 
@@ -131,7 +164,7 @@ describe('alignZeusBeta', () => {
     })
 
     expect(result.version).toBe('0.1.0-beta.8')
-    expect(result.peerRange).toBe('>=0.1.0-beta.8 <0.2.0')
+    expect(result.peerRange).toBe('0.1.0-beta.8')
     expect(result.changedFiles).toEqual([])
   })
 

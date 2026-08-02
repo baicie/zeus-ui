@@ -2,6 +2,8 @@ import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import { createZeusPeerRequirement } from '../release/zeus-peer-requirement'
+
 const DEFAULT_VERSION = '0.1.0-beta.8'
 const ZEUS_SCOPE = '@zeus-js/'
 
@@ -143,17 +145,11 @@ function shouldSkipDirectory(name: string): boolean {
 }
 
 function createExpectedPeerRange(version: string): string {
-  const match = /^(\d+)\.(\d+)\.\d+/.exec(version)
-
-  if (!match) {
+  if (!/^\d+\.\d+\.\d+/.test(version)) {
     return '*'
   }
 
-  const major = Number(match[1])
-  const minor = Number(match[2])
-  const upperBound = major === 0 ? `<0.${minor + 1}.0` : `<${major + 1}.0.0`
-
-  return `>=${version} ${upperBound}`
+  return createZeusPeerRequirement(version)
 }
 
 function parseVersionArg(argv: string[]): string {

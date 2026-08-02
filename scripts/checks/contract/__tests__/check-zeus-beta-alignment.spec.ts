@@ -33,7 +33,7 @@ describe('checkZeusBetaAlignment', () => {
     writePackage(root, 'packages/advanced/data-grid/package.json', {
       name: '@zeus-web/data-grid',
       peerDependencies: {
-        '@zeus-js/zeus': '>=0.1.0-beta.8 <0.2.0',
+        '@zeus-js/zeus': '0.1.0-beta.8',
       },
       dependencies: {
         '@zeus-js/runtime-dom': '0.1.0-beta.8',
@@ -63,7 +63,7 @@ export function createPrimitiveRolldownConfig() {
     expect(result).toEqual({
       ok: true,
       expectedVersion: '0.1.0-beta.8',
-      expectedPeerRange: '>=0.1.0-beta.8 <0.2.0',
+      expectedPeerRange: '0.1.0-beta.8',
       problems: [],
     })
   })
@@ -145,7 +145,7 @@ export function createPrimitiveRolldownConfig() {
       field: 'peerDependencies',
       dependencyName: '@zeus-js/zeus',
       actual: '>=0.1.0-beta.5 <0.2.0',
-      expected: '>=0.1.0-beta.8 <0.2.0',
+      expected: '0.1.0-beta.8',
     })
   })
 
@@ -163,7 +163,7 @@ export function createPrimitiveRolldownConfig() {
     writePackage(root, 'packages/advanced/data-grid/package.json', {
       name: '@zeus-web/data-grid',
       peerDependencies: {
-        '@zeus-js/zeus': '>=0.1.0-beta.8 <0.2.0',
+        '@zeus-js/zeus': '0.1.0-beta.8',
       },
       dependencies: {
         '@zeus-js/web-c-runtime': '0.2.0',

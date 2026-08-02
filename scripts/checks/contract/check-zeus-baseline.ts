@@ -3,6 +3,8 @@ import { join, relative } from 'node:path'
 
 import pc from 'picocolors'
 
+import { createZeusPeerRequirement } from '../../release/zeus-peer-requirement'
+
 const root = process.cwd()
 
 interface PackageJsonLike {
@@ -61,17 +63,7 @@ function listWorkspacePackageJsonFiles(): string[] {
 }
 
 function getExpectedPeerRange(version: string): string {
-  const versionPart = /^\d+\.\d+\.\d+/.exec(version)?.[0]
-
-  if (!versionPart) {
-    throw new Error(`Invalid Zeus baseline version: ${version}`)
-  }
-
-  const [major, minor] = versionPart.split('.').map(Number)
-
-  const upperBound = major === 0 ? `<0.${minor + 1}.0` : `<${major + 1}.0.0`
-
-  return `>=${version} ${upperBound}`
+  return createZeusPeerRequirement(version)
 }
 
 const rootPackage = readPackageJson(join(root, 'package.json'))
