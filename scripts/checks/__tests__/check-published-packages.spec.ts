@@ -25,6 +25,8 @@ describe('published package smoke check', () => {
       devDependencies: {
         '@types/react': '^19.1.9',
         '@types/react-dom': '^19.1.7',
+        typescript: '^6.0.3',
+        vite: '^8.0.16',
       },
     })
   })
@@ -71,14 +73,17 @@ describe('published package smoke check', () => {
   })
 
   it('bundles browser packages without importing the CLI entry', () => {
-    const source = createBrowserEntry([
-      '@zeus-web/button',
-      '@zeus-web/cli',
-      '@zeus-web/zeus-compat',
-    ])
+    const source = createBrowserEntry(
+      ['@zeus-web/button', '@zeus-web/cli', '@zeus-web/zeus-compat'],
+      ['@zeus-web/button'],
+    )
 
     expect(source).toContain("from '@zeus-web/button'")
+    expect(source).toContain("from '@zeus-web/button/react'")
+    expect(source).toContain("from '@zeus-web/button/vue'")
     expect(source).toContain("from '@zeus-web/zeus-compat'")
     expect(source).not.toContain("from '@zeus-web/cli'")
+    expect(source).not.toContain("from '@zeus-web/zeus-compat/react'")
+    expect(source).not.toContain("from '@zeus-web/zeus-compat/vue'")
   })
 })

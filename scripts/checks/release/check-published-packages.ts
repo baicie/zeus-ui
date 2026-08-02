@@ -85,6 +85,8 @@ export function createConsumerPackageJson(
     devDependencies: {
       '@types/react': '^19.1.9',
       '@types/react-dom': '^19.1.7',
+      typescript: '^6.0.3',
+      vite: '^8.0.16',
     },
   }
 }
@@ -125,7 +127,10 @@ export function getPublishedMetadataProblems(
   return problems
 }
 
-export function createBrowserEntry(packageNames: string[]): string {
+export function createBrowserEntry(
+  packageNames: string[],
+  componentPackageNames: string[],
+): string {
   const browserPackageNames = packageNames.filter(
     packageName => packageName !== '@zeus-web/cli',
   )
@@ -136,6 +141,19 @@ export function createBrowserEntry(packageNames: string[]): string {
   const moduleNames = browserPackageNames.map(
     (_packageName, index) => `  PublishedPackage${index},`,
   )
+
+  for (let index = 0; index < componentPackageNames.length; index += 1) {
+    const packageName = componentPackageNames[index]
+
+    imports.push(
+      `import * as PublishedReactPackage${index} from '${packageName}/react'`,
+      `import * as PublishedVuePackage${index} from '${packageName}/vue'`,
+    )
+    moduleNames.push(
+      `  PublishedReactPackage${index},`,
+      `  PublishedVuePackage${index},`,
+    )
+  }
 
   if (packageNames.includes('@zeus-web/ui')) {
     imports.push("import '@zeus-web/ui/styles.css'")
@@ -310,6 +328,7 @@ function verifyRegistry(
 function writeConsumerProject(
   directory: string,
   packageNames: string[],
+  componentPackageNames: string[],
   version: string,
 ): void {
   const sourceDirectory = join(directory, 'src')
@@ -343,7 +362,7 @@ function writeConsumerProject(
   )
   writeFileSync(
     join(sourceDirectory, 'main.ts'),
-    createBrowserEntry(packageNames),
+    createBrowserEntry(packageNames, componentPackageNames),
   )
   writeFileSync(
     join(sourceDirectory, 'styles.d.ts'),
@@ -399,14 +418,23 @@ function assertInstalledVersions(
   }
 }
 
-function runConsumerSmoke(packageNames: string[], options: Options): void {
+function runConsumerSmoke(
+  packageNames: string[],
+  componentPackageNames: string[],
+  options: Options,
+): void {
   const directory = mkdtempSync(join(tmpdir(), 'zeus-web-published-smoke-'))
   const installEnv = Object.assign({}, process.env)
 
   installEnv.npm_config_registry = options.registry
 
   try {
-    writeConsumerProject(directory, packageNames, options.version)
+    writeConsumerProject(
+      directory,
+      packageNames,
+      componentPackageNames,
+      options.version,
+    )
     runCommand(
       'pnpm',
       ['install', '--ignore-workspace', '--frozen-lockfile=false'],
@@ -418,17 +446,11 @@ function runConsumerSmoke(packageNames: string[], options: Options): void {
     assertInstalledVersions(directory, packageNames, options.version)
     runCommand(
       'pnpm',
-      [
-        'exec',
-        'tsc',
-        '--noEmit',
-        '--project',
-        join(directory, 'tsconfig.json'),
-      ],
-      { cwd: options.root },
+      ['exec', 'tsc', '--noEmit', '--project', 'tsconfig.json'],
+      { cwd: directory },
     )
-    runCommand('pnpm', ['exec', 'vite', 'build', directory], {
-      cwd: options.root,
+    runCommand('pnpm', ['exec', 'vite', 'build'], {
+      cwd: directory,
     })
     runCommand('node', [join(directory, 'runtime-smoke.mjs')], {
       cwd: directory,
@@ -446,9 +468,11 @@ function runConsumerSmoke(packageNames: string[], options: Options): void {
 
 function main(): Promise<void> {
   const options = parseOptions(process.argv.slice(2))
-  const packageNames = listPublishablePackages(options.root).map(
-    packageItem => packageItem.name,
-  )
+  const packages = listPublishablePackages(options.root)
+  const packageNames = packages.map(packageItem => packageItem.name)
+  const componentPackageNames = packages
+    .filter(packageItem => packageItem.isPrimitive || packageItem.isAdvanced)
+    .map(packageItem => packageItem.name)
 
   return verifyRegistry(packageNames, options).then(() => {
     console.info(
@@ -456,7 +480,7 @@ function main(): Promise<void> {
         `Verified npm metadata for ${packageNames.length} packages at ${options.version} (${options.tag})`,
       ),
     )
-    runConsumerSmoke(packageNames, options)
+    runConsumerSmoke(packageNames, componentPackageNames, options)
     console.info(
       pc.green(
         `Published package smoke passed for ${packageNames.length} packages.`,
