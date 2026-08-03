@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { validatePackageRules } from '../package-rules'
@@ -57,8 +57,6 @@ describe('package rules', () => {
         },
       },
       dependencies: {
-        '@zeus-js/output-react-wrapper': '0.1.0-beta.2',
-        '@zeus-js/output-vue-wrapper': '0.1.0-beta.2',
         '@zeus-js/runtime-dom': '0.1.0-beta.2',
         '@zeus-js/web-c-runtime': '0.1.0-beta.2',
         '@zeus-web/zeus-compat': 'workspace:*',
@@ -71,57 +69,49 @@ describe('package rules', () => {
     expect(result.errors).toEqual([])
   })
 
-  it('rejects component packages without generated wrapper runtime dependencies', () => {
+  it('rejects output wrapper tooling as a component runtime dependency', () => {
     const root = createTempRoot()
     const dir = join(root, 'packages/primitives/input')
     mkdirSync(join(dir, 'src'), { recursive: true })
 
-    writeZeusRolldownConfig(join(root, 'rolldown.config.ts'))
     writeJson(join(dir, 'package.json'), {
       name: '@zeus-web/input',
-      scripts: {
-        build: 'rolldown -c ../../../rolldown.config.ts',
-      },
-      sideEffects: ['./dist/wc/index.js', './dist/wc/*.js'],
-      exports: {
-        '.': {},
-        './wc': {},
-        './wc/auto': {},
-        './react': {},
-        './vue': {},
-        './vue/global': {},
-        './custom-elements.json': {},
-        './zeus.components.json': {},
-      },
-      peerDependencies: {
-        '@zeus-js/zeus': '>=0.1.0-beta.2 <0.2.0',
-        react: '>=18 || >=19',
-        vue: '>=3',
-      },
-      peerDependenciesMeta: {
-        react: {
-          optional: true,
-        },
-        vue: {
-          optional: true,
-        },
-      },
+      exports: {},
       dependencies: {
-        '@zeus-js/runtime-dom': '0.1.0-beta.2',
-        '@zeus-js/web-c-runtime': '0.1.0-beta.2',
-        '@zeus-web/zeus-compat': 'workspace:*',
+        '@zeus-js/output-react-wrapper': '0.1.0-beta.8',
+        '@zeus-js/output-vue-wrapper': '0.1.0-beta.8',
       },
     })
 
     const result = validatePackageRules(root, join(dir, 'package.json'))
 
-    expect(result.valid).toBe(false)
     expect(result.errors).toContain(
-      '@zeus-web/input: primitive package must depend on @zeus-js/output-react-wrapper',
+      '@zeus-web/input: must not declare dependencies.@zeus-js/output-react-wrapper; consume Zeus through peerDependencies.@zeus-js/zeus or generated component runtime dependencies',
     )
     expect(result.errors).toContain(
-      '@zeus-web/input: primitive package must depend on @zeus-js/output-vue-wrapper',
+      '@zeus-web/input: must not declare dependencies.@zeus-js/output-vue-wrapper; consume Zeus through peerDependencies.@zeus-js/zeus or generated component runtime dependencies',
     )
+  })
+
+  it('accepts every workspace component package manifest', () => {
+    const root = process.cwd()
+    const errors: string[] = []
+
+    for (const kind of ['primitives', 'advanced']) {
+      const packagesDir = join(root, 'packages', kind)
+
+      for (const entry of readdirSync(packagesDir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue
+
+        const packageJsonPath = join(packagesDir, entry.name, 'package.json')
+        if (!existsSync(packageJsonPath)) continue
+
+        const result = validatePackageRules(root, packageJsonPath)
+        errors.push(...result.errors)
+      }
+    }
+
+    expect(errors).toEqual([])
   })
 
   it('rejects component packages without optional framework peers', () => {
@@ -150,8 +140,6 @@ describe('package rules', () => {
         '@zeus-js/zeus': '>=0.1.0-beta.2 <0.2.0',
       },
       dependencies: {
-        '@zeus-js/output-react-wrapper': '0.1.0-beta.2',
-        '@zeus-js/output-vue-wrapper': '0.1.0-beta.2',
         '@zeus-js/runtime-dom': '0.1.0-beta.2',
         '@zeus-js/web-c-runtime': '0.1.0-beta.2',
         '@zeus-web/zeus-compat': 'workspace:*',
@@ -647,8 +635,6 @@ describe('package rules', () => {
         },
       },
       dependencies: {
-        '@zeus-js/output-react-wrapper': '0.1.0-beta.5',
-        '@zeus-js/output-vue-wrapper': '0.1.0-beta.5',
         '@zeus-js/runtime-dom': '0.1.0-beta.5',
         '@zeus-js/web-c-runtime': '0.2.0',
         '@zeus-web/zeus-compat': 'workspace:*',

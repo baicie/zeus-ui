@@ -68,6 +68,7 @@ describe('ci workflow contract', () => {
       'pnpm install --frozen-lockfile',
       'pnpm build',
       'pnpm check:build-output',
+      'pnpm --filter @zeus-web/example-next-app build',
     ])
   })
 

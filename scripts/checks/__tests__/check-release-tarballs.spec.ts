@@ -5,6 +5,11 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 
 import {
+  checkBuildOutput,
+  validateComponentServerImports,
+  validateServerImport,
+} from '../build/check-build-output'
+import {
   validateReactNamedSlotProps,
   validateTarballDependencies,
 } from '../release/check-release-tarballs'
@@ -147,5 +152,86 @@ describe('release tarball React named slot contract', () => {
     ).toEqual([
       '@fixture/package: zw-fixture uses loading as both a prop and React named slot',
     ])
+  })
+})
+
+describe('component wrapper SSR contract', () => {
+  it('reports browser globals evaluated while importing a server entry', () => {
+    const pkg = createPackage()
+    writeDistFile(
+      pkg,
+      'dist/react/index.js',
+      'export const ElementClass = HTMLElement\n',
+    )
+
+    const error = validateServerImport(join(pkg.dir, 'dist/react/index.js'))
+
+    expect(error).toContain('HTMLElement is not defined')
+  })
+
+  it('reports the component entry that is not server import safe', () => {
+    const root = mkdtempSync(join(tmpdir(), 'zeus-ui-ssr-imports-'))
+    tempRoots.push(root)
+
+    const safeEntry = join(
+      root,
+      'packages/primitives/button/dist/react/index.js',
+    )
+    const unsafeEntry = join(root, 'packages/advanced/chat/dist/react/index.js')
+    mkdirSync(dirname(safeEntry), { recursive: true })
+    mkdirSync(dirname(unsafeEntry), { recursive: true })
+    writeFileSync(safeEntry, 'export const Button = {}\n')
+    writeFileSync(unsafeEntry, 'export const ElementClass = HTMLElement\n')
+
+    const errors = validateComponentServerImports(root)
+
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toContain('packages/advanced/chat/dist/react/index.js')
+    expect(errors[0]).toContain('HTMLElement is not defined')
+  })
+
+  it('runs the server import check from the complete build output gate', () => {
+    const root = mkdtempSync(join(tmpdir(), 'zeus-ui-build-output-'))
+    const componentRoot = join(root, 'packages/primitives/fixture')
+    const requiredOutputs = [
+      'dist/wc/index.js',
+      'dist/wc/index.d.ts',
+      'dist/wc/auto.js',
+      'dist/react/index.js',
+      'dist/react/index.d.ts',
+      'dist/vue/index.js',
+      'dist/vue/index.d.ts',
+      'dist/vue/global.d.ts',
+      'dist/custom-elements.json',
+      'dist/zeus.components.json',
+    ]
+
+    tempRoots.push(root)
+    mkdirSync(componentRoot, { recursive: true })
+    writeFileSync(
+      join(componentRoot, 'package.json'),
+      JSON.stringify({ name: '@fixture/component' }),
+    )
+
+    for (const output of requiredOutputs) {
+      const source = output.endsWith('.json') ? '{}\n' : 'export {}\n'
+      const path = join(componentRoot, output)
+
+      mkdirSync(dirname(path), { recursive: true })
+      writeFileSync(path, source)
+    }
+
+    writeFileSync(
+      join(componentRoot, 'dist/react/index.js'),
+      'export const ElementClass = HTMLElement\n',
+    )
+
+    const errors = checkBuildOutput(root)
+
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toContain(
+      'packages/primitives/fixture/dist/react/index.js',
+    )
+    expect(errors[0]).toContain('HTMLElement is not defined')
   })
 })

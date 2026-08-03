@@ -50,7 +50,7 @@ export function createPrimitiveRolldownConfig(
             dts: true,
             index: true,
             namedSlots: 'props',
-            wrapper: 'runtime',
+            wrapper: 'event-bridge',
           }),
           vue({
             outDir: 'vue',
@@ -58,6 +58,7 @@ export function createPrimitiveRolldownConfig(
             dts: true,
             globalDts: true,
             index: true,
+            wrapper: 'event-bridge',
           }),
         ],
       }),

@@ -18,8 +18,13 @@ const primitiveBuildConfig = readFileSync(
 )
 
 describe('input primitive protocol', () => {
-  it('enables the React custom event bridge', () => {
-    expect(primitiveBuildConfig).toMatch(/wrapper:\s*['"]runtime['"]/)
+  it('uses SSR-safe event bridges for React and Vue wrappers', () => {
+    expect(primitiveBuildConfig).toMatch(
+      /react\([\s\S]*?wrapper:\s*['"]event-bridge['"]/,
+    )
+    expect(primitiveBuildConfig).toMatch(
+      /vue\([\s\S]*?wrapper:\s*['"]event-bridge['"]/,
+    )
   })
 
   it('infers models, methods, slots, and css parts from source', () => {
