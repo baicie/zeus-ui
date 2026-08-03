@@ -267,7 +267,13 @@ describe('published package smoke check', () => {
           'scripts/checks/release/capture-published-latest.ts',
         ),
       ],
-      { encoding: 'utf8' },
+      {
+        encoding: 'utf8',
+        env: Object.assign({}, process.env, {
+          CI: '1',
+          NO_COLOR: '',
+        }),
+      },
     )
 
     expect(result.status).toBe(1)

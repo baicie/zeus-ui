@@ -95,7 +95,7 @@ function main(): Promise<void> {
 
 if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
   main().catch(error => {
-    console.error(pc.red((error as Error).message))
+    console.error((error as Error).message)
     process.exit(1)
   })
 }
