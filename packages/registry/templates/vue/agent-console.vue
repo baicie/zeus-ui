@@ -61,7 +61,9 @@ const demoArtifacts: AgentConsoleArtifact[] = [
 ]
 
 const messages = computed(() => props.messages ?? demoMessages)
+const toolCalls = computed(() => props.toolCalls || [])
 const artifacts = computed(() => props.artifacts ?? demoArtifacts)
+const diagnostics = computed(() => props.diagnostics || [])
 
 const consoleClass = computed(() =>
   cn(
@@ -85,7 +87,9 @@ const consoleClass = computed(() =>
   <AgentConsolePrimitive
     :class="consoleClass"
     :messages="messages"
+    :tool-calls="toolCalls"
     :artifacts="artifacts"
+    :diagnostics="diagnostics"
     :status="props.status"
     aria-label="Agent console"
   >
@@ -108,11 +112,24 @@ const consoleClass = computed(() =>
     <template #tools>
       <div class="space-y-2 text-sm">
         <div class="font-medium">Tool calls</div>
-        <div class="text-muted-foreground">No tool calls yet.</div>
+        <div v-if="toolCalls.length === 0" class="text-muted-foreground">
+          No tool calls yet.
+        </div>
+        <div
+          v-for="toolCall in toolCalls"
+          :key="toolCall.id"
+          class="flex items-center justify-between gap-3 rounded-md border p-2"
+          :data-status="toolCall.status"
+        >
+          <span>{{ toolCall.name }}</span>
+          <span class="text-xs text-muted-foreground">{{
+            toolCall.status
+          }}</span>
+        </div>
       </div>
     </template>
 
-    <template #artifacts>
+    <template #artifactsContent>
       <div class="space-y-2 text-sm">
         <div class="font-medium">Artifacts</div>
         <div
@@ -125,10 +142,20 @@ const consoleClass = computed(() =>
       </div>
     </template>
 
-    <template #diagnostics>
+    <template #diagnosticsContent>
       <div class="space-y-2 text-sm">
         <div class="font-medium">Diagnostics</div>
-        <div class="text-muted-foreground">No diagnostics.</div>
+        <div v-if="diagnostics.length === 0" class="text-muted-foreground">
+          No diagnostics.
+        </div>
+        <div
+          v-for="diagnostic in diagnostics"
+          :key="diagnostic.id"
+          class="rounded-md border p-2"
+          :data-level="diagnostic.level"
+        >
+          {{ diagnostic.message }}
+        </div>
       </div>
     </template>
   </AgentConsolePrimitive>

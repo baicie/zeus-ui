@@ -27,7 +27,7 @@ Zeus 是一个响应式前端框架 monorepo 项目，使用 pnpm workspace 管�
 
 ### 开发环境要求
 
-- Node.js 版本 >= 18.12.0
+- Node.js 版本 `^20.19.0 || ^22.13.0 || >=24.0.0`
 - 使用 pnpm 作为包管理器（版本 >= 10.19.0）
 - 推荐使用支持 TypeScript 的编辑器（如 VS Code）
 

@@ -207,6 +207,19 @@ describe('@zeus-web/registry package contract', () => {
     )
   })
 
+  it('uses collision-free Agent Console slots in the Vue template', () => {
+    const source = read('templates/vue/agent-console.vue')
+
+    expect(source).toContain(':tool-calls="toolCalls"')
+    expect(source).toContain(':diagnostics="diagnostics"')
+    expect(source).toContain('v-for="toolCall in toolCalls"')
+    expect(source).toContain('v-for="diagnostic in diagnostics"')
+    expect(source).toContain('<template #artifactsContent>')
+    expect(source).toContain('<template #diagnosticsContent>')
+    expect(source).not.toContain('<template #artifacts>')
+    expect(source).not.toContain('<template #diagnostics>')
+  })
+
   it('styles the select draft as a custom popup control', () => {
     const source = read('default/select.tsx')
 
