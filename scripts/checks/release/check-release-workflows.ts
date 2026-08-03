@@ -873,6 +873,11 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
   const installIndex = publishSteps.findIndex(
     step => step.run === 'pnpm install --frozen-lockfile',
   )
+  const captureExpectedLatest = getNamedStep(
+    publish,
+    'Capture expected latest dist-tag',
+    'publish.jobs.publish',
+  )
   const revalidateTag = getNamedStep(
     publish,
     'Revalidate release tag',
@@ -1088,10 +1093,56 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
         'remote_tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" --jq \'.object.sha\')"',
         'test "$remote_tag_sha" = "$RELEASE_SHA"',
       ].join('\n'),
+      [
+        'if test "$TAG" = "latest"; then',
+        '  expected_latest="$VERSION"',
+        'else',
+        '  expected_latest="$(npm view @zeus-web/ui dist-tags.latest --registry https://registry.npmjs.org/)"',
+        'fi',
+        'case "$expected_latest" in',
+        "  ''|*[!0-9A-Za-z.-]*) exit 1 ;;",
+        'esac',
+        'printf \'version=%s\\n\' "$expected_latest" >> "$GITHUB_OUTPUT"',
+      ].join('\n'),
       'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
-      'pnpm release:verify:published --version "$VERSION" --tag "$TAG"',
+      'pnpm release:verify:published --version "$VERSION" --tag "$TAG" --expected-latest "$EXPECTED_LATEST" --release-sha "$RELEASE_SHA"',
     ],
     'publish.jobs.publish run command order',
+    errors,
+  )
+  expectEqual(
+    captureExpectedLatest.id,
+    'expected-latest',
+    'publish.jobs.publish.steps.Capture expected latest dist-tag.id',
+    errors,
+  )
+  expectEqual(
+    String(captureExpectedLatest.run).trim(),
+    [
+      'if test "$TAG" = "latest"; then',
+      '  expected_latest="$VERSION"',
+      'else',
+      '  expected_latest="$(npm view @zeus-web/ui dist-tags.latest --registry https://registry.npmjs.org/)"',
+      'fi',
+      'case "$expected_latest" in',
+      "  ''|*[!0-9A-Za-z.-]*) exit 1 ;;",
+      'esac',
+      'printf \'version=%s\\n\' "$expected_latest" >> "$GITHUB_OUTPUT"',
+    ].join('\n'),
+    'publish.jobs.publish.steps.Capture expected latest dist-tag.run',
+    errors,
+  )
+  expectEqual(
+    getObject(
+      captureExpectedLatest,
+      'env',
+      'publish.jobs.publish.steps.Capture expected latest dist-tag',
+    ),
+    {
+      VERSION: githubExpression('inputs.version'),
+      TAG: githubExpression('inputs.tag'),
+    },
+    'publish.jobs.publish.steps.Capture expected latest dist-tag.env',
     errors,
   )
   expectEqual(
@@ -1130,6 +1181,7 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       'Verify build outputs',
       'Verify release tarballs',
       'Revalidate release tag',
+      'Capture expected latest dist-tag',
       'Publish package',
       'Verify published packages',
     ],
@@ -1155,7 +1207,7 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
   )
   expectEqual(
     verifyPublished.run,
-    'pnpm release:verify:published --version "$VERSION" --tag "$TAG"',
+    'pnpm release:verify:published --version "$VERSION" --tag "$TAG" --expected-latest "$EXPECTED_LATEST" --release-sha "$RELEASE_SHA"',
     'publish.jobs.publish.steps.Verify published packages.run',
     errors,
   )
@@ -1166,6 +1218,10 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       'publish.jobs.publish.steps.Verify published packages',
     ),
     {
+      EXPECTED_LATEST: githubExpression(
+        'steps.expected-latest.outputs.version',
+      ),
+      RELEASE_SHA: githubExpression('inputs.release_sha'),
       VERSION: githubExpression('inputs.version'),
       TAG: githubExpression('inputs.tag'),
     },

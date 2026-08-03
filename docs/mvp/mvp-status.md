@@ -2,7 +2,10 @@
 
 ## Current target
 
-The current MVP target is `0.1.0-beta.0`.
+The current MVP target is `0.1.0-beta.2`.
+
+This corrective beta keeps the original MVP product scope while closing
+package consumption and published release verification gaps.
 
 This beta focuses on:
 
@@ -102,8 +105,29 @@ pnpm build
 pnpm check:exports
 pnpm check:build-output
 pnpm site:check
-pnpm release:verify --allow-zero
+pnpm release:final 0.1.0-beta.2
 ```
+
+`--allow-zero` is only for the general case where the current workspace package
+versions are still `0.0.0`; the current beta does not use it.
+
+After publication, run:
+
+```bash
+pnpm release:verify:published \
+  --version 0.1.0-beta.2 \
+  --tag beta \
+  --expected-latest 0.1.0-beta.0 \
+  --release-sha <merged-main-sha>
+```
+
+For every package, the verifier confirms the target version, `beta` and
+canonical `latest`; binds the SLSA subject `sha512` to `dist.integrity`; and
+checks the repository, publish workflow, version tag, source URI and merged
+`main` release SHA. It then runs the existing isolated TypeScript, Vite,
+framework entry, runtime and CLI consumption smoke. The publish workflow
+snapshots canonical `latest` before a beta release; a stable `latest` release
+expects the current version instead.
 
 ## Component coverage contract
 

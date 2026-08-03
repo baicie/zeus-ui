@@ -119,7 +119,7 @@ The showcase has seventeen layers of checks:
 14. Showcase registry checks validate React and Vue demos consume registry-synced local styled components.
 15. Native showcase checks validate @zeus-web/ui can be consumed without React or Vue.
 16. Public docs checks validate CLI registry, native styled Web-C and advanced primitive usage paths.
-17. Release readiness checks validate publishable package metadata, build outputs and tarball contents.
+17. Release readiness checks validate publishable package metadata, build outputs, tarball contents, published dist-tags, release-bound SLSA provenance and isolated consumer smoke paths.
 
 ## Commands
 
@@ -137,7 +137,12 @@ pnpm check:native-showcase
 pnpm check:phase24-release
 pnpm release:verify:strict
 pnpm release:verify:pack
-pnpm release:final 0.1.0-beta.0 --allow-zero
+pnpm release:final 0.1.0-beta.2
+pnpm release:verify:published \
+  --version 0.1.0-beta.2 \
+  --tag beta \
+  --expected-latest 0.1.0-beta.0 \
+  --release-sha <merged-main-sha>
 pnpm check:public-docs
 pnpm docs:check
 pnpm docs:build
@@ -167,6 +172,14 @@ pnpm site:build
 
 > `pnpm site:check` intentionally does not run `pnpm showcase:e2e`.
 > Browser E2E is wired into CI through `.github/workflows/showcase.yml`.
+
+`--allow-zero` is only for the general case where the current workspace package
+versions are still `0.0.0`; it is not used for the current `0.1.0-beta.2`
+release. For beta publication, the publish workflow snapshots canonical
+`latest` before publishing; stable `latest` publication expects the current
+version. The published verifier checks both dist-tags, binds the SLSA subject
+digest to `dist.integrity`, validates repository/workflow/tag/source URI/release
+SHA, and then runs the existing isolated consumption smoke.
 
 ## Next work
 

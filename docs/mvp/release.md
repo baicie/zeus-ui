@@ -75,17 +75,17 @@ dry-run 会执行完整流程（更新版本、precheck、publish dry-run），�
 
 ### 最终发布校验
 
-`release:final` 必须显式传入目标版本。当前包版本仍为 `0.0.0` 时附加
+`release:final` 必须显式传入目标版本。当前纠正版运行：
+
+```bash
+pnpm release:final 0.1.0-beta.2
+```
+
+一般情况下，只有当前 workspace 包版本仍为 `0.0.0` 时才附加
 `--allow-zero`：
 
 ```bash
-pnpm release:final 0.2.0-beta.0 --allow-zero
-```
-
-如果当前包版本已经是非零版本，则运行：
-
-```bash
-pnpm release:final 0.2.0
+pnpm release:final <version> --allow-zero
 ```
 
 `--allow-zero` 只允许校验前的工作区包保持 `0.0.0`，目标版本本身仍必须是合法的非零 semver。
@@ -196,6 +196,8 @@ dispatch-publish:
 
 真实 publish 按仓库和 npm dist-tag 串行执行，使用 frozen lockfile 安装依赖，checkout 不持久化 Git 凭据，并在 fresh build 与 tarball 校验通过后发布，避免并发完成顺序回退 dist-tag 或发布缺失产物。正式触发前，`Release` environment 必须配置 required reviewer，且启用的 `refs/tags/v*` tag ruleset 必须禁止更新和删除版本 tag；workflow 内的发布前复核用于缩短竞态窗口，ruleset 才是 tag 不可变性的仓库级保证。
 
+publish workflow 在 beta 发布前会快照 npm 上 canonical `latest`，发布后将该值传给 published verifier，确保 beta 只推进 `beta` 而不漂移 `latest`。稳定版使用 `latest` 通道时，期望的 `latest` 就是当前发布版本。
+
 ---
 
 ## 四、publishOnly 补发
@@ -269,8 +271,11 @@ pnpm release 0.1.0-beta.0 --tag beta --skipGit
 # dry-run
 pnpm release 0.1.0 --dry
 
-# 最终发布校验（当前包版本仍为 0.0.0）
-pnpm release:final 0.1.0-beta.0 --allow-zero
+# 当前纠正版最终发布校验
+pnpm release:final 0.1.0-beta.2
+
+# 仅当当前 workspace 包版本仍为 0.0.0 时使用
+pnpm release:final <version> --allow-zero
 
 # 查看发版计划
 pnpm release:plan --tag beta
@@ -351,5 +356,15 @@ git diff  # 确认根目录和 36 个发布包版本符合预期
 
 1. Release workflow 的 release job 和 `dispatch-publish` job 是否执行成功（tag 指向已合并的 `main` SHA 并触发发布）
 2. 独立的 Publish to NPM run 是否执行成功（事件 ref/SHA、version、dist-tag 与 release 输出一致）
-3. 36 个 npm 包是否都存在目标版本、SLSA provenance v1，且 `beta` 指向目标版本、`latest` 保持原稳定通道值
-4. 执行 `pnpm release:verify:published --version 0.1.0-beta.2 --tag beta`，确认所有根入口及 25 个 `/react`、`/vue` 子入口在隔离安装后通过类型检查和 Vite bundle，并通过 runtime 与 CLI smoke
+3. 36 个 npm 包是否都存在目标版本，且 `beta` 指向目标版本、`latest` 保持发布前快照的 canonical 值
+4. 执行以下发布后校验：
+
+```bash
+pnpm release:verify:published \
+  --version 0.1.0-beta.2 \
+  --tag beta \
+  --expected-latest 0.1.0-beta.0 \
+  --release-sha <merged-main-sha>
+```
+
+该命令会逐包校验 `beta` 与 `latest`，解码 SLSA provenance v1，并确认 subject npm purl 的 `sha512` 与 `dist.integrity` 一致。它还要求 workflow repository/path/ref 分别对应 `https://github.com/baicie/zeus-ui`、`.github/workflows/publish.yml` 和版本 tag，resolved source URI 对应同一版本 tag，且 `gitCommit` 等于合并后的 `main` SHA。元数据校验通过后，命令继续执行现有隔离消费 smoke，覆盖所有可安全导入的根入口、25 个 `/react` 与 `/vue` 子入口、TypeScript、Vite bundle、runtime 和 CLI。

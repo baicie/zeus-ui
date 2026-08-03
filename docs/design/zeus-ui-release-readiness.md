@@ -27,8 +27,16 @@ Phase 24 includes:
 pnpm release:verify
 pnpm release:verify:strict
 pnpm release:verify:pack
-pnpm release:final 0.1.0-beta.0 --allow-zero
+pnpm release:final 0.1.0-beta.2
+pnpm release:verify:published \
+  --version 0.1.0-beta.2 \
+  --tag beta \
+  --expected-latest 0.1.0-beta.0 \
+  --release-sha <merged-main-sha>
 ```
+
+`--allow-zero` is available only for the general case where the current
+workspace package versions are still `0.0.0`; the current beta does not use it.
 
 ## Workflow security rules
 
@@ -36,6 +44,9 @@ pnpm release:final 0.1.0-beta.0 --allow-zero
 - Only the tag step receives the contents-write GitHub token.
 - Publish proves the release SHA is an ancestor of remote `main` before install.
 - Publish revalidates the remote version tag immediately before npm access.
+- Before a beta publish, Publish snapshots the canonical `latest` dist-tag so
+  post-publish verification proves it did not move. A stable `latest` publish
+  expects `latest` to equal the current version.
 - The `Release` environment requires review, and an active `refs/tags/v*`
   ruleset blocks tag updates and deletions.
 
@@ -90,6 +101,25 @@ scripts/
 ```
 
 Source maps are allowed only under `dist/`.
+
+## Published package rules
+
+The published verifier checks all 36 packages individually. The requested
+`beta` dist-tag must equal the release version and `latest` must equal the
+explicit pre-publish expectation. Each decoded SLSA provenance v1 statement
+must bind:
+
+- the npm purl subject and its `sha512` digest to `dist.integrity`
+- repository `https://github.com/baicie/zeus-ui`
+- workflow `.github/workflows/publish.yml`
+- ref `refs/tags/v<version>`
+- source URI `git+https://github.com/baicie/zeus-ui@refs/tags/v<version>`
+- source `gitCommit` to the merged `main` release SHA
+
+After registry metadata and provenance pass, the existing isolated consumer
+smoke validates browser-safe roots, all 25 React and Vue component subpaths,
+TypeScript declarations, the Vite production bundle, runtime compatibility and
+the CLI help path.
 
 ## Non-goals
 

@@ -4,14 +4,16 @@ This document defines the final verification workflow before publishing Zeus Web
 
 ## Final command
 
-The command requires the target release version. Use `--allow-zero` only when
-the current package versions are still `0.0.0`:
+The command requires the target release version. For the current corrective
+beta, run:
 
 ```bash
-pnpm release:final 0.1.0-beta.0 --allow-zero
+pnpm release:final 0.1.0-beta.2
 ```
 
 The general form is `pnpm release:final <version> [--allow-zero]`.
+`--allow-zero` is only for the general case where the current workspace package
+versions are still `0.0.0`; it is not needed for the current beta.
 
 The final dry-run can temporarily update package versions, changelog files and
 the lockfile. For a real release, run it on the release branch, keep the target
@@ -25,9 +27,9 @@ pnpm check
 pnpm build
 pnpm site:check
 pnpm showcase:ci
-pnpm release:verify:strict --allow-zero
+pnpm release:verify:strict
 pnpm release:verify:pack
-pnpm release:dry 0.1.0-beta.0
+pnpm release:dry 0.1.0-beta.2
 ```
 
 ## Release readiness
@@ -145,12 +147,31 @@ After npm publication, run the verifier against the immutable version and its
 release channel:
 
 ```bash
-pnpm release:verify:published --version 0.1.0-beta.2 --tag beta
+pnpm release:verify:published \
+  --version 0.1.0-beta.2 \
+  --tag beta \
+  --expected-latest 0.1.0-beta.0 \
+  --release-sha <merged-main-sha>
 ```
 
-This verifies that all 36 packages expose the exact version, the requested
-dist-tag and SLSA provenance v1. It then creates an isolated consumer outside
-the workspace, installs its own TypeScript and Vite toolchain, and checks:
+For every package, this verifies:
+
+- the exact version exists
+- the requested `beta` dist-tag points to `0.1.0-beta.2`
+- `latest` still points to the expected canonical version,
+  `0.1.0-beta.0`
+- the decoded SLSA provenance v1 subject uses the package npm purl and a
+  `sha512` digest equal to the package's `dist.integrity`
+- the provenance workflow repository is `https://github.com/baicie/zeus-ui`,
+  its path is `.github/workflows/publish.yml`, and its ref is
+  `refs/tags/v0.1.0-beta.2`
+- the resolved source URI is
+  `git+https://github.com/baicie/zeus-ui@refs/tags/v0.1.0-beta.2` and its
+  `gitCommit` equals `<merged-main-sha>`
+
+The verifier then runs the existing consumption smoke in an isolated consumer
+outside the workspace, installs its own TypeScript and Vite toolchain, and
+checks:
 
 - every browser-safe package root entry
 - all 25 component `./react` entries
@@ -162,16 +183,17 @@ the workspace, installs its own TypeScript and Vite toolchain, and checks:
 
 ## Development verification
 
-Before versions are bumped, run:
+For the current corrective beta, run:
 
 ```bash
-pnpm release:final 0.1.0-beta.0 --allow-zero
+pnpm release:final 0.1.0-beta.2
 ```
 
-When the current package versions are already non-zero, run:
+For a general release whose current workspace package versions are still
+`0.0.0`, opt in explicitly:
 
 ```bash
-pnpm release:final 0.1.0
+pnpm release:final <version> --allow-zero
 ```
 
 `--allow-zero` applies to the current workspace versions only. The target
@@ -182,8 +204,8 @@ release version must still be a valid, non-zero semver version.
 1. Create a clean `release/<version>` branch from the latest `main`.
 2. Prepare the root and all 36 package versions with
    `pnpm release <version> --tag <tag> --skipGit`.
-3. Run `pnpm release:final 0.1.0-beta.0 --allow-zero` when releasing from zero,
-   or pass the target version without `--allow-zero` for later releases.
+3. Run `pnpm release:final <version>`; append `--allow-zero` only when the
+   current workspace package versions are still `0.0.0`.
 4. Run `pnpm release:plan --tag <tag>` and review every version change.
 5. Commit the prepared version files, open a pull request, wait for all required
    checks and merge it into `main`.
@@ -231,6 +253,12 @@ tag/SHA checks. All third-party Actions in these privileged workflows are
 pinned to a full commit SHA. The required environment review is the human gate;
 the active tag ruleset is the repository-level guarantee that release tags
 cannot be updated or deleted during the workflow.
+
+Immediately before publishing, the publish workflow snapshots the canonical
+`latest` dist-tag for a beta release and passes that value to the published
+verifier after publication. This prevents a beta from silently moving
+`latest`. For a stable release using the `latest` channel, the expected
+`latest` value is the current release version.
 
 ## Non-goals
 
