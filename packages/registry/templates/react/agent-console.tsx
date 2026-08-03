@@ -103,7 +103,7 @@ export function AgentConsole({
         <div className="text-muted-foreground">No tool calls yet.</div>
       </div>
 
-      <div slot="artifacts" className="space-y-2 text-sm">
+      <div slot="artifactsContent" className="space-y-2 text-sm">
         <div className="font-medium">Artifacts</div>
         {artifacts.map(artifact => (
           <div key={artifact.id} className="rounded-md border p-2">
@@ -112,7 +112,7 @@ export function AgentConsole({
         ))}
       </div>
 
-      <div slot="diagnostics" className="space-y-2 text-sm">
+      <div slot="diagnosticsContent" className="space-y-2 text-sm">
         <div className="font-medium">Diagnostics</div>
         <div className="text-muted-foreground">No diagnostics.</div>
       </div>

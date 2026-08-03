@@ -1,7 +1,7 @@
 {
   "name": "@zeus-web/revogrid-adapter",
   "type": "module",
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.2",
   "description": "RevoGrid-compatible adapter for Zeus Web DataGrid models.",
   "license": "MIT",
   "repository": {
@@ -61,9 +61,21 @@
     "test:e2e": "vitest --root ../../.. --project e2e e2e/advanced/revogrid-adapter/revogrid-adapter-runtime.spec.ts"
   },
   "peerDependencies": {
-    "@zeus-js/zeus": "0.1.0-beta.8"
+    "@zeus-js/zeus": "0.1.0-beta.8",
+    "react": ">=18 || >=19",
+    "vue": ">=3"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
   },
   "dependencies": {
+    "@zeus-js/output-react-wrapper": "0.1.0-beta.8",
+    "@zeus-js/output-vue-wrapper": "0.1.0-beta.8",
     "@zeus-js/runtime-dom": "0.1.0-beta.8",
     "@zeus-js/web-c-runtime": "0.1.0-beta.8",
     "@zeus-web/data-grid": "workspace:*",

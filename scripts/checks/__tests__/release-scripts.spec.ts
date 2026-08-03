@@ -473,6 +473,10 @@ describe('release script contract', () => {
     const installIndex = publishSteps.findIndex(
       step => step.run === 'pnpm install --frozen-lockfile',
     )
+    const captureExpectedLatest = getNamedStep(
+      publish,
+      'Capture expected latest dist-tag',
+    )
     const publishStep = getNamedStep(publish, 'Publish package')
     const verifyPublished = getNamedStep(publish, 'Verify published packages')
     const verifyTag = getNamedStep(publish, 'Verify release tag')
@@ -590,9 +594,38 @@ describe('release script contract', () => {
         'remote_tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" --jq \'.object.sha\')"',
         'test "$remote_tag_sha" = "$RELEASE_SHA"',
       ].join('\n'),
+      [
+        'if test "$TAG" = "latest"; then',
+        '  expected_latest="$VERSION"',
+        'else',
+        '  expected_latest="$(npm view @zeus-web/ui dist-tags.latest --registry https://registry.npmjs.org/)"',
+        'fi',
+        'case "$expected_latest" in',
+        "  ''|*[!0-9A-Za-z.-]*) exit 1 ;;",
+        'esac',
+        'printf \'version=%s\\n\' "$expected_latest" >> "$GITHUB_OUTPUT"',
+      ].join('\n'),
       'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
-      'pnpm release:verify:published --version "$VERSION" --tag "$TAG"',
+      'pnpm release:verify:published --version "$VERSION" --tag "$TAG" --expected-latest "$EXPECTED_LATEST" --release-sha "$RELEASE_SHA"',
     ])
+    expect(captureExpectedLatest.id).toBe('expected-latest')
+    expect(String(captureExpectedLatest.run).trim()).toBe(
+      [
+        'if test "$TAG" = "latest"; then',
+        '  expected_latest="$VERSION"',
+        'else',
+        '  expected_latest="$(npm view @zeus-web/ui dist-tags.latest --registry https://registry.npmjs.org/)"',
+        'fi',
+        'case "$expected_latest" in',
+        "  ''|*[!0-9A-Za-z.-]*) exit 1 ;;",
+        'esac',
+        'printf \'version=%s\\n\' "$expected_latest" >> "$GITHUB_OUTPUT"',
+      ].join('\n'),
+    )
+    expect(getObject(captureExpectedLatest, 'env')).toEqual({
+      VERSION: githubExpression('inputs.version'),
+      TAG: githubExpression('inputs.tag'),
+    })
     expect(publishStep.run).toBe(
       'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
     )
@@ -618,6 +651,7 @@ describe('release script contract', () => {
       'Verify build outputs',
       'Verify release tarballs',
       'Revalidate release tag',
+      'Capture expected latest dist-tag',
       'Publish package',
       'Verify published packages',
     ])
@@ -628,9 +662,13 @@ describe('release script contract', () => {
       NODE_AUTH_TOKEN: githubExpression('secrets.NPM_PUBLISH_TOKEN'),
     })
     expect(verifyPublished.run).toBe(
-      'pnpm release:verify:published --version "$VERSION" --tag "$TAG"',
+      'pnpm release:verify:published --version "$VERSION" --tag "$TAG" --expected-latest "$EXPECTED_LATEST" --release-sha "$RELEASE_SHA"',
     )
     expect(getObject(verifyPublished, 'env')).toEqual({
+      EXPECTED_LATEST: githubExpression(
+        'steps.expected-latest.outputs.version',
+      ),
+      RELEASE_SHA: githubExpression('inputs.release_sha'),
       VERSION: githubExpression('inputs.version'),
       TAG: githubExpression('inputs.tag'),
     })

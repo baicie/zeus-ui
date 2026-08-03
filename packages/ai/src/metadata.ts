@@ -1865,11 +1865,16 @@ const rawAiMetadata: ZeusWebAiMetadata = {
           'artifact',
           'composer',
           'empty',
-          'loading',
+          'loadingContent',
         ],
         'zw-chat-message': ['avatar', 'header', 'default', 'footer', 'actions'],
         'zw-chat-composer': ['prefix', 'attachments', 'submit', 'suffix'],
-        'zw-chat-code-block': ['filename', 'language', 'actions', 'default'],
+        'zw-chat-code-block': [
+          'filenameContent',
+          'languageContent',
+          'actions',
+          'default',
+        ],
         'zw-chat-tool-call': ['summary', 'input', 'output', 'error', 'actions'],
         'zw-chat-artifact': ['header', 'default', 'footer', 'actions'],
       },
@@ -2361,7 +2366,12 @@ const rawAiMetadata: ZeusWebAiMetadata = {
       tags: ['agent', 'console', 'chat', 'tools', 'artifacts', 'diagnostics'],
       components: ['zw-agent-console'],
       slots: {
-        'zw-agent-console': ['timeline', 'tools', 'artifacts', 'diagnostics'],
+        'zw-agent-console': [
+          'timeline',
+          'tools',
+          'artifactsContent',
+          'diagnosticsContent',
+        ],
       },
       events: {
         'zw-agent-console': [

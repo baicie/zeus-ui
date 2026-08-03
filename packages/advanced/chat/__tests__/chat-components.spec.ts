@@ -126,9 +126,16 @@ describe('chat advanced component protocol', () => {
         artifact: { name: 'artifact' },
         composer: { name: 'composer' },
         empty: { name: 'empty' },
-        loading: { name: 'loading' },
+        loadingContent: { name: 'loadingContent' },
       },
     })
+
+    const component = result.components[0]
+    const reactPropSlotCollisions = Object.keys(component.slots).filter(
+      name => name in component.props,
+    )
+
+    expect(reactPropSlotCollisions).toEqual([])
 
     expect(result.components[0].cssParts).toEqual(
       expect.arrayContaining([
@@ -361,11 +368,18 @@ describe('chat advanced component protocol', () => {
       },
       slots: {
         default: { name: 'default' },
-        filename: { name: 'filename' },
-        language: { name: 'language' },
+        filenameContent: { name: 'filenameContent' },
+        languageContent: { name: 'languageContent' },
         actions: { name: 'actions' },
       },
     })
+
+    const component = result.components[0]
+    const reactPropSlotCollisions = Object.keys(component.slots).filter(
+      name => name in component.props,
+    )
+
+    expect(reactPropSlotCollisions).toEqual([])
 
     expect(result.components[0].cssParts).toEqual(
       expect.arrayContaining([

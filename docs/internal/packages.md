@@ -4,9 +4,38 @@
 `@zeus-web/data-grid`；尚未迁移到本文件的包继续保持现有发布出口，后续变更公共 API
 时必须补充对应章节。
 
+## 所有组件包共享契约
+
+状态：`0.1.0-beta.2`，MVP 阶段，不承诺向后兼容。
+
+本节适用于 `packages/primitives/*` 和 `packages/advanced/*` 的 25 个公开组件包。
+每个组件包都必须提供以下入口：
+
+- 包根入口
+- `./wc`
+- `./wc/auto`
+- `./react`
+- `./vue`
+- `./vue/global`
+- `./custom-elements.json`
+- `./zeus.components.json`
+
+React 和 Vue 生成入口会分别直接导入
+`@zeus-js/output-react-wrapper/runtime` 与
+`@zeus-js/output-vue-wrapper/runtime`。因此组件包必须把两个 wrapper 包声明为普通
+`dependencies`；消费者只需安装目标 `@zeus-web/*` 组件包和实际使用的框架，不得被要求
+手工安装 `@zeus-js/output-*` 实现包。
+
+`react >=18 || >=19` 与 `vue >=3` 是 optional peer dependencies。只使用 Web Component
+入口的消费者不需要安装 React 或 Vue。
+
+具名 slot 会映射为 React wrapper prop。组件 prop 与非默认 slot 不得同名，否则生成的
+React 类型会产生重复属性，wrapper runtime 也会截获本应传给自定义元素的数据 prop。
+存在语义冲突时保留数据 prop，并为 slot 使用独立的 `*Content` 名称。
+
 ## `@zeus-web/data-grid`
 
-状态：`0.1.0-beta.0`，MVP 阶段，不承诺向后兼容。
+状态：`0.1.0-beta.2`，MVP 阶段，不承诺向后兼容。
 
 入口：
 

@@ -786,9 +786,12 @@ function checkPhase24Release(errors: string[]): void {
   mustContain(
     'docs/release/release-readiness.md',
     [
-      'pnpm release:final 0.1.0-beta.0 --allow-zero',
+      'pnpm release:final 0.1.0-beta.2',
       'pnpm release:verify:strict',
       'pnpm release:verify:pack',
+      'pnpm release:verify:published',
+      '--expected-latest 0.1.0-beta.0',
+      '--release-sha <merged-main-sha>',
       '36 packages: 11 base packages, 20 primitive',
       '5 advanced packages',
       'NPM_PUBLISH_TOKEN',
@@ -835,7 +838,12 @@ function checkPhase24Release(errors: string[]): void {
   )
   mustContain(
     'docs/examples/showcase-roadmap.md',
-    ['pnpm release:final 0.1.0-beta.0 --allow-zero'],
+    [
+      'pnpm release:final 0.1.0-beta.2',
+      'pnpm release:verify:published',
+      '--expected-latest 0.1.0-beta.0',
+      '--release-sha <merged-main-sha>',
+    ],
     errors,
   )
   mustContain(
@@ -852,7 +860,10 @@ function checkPhase24Release(errors: string[]): void {
       'pnpm check:build-output',
       'pnpm release:verify:pack',
       'release workflow 不接收 npm token',
-      'pnpm release:final 0.1.0-beta.0 --allow-zero',
+      'pnpm release:final 0.1.0-beta.2',
+      'pnpm release:verify:published',
+      '--expected-latest 0.1.0-beta.0',
+      '--release-sha <merged-main-sha>',
       '`--skipGit`',
       '目标版本文件先在',
       '不会创建 commit 或推送 `main`',

@@ -128,8 +128,8 @@ pnpm add @zeus-web/agent-console
 
 - `timeline`
 - `tools`
-- `artifacts`
-- `diagnostics`
+- `artifactsContent`
+- `diagnosticsContent`
 
 ## 事件
 

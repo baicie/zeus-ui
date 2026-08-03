@@ -212,7 +212,7 @@ export function AgentConsolePage() {
           ))}
         </div>
 
-        <div slot="artifacts" className="agent-panel">
+        <div slot="artifactsContent" className="agent-panel">
           <h3 className="agent-panel-title">Artifacts</h3>
           {agentArtifacts.map(artifact => (
             <button
@@ -229,7 +229,7 @@ export function AgentConsolePage() {
           ))}
         </div>
 
-        <div slot="diagnostics" className="agent-panel">
+        <div slot="diagnosticsContent" className="agent-panel">
           <h3 className="agent-panel-title">Diagnostics</h3>
           {agentDiagnostics.map(d => (
             <div key={d.id} className="agent-diag">

@@ -121,14 +121,21 @@ describe('agent-console component protocol', () => {
         tools: {
           name: 'tools',
         },
-        artifacts: {
-          name: 'artifacts',
+        artifactsContent: {
+          name: 'artifactsContent',
         },
-        diagnostics: {
-          name: 'diagnostics',
+        diagnosticsContent: {
+          name: 'diagnosticsContent',
         },
       },
     })
+
+    const component = result.components[0]
+    const reactPropSlotCollisions = Object.keys(component.slots).filter(
+      name => name in component.props,
+    )
+
+    expect(reactPropSlotCollisions).toEqual([])
 
     expect(result.components[0].cssParts).toEqual(
       expect.arrayContaining([
