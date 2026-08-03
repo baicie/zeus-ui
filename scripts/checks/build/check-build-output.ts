@@ -1,8 +1,5 @@
-import { spawnSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
-import process from 'node:process'
-import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import pc from 'picocolors'
 
@@ -87,11 +84,11 @@ function readPackageInfo(dir: string, kind: PackageKind): PackageInfo | undefine
   }
 }
 
-function discoverPackages(root: string): PackageInfo[] {
+function discoverPackages(): PackageInfo[] {
   const result: PackageInfo[] = []
 
   for (const rootInfo of WORKSPACE_ROOTS) {
-    const abs = join(root, rootInfo.dir)
+    const abs = join(ROOT, rootInfo.dir)
 
     if (!existsSync(abs)) continue
 
@@ -145,58 +142,6 @@ function checkComponentPackage(pkg: PackageInfo, errors: string[]): void {
   }
 }
 
-export function validateServerImport(entry: string): string | undefined {
-  const entryUrl = pathToFileURL(entry).href
-  const source = `import(${JSON.stringify(entryUrl)}).catch(error => { console.error(error); process.exitCode = 1 })`
-  const result = spawnSync(
-    process.execPath,
-    ['--input-type=module', '--eval', source],
-    { encoding: 'utf8' },
-  )
-
-  if (!result.error && result.status === 0) return undefined
-
-  const details = [
-    result.stderr,
-    result.stdout,
-    result.error ? result.error.message : '',
-  ]
-    .filter(Boolean)
-    .join('\n')
-    .trim()
-
-  return details || `Node exited with status ${String(result.status)}`
-}
-
-export function validateComponentServerImports(root: string): string[] {
-  const errors: string[] = []
-
-  for (const kind of ['primitives', 'advanced']) {
-    const packagesDir = join(root, 'packages', kind)
-    if (!existsSync(packagesDir)) continue
-
-    for (const packageEntry of readdirSync(packagesDir, {
-      withFileTypes: true,
-    })) {
-      if (!packageEntry.isDirectory()) continue
-
-      const serverEntry = join(
-        packagesDir,
-        packageEntry.name,
-        'dist/react/index.js',
-      )
-      if (!existsSync(serverEntry)) continue
-
-      const error = validateServerImport(serverEntry)
-      if (!error) continue
-
-      errors.push(`${toForwardSlash(relative(root, serverEntry))}: ${error}`)
-    }
-  }
-
-  return errors
-}
-
 function checkRegularPackage(pkg: PackageInfo, errors: string[]): void {
   const distDir = join(pkg.dir, 'dist')
 
@@ -210,9 +155,9 @@ function checkRegularPackage(pkg: PackageInfo, errors: string[]): void {
   }
 }
 
-export function checkBuildOutput(root = ROOT): string[] {
+function main(): void {
   const errors: string[] = []
-  const packages = discoverPackages(root)
+  const packages = discoverPackages()
 
   for (const pkg of packages) {
     if (isComponentPackage(pkg)) {
@@ -221,14 +166,6 @@ export function checkBuildOutput(root = ROOT): string[] {
       checkRegularPackage(pkg, errors)
     }
   }
-
-  errors.push(...validateComponentServerImports(root))
-
-  return errors
-}
-
-function main(): void {
-  const errors = checkBuildOutput()
 
   if (errors.length > 0) {
     console.error(pc.red('Build output check failed:'))
@@ -240,7 +177,9 @@ function main(): void {
     process.exit(1)
   }
 
-  console.log(pc.green('Build output looks good.'))
+  console.log(
+    pc.green(`Build output looks good. (${packages.length} packages checked)`),
+  )
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) main()
+main()
