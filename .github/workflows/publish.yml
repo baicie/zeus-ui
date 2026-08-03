@@ -34,7 +34,7 @@ on:
         type: string
 
 concurrency:
-  group: publish-${{ github.repository }}-${{ inputs.tag }}
+  group: publish-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
@@ -102,21 +102,10 @@ jobs:
           RELEASE_SHA: ${{ inputs.release_sha }}
           GH_TOKEN: ${{ github.token }}
 
-      - name: Capture expected latest dist-tag
-        id: expected-latest
-        run: |
-          if test "$TAG" = "latest"; then
-            expected_latest="$VERSION"
-          else
-            expected_latest="$(npm view @zeus-web/ui dist-tags.latest --registry https://registry.npmjs.org/)"
-          fi
-          case "$expected_latest" in
-            ''|*[!0-9A-Za-z.-]*) exit 1 ;;
-          esac
-          printf 'version=%s\n' "$expected_latest" >> "$GITHUB_OUTPUT"
+      - name: Capture latest dist-tag baseline
+        run: pnpm release:capture:latest --output "$LATEST_BASELINE"
         env:
-          VERSION: ${{ inputs.version }}
-          TAG: ${{ inputs.tag }}
+          LATEST_BASELINE: ${{ runner.temp }}/published-latest-baseline.json
 
       - name: Publish package
         run: pnpm run ci-publish --version "$VERSION" --tag "$TAG"
@@ -126,9 +115,9 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
 
       - name: Verify published packages
-        run: pnpm release:verify:published --version "$VERSION" --tag "$TAG" --expected-latest "$EXPECTED_LATEST" --release-sha "$RELEASE_SHA"
+        run: pnpm release:verify:published --version "$VERSION" --tag "$TAG" --latest-baseline "$LATEST_BASELINE" --release-sha "$RELEASE_SHA"
         env:
-          EXPECTED_LATEST: ${{ steps.expected-latest.outputs.version }}
+          LATEST_BASELINE: ${{ runner.temp }}/published-latest-baseline.json
           RELEASE_SHA: ${{ inputs.release_sha }}
           VERSION: ${{ inputs.version }}
           TAG: ${{ inputs.tag }}

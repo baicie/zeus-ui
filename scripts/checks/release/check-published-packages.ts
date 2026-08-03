@@ -1,3 +1,4 @@
+import type { Bundle as SigstoreBundle } from 'sigstore'
 import { Buffer } from 'node:buffer'
 import { execFileSync } from 'node:child_process'
 import {
@@ -9,8 +10,8 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
 
+import { pathToFileURL } from 'node:url'
 import pc from 'picocolors'
 
 import { listPublishablePackages, repositoryUrl } from '../../release/workspace'
@@ -25,7 +26,7 @@ export interface ConsumerPackageJson {
 
 export interface PublishedPackageMetadata {
   attestationUrl?: string
-  distTags: Record<string, string>
+  distTags: Record<string, unknown>
   integrity?: string
   provenancePredicateType?: string
   provenanceStatement?: PublishedProvenanceStatement
@@ -70,8 +71,12 @@ export interface PublishedMetadataByName {
   [packageName: string]: PublishedPackageMetadata | undefined
 }
 
+export interface PublishedPackageLatestBaseline {
+  [packageName: string]: string | null | undefined
+}
+
 export interface PublishedPackageCheckOptions {
-  expectedLatest: string
+  latestBaselinePath: string
   releaseSha: string
   registry: string
   root: string
@@ -101,13 +106,47 @@ export interface RegistryFetch {
   (url: string, options: RegistryFetchOptions): Promise<RegistryFetchResponse>
 }
 
+export interface SigstoreVerifyOptions {
+  certificateIdentityURI: string
+  certificateIssuer: string
+}
+
+export interface SigstoreVerifier {
+  (bundle: unknown, options: SigstoreVerifyOptions): Promise<void>
+}
+
+interface CapturedPackageLatest {
+  latest: string | null
+  packageName: string
+}
+
 const DEFAULT_REGISTRY = 'https://registry.npmjs.org/'
 const DSSE_PAYLOAD_TYPE = 'application/vnd.in-toto+json'
+const EXPECTED_CERTIFICATE_ISSUER =
+  'https://token.actions.githubusercontent.com'
 const EXPECTED_WORKFLOW_REPOSITORY = repositoryUrl.replace(/\.git$/, '')
 const EXPECTED_WORKFLOW_PATH = '.github/workflows/publish.yml'
 const MAX_REGISTRY_ATTEMPTS = 6
 const REGISTRY_RETRY_DELAY_MS = 5000
+const RELEASE_VERSION_PATTERN =
+  /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-([\da-z-]+(?:\.[\da-z-]+)*))?$/i
 const SLSA_PREDICATE_TYPE = 'https://slsa.dev/provenance/v1'
+
+function isValidReleaseVersion(value: string): boolean {
+  const match = RELEASE_VERSION_PATTERN.exec(value)
+
+  if (!match) return false
+
+  const prerelease = match[1]
+
+  if (!prerelease) return true
+
+  return prerelease.split('.').every(identifier => {
+    if (!/^\d+$/.test(identifier)) return true
+
+    return identifier === '0' || !identifier.startsWith('0')
+  })
+}
 
 export function createConsumerPackageJson(
   packageNames: string[],
@@ -142,7 +181,7 @@ export function getPublishedMetadataProblems(
   version: string,
   tag: string,
   metadataByName: PublishedMetadataByName,
-  expectedLatest: string,
+  latestBaseline: PublishedPackageLatestBaseline,
   releaseSha: string,
 ): string[] {
   const problems: string[] = []
@@ -165,15 +204,27 @@ export function getPublishedMetadataProblems(
       const actualTag = metadata.distTags[tag]
 
       problems.push(
-        `${packageName}: dist-tag ${tag} points to ${actualTag || 'nothing'}`,
+        `${packageName}: dist-tag ${tag} points to ${formatDistTagValue(actualTag)}`,
       )
     }
 
-    if (metadata.distTags.latest !== expectedLatest) {
-      const actualLatest = metadata.distTags.latest
+    const baselineLatest = latestBaseline[packageName]
 
+    if (baselineLatest === undefined) {
+      problems.push(`${packageName}: latest baseline is unavailable`)
+    }
+
+    const expectedLatest = tag === 'latest' ? version : baselineLatest
+    const actualLatest = metadata.distTags.latest
+    const latestMatches =
+      expectedLatest === undefined ||
+      (expectedLatest === null
+        ? actualLatest === undefined
+        : actualLatest === expectedLatest)
+
+    if (!latestMatches) {
       problems.push(
-        `${packageName}: dist-tag latest points to ${actualLatest || 'nothing'}`,
+        `${packageName}: dist-tag latest points to ${formatDistTagValue(actualLatest)}`,
       )
     }
 
@@ -250,6 +301,12 @@ export function getPublishedMetadataProblems(
   return problems
 }
 
+function formatDistTagValue(value: unknown): string {
+  if (value === undefined) return 'nothing'
+
+  return String(value) || 'empty string'
+}
+
 function getProvenanceResolvedDependencies(
   statement: PublishedProvenanceStatement,
 ): ProvenanceResolvedDependency[] {
@@ -314,34 +371,75 @@ function getProvenanceWorkflow(
   return externalParameters ? externalParameters.workflow : undefined
 }
 
-export function parseSlsaProvenanceBundle(
+export function verifySlsaProvenanceBundle(
   value: unknown,
-): PublishedProvenanceStatement | undefined {
+  version: string,
+  verifier: SigstoreVerifier = verifySigstoreBundle,
+): Promise<PublishedProvenanceStatement | undefined> {
+  const attestation = getSlsaProvenanceAttestation(value)
+
+  if (
+    !attestation ||
+    !isRecord(attestation.bundle) ||
+    !hasDsseSignature(attestation.bundle)
+  ) {
+    return Promise.resolve(undefined)
+  }
+
+  const bundle = attestation.bundle
+  const encodedPayload = getDssePayload(bundle)
+
+  if (!encodedPayload) return Promise.resolve(undefined)
+
+  const certificateIdentity = `${EXPECTED_WORKFLOW_REPOSITORY}/${EXPECTED_WORKFLOW_PATH}@refs/tags/v${version}`
+
+  return verifier(bundle, {
+    certificateIdentityURI: `^${escapeRegExp(certificateIdentity)}$`,
+    certificateIssuer: EXPECTED_CERTIFICATE_ISSUER,
+  }).then(() => {
+    if (getDssePayload(bundle) !== encodedPayload) return undefined
+
+    const statement = decodeBase64Json(encodedPayload)
+
+    return isPublishedProvenanceStatement(statement) ? statement : undefined
+  })
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function hasDsseSignature(bundle: Record<string, unknown>): boolean {
+  const envelope = bundle.dsseEnvelope
+
+  return Boolean(
+    isRecord(envelope) &&
+    Array.isArray(envelope.signatures) &&
+    envelope.signatures.length > 0,
+  )
+}
+
+function getDssePayload(bundle: Record<string, unknown>): string | undefined {
+  const envelope = bundle.dsseEnvelope
+
+  return isRecord(envelope) &&
+    envelope.payloadType === DSSE_PAYLOAD_TYPE &&
+    typeof envelope.payload === 'string'
+    ? envelope.payload
+    : undefined
+}
+
+function getSlsaProvenanceAttestation(
+  value: unknown,
+): Record<string, unknown> | undefined {
   if (!isRecord(value) || !Array.isArray(value.attestations)) return undefined
 
   const attestations = value.attestations.filter(
     candidate =>
       isRecord(candidate) && candidate.predicateType === SLSA_PREDICATE_TYPE,
   )
-  const attestation = attestations.length === 1 ? attestations[0] : undefined
 
-  if (!isRecord(attestation) || !isRecord(attestation.bundle)) {
-    return undefined
-  }
-
-  const envelope = attestation.bundle.dsseEnvelope
-
-  if (
-    !isRecord(envelope) ||
-    envelope.payloadType !== DSSE_PAYLOAD_TYPE ||
-    typeof envelope.payload !== 'string'
-  ) {
-    return undefined
-  }
-
-  const statement = decodeBase64Json(envelope.payload)
-
-  return isPublishedProvenanceStatement(statement) ? statement : undefined
+  return attestations.length === 1 ? attestations[0] : undefined
 }
 
 export function parseRegistryPackageMetadata(
@@ -358,8 +456,11 @@ export function parseRegistryPackageMetadata(
   const provenance = isRecord(attestations.provenance)
     ? attestations.provenance
     : {}
+  const distTags = isRecord(packageMetadata['dist-tags'])
+    ? packageMetadata['dist-tags']
+    : {}
   const metadata: PublishedPackageMetadata = {
-    distTags: getStringRecord(packageMetadata['dist-tags']),
+    distTags,
     versions: Object.keys(versions),
   }
 
@@ -376,20 +477,6 @@ export function parseRegistryPackageMetadata(
   }
 
   return metadata
-}
-
-function getStringRecord(value: unknown): Record<string, string> {
-  if (!isRecord(value)) return {}
-
-  const result: Record<string, string> = {}
-
-  for (const key of Object.keys(value)) {
-    const item = value[key]
-
-    if (typeof item === 'string') result[key] = item
-  }
-
-  return result
 }
 
 function decodeBase64Json(value: string): unknown {
@@ -538,7 +625,7 @@ export function parsePublishedPackageOptions(
 ): PublishedPackageCheckOptions {
   let version = ''
   let tag = ''
-  let expectedLatest = ''
+  let latestBaselinePath = ''
   let releaseSha = ''
   let registry = DEFAULT_REGISTRY
 
@@ -558,8 +645,8 @@ export function parsePublishedPackageOptions(
       continue
     }
 
-    if (arg === '--expected-latest' && value) {
-      expectedLatest = value
+    if (arg === '--latest-baseline' && value) {
+      latestBaselinePath = value
       index += 1
       continue
     }
@@ -579,7 +666,7 @@ export function parsePublishedPackageOptions(
     throw new Error(`Unknown or incomplete option: ${arg}`)
   }
 
-  if (!/^\d+\.\d+\.\d+(?:-[0-9a-z.-]+)?$/i.test(version)) {
+  if (!isValidReleaseVersion(version)) {
     throw new Error('Expected --version with a valid release version')
   }
 
@@ -587,8 +674,8 @@ export function parsePublishedPackageOptions(
     throw new Error('Expected --tag with a valid npm dist-tag')
   }
 
-  if (!/^\d+\.\d+\.\d+(?:-[0-9a-z.-]+)?$/i.test(expectedLatest)) {
-    throw new Error('Expected --expected-latest with a valid release version')
+  if (!latestBaselinePath) {
+    throw new Error('Expected --latest-baseline with a baseline file path')
   }
 
   if (!/^[0-9a-f]{40}$/i.test(releaseSha)) {
@@ -596,7 +683,7 @@ export function parsePublishedPackageOptions(
   }
 
   return {
-    expectedLatest,
+    latestBaselinePath,
     releaseSha,
     registry: registry.endsWith('/') ? registry : `${registry}/`,
     root: process.cwd(),
@@ -605,11 +692,103 @@ export function parsePublishedPackageOptions(
   }
 }
 
+export function capturePublishedPackageLatestBaseline(
+  packageNames: string[],
+  registry: string,
+  fetcher: RegistryFetch = fetchRegistry,
+): Promise<PublishedPackageLatestBaseline> {
+  return Promise.all(
+    packageNames.map(packageName => {
+      const url = `${registry}${encodeURIComponent(packageName)}`
+
+      return fetcher(url, {
+        cache: 'no-store',
+        headers: {
+          accept: 'application/json',
+        },
+      }).then<CapturedPackageLatest>(response => {
+        if (response.status === 404) {
+          return { latest: null, packageName }
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            `${packageName}: registry returned HTTP ${response.status}`,
+          )
+        }
+
+        return response.json().then(value => {
+          const packageMetadata = isRecord(value) ? value : {}
+          const distTags = packageMetadata['dist-tags']
+
+          if (!isRecord(distTags)) {
+            throw new Error(`${packageName}: registry dist-tags are invalid`)
+          }
+
+          const latest = distTags.latest
+
+          if (latest === undefined) return { latest: null, packageName }
+
+          if (typeof latest !== 'string' || !isValidReleaseVersion(latest)) {
+            throw new Error(
+              `${packageName}: registry latest dist-tag is invalid`,
+            )
+          }
+
+          return { latest, packageName }
+        })
+      })
+    }),
+  ).then(results => {
+    const baseline: PublishedPackageLatestBaseline = {}
+
+    for (const result of results) {
+      baseline[result.packageName] = result.latest
+    }
+
+    return baseline
+  })
+}
+
+export function readPublishedPackageLatestBaseline(
+  path: string,
+): PublishedPackageLatestBaseline {
+  let value: unknown
+
+  try {
+    value = JSON.parse(readFileSync(path, 'utf8')) as unknown
+  } catch {
+    throw new Error('Latest baseline must be valid JSON')
+  }
+
+  if (!isRecord(value)) {
+    throw new Error('Latest baseline must be a JSON object')
+  }
+
+  const baseline: PublishedPackageLatestBaseline = {}
+
+  for (const packageName of Object.keys(value)) {
+    const latest = value[packageName]
+
+    if (
+      latest !== null &&
+      (typeof latest !== 'string' || !isValidReleaseVersion(latest))
+    ) {
+      throw new Error(`${packageName}: latest baseline is invalid`)
+    }
+
+    baseline[packageName] = latest
+  }
+
+  return baseline
+}
+
 export function fetchPublishedPackageMetadata(
   packageName: string,
   version: string,
   registry: string,
   fetcher: RegistryFetch = fetchRegistry,
+  verifier: SigstoreVerifier = verifySigstoreBundle,
 ): Promise<PublishedPackageMetadata> {
   const url = `${registry}${encodeURIComponent(packageName)}`
 
@@ -648,12 +827,25 @@ export function fetchPublishedPackageMetadata(
 
           return response.json()
         })
-        .then(bundle => {
-          metadata.provenanceStatement = parseSlsaProvenanceBundle(bundle)
+        .then(bundle =>
+          verifySlsaProvenanceBundle(bundle, version, verifier).then(
+            statement => {
+              metadata.provenanceStatement = statement
 
-          return metadata
-        })
+              return metadata
+            },
+          ),
+        )
     })
+}
+
+function verifySigstoreBundle(
+  bundle: unknown,
+  options: SigstoreVerifyOptions,
+): Promise<void> {
+  return import('sigstore')
+    .then(moduleValue => moduleValue.verify(bundle as SigstoreBundle, options))
+    .then(() => undefined)
 }
 
 function fetchRegistry(
@@ -672,6 +864,7 @@ function delay(milliseconds: number): Promise<void> {
 function verifyRegistry(
   packageNames: string[],
   options: PublishedPackageCheckOptions,
+  latestBaseline: PublishedPackageLatestBaseline,
   attempt = 1,
 ): Promise<void> {
   return Promise.all(
@@ -695,7 +888,7 @@ function verifyRegistry(
         options.version,
         options.tag,
         metadataByName,
-        options.expectedLatest,
+        latestBaseline,
         options.releaseSha,
       )
 
@@ -715,7 +908,7 @@ function verifyRegistry(
       )
 
       return delay(REGISTRY_RETRY_DELAY_MS).then(() =>
-        verifyRegistry(packageNames, options, attempt + 1),
+        verifyRegistry(packageNames, options, latestBaseline, attempt + 1),
       )
     })
 }
@@ -869,7 +1062,11 @@ function main(): Promise<void> {
     .filter(packageItem => packageItem.isPrimitive || packageItem.isAdvanced)
     .map(packageItem => packageItem.name)
 
-  return verifyRegistry(packageNames, options).then(() => {
+  const latestBaseline = readPublishedPackageLatestBaseline(
+    options.latestBaselinePath,
+  )
+
+  return verifyRegistry(packageNames, options, latestBaseline).then(() => {
     console.info(
       pc.green(
         `Verified npm metadata for ${packageNames.length} packages at ${options.version} (${options.tag})`,

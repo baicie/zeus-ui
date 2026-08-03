@@ -112,6 +112,26 @@ function readWorkflow(name: string): {
 }
 
 describe('release script contract', () => {
+  it('uses the patched Sigstore verifier dependency', () => {
+    const packageJson = JSON.parse(
+      readFileSync(resolve(process.cwd(), 'package.json'), 'utf-8'),
+    ) as {
+      devDependencies: Record<string, string>
+      engines: Record<string, string>
+    }
+    const workspace = asObject(
+      parse(
+        readFileSync(resolve(process.cwd(), 'pnpm-workspace.yaml'), 'utf-8'),
+      ) as unknown,
+      'pnpm-workspace.yaml',
+    )
+    const overrides = getObject(workspace, 'overrides')
+
+    expect(packageJson.devDependencies.sigstore).toBe('4.1.1')
+    expect(packageJson.engines.node).toBe('^20.19.0 || ^22.13.0 || >=24.0.0')
+    expect(overrides).not.toHaveProperty('@sigstore/protobuf-specs')
+  })
+
   it('wires release scripts in root package.json', () => {
     const packageJson = JSON.parse(
       readFileSync(resolve(process.cwd(), 'package.json'), 'utf-8'),
@@ -132,6 +152,17 @@ describe('release script contract', () => {
     expect(packageJson.scripts['release:verify:published']).toBe(
       'tsx scripts/checks/release/check-published-packages.ts',
     )
+    expect(packageJson.scripts['release:capture:latest']).toBe(
+      'tsx scripts/checks/release/capture-published-latest.ts',
+    )
+    expect(
+      existsSync(
+        resolve(
+          process.cwd(),
+          'scripts/checks/release/capture-published-latest.ts',
+        ),
+      ),
+    ).toBe(true)
     expect(packageJson.scripts['check:phase24-release']).toBe(
       'tsx scripts/checks/release/check-phase24-release.ts',
     )
@@ -473,9 +504,9 @@ describe('release script contract', () => {
     const installIndex = publishSteps.findIndex(
       step => step.run === 'pnpm install --frozen-lockfile',
     )
-    const captureExpectedLatest = getNamedStep(
+    const captureLatestBaseline = getNamedStep(
       publish,
-      'Capture expected latest dist-tag',
+      'Capture latest dist-tag baseline',
     )
     const publishStep = getNamedStep(publish, 'Publish package')
     const verifyPublished = getNamedStep(publish, 'Verify published packages')
@@ -525,9 +556,7 @@ describe('release script contract', () => {
     })
     expect(getObject(secrets, 'NPM_PUBLISH_TOKEN')).toEqual({ required: true })
     expect(concurrency).toEqual({
-      group: `publish-${githubExpression(
-        'github.repository',
-      )}-${githubExpression('inputs.tag')}`,
+      group: `publish-${githubExpression('github.repository')}`,
       'cancel-in-progress': false,
     })
     expect(getObject(publish, 'permissions')).toEqual({
@@ -594,37 +623,18 @@ describe('release script contract', () => {
         'remote_tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" --jq \'.object.sha\')"',
         'test "$remote_tag_sha" = "$RELEASE_SHA"',
       ].join('\n'),
-      [
-        'if test "$TAG" = "latest"; then',
-        '  expected_latest="$VERSION"',
-        'else',
-        '  expected_latest="$(npm view @zeus-web/ui dist-tags.latest --registry https://registry.npmjs.org/)"',
-        'fi',
-        'case "$expected_latest" in',
-        "  ''|*[!0-9A-Za-z.-]*) exit 1 ;;",
-        'esac',
-        'printf \'version=%s\\n\' "$expected_latest" >> "$GITHUB_OUTPUT"',
-      ].join('\n'),
+      'pnpm release:capture:latest --output "$LATEST_BASELINE"',
       'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
-      'pnpm release:verify:published --version "$VERSION" --tag "$TAG" --expected-latest "$EXPECTED_LATEST" --release-sha "$RELEASE_SHA"',
+      'pnpm release:verify:published --version "$VERSION" --tag "$TAG" --latest-baseline "$LATEST_BASELINE" --release-sha "$RELEASE_SHA"',
     ])
-    expect(captureExpectedLatest.id).toBe('expected-latest')
-    expect(String(captureExpectedLatest.run).trim()).toBe(
-      [
-        'if test "$TAG" = "latest"; then',
-        '  expected_latest="$VERSION"',
-        'else',
-        '  expected_latest="$(npm view @zeus-web/ui dist-tags.latest --registry https://registry.npmjs.org/)"',
-        'fi',
-        'case "$expected_latest" in',
-        "  ''|*[!0-9A-Za-z.-]*) exit 1 ;;",
-        'esac',
-        'printf \'version=%s\\n\' "$expected_latest" >> "$GITHUB_OUTPUT"',
-      ].join('\n'),
+    expect(captureLatestBaseline.id).toBeUndefined()
+    expect(String(captureLatestBaseline.run).trim()).toBe(
+      'pnpm release:capture:latest --output "$LATEST_BASELINE"',
     )
-    expect(getObject(captureExpectedLatest, 'env')).toEqual({
-      VERSION: githubExpression('inputs.version'),
-      TAG: githubExpression('inputs.tag'),
+    expect(getObject(captureLatestBaseline, 'env')).toEqual({
+      LATEST_BASELINE: `${githubExpression(
+        'runner.temp',
+      )}/published-latest-baseline.json`,
     })
     expect(publishStep.run).toBe(
       'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
@@ -651,7 +661,7 @@ describe('release script contract', () => {
       'Verify build outputs',
       'Verify release tarballs',
       'Revalidate release tag',
-      'Capture expected latest dist-tag',
+      'Capture latest dist-tag baseline',
       'Publish package',
       'Verify published packages',
     ])
@@ -662,12 +672,12 @@ describe('release script contract', () => {
       NODE_AUTH_TOKEN: githubExpression('secrets.NPM_PUBLISH_TOKEN'),
     })
     expect(verifyPublished.run).toBe(
-      'pnpm release:verify:published --version "$VERSION" --tag "$TAG" --expected-latest "$EXPECTED_LATEST" --release-sha "$RELEASE_SHA"',
+      'pnpm release:verify:published --version "$VERSION" --tag "$TAG" --latest-baseline "$LATEST_BASELINE" --release-sha "$RELEASE_SHA"',
     )
     expect(getObject(verifyPublished, 'env')).toEqual({
-      EXPECTED_LATEST: githubExpression(
-        'steps.expected-latest.outputs.version',
-      ),
+      LATEST_BASELINE: `${githubExpression(
+        'runner.temp',
+      )}/published-latest-baseline.json`,
       RELEASE_SHA: githubExpression('inputs.release_sha'),
       VERSION: githubExpression('inputs.version'),
       TAG: githubExpression('inputs.tag'),
@@ -676,6 +686,7 @@ describe('release script contract', () => {
     expect(source).not.toContain('npm i -g')
     expect(source).not.toContain('default@')
     expect(source).not.toContain('--tag latest')
+    expect(source).not.toContain('--expected-latest')
     expect(source).not.toMatch(/uses:\s+\S+@v\d/)
   })
 
