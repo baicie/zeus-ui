@@ -506,9 +506,10 @@ row model。
 `onCommit` 报告 input、handler、range calculation、layout read 与 DOM commit 的单调时间点、当前二维 range
 以及本次 commit 在 Data Grid header/body 渲染区插入或移除的 DOM 子树节点数。观察区间在每次 commit
 开始时重置，不包含 empty slot 等外部投影变化。节点 churn 不等同于 Zeus effect 创建或释放数量。
-若延迟完成的 data commit 在其 finalize microtask 执行前紧接 API range 更新，Data Grid 会保留原始
-data source 与 handler timing，并把全部 layout read 区间、最新二维 range 和累计 DOM churn 合并为一个
-sample。
+若延迟完成的 data commit 已完成 DOM reconciliation，Data Grid 会在后续同步调用开始前先生成独立
+sample，避免后一次调用的 timing 覆盖前一次 DOM churn。若多次调用仍处于同一个外层 reactive batch，
+DOM 尚未提交，则它们会合并为一个 sample，并保留全部 layout read 区间、最新二维 range 和累计 DOM
+churn。
 
 ### 组件方法
 

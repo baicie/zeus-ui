@@ -249,6 +249,74 @@ describe('zw-data-grid fixed-row DOM pooling', () => {
     expect(restoredHeader.getAttribute('data-column-id')).toBe(focusedColumnId)
   })
 
+  it('does not steal focus back from an outside target after scheduling header focus restoration', async () => {
+    const wideColumns = createColumns(30)
+    const grid = await mountDataGrid({
+      rows: [createWideRow(wideColumns.length)],
+      columns: wideColumns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 0,
+      overscanColumns: 1,
+      selectionMode: 'none',
+    })
+    const viewport = getViewport(grid)
+    const outsideButton = document.createElement('button')
+
+    outsideButton.type = 'button'
+    document.body.append(outsideButton)
+
+    setElementClientHeight(viewport, 40)
+    setElementClientWidth(viewport, 200)
+    grid.refreshViewport()
+    grid.scrollToColumn(5)
+
+    getHeaderCell(grid, 'column-5').focus()
+    grid.scrollToColumn(6)
+    outsideButton.focus()
+
+    expect(document.activeElement).toBe(outsideButton)
+
+    await nextFrame()
+
+    expect(document.activeElement).toBe(outsideButton)
+  })
+
+  it('does not run stale header focus restoration after a subsequent synchronous horizontal scroll', async () => {
+    const wideColumns = createColumns(30)
+    const grid = await mountDataGrid({
+      rows: [createWideRow(wideColumns.length)],
+      columns: wideColumns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 0,
+      overscanColumns: 1,
+      selectionMode: 'none',
+    })
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 40)
+    setElementClientWidth(viewport, 200)
+    grid.refreshViewport()
+    grid.scrollToColumn(5)
+
+    const focusedColumnId = 'column-5'
+
+    getHeaderCell(grid, focusedColumnId).focus()
+    grid.scrollToColumn(6)
+    grid.scrollToColumn(5)
+
+    expect(grid.getColumnItems().map(item => item.key)).toContain(
+      focusedColumnId,
+    )
+
+    await nextFrame()
+
+    expect(
+      document.activeElement?.closest('[data-slot="data-grid-header-cell"]'),
+    ).toBeNull()
+  })
+
   it('keeps body column slots pooled while a header cell is focused', async () => {
     const wideColumns = createColumns(30)
     const grid = await mountDataGrid({

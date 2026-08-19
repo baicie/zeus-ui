@@ -209,6 +209,7 @@ interface FocusedDataGridHeaderTarget {
 
 interface PendingDataGridDiagnosticsCommit {
   observer: NonNullable<DataGridDiagnostics['onCommit']>
+  renderToken: number
   source: DataGridCommitSource
   inputTime: number
   handlerStartTime: number
@@ -370,6 +371,8 @@ function setup(
   let pendingRemovedNodes: Set<Node> | undefined
   let pendingDiagnosticsCommit: PendingDataGridDiagnosticsCommit | undefined
   let diagnosticsCommitFinalizeScheduled = false
+  let diagnosticsRenderToken = 0
+  let completedDiagnosticsRenderToken = 0
   let hasCompletedMountCommit = false
   let modelBuildSequence = 0
   let commitTransactionId = 0
@@ -464,6 +467,7 @@ function setup(
   let builtModelVersion = modelVersion
   const scheduler = createRafScheduler()
   const focusScheduler = createRafScheduler()
+  const headerFocusScheduler = createRafScheduler()
 
   const viewportMeasure = createDataGridViewportMeasureController()
   let viewportMeasurement: DataGridViewportMeasurement =
@@ -662,7 +666,20 @@ function setup(
   const scheduleFocusHeaderTarget = (
     target: FocusedDataGridHeaderTarget,
   ): void => {
-    focusScheduler.schedule(() => {
+    const ownerDocument = viewport?.ownerDocument
+    const scheduledActiveElement = ownerDocument?.activeElement
+
+    headerFocusScheduler.schedule(() => {
+      const activeElement = ownerDocument?.activeElement
+
+      if (
+        activeElement &&
+        activeElement !== ownerDocument?.body &&
+        activeElement !== scheduledActiveElement
+      ) {
+        return
+      }
+
       focusHeaderTarget(target)
     })
   }
@@ -1146,6 +1163,7 @@ function setup(
   ): PendingDataGridDiagnosticsCommit => {
     return {
       observer: current.observer,
+      renderToken: next.renderToken,
       source: current.source,
       inputTime: current.inputTime,
       handlerStartTime: current.handlerStartTime,
@@ -1188,6 +1206,20 @@ function setup(
     })
   }
 
+  const finalizeCompletedPendingDiagnosticsCommit = (): void => {
+    const pendingCommit = pendingDiagnosticsCommit
+
+    if (
+      !pendingCommit ||
+      completedDiagnosticsRenderToken < pendingCommit.renderToken
+    ) {
+      return
+    }
+
+    pendingDiagnosticsCommit = undefined
+    finalizeDiagnosticsCommit(pendingCommit)
+  }
+
   const scheduleDiagnosticsCommitFinalize = (
     commit: PendingDataGridDiagnosticsCommit,
   ): void => {
@@ -1217,6 +1249,8 @@ function setup(
     preservePendingNodeChurn = source === 'mount' && !hasCompletedMountCommit,
     deferCommitDiagnostics = false,
   ): void => {
+    finalizeCompletedPendingDiagnosticsCommit()
+
     const hasFocusedBodyForCurrentRange = hasFocusedBodyDescendant()
     const shouldRestoreFocusAfterPoolExit =
       preserveFocusedBodyDomPoolForCurrentRange && hasFocusedBodyForCurrentRange
@@ -1224,6 +1258,10 @@ function setup(
     const shouldRestoreHeaderFocusAfterPoolExit = Boolean(
       poolHeaderColumnsForCurrentReconciliation && focusedHeaderTarget,
     )
+
+    if (!focusedHeaderTarget) {
+      headerFocusScheduler.cancel()
+    }
 
     disableRowPoolingForCurrentRange = hasFocusedBodyForCurrentRange
     disableHeaderColumnPoolingForCurrentRange =
@@ -1254,6 +1292,11 @@ function setup(
           ? getDiagnosticTime()
           : 0
     const rangeStartTime = commitObserver ? getDiagnosticTime() : 0
+    const renderToken = commitObserver ? diagnosticsRenderToken + 1 : 0
+
+    if (commitObserver) {
+      diagnosticsRenderToken = renderToken
+    }
 
     if (commitObserver || diagnosticsMutationObserver) {
       ensureDiagnosticsMutationObserver()
@@ -1304,6 +1347,7 @@ function setup(
 
     const diagnosticsCommit: PendingDataGridDiagnosticsCommit = {
       observer: commitObserver,
+      renderToken,
       source,
       inputTime,
       handlerStartTime,
@@ -1392,6 +1436,7 @@ function setup(
     if (!props.diagnostics?.onCommit) return false
 
     ensureDiagnosticsMutationObserver()
+    finalizeCompletedPendingDiagnosticsCommit()
     if (!pendingDiagnosticsCommit) {
       prepareDiagnosticsNodeChurn(false)
     }
@@ -2028,6 +2073,7 @@ function setup(
   }
 
   const getBodyRowsForRender = (): RenderedDataGridVirtualItem[] => {
+    completedDiagnosticsRenderToken = diagnosticsRenderToken
     void renderVersion()
     void rowRenderVersion()
 
@@ -2063,6 +2109,7 @@ function setup(
   }
 
   const getHeaderColumnsForRender = (): DataGridColumnVirtualItem[] => {
+    completedDiagnosticsRenderToken = diagnosticsRenderToken
     poolHeaderColumnsForCurrentReconciliation =
       shouldPoolHeaderColumnsForCurrentViewport()
 
@@ -2070,6 +2117,7 @@ function setup(
   }
 
   const getBodyColumnsForRender = (): DataGridColumnVirtualItem[] => {
+    completedDiagnosticsRenderToken = diagnosticsRenderToken
     poolBodyColumnsForCurrentReconciliation =
       shouldPoolBodyColumnsForCurrentViewport()
 
@@ -2221,6 +2269,7 @@ function setup(
           scheduler.cancel()
           pendingRangeUpdate = undefined
           focusScheduler.cancel()
+          headerFocusScheduler.cancel()
 
           if (viewport) {
             viewport.removeEventListener('scroll', scheduleUpdateRange)

@@ -207,7 +207,7 @@ describe('zw-data-grid diagnostics', () => {
     expect(grid.textContent).toContain('Next')
   })
 
-  it('preserves setRows DOM churn when an API commit follows in the same task', async () => {
+  it('finalizes setRows before an API commit after the caller batch closes', async () => {
     const commits: Readonly<DataGridCommitTiming>[] = []
     const grid = await mountDataGrid({
       rows: [{ id: 'initial-row', value: 'Initial' }],
@@ -226,13 +226,48 @@ describe('zw-data-grid diagnostics', () => {
     grid.scrollToOffset(0)
     await Promise.resolve()
 
-    expect(commits).toHaveLength(1)
-    expect(commits[0].source).toBe('data')
-    expectCommitTimingOrder(commits[0], 2)
+    expect(commits.map(sample => sample.source)).toEqual(['data', 'api'])
+    expectCommitTimingOrder(commits[0])
+    expectCommitTimingOrder(commits[1])
+    expect(commits[0].commitEndTime).toBeLessThanOrEqual(
+      commits[1].commitStartTime,
+    )
     expect(commits[0].createdNodeCount).toBeGreaterThan(0)
     expect(commits[0].removedNodeCount).toBeGreaterThan(0)
+    expect(commits[1].createdNodeCount).toBe(0)
+    expect(commits[1].removedNodeCount).toBe(0)
     expect(grid.textContent).toContain('Next')
     expect(grid.textContent).not.toContain('Initial')
+  })
+
+  it('attributes synchronous data and API churn to separate timing windows', async () => {
+    const commits: Readonly<DataGridCommitTiming>[] = []
+    const grid = await mountDataGrid({
+      rows: [{ id: 'initial-row', value: 'Initial' }],
+      columns: [{ id: 'value', field: 'value' }],
+      diagnostics: {
+        onCommit(sample) {
+          commits.push(sample)
+        },
+      },
+    })
+
+    commits.length = 0
+    grid.setRows([{ id: 'next-row', value: 'Next' }])
+    grid.scrollToOffset(0)
+    await Promise.resolve()
+
+    expect(commits.map(sample => sample.source)).toEqual(['data', 'api'])
+    const [dataCommit, apiCommit] = commits
+    expectCommitTimingOrder(dataCommit)
+    expectCommitTimingOrder(apiCommit)
+    expect(dataCommit.commitEndTime).toBeLessThanOrEqual(
+      apiCommit.commitStartTime,
+    )
+    expect(dataCommit.createdNodeCount).toBeGreaterThan(0)
+    expect(dataCommit.removedNodeCount).toBeGreaterThan(0)
+    expect(apiCommit.createdNodeCount).toBe(0)
+    expect(apiCommit.removedNodeCount).toBe(0)
   })
 
   it('preserves setRows DOM churn when an API commit shares the caller batch', async () => {
@@ -263,7 +298,7 @@ describe('zw-data-grid diagnostics', () => {
     expect(grid.textContent).not.toContain('Initial')
   })
 
-  it('merges consecutive deferred data commits without losing churn', async () => {
+  it('finalizes consecutive deferred data commits without losing churn', async () => {
     const commits: Readonly<DataGridCommitTiming>[] = []
     const grid = await mountDataGrid({
       rows: [{ id: 'initial-row', value: 'Initial' }],
@@ -280,11 +315,16 @@ describe('zw-data-grid diagnostics', () => {
     grid.setRows([{ id: 'final-row', value: 'Final' }])
     await Promise.resolve()
 
-    expect(commits).toHaveLength(1)
-    expect(commits[0].source).toBe('data')
-    expectCommitTimingOrder(commits[0], 2)
-    expect(commits[0].createdNodeCount).toBeGreaterThan(0)
-    expect(commits[0].removedNodeCount).toBeGreaterThan(0)
+    expect(commits.map(sample => sample.source)).toEqual(['data', 'data'])
+    expectCommitTimingOrder(commits[0])
+    expectCommitTimingOrder(commits[1])
+    expect(commits[0].commitEndTime).toBeLessThanOrEqual(
+      commits[1].commitStartTime,
+    )
+    for (const commit of commits) {
+      expect(commit.createdNodeCount).toBeGreaterThan(0)
+      expect(commit.removedNodeCount).toBeGreaterThan(0)
+    }
     expect(grid.textContent).toContain('Final')
     expect(grid.textContent).not.toContain('Intermediate')
   })
@@ -340,7 +380,7 @@ describe('zw-data-grid diagnostics', () => {
     expect(grid.textContent).toContain('Second')
   })
 
-  it('preserves setColumns DOM churn when an API commit follows in the same task', async () => {
+  it('finalizes setColumns before an API commit in the same task', async () => {
     const commits: Readonly<DataGridCommitTiming>[] = []
     const grid = await mountDataGrid({
       rows: [{ id: 'row-1', first: 'First', second: 'Second' }],
@@ -357,11 +397,16 @@ describe('zw-data-grid diagnostics', () => {
     grid.scrollToOffset(0)
     await Promise.resolve()
 
-    expect(commits).toHaveLength(1)
-    expect(commits[0].source).toBe('data')
-    expectCommitTimingOrder(commits[0], 2)
+    expect(commits.map(sample => sample.source)).toEqual(['data', 'api'])
+    expectCommitTimingOrder(commits[0])
+    expectCommitTimingOrder(commits[1])
+    expect(commits[0].commitEndTime).toBeLessThanOrEqual(
+      commits[1].commitStartTime,
+    )
     expect(commits[0].createdNodeCount).toBeGreaterThan(0)
     expect(commits[0].removedNodeCount).toBeGreaterThan(0)
+    expect(commits[1].createdNodeCount).toBe(0)
+    expect(commits[1].removedNodeCount).toBe(0)
     expect(grid.textContent).toContain('Second')
     expect(grid.textContent).not.toContain('First')
   })
