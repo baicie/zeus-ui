@@ -11,6 +11,8 @@ import { validatePackageRules } from './package-rules'
 
 const root = process.cwd()
 const packageRoots = ['packages', 'packages/primitives', 'packages/advanced']
+const EXACT_VERSION_RE =
+  /^\d+\.\d+\.\d+(?:-[\da-z]+(?:[.-][\da-z]+)*)?(?:\+[\da-z]+(?:[.-][\da-z]+)*)?$/i
 
 // ---------------------------------------------------------------------------
 // Shared
@@ -46,7 +48,11 @@ function slash(value: string): string {
   return value.replace(/\\/g, '/')
 }
 
-export function getExpectedZeusPeerRequirement(version: string): string {
+export function getExpectedZeusPeerRequirement(
+  version: string,
+): string | undefined {
+  if (!EXACT_VERSION_RE.test(version)) return undefined
+
   return createZeusPeerRequirement(version)
 }
 
@@ -81,9 +87,6 @@ function checkZeusBaseline(errors: string[]): void {
     'devDependencies',
     'optionalDependencies',
   ] as const
-  const exactVersionRE =
-    /^\d+\.\d+\.\d+(?:-[\da-z]+(?:[.-][\da-z]+)*)?(?:\+[\da-z]+(?:[.-][\da-z]+)*)?$/i
-
   const zeusDeps: Array<{ field: string; name: string; version: string }> = []
 
   for (const field of fields) {
@@ -116,7 +119,7 @@ function checkZeusBaseline(errors: string[]): void {
       )
     }
 
-    if (!exactVersionRE.test(dep.version)) {
+    if (!EXACT_VERSION_RE.test(dep.version)) {
       errors.push(
         `${dep.field}.${dep.name} must use an exact version: ${dep.version}`,
       )
@@ -136,6 +139,8 @@ function checkZeusBaseline(errors: string[]): void {
 
   const baseline = [...versions][0]
   const expectedPeer = getExpectedZeusPeerRequirement(baseline)
+
+  if (!expectedPeer) return
 
   for (const file of listPackageJsons()) {
     const pkg = JSON.parse(readFileSync(file, 'utf8')) as {
