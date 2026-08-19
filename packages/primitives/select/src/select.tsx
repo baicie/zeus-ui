@@ -1,5 +1,12 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
-import { defineElement, effect, event, Host, prop, Slot } from '@zeus-js/zeus'
+import {
+  createEffect,
+  defineElement,
+  event,
+  Host,
+  prop,
+  Slot,
+} from '@zeus-js/zeus'
 
 export type SelectSize = 'sm' | 'md' | 'lg'
 
@@ -644,7 +651,7 @@ function setup(
     },
   })
 
-  effect(() => {
+  createEffect(() => {
     readReactiveProps()
     queueSync()
   })

@@ -1,9 +1,8 @@
 import type { Alias, Plugin } from 'vite'
 
 import { resolve } from 'node:path'
-import { transformAsync } from '@babel/core'
 import vue from '@vitejs/plugin-vue'
-import zeusCompiler from '@zeus-js/compiler'
+import { transformModule } from '@zeus-js/compiler'
 import { configDefaults, defineConfig } from 'vitest/config'
 
 import { entries } from './scripts/config/aliases'
@@ -48,30 +47,26 @@ function dataGridCompiler(): Plugin {
         return null
       }
 
-      return transformAsync(code, {
+      const result = transformModule({
+        source: code,
         filename: id,
-        babelrc: false,
-        configFile: false,
-        sourceMaps: true,
-        parserOpts: {
-          plugins: ['typescript', 'jsx'],
-        },
-        plugins: [
-          [
-            zeusCompiler,
-            {
-              moduleName: '@zeus-js/runtime-dom',
-            },
-          ],
-        ],
-      }).then(result => {
-        if (!result || !result.code) return null
-
-        return {
-          code: result.code,
-          map: result.map,
-        }
+        target: 'dom',
+        runtimeModule: '@zeus-js/runtime-dom',
+        delegateEvents: true,
+        sourceMap: true,
       })
+      const diagnostic = result.diagnostics.find(
+        entry => entry.severity === 'error',
+      )
+
+      if (diagnostic) {
+        throw new Error(`${diagnostic.code}: ${diagnostic.message}`)
+      }
+
+      return {
+        code: result.code,
+        map: result.map,
+      }
     },
   }
 }
