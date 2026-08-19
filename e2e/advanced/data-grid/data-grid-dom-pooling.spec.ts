@@ -1,0 +1,379 @@
+import type { DataGridCellActionDetail } from '../../../packages/advanced/data-grid/src'
+
+import { afterEach, describe, expect, it } from 'vitest'
+
+import {
+  cleanupDataGridFixtures,
+  click,
+  collectEvents,
+  getViewport,
+  mountDataGrid,
+  nextFrame,
+  setElementClientHeight,
+  setElementClientWidth,
+} from './data-grid-runtime-harness'
+
+function createRows(count: number) {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `row-${index}`,
+    name: `Row ${index}`,
+    value: index,
+  }))
+}
+
+const columns = [
+  { id: 'name', header: 'Name', field: 'name', width: 120 },
+  { id: 'value', header: 'Value', field: 'value', width: 100 },
+]
+
+function getRenderedRows(grid: Element): HTMLElement[] {
+  return Array.from(
+    grid.querySelectorAll<HTMLElement>('[data-slot="data-grid-row"]'),
+  )
+}
+
+function getRenderedCells(row: Element): HTMLElement[] {
+  return Array.from(
+    row.querySelectorAll<HTMLElement>('[data-slot="data-grid-cell"]'),
+  )
+}
+
+function createWideRow(columnCount: number) {
+  const row: Record<string, unknown> = { id: 'row-0' }
+
+  for (let index = 0; index < columnCount; index += 1) {
+    row[`column_${index}`] = `Value ${index}`
+  }
+
+  return row
+}
+
+function createColumns(count: number) {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `column-${index}`,
+    header: `Column ${index}`,
+    field: `column_${index}`,
+    width: 100,
+  }))
+}
+
+describe('zw-data-grid fixed-row DOM pooling', () => {
+  afterEach(() => {
+    cleanupDataGridFixtures()
+  })
+
+  it('reuses viewport row and cell slots across a long-distance scroll', async () => {
+    const grid = await mountDataGrid({
+      rows: createRows(1_000),
+      columns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 1,
+      overscanColumns: 0,
+      selectionMode: 'none',
+    })
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 120)
+    setElementClientWidth(viewport, 220)
+    grid.refreshViewport()
+    grid.scrollToOffset(4_000)
+
+    const rowsBefore = getRenderedRows(grid)
+    const cellsBefore = rowsBefore.map(getRenderedCells)
+    const actions = collectEvents<DataGridCellActionDetail>(grid, 'cell-action')
+
+    grid.scrollToOffset(20_000)
+
+    const rowsAfter = getRenderedRows(grid)
+    const cellsAfter = rowsAfter.map(getRenderedCells)
+
+    expect(rowsAfter).toHaveLength(rowsBefore.length)
+    expect(rowsAfter.every((row, index) => row === rowsBefore[index])).toBe(
+      true,
+    )
+    expect(
+      cellsAfter.every((cells, rowIndex) =>
+        cells.every((cell, columnIndex) =>
+          Object.is(cell, cellsBefore[rowIndex][columnIndex]),
+        ),
+      ),
+    ).toBe(true)
+
+    const firstRow = rowsAfter[0]
+    const firstCells = cellsAfter[0]
+    const rowKey = firstRow.getAttribute('data-row-key')
+
+    expect(rowKey).toBe('row-499')
+    expect(firstCells[0].textContent).toBe('Row 499')
+    expect(firstCells[1].textContent).toBe('499')
+    expect(firstCells[0].getAttribute('data-row-key')).toBe(rowKey)
+
+    click(firstCells[1])
+
+    const lastAction = actions.events[actions.events.length - 1]
+
+    expect(lastAction?.detail.cell.row.key).toBe(rowKey)
+    expect(lastAction?.detail.cell.value).toBe(499)
+
+    actions.dispose()
+  })
+
+  it('reuses header and cell slots across a long-distance horizontal scroll', async () => {
+    const wideColumns = createColumns(30)
+    const grid = await mountDataGrid({
+      rows: [createWideRow(wideColumns.length)],
+      columns: wideColumns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 0,
+      overscanColumns: 1,
+      selectionMode: 'none',
+    })
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 40)
+    setElementClientWidth(viewport, 200)
+    grid.refreshViewport()
+    grid.scrollToColumn(5)
+
+    const headersBefore = Array.from(
+      grid.querySelectorAll<HTMLElement>('[data-slot="data-grid-header-cell"]'),
+    )
+    const cellsBefore = getRenderedCells(getRenderedRows(grid)[0])
+    const actions = collectEvents<DataGridCellActionDetail>(grid, 'cell-action')
+
+    grid.scrollToColumn(20)
+
+    const headersAfter = Array.from(
+      grid.querySelectorAll<HTMLElement>('[data-slot="data-grid-header-cell"]'),
+    )
+    const cellsAfter = getRenderedCells(getRenderedRows(grid)[0])
+    const firstColumn = grid.getColumnItems()[0]
+
+    expect(headersAfter).toHaveLength(headersBefore.length)
+    expect(cellsAfter).toHaveLength(cellsBefore.length)
+    expect(
+      headersAfter.every((header, index) => header === headersBefore[index]),
+    ).toBe(true)
+    expect(cellsAfter.every((cell, index) => cell === cellsBefore[index])).toBe(
+      true,
+    )
+    expect(headersAfter[0].getAttribute('data-column-id')).toBe(firstColumn.key)
+    expect(headersAfter[0].textContent).toContain(firstColumn.data.header)
+    expect(cellsAfter[0].getAttribute('data-column-id')).toBe(firstColumn.key)
+    expect(cellsAfter[0].textContent).toBe(`Value ${firstColumn.index}`)
+
+    click(cellsAfter[0])
+
+    const lastAction = actions.events[actions.events.length - 1]
+
+    expect(lastAction?.detail.cell.column.id).toBe(firstColumn.key)
+    expect(lastAction?.detail.cell.value).toBe(`Value ${firstColumn.index}`)
+
+    actions.dispose()
+  })
+
+  it('disables pooling for measured rows and restores it after reset', async () => {
+    const grid = await mountDataGrid({
+      rows: createRows(1_000),
+      columns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 1,
+      overscanColumns: 0,
+    })
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 120)
+    setElementClientWidth(viewport, 220)
+    grid.refreshViewport()
+    grid.scrollToOffset(4_000)
+
+    const pooledRows = getRenderedRows(grid)
+    const measuredIndex = grid.getItems()[2].index
+
+    grid.measure(measuredIndex, 80)
+    grid.scrollToOffset(8_000)
+
+    const measuredRows = getRenderedRows(grid)
+
+    expect(measuredRows.some(row => pooledRows.includes(row))).toBe(false)
+
+    grid.resetMeasurements()
+    grid.scrollToOffset(12_000)
+
+    const resetRows = getRenderedRows(grid)
+
+    grid.scrollToOffset(16_000)
+
+    const reusedRows = getRenderedRows(grid)
+
+    expect(reusedRows).toHaveLength(resetRows.length)
+    expect(reusedRows.every((row, index) => row === resetRows[index])).toBe(
+      true,
+    )
+  })
+
+  it('does not recycle a focused cell and preserves focus while it stays rendered', async () => {
+    const grid = await mountDataGrid({
+      rows: createRows(100),
+      columns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 1,
+      overscanColumns: 0,
+    })
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 120)
+    setElementClientWidth(viewport, 220)
+    grid.refreshViewport()
+    grid.scrollToOffset(400)
+
+    const focusedRowKey = grid.getItems()[2].key
+
+    grid.focusCell(focusedRowKey, 'name')
+    await nextFrame()
+
+    const pooledCell = grid.querySelector<HTMLElement>(
+      `[data-slot="data-grid-cell"][data-row-key="${focusedRowKey}"][data-column-id="name"]`,
+    )
+
+    if (!pooledCell) throw new Error('expected a pooled focus target')
+
+    expect(document.activeElement).toBe(pooledCell)
+
+    grid.scrollToOffset(440)
+    await nextFrame()
+
+    const focusedCell = grid.querySelector<HTMLElement>(
+      `[data-slot="data-grid-cell"][data-row-key="${focusedRowKey}"][data-column-id="name"]`,
+    )
+
+    expect(focusedCell).not.toBeNull()
+    expect(document.activeElement).toBe(focusedCell)
+    expect(pooledCell.getAttribute('data-row-key')).toBe(focusedRowKey)
+
+    grid.scrollToOffset(480)
+    await nextFrame()
+
+    expect(
+      grid.querySelector(
+        `[data-slot="data-grid-cell"][data-row-key="${focusedRowKey}"][data-column-id="name"]`,
+      ),
+    ).toBe(focusedCell)
+    expect(document.activeElement).toBe(focusedCell)
+  })
+
+  it('keeps the focused business cell stable through the native click sequence', async () => {
+    const grid = await mountDataGrid({
+      rows: createRows(1_000),
+      columns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 1,
+      overscanColumns: 0,
+      selectionMode: 'multiple',
+    })
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 120)
+    setElementClientWidth(viewport, 220)
+    grid.refreshViewport()
+    grid.scrollToOffset(20_000)
+
+    const row = getRenderedRows(grid)[1]
+    const cell = getRenderedCells(row)[0]
+    const rowKey = row.getAttribute('data-row-key')
+    const actions = collectEvents<DataGridCellActionDetail>(grid, 'cell-action')
+
+    if (!rowKey) throw new Error('expected a rendered business row key')
+
+    cell.focus()
+    click(cell)
+
+    const focusedCell = grid.querySelector<HTMLElement>(
+      `[data-slot="data-grid-cell"][data-row-key="${rowKey}"][data-column-id="name"]`,
+    )
+    const focusedRow = focusedCell?.closest<HTMLElement>(
+      '[data-slot="data-grid-row"]',
+    )
+
+    expect(focusedCell).not.toBeNull()
+    expect(document.activeElement).toBe(focusedCell)
+    expect(focusedRow?.getAttribute('aria-selected')).toBe('true')
+    expect(focusedCell?.getAttribute('aria-selected')).toBe('true')
+    expect(focusedCell?.hasAttribute('data-active')).toBe(true)
+    expect(viewport.getAttribute('aria-activedescendant')).toBe(focusedCell?.id)
+    const lastAction = actions.events[actions.events.length - 1]
+
+    expect(lastAction?.detail.cell.row.key).toBe(rowKey)
+
+    grid.scrollToOffset(20_040)
+    await nextFrame()
+
+    const retainedCell = grid.querySelector<HTMLElement>(
+      `[data-slot="data-grid-cell"][data-row-key="${rowKey}"][data-column-id="name"]`,
+    )
+
+    expect(retainedCell).not.toBeNull()
+    expect(document.activeElement).toBe(retainedCell)
+    expect(retainedCell?.hasAttribute('data-active')).toBe(true)
+    expect(viewport.getAttribute('aria-activedescendant')).toBe(
+      retainedCell?.id,
+    )
+
+    actions.dispose()
+  })
+
+  it('keeps selection, active-cell ARIA, and same-key data current in reused slots', async () => {
+    const initialRows = createRows(1_000)
+    const grid = await mountDataGrid({
+      rows: initialRows,
+      columns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 1,
+      overscanColumns: 0,
+      selectionMode: 'multiple',
+    })
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 120)
+    setElementClientWidth(viewport, 220)
+    grid.refreshViewport()
+    grid.scrollToOffset(20_000)
+
+    const row = getRenderedRows(grid)[1]
+    const cell = getRenderedCells(row)[0]
+    const rowKey = row.getAttribute('data-row-key')
+
+    if (!rowKey) throw new Error('expected a rendered business row key')
+
+    click(cell)
+
+    expect(row.getAttribute('aria-selected')).toBe('true')
+    expect(cell.getAttribute('aria-selected')).toBe('true')
+    expect(cell.hasAttribute('data-active')).toBe(true)
+    expect(viewport.getAttribute('aria-activedescendant')).toBe(cell.id)
+
+    const replacementRows = initialRows.map(item =>
+      item.id === rowKey ? { ...item, name: 'Replacement row' } : item,
+    )
+
+    grid.setRows(replacementRows)
+
+    const replacementCell = grid.querySelector<HTMLElement>(
+      `[data-slot="data-grid-cell"][data-row-key="${rowKey}"][data-column-id="name"]`,
+    )
+
+    expect(replacementCell).toBe(cell)
+    expect(replacementCell?.textContent).toBe('Replacement row')
+    expect(replacementCell?.getAttribute('aria-selected')).toBe('true')
+    expect(replacementCell?.hasAttribute('data-active')).toBe(true)
+    expect(viewport.getAttribute('aria-activedescendant')).toBe(
+      replacementCell?.id,
+    )
+  })
+})
