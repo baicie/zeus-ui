@@ -35,7 +35,7 @@ describe('data-grid behavior contract', () => {
       'columnWidths = createDataGridColumnWidthState(baseColumns)',
     )
     expect(source).toContain('shouldRefreshColumnsForRender = true')
-    expect(source).toContain('columnRenderVersion.value += 1')
+    expect(source).toContain('setColumnRenderVersion(value => value + 1)')
   })
 
   it('tracks column overscan as a layout input', () => {
@@ -46,8 +46,8 @@ describe('data-grid behavior contract', () => {
 
   it('refreshes keyed rows when a controlled row keeps the same key', () => {
     expect(source).toContain('shouldRefreshRowsForRender = true')
-    expect(source).toContain('rowRenderVersion.value += 1')
-    expect(source).toContain('void rowRenderVersion.value')
+    expect(source).toContain('setRowRenderVersion(value => value + 1)')
+    expect(source).toContain('void rowRenderVersion()')
   })
 
   it('batches model-to-prop synchronization', () => {

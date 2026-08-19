@@ -36,13 +36,14 @@ import type {
 } from '../types'
 import {
   batch,
+  createEffect,
+  createSignal,
   defineElement,
   event,
   For,
   Host,
   prop,
   Slot,
-  state,
 } from '@zeus-js/zeus'
 import { createEmptyVirtualRange, createRafScheduler } from '@zeus-web/virtual'
 import {
@@ -181,7 +182,31 @@ interface ResizeSession {
   startWidth: number
 }
 
+interface RenderedDataGridVirtualItem extends DataGridVirtualItem {
+  data: DataGridRow
+}
+
+interface DataGridSnapshotCache<T> {
+  snapshot: T
+  modelVersion: number
+  scrollOffset: number
+  viewportSize: number
+}
+
+interface PendingDataGridRangeUpdate {
+  nativeEvent?: Event
+  source: DataGridCommitSource
+  handlerStartTime?: number
+  handlerEndTime?: number
+  measureViewportMetrics: boolean
+  preservePendingNodeChurn: boolean
+}
+
 const FALLBACK_COLUMN_VIEWPORT_SIZE = 640
+
+function getDataGridCommitPriority(source: DataGridCommitSource): number {
+  return source === 'mount' || source === 'resize' ? 1 : 0
+}
 
 function resolveRows(props: DataGridProps): DataGridRowData[] {
   return Array.isArray(props.rows) ? props.rows : []
@@ -249,6 +274,20 @@ function getDiagnosticTime(): number {
     : globalThis.performance.now()
 }
 
+function collectDiagnosticNodeTree(node: Node, nodes: Set<Node>): void {
+  nodes.add(node)
+
+  for (let index = 0; index < node.childNodes.length; index += 1) {
+    collectDiagnosticNodeTree(node.childNodes[index], nodes)
+  }
+}
+
+function collectDiagnosticNodes(source: NodeList, nodes: Set<Node>): void {
+  for (let index = 0; index < source.length; index += 1) {
+    collectDiagnosticNodeTree(source[index], nodes)
+  }
+}
+
 function setScrollOffset(
   viewport: HTMLElement | undefined,
   offset: number,
@@ -305,8 +344,23 @@ function setup(
   let viewport: HTMLElement | undefined
   let viewportResizeObserver: ResizeObserver | undefined
   let resizeSession: ResizeSession | undefined
+  let diagnosticsMutationObserver: MutationObserver | undefined
+  let pendingCreatedNodes: Set<Node> | undefined
+  let pendingRemovedNodes: Set<Node> | undefined
+  let pendingDiagnosticsCommitFinalize: (() => void) | undefined
+  let diagnosticsCommitFinalizeScheduled = false
+  let hasCompletedMountCommit = false
   let modelBuildSequence = 0
   let commitTransactionId = 0
+  let controlledPropsReady = false
+  let observedRowsProp: DataGridRowData[] | undefined
+  let observedColumnsProp: DataGridColumn[] | undefined
+  let pendingRangeUpdate: PendingDataGridRangeUpdate | undefined
+  let hasRowMeasurementOverrides = false
+  let poolRowsForCurrentReconciliation = false
+  let poolHeaderColumnsForCurrentReconciliation = false
+  let poolBodyColumnsForCurrentReconciliation = false
+  let preserveFocusedDomPoolForCurrentRange = false
 
   let rowsSource = resolveRows(props)
   let columnsSource = resolveColumns(props)
@@ -341,34 +395,45 @@ function setup(
     columns: visibleColumns,
     overscan: resolveColumnOverscan(props),
   })
-  modelBuildSequence += 1
   if (initialModelBuildObserver) {
+    modelBuildSequence += 1
     initialModelBuildObserver({
       sequence: modelBuildSequence,
       modelVersion: 0,
       startTime: initialModelBuildStart,
       endTime: getDiagnosticTime(),
       rowCount: rows.length,
-      columnCount: visibleColumns.length,
-      sorted: sort !== undefined,
+      columnCount: columns.length,
+      visibleColumnCount: visibleColumns.length,
+      sortActive: sort !== undefined,
+      rowModelReused: visibleRows === rows,
     })
   }
   let currentSnapshot = cloneEmptySnapshot()
   let currentColumnSnapshot = cloneEmptyColumnSnapshot()
-  const renderVersion = state(0)
+  let rowSnapshotCache:
+    | DataGridSnapshotCache<DataGridVirtualSnapshot>
+    | undefined
+  let columnSnapshotCache:
+    | DataGridSnapshotCache<DataGridColumnVirtualSnapshot>
+    | undefined
+  let viewportClientHeight = 0
+  let viewportClientWidth = 0
+  const [renderVersion, setRenderVersion] = createSignal(0)
   let activeCell = createInitialDataGridActiveCell({
     rows: visibleRows,
     columns: visibleColumns,
     rowKey: props.activeRowKey,
     columnId: props.activeColumnId,
   })
-  const activeCellRenderVersion = state(0)
+  const [activeCellRenderVersion, setActiveCellRenderVersion] = createSignal(0)
   let shouldSyncActiveCellFromProps = false
   let modelVersion = 0
-  const rowRenderVersion = state(0)
-  const rowLayoutRenderVersion = state(0)
-  const columnRenderVersion = state(0)
-  const columnRangeRenderVersion = state(0)
+  const [rowRenderVersion, setRowRenderVersion] = createSignal(0)
+  const [rowLayoutRenderVersion, setRowLayoutRenderVersion] = createSignal(0)
+  const [columnRenderVersion, setColumnRenderVersion] = createSignal(0)
+  const [columnRangeRenderVersion, setColumnRangeRenderVersion] =
+    createSignal(0)
   let shouldRefreshRowsForRender = false
   let shouldRefreshRowLayoutForRender = false
   let shouldRefreshColumnsForRender = false
@@ -414,10 +479,32 @@ function setup(
     keyboardNavigation: resolveKeyboardNavigation(props),
   })
 
-  const measureViewport = (): DataGridViewportMeasurement => {
+  const invalidateRowSnapshotCache = (): void => {
+    rowSnapshotCache = undefined
+  }
+
+  const invalidateColumnSnapshotCache = (): void => {
+    columnSnapshotCache = undefined
+  }
+
+  const invalidateSnapshotCaches = (): void => {
+    invalidateRowSnapshotCache()
+    invalidateColumnSnapshotCache()
+  }
+
+  const measureViewport = (
+    clientHeight: number = getViewportClientHeight(viewport),
+    clientWidth: number = getViewportClientWidth(viewport),
+  ): DataGridViewportMeasurement => {
+    const previousClientHeight = viewportClientHeight
+    const previousClientWidth = viewportClientWidth
     const previousViewportSize = viewportMeasurement.size
+
+    viewportClientHeight = clientHeight
+    viewportClientWidth = clientWidth
+
     const nextMeasurement = viewportMeasure.measure(
-      getViewportClientHeight(viewport),
+      clientHeight,
       resolveRowHeight(props),
       visibleRows.length,
     )
@@ -436,10 +523,21 @@ function setup(
       viewportMeasurement = nextMeasurement
     }
 
+    if (
+      previousClientHeight !== clientHeight ||
+      previousViewportSize !== nextMeasurement.size
+    ) {
+      rowSnapshotCache = undefined
+    }
+
+    if (previousClientWidth !== clientWidth) {
+      columnSnapshotCache = undefined
+    }
+
     return viewportMeasurement
   }
 
-  const getResolvedViewportSize = (): number => measureViewport().size
+  const getResolvedViewportSize = (): number => viewportMeasurement.size
 
   const queryCell = (
     rowKey: DataGridRowKey,
@@ -468,6 +566,15 @@ function setup(
     const cell = queryCell(activeCell.rowKey, activeCell.columnId)
 
     return cell !== null && cell.ownerDocument.activeElement === cell
+  }
+
+  const hasFocusedBodyDescendant = (): boolean => {
+    const body = viewport?.querySelector<HTMLElement>(
+      '[data-slot="data-grid-body"]',
+    )
+    const activeElement = body?.ownerDocument.activeElement
+
+    return Boolean(body && activeElement && body.contains(activeElement))
   }
 
   const scheduleFocusActiveCellElement = (): void => {
@@ -552,6 +659,7 @@ function setup(
       rowHeight: resolveRowHeight(props),
       overscan: resolveOverscan(props),
     })
+    hasRowMeasurementOverrides = false
     columnVirtualizer = createDataGridColumnVirtualizer({
       columns: visibleColumns,
       overscan: resolveColumnOverscan(props),
@@ -570,7 +678,7 @@ function setup(
 
     if (!areDataGridActiveCellsEqual(activeCell, nextActiveCell)) {
       activeCell = nextActiveCell
-      activeCellRenderVersion.value += 1
+      setActiveCellRenderVersion(value => value + 1)
     } else {
       activeCell = nextActiveCell
     }
@@ -578,34 +686,41 @@ function setup(
     shouldSyncActiveCellFromProps = false
     currentSnapshot = cloneEmptySnapshot()
     currentColumnSnapshot = cloneEmptyColumnSnapshot()
+    invalidateSnapshotCaches()
     builtModelVersion = modelVersion
-    modelBuildSequence += 1
+
+    if (viewportClientHeight <= 0) {
+      measureViewport(viewportClientHeight, viewportClientWidth)
+    }
 
     if (modelBuildObserver) {
+      modelBuildSequence += 1
       modelBuildObserver({
         sequence: modelBuildSequence,
         modelVersion: builtModelVersion,
         startTime: modelBuildStart,
         endTime: getDiagnosticTime(),
         rowCount: rows.length,
-        columnCount: visibleColumns.length,
-        sorted: sort !== undefined,
+        columnCount: columns.length,
+        visibleColumnCount: visibleColumns.length,
+        sortActive: sort !== undefined,
+        rowModelReused: visibleRows === rows,
       })
     }
 
     if (shouldRefreshRowsForRender) {
       shouldRefreshRowsForRender = false
-      rowRenderVersion.value += 1
+      setRowRenderVersion(value => value + 1)
     }
 
     if (shouldRefreshRowLayoutForRender) {
       shouldRefreshRowLayoutForRender = false
-      rowLayoutRenderVersion.value += 1
+      setRowLayoutRenderVersion(value => value + 1)
     }
 
     if (shouldRefreshColumnsForRender) {
       shouldRefreshColumnsForRender = false
-      columnRenderVersion.value += 1
+      setColumnRenderVersion(value => value + 1)
     }
 
     if (shouldRestoreActiveCellFocus) {
@@ -618,12 +733,19 @@ function setup(
     scrollOffset: number,
     viewportSize: number,
   ): void => {
+    rowSnapshotCache = {
+      snapshot: nextSnapshot,
+      modelVersion,
+      scrollOffset,
+      viewportSize,
+    }
+
     if (!shouldUpdateDataGridVirtualSnapshot(currentSnapshot, nextSnapshot)) {
       return
     }
 
     currentSnapshot = nextSnapshot
-    renderVersion.value += 1
+    setRenderVersion(value => value + 1)
 
     ctx.emit.rangeChange({
       range: currentSnapshot.range,
@@ -636,7 +758,16 @@ function setup(
 
   const updateColumnSnapshotIfChanged = (
     nextSnapshot: DataGridColumnVirtualSnapshot,
+    scrollOffset: number,
+    viewportSize: number,
   ): void => {
+    columnSnapshotCache = {
+      snapshot: nextSnapshot,
+      modelVersion,
+      scrollOffset,
+      viewportSize,
+    }
+
     if (
       !shouldUpdateDataGridColumnVirtualSnapshot(
         currentColumnSnapshot,
@@ -647,7 +778,7 @@ function setup(
     }
 
     currentColumnSnapshot = nextSnapshot
-    columnRangeRenderVersion.value += 1
+    setColumnRangeRenderVersion(value => value + 1)
   }
 
   const getSnapshotFromModels = (
@@ -683,17 +814,34 @@ function setup(
   const getSnapshot = (): DataGridVirtualSnapshot => {
     rebuildModels()
 
-    return getSnapshotFromModels(
-      getScrollOffset(viewport),
-      getResolvedViewportSize(),
-    )
+    const scrollOffset = getScrollOffset(viewport)
+    const viewportSize = getResolvedViewportSize()
+
+    if (
+      rowSnapshotCache?.modelVersion === modelVersion &&
+      rowSnapshotCache.scrollOffset === scrollOffset &&
+      rowSnapshotCache.viewportSize === viewportSize
+    ) {
+      return rowSnapshotCache.snapshot
+    }
+
+    const snapshot = getSnapshotFromModels(scrollOffset, viewportSize)
+
+    rowSnapshotCache = {
+      snapshot,
+      modelVersion,
+      scrollOffset,
+      viewportSize,
+    }
+
+    return snapshot
   }
 
-  const getResolvedColumnViewportSize = (): number => {
-    const width = getViewportClientWidth(viewport)
-
-    return width > 0
-      ? width
+  const getResolvedColumnViewportSize = (
+    clientWidth: number = viewportClientWidth,
+  ): number => {
+    return clientWidth > 0
+      ? clientWidth
       : Math.min(
           FALLBACK_COLUMN_VIEWPORT_SIZE,
           columnVirtualizer.getTotalSize(),
@@ -736,38 +884,43 @@ function setup(
   const getColumnSnapshot = (): DataGridColumnVirtualSnapshot => {
     rebuildModels()
 
-    return getColumnSnapshotFromModels(
-      getColumnScrollOffset(viewport),
-      getResolvedColumnViewportSize(),
-    )
+    const scrollOffset = getColumnScrollOffset(viewport)
+    const viewportSize = getResolvedColumnViewportSize()
+
+    if (
+      columnSnapshotCache?.modelVersion === modelVersion &&
+      columnSnapshotCache.scrollOffset === scrollOffset &&
+      columnSnapshotCache.viewportSize === viewportSize
+    ) {
+      return columnSnapshotCache.snapshot
+    }
+
+    const snapshot = getColumnSnapshotFromModels(scrollOffset, viewportSize)
+
+    columnSnapshotCache = {
+      snapshot,
+      modelVersion,
+      scrollOffset,
+      viewportSize,
+    }
+
+    return snapshot
   }
 
   const getActiveDescendantForRender = (): string | undefined => {
-    void activeCellRenderVersion.value
-    void renderVersion.value
-    void rowRenderVersion.value
-    void columnRangeRenderVersion.value
-    void columnRenderVersion.value
+    void activeCellRenderVersion()
+    void renderVersion()
+    void rowRenderVersion()
+    void columnRangeRenderVersion()
+    void columnRenderVersion()
 
     rebuildModels()
 
     const currentActiveCell = activeCell
     if (!currentActiveCell) return undefined
 
-    const rowSnapshot =
-      currentSnapshot.items.length > 0
-        ? currentSnapshot
-        : getSnapshotFromModels(
-            getScrollOffset(viewport),
-            getResolvedViewportSize(),
-          )
-    const columnSnapshot =
-      currentColumnSnapshot.items.length > 0
-        ? currentColumnSnapshot
-        : getColumnSnapshotFromModels(
-            getColumnScrollOffset(viewport),
-            getResolvedColumnViewportSize(),
-          )
+    const rowSnapshot = rowSnapshotCache?.snapshot ?? getSnapshot()
+    const columnSnapshot = columnSnapshotCache?.snapshot ?? getColumnSnapshot()
     const hasRenderedRow = rowSnapshot.items.some(
       item => item.index === currentActiveCell.rowIndex,
     )
@@ -787,7 +940,7 @@ function setup(
     rowKey: DataGridRowKey,
     columnId: string,
   ): boolean => {
-    void activeCellRenderVersion.value
+    void activeCellRenderVersion()
 
     return Boolean(
       activeCell &&
@@ -796,37 +949,197 @@ function setup(
     )
   }
 
+  const recordDiagnosticsMutations = (
+    records: ReadonlyArray<MutationRecord>,
+  ): void => {
+    if (!pendingCreatedNodes || !pendingRemovedNodes) return
+
+    for (const record of records) {
+      collectDiagnosticNodes(record.addedNodes, pendingCreatedNodes)
+      collectDiagnosticNodes(record.removedNodes, pendingRemovedNodes)
+    }
+  }
+
+  const ensureDiagnosticsMutationObserver = (): void => {
+    const diagnostics = props.diagnostics
+    const shouldObserve = Boolean(
+      diagnostics &&
+      diagnostics.onCommit &&
+      typeof MutationObserver !== 'undefined',
+    )
+
+    if (!shouldObserve || !viewport) {
+      if (diagnosticsMutationObserver) {
+        diagnosticsMutationObserver.disconnect()
+        diagnosticsMutationObserver = undefined
+      }
+
+      pendingCreatedNodes = undefined
+      pendingRemovedNodes = undefined
+      return
+    }
+
+    if (diagnosticsMutationObserver) return
+
+    const header = viewport.querySelector<HTMLElement>(
+      '[data-slot="data-grid-header"]',
+    )
+    const body = viewport.querySelector<HTMLElement>(
+      '[data-slot="data-grid-body"]',
+    )
+
+    if (!header || !body) {
+      return
+    }
+
+    const createdNodes = new Set<Node>()
+    const removedNodes = new Set<Node>()
+    const observer = new MutationObserver(records => {
+      recordDiagnosticsMutations(records)
+    })
+    pendingCreatedNodes = createdNodes
+    pendingRemovedNodes = removedNodes
+    diagnosticsMutationObserver = observer
+
+    observer.observe(header, {
+      childList: true,
+      subtree: true,
+    })
+    observer.observe(body, {
+      childList: true,
+      subtree: true,
+    })
+
+    if (!hasCompletedMountCommit) {
+      collectDiagnosticNodeTree(header, createdNodes)
+      collectDiagnosticNodeTree(body, createdNodes)
+    }
+  }
+
+  const prepareDiagnosticsNodeChurn = (preservePending: boolean): void => {
+    if (!diagnosticsMutationObserver) return
+
+    const records = diagnosticsMutationObserver.takeRecords()
+
+    if (preservePending) {
+      recordDiagnosticsMutations(records)
+      return
+    }
+
+    if (pendingCreatedNodes) pendingCreatedNodes.clear()
+    if (pendingRemovedNodes) pendingRemovedNodes.clear()
+  }
+
+  const consumeDiagnosticsNodeChurn = (): {
+    createdNodeCount: number
+    removedNodeCount: number
+  } => {
+    if (diagnosticsMutationObserver) {
+      recordDiagnosticsMutations(diagnosticsMutationObserver.takeRecords())
+    }
+
+    const result = {
+      createdNodeCount: pendingCreatedNodes ? pendingCreatedNodes.size : 0,
+      removedNodeCount: pendingRemovedNodes ? pendingRemovedNodes.size : 0,
+    }
+
+    if (pendingCreatedNodes) pendingCreatedNodes.clear()
+    if (pendingRemovedNodes) pendingRemovedNodes.clear()
+
+    return result
+  }
+
+  const startDiagnosticsHandler = (): number | undefined => {
+    const diagnostics = props.diagnostics
+    if (!diagnostics || !diagnostics.onCommit) return undefined
+
+    return getDiagnosticTime()
+  }
+
+  const scheduleDiagnosticsCommitFinalize = (finalize: () => void): void => {
+    pendingDiagnosticsCommitFinalize = finalize
+
+    if (diagnosticsCommitFinalizeScheduled) return
+
+    diagnosticsCommitFinalizeScheduled = true
+    queueMicrotask(() => {
+      diagnosticsCommitFinalizeScheduled = false
+
+      const pendingFinalize = pendingDiagnosticsCommitFinalize
+      pendingDiagnosticsCommitFinalize = undefined
+      pendingFinalize?.()
+    })
+  }
+
   const updateRange = (
     nativeEvent?: Event,
     source: DataGridCommitSource = 'api',
-    scheduledInputTime?: number,
+    scheduledHandlerStartTime?: number,
+    scheduledHandlerEndTime?: number,
+    measureViewportMetrics = source !== 'scroll',
+    preservePendingNodeChurn = source === 'mount' && !hasCompletedMountCommit,
+    deferCommitDiagnostics = false,
   ): void => {
+    const shouldRestoreFocusAfterPoolExit =
+      preserveFocusedDomPoolForCurrentRange && hasFocusedBodyDescendant()
+
+    preserveFocusedDomPoolForCurrentRange = false
+
+    if (shouldRestoreFocusAfterPoolExit) {
+      scheduleFocusActiveCellElement()
+    }
+
     const diagnostics = props.diagnostics
     const commitObserver = diagnostics && diagnostics.onCommit
-    const inputTime = commitObserver
-      ? (scheduledInputTime ?? getDiagnosticTime())
-      : 0
-    const handlerStartTime = commitObserver ? getDiagnosticTime() : 0
+    const directHandlerStartTime =
+      commitObserver && scheduledHandlerStartTime === undefined
+        ? getDiagnosticTime()
+        : 0
+    const inputTime = scheduledHandlerStartTime ?? directHandlerStartTime
+    const handlerStartTime = scheduledHandlerStartTime ?? directHandlerStartTime
+    const handlerEndTime =
+      scheduledHandlerEndTime !== undefined
+        ? scheduledHandlerEndTime
+        : commitObserver
+          ? getDiagnosticTime()
+          : 0
+    const rangeStartTime = commitObserver ? getDiagnosticTime() : 0
 
+    if (commitObserver || diagnosticsMutationObserver) {
+      ensureDiagnosticsMutationObserver()
+    }
+    if (commitObserver) {
+      prepareDiagnosticsNodeChurn(preservePendingNodeChurn)
+    }
     rebuildModels()
 
-    const rangeStartTime = commitObserver ? getDiagnosticTime() : 0
+    const layoutReadStartTime = commitObserver ? getDiagnosticTime() : 0
     const scrollOffset = getScrollOffset(viewport)
-    const viewportSize = measureViewport().size
-    const nextSnapshot = getSnapshotFromModels(scrollOffset, viewportSize)
-    const nextColumnSnapshot = getColumnSnapshotFromModels(
-      getColumnScrollOffset(viewport),
-      getResolvedColumnViewportSize(),
-    )
+    const columnScrollOffset = getColumnScrollOffset(viewport)
+    const clientHeight = measureViewportMetrics
+      ? getViewportClientHeight(viewport)
+      : viewportClientHeight
+    const clientWidth = measureViewportMetrics
+      ? getViewportClientWidth(viewport)
+      : viewportClientWidth
+    const layoutReadEndTime = commitObserver ? getDiagnosticTime() : 0
+    const viewportSize = measureViewportMetrics
+      ? measureViewport(clientHeight, clientWidth).size
+      : getResolvedViewportSize()
+    const columnViewportSize = getResolvedColumnViewportSize(clientWidth)
+    const nextSnapshot = getSnapshot()
+    const nextColumnSnapshot = getColumnSnapshot()
     const rangeCalculatedTime = commitObserver ? getDiagnosticTime() : 0
     const commitStartTime = commitObserver ? getDiagnosticTime() : 0
 
     batch(() => {
       emitSnapshotIfChanged(nextSnapshot, scrollOffset, viewportSize)
-      updateColumnSnapshotIfChanged(nextColumnSnapshot)
+      updateColumnSnapshotIfChanged(
+        nextColumnSnapshot,
+        columnScrollOffset,
+        columnViewportSize,
+      )
     })
-    const commitEndTime = commitObserver ? getDiagnosticTime() : 0
-
     if (nativeEvent) {
       ctx.emit.scrollOffsetChange({
         offset: scrollOffset,
@@ -834,8 +1147,11 @@ function setup(
       })
     }
 
-    if (commitObserver) {
-      const handlerEndTime = getDiagnosticTime()
+    const finalizeCommit = (): void => {
+      if (source === 'mount') hasCompletedMountCommit = true
+      if (!commitObserver) return
+
+      const nodeChurn = consumeDiagnosticsNodeChurn()
       commitTransactionId += 1
       commitObserver({
         transactionId: commitTransactionId,
@@ -845,31 +1161,128 @@ function setup(
         rangeStartTime,
         rangeCalculatedTime,
         commitStartTime,
-        commitEndTime,
+        commitEndTime: getDiagnosticTime(),
         handlerEndTime,
+        layoutReadIntervals: [[layoutReadStartTime, layoutReadEndTime]],
         firstRowIndex: nextSnapshot.range.start,
         lastRowIndex: nextSnapshot.range.end,
         firstColumnIndex: nextColumnSnapshot.range.start,
         lastColumnIndex: nextColumnSnapshot.range.end,
+        createdNodeCount: nodeChurn.createdNodeCount,
+        removedNodeCount: nodeChurn.removedNodeCount,
       })
+    }
+
+    if (commitObserver && deferCommitDiagnostics) {
+      scheduleDiagnosticsCommitFinalize(finalizeCommit)
+    } else {
+      finalizeCommit()
     }
   }
 
   const scheduleUpdateRange = (
     nativeEvent?: Event,
     source: DataGridCommitSource = nativeEvent ? 'scroll' : 'api',
+    scheduledHandlerStartTime?: number,
+    preservePendingNodeChurn = source === 'mount' && !hasCompletedMountCommit,
   ): void => {
-    const diagnostics = props.diagnostics
-    const inputTime =
-      diagnostics && diagnostics.onCommit ? getDiagnosticTime() : undefined
-    scheduler.schedule(() => updateRange(nativeEvent, source, inputTime))
+    const handlerStartTime =
+      scheduledHandlerStartTime ?? startDiagnosticsHandler()
+    const handlerEndTime =
+      handlerStartTime === undefined ? undefined : getDiagnosticTime()
+    const nextUpdate: PendingDataGridRangeUpdate = {
+      nativeEvent,
+      source,
+      handlerStartTime,
+      handlerEndTime,
+      measureViewportMetrics: source === 'mount' || source === 'resize',
+      preservePendingNodeChurn,
+    }
+    const previousUpdate = pendingRangeUpdate
+
+    if (!previousUpdate) {
+      pendingRangeUpdate = nextUpdate
+    } else {
+      const shouldReplaceTiming =
+        getDataGridCommitPriority(nextUpdate.source) >=
+        getDataGridCommitPriority(previousUpdate.source)
+
+      pendingRangeUpdate = {
+        nativeEvent: nextUpdate.nativeEvent ?? previousUpdate.nativeEvent,
+        source: shouldReplaceTiming ? nextUpdate.source : previousUpdate.source,
+        handlerStartTime: shouldReplaceTiming
+          ? nextUpdate.handlerStartTime
+          : previousUpdate.handlerStartTime,
+        handlerEndTime: shouldReplaceTiming
+          ? nextUpdate.handlerEndTime
+          : previousUpdate.handlerEndTime,
+        measureViewportMetrics:
+          previousUpdate.measureViewportMetrics ||
+          nextUpdate.measureViewportMetrics,
+        preservePendingNodeChurn:
+          previousUpdate.preservePendingNodeChurn ||
+          nextUpdate.preservePendingNodeChurn,
+      }
+    }
+
+    scheduler.schedule(() => {
+      const update = pendingRangeUpdate
+      pendingRangeUpdate = undefined
+
+      if (!update) return
+
+      updateRange(
+        update.nativeEvent,
+        update.source,
+        update.handlerStartTime,
+        update.handlerEndTime,
+        update.measureViewportMetrics,
+        update.preservePendingNodeChurn,
+      )
+    })
   }
+
+  const beginDiagnosticsNodeChurn = (): boolean => {
+    if (!props.diagnostics?.onCommit) return false
+
+    ensureDiagnosticsMutationObserver()
+    if (!pendingDiagnosticsCommitFinalize) {
+      prepareDiagnosticsNodeChurn(false)
+    }
+    return true
+  }
+
+  createEffect(() => {
+    const nextRowsProp = props.rows
+    const nextColumnsProp = props.columns
+
+    if (!controlledPropsReady) {
+      observedRowsProp = nextRowsProp
+      observedColumnsProp = nextColumnsProp
+      controlledPropsReady = true
+      return
+    }
+
+    const rowsChanged = nextRowsProp !== observedRowsProp
+    const columnsChanged = nextColumnsProp !== observedColumnsProp
+
+    observedRowsProp = nextRowsProp
+    observedColumnsProp = nextColumnsProp
+
+    if (!rowsChanged && !columnsChanged) return
+
+    scheduleUpdateRange(undefined, 'data', undefined, true)
+  })
 
   const scrollToColumnIndex = (
     index: number,
     align: VirtualScrollAlign = 'start',
   ): void => {
     rebuildModels()
+
+    if (align !== 'start') {
+      measureViewport()
+    }
 
     const offset = columnVirtualizer.getOffsetForIndex(
       index,
@@ -887,8 +1300,8 @@ function setup(
     if (typeof ResizeObserver === 'undefined') return
 
     viewportResizeObserver = new ResizeObserver(() => {
-      measureViewport()
-      scheduleUpdateRange(undefined, 'resize')
+      const handlerStartTime = startDiagnosticsHandler()
+      scheduleUpdateRange(undefined, 'resize', handlerStartTime)
     })
     viewportResizeObserver.observe(element)
   }
@@ -937,7 +1350,6 @@ function setup(
       props.activeRowKey = activeCell ? activeCell.rowKey : undefined
       props.activeColumnId = activeCell ? activeCell.columnId : undefined
       commitControlledState()
-      modelVersion += 1
     })
   }
 
@@ -949,7 +1361,7 @@ function setup(
 
     const previousActiveCell = activeCell
     activeCell = nextActiveCell
-    activeCellRenderVersion.value += 1
+    setActiveCellRenderVersion(value => value + 1)
     syncActiveCellPropsFromModel()
 
     ctx.emit.activeCellChange({
@@ -1164,6 +1576,8 @@ function setup(
       rowHeight: resolveRowHeight(props),
       overscan: resolveOverscan(props),
     })
+    hasRowMeasurementOverrides = false
+    invalidateSnapshotCaches()
     currentSnapshot = cloneEmptySnapshot()
 
     ctx.emit.sortChange({
@@ -1177,6 +1591,8 @@ function setup(
 
   ctx.expose({
     setRows(nextRows: DataGridRowData[]): void {
+      observedRowsProp = nextRows
+      const preservePendingNodeChurn = beginDiagnosticsNodeChurn()
       batch(() => {
         props.rows = nextRows
         rowsSource = nextRows
@@ -1184,11 +1600,22 @@ function setup(
         shouldRefreshRowsForRender = true
         syncHostProps()
         commitControlledState()
-        updateRange(undefined, 'data')
       })
+
+      updateRange(
+        undefined,
+        'data',
+        undefined,
+        undefined,
+        true,
+        preservePendingNodeChurn,
+        true,
+      )
     },
 
     setColumns(nextColumns: DataGridColumn[]): void {
+      observedColumnsProp = nextColumns
+      const preservePendingNodeChurn = beginDiagnosticsNodeChurn()
       batch(() => {
         props.columns = nextColumns
         columnsSource = nextColumns
@@ -1199,8 +1626,17 @@ function setup(
         shouldRefreshColumnsForRender = true
         syncHostProps()
         commitControlledState()
-        updateRange(undefined, 'data')
       })
+
+      updateRange(
+        undefined,
+        'data',
+        undefined,
+        undefined,
+        true,
+        preservePendingNodeChurn,
+        true,
+      )
     },
 
     getRows(): DataGridRow[] {
@@ -1253,6 +1689,7 @@ function setup(
       sort = undefined
       syncSortPropsFromModel()
       visibleRows = sort ? sortDataGridRows(rows, columns, sort) : rows
+      invalidateSnapshotCaches()
       currentSnapshot = cloneEmptySnapshot()
 
       ctx.emit.sortChange({
@@ -1268,11 +1705,11 @@ function setup(
     },
 
     getRange(): DataGridVirtualRange {
-      return currentSnapshot.range
+      return getSnapshot().range
     },
 
     getItems(): DataGridVirtualItem[] {
-      return currentSnapshot.items
+      return getSnapshot().items
     },
 
     getTotalSize(): number {
@@ -1303,6 +1740,10 @@ function setup(
     scrollToIndex(index: number, align: VirtualScrollAlign = 'start'): void {
       rebuildModels()
 
+      if (align !== 'start') {
+        measureViewport()
+      }
+
       const offset = props.virtual
         ? virtualizer.getOffsetForIndex(index, align, getResolvedViewportSize())
         : index * resolveRowHeight(props)
@@ -1331,7 +1772,9 @@ function setup(
         Number.isFinite(size)
       ) {
         virtualizer.measure(index, size)
-        rowLayoutRenderVersion.value += 1
+        hasRowMeasurementOverrides = true
+        invalidateRowSnapshotCache()
+        setRowLayoutRenderVersion(value => value + 1)
       }
 
       updateRange()
@@ -1340,7 +1783,9 @@ function setup(
     resetMeasurements(): void {
       rebuildModels()
       virtualizer.resetMeasurements()
-      rowLayoutRenderVersion.value += 1
+      hasRowMeasurementOverrides = false
+      invalidateRowSnapshotCache()
+      setRowLayoutRenderVersion(value => value + 1)
       updateRange()
     },
 
@@ -1412,38 +1857,91 @@ function setup(
     },
 
     refreshViewport(): void {
-      measureViewport()
-      updateRange()
+      updateRange(undefined, 'api', undefined, undefined, true)
     },
   })
 
   const getBodyRows = (): DataGridVirtualItem[] => {
-    const snapshot = getSnapshot()
-    currentSnapshot = snapshot
-
-    return snapshot.items
+    return getSnapshot().items
   }
 
-  const getBodyRowsForRender = (): DataGridVirtualItem[] => {
-    void renderVersion.value
-    void rowRenderVersion.value
-    return getBodyRows()
+  const shouldPoolDomForCurrentViewport = (): boolean => {
+    return (
+      resolveVirtual(props) &&
+      !hasRowMeasurementOverrides &&
+      (!hasFocusedBodyDescendant() || preserveFocusedDomPoolForCurrentRange)
+    )
+  }
+
+  const getBodyRowsForRender = (): RenderedDataGridVirtualItem[] => {
+    void renderVersion()
+    void rowRenderVersion()
+
+    const shouldPoolRows = shouldPoolDomForCurrentViewport()
+    const shouldRestoreFocus =
+      poolRowsForCurrentReconciliation &&
+      !shouldPoolRows &&
+      hasFocusedBodyDescendant()
+
+    poolRowsForCurrentReconciliation = shouldPoolRows
+
+    if (shouldRestoreFocus) {
+      scheduleFocusActiveCellElement()
+    }
+
+    return getBodyRows() as RenderedDataGridVirtualItem[]
+  }
+
+  const getBodyRowReconciliationKey = (
+    item: RenderedDataGridVirtualItem,
+    index: number,
+  ): string => {
+    return poolRowsForCurrentReconciliation
+      ? `viewport-row-slot:${index}`
+      : `data-row:${rowRenderVersion()}:${item.key}`
   }
 
   const getVisibleColumnsForRender = (): DataGridColumnVirtualItem[] => {
-    void columnRangeRenderVersion.value
-    void columnRenderVersion.value
+    void columnRangeRenderVersion()
+    void columnRenderVersion()
 
-    if (currentColumnSnapshot.items.length === 0 && visibleColumns.length > 0) {
-      currentColumnSnapshot = getColumnSnapshot()
-    }
+    return (columnSnapshotCache?.snapshot ?? getColumnSnapshot()).items
+  }
 
-    return currentColumnSnapshot.items
+  const getHeaderColumnsForRender = (): DataGridColumnVirtualItem[] => {
+    poolHeaderColumnsForCurrentReconciliation =
+      shouldPoolDomForCurrentViewport()
+
+    return getVisibleColumnsForRender()
+  }
+
+  const getBodyColumnsForRender = (): DataGridColumnVirtualItem[] => {
+    poolBodyColumnsForCurrentReconciliation = shouldPoolDomForCurrentViewport()
+
+    return getVisibleColumnsForRender()
+  }
+
+  const getHeaderColumnReconciliationKey = (
+    item: DataGridColumnVirtualItem,
+    index: number,
+  ): string => {
+    return poolHeaderColumnsForCurrentReconciliation
+      ? `viewport-header-slot:${index}`
+      : `data-header:${columnRenderVersion()}:${item.key}`
+  }
+
+  const getBodyColumnReconciliationKey = (
+    item: DataGridColumnVirtualItem,
+    index: number,
+  ): string => {
+    return poolBodyColumnsForCurrentReconciliation
+      ? `viewport-cell-slot:${index}`
+      : `data-cell:${columnRenderVersion()}:${item.key}`
   }
 
   const getSpacerStyle = (): Record<string, string> => {
-    void rowLayoutRenderVersion.value
-    void columnRangeRenderVersion.value
+    void rowLayoutRenderVersion()
+    void columnRangeRenderVersion()
 
     if (!props.virtual) return { display: 'none' }
 
@@ -1472,9 +1970,10 @@ function setup(
   }
 
   const getGridColumnStart = (item: DataGridColumnVirtualItem): string => {
-    void columnRangeRenderVersion.value
+    void columnRangeRenderVersion()
 
-    const firstItem = currentColumnSnapshot.items[0]
+    const firstItem = (columnSnapshotCache?.snapshot ?? getColumnSnapshot())
+      .items[0]
     if (!firstItem) return '1'
 
     const leadingTrackCount = firstItem.start > 0 ? 1 : 0
@@ -1548,14 +2047,24 @@ function setup(
             viewport = element
             element.addEventListener('scroll', scheduleUpdateRange)
             connectViewportObserver(element)
-            measureViewport()
+            if (initialDiagnostics && initialDiagnostics.onCommit) {
+              ensureDiagnosticsMutationObserver()
+            }
             scheduleUpdateRange(undefined, 'mount')
             return
           }
 
           viewportResizeObserver?.disconnect()
           viewportResizeObserver = undefined
+          if (diagnosticsMutationObserver) {
+            diagnosticsMutationObserver.disconnect()
+            diagnosticsMutationObserver = undefined
+          }
+          pendingCreatedNodes = undefined
+          pendingRemovedNodes = undefined
+          pendingDiagnosticsCommitFinalize = undefined
           scheduler.cancel()
+          pendingRangeUpdate = undefined
           focusScheduler.cancel()
 
           if (viewport) {
@@ -1563,6 +2072,9 @@ function setup(
           }
 
           viewport = undefined
+          viewportClientHeight = 0
+          viewportClientWidth = 0
+          invalidateSnapshotCaches()
         }}
       >
         <div
@@ -1577,155 +2089,143 @@ function setup(
           })}
         >
           <For
-            each={getVisibleColumnsForRender()}
-            by={item => `${columnRenderVersion.value}:${item.key}`}
+            each={getHeaderColumnsForRender()}
+            by={getHeaderColumnReconciliationKey}
           >
-            {item =>
-              (() => {
-                const column = item.data
-                const columnIndex = item.index
+            {item => (
+              <div
+                key={item.data.id}
+                part="header-cell"
+                data-slot="data-grid-header-cell"
+                data-column-id={item.data.id}
+                data-sortable={() => (item.data.sortable ? '' : undefined)}
+                data-resizable={() =>
+                  props.resizable && item.data.resizable ? '' : undefined
+                }
+                data-sort-direction={() =>
+                  sort?.columnId === item.data.id ? sort.direction : undefined
+                }
+                role="columnheader"
+                aria-colindex={() =>
+                  String(getDataGridColumnAriaIndex(item.index))
+                }
+                aria-sort={() => getDataGridAriaSort(item.data, sort)}
+                tabindex={0}
+                style={() => ({
+                  gridColumnStart: getGridColumnStart(item),
+                })}
+                onClick={(nativeEvent: Event) => {
+                  applySort(item.data.id, undefined, nativeEvent)
+                }}
+                onKeyDown={(nativeEvent: KeyboardEvent) => {
+                  if (
+                    item.data.sortable &&
+                    (nativeEvent.key === 'Enter' || nativeEvent.key === ' ')
+                  ) {
+                    applySort(item.data.id, undefined, nativeEvent)
+                  }
+                }}
+              >
+                <span part="header-label" data-slot="data-grid-header-label">
+                  {item.data.header}
+                </span>
 
-                return (
-                  <div
-                    key={column.id}
-                    part="header-cell"
-                    data-slot="data-grid-header-cell"
-                    data-column-id={column.id}
-                    data-sortable={() => (column.sortable ? '' : undefined)}
-                    data-resizable={() =>
-                      props.resizable && column.resizable ? '' : undefined
+                <span
+                  part="resize-handle"
+                  data-slot="data-grid-resize-handle"
+                  role="separator"
+                  aria-label={() => getDataGridResizeHandleAriaLabel(item.data)}
+                  aria-orientation="vertical"
+                  aria-valuenow={() => {
+                    void columnRangeRenderVersion()
+
+                    const currentColumn = getDataGridColumnById(
+                      columns,
+                      item.data.id,
+                    )
+
+                    return String(
+                      currentColumn ? currentColumn.width : item.data.width,
+                    )
+                  }}
+                  aria-valuemin={() => String(item.data.minWidth)}
+                  aria-valuemax={() => String(item.data.maxWidth)}
+                  tabindex={() =>
+                    props.resizable && item.data.resizable ? 0 : undefined
+                  }
+                  hidden={() => !(props.resizable && item.data.resizable)}
+                  onPointerDown={(nativeEvent: PointerEvent) => {
+                    let currentColumn = getDataGridColumnById(
+                      columns,
+                      item.data.id,
+                    )
+
+                    if (!currentColumn) currentColumn = item.data
+
+                    startResize(currentColumn, nativeEvent)
+                  }}
+                  onPointerMove={(nativeEvent: PointerEvent) => {
+                    moveResize(nativeEvent)
+                  }}
+                  onPointerUp={(nativeEvent: PointerEvent) => {
+                    endResize(nativeEvent)
+                  }}
+                  onPointerCancel={(nativeEvent: PointerEvent) => {
+                    endResize(nativeEvent)
+                  }}
+                  onKeyDown={(nativeEvent: KeyboardEvent) => {
+                    const currentColumn = getDataGridColumnById(
+                      columns,
+                      item.data.id,
+                    )
+
+                    if (
+                      !props.resizable ||
+                      !currentColumn ||
+                      !currentColumn.resizable
+                    ) {
+                      return
                     }
-                    data-sort-direction={() =>
-                      sort?.columnId === column.id ? sort.direction : undefined
+
+                    if (nativeEvent.key === 'ArrowLeft') {
+                      nativeEvent.preventDefault()
+                      applyColumnResize(
+                        currentColumn.id,
+                        currentColumn.width - 16,
+                        nativeEvent,
+                      )
                     }
-                    role="columnheader"
-                    aria-colindex={() =>
-                      String(getDataGridColumnAriaIndex(columnIndex))
+
+                    if (nativeEvent.key === 'ArrowRight') {
+                      nativeEvent.preventDefault()
+                      applyColumnResize(
+                        currentColumn.id,
+                        currentColumn.width + 16,
+                        nativeEvent,
+                      )
                     }
-                    aria-sort={() => getDataGridAriaSort(column, sort)}
-                    tabindex={0}
-                    style={() => ({
-                      gridColumnStart: getGridColumnStart(item),
-                    })}
-                    onClick={(nativeEvent: Event) => {
-                      applySort(column.id, undefined, nativeEvent)
-                    }}
-                    onKeyDown={(nativeEvent: KeyboardEvent) => {
-                      if (
-                        column.sortable &&
-                        (nativeEvent.key === 'Enter' || nativeEvent.key === ' ')
-                      ) {
-                        applySort(column.id, undefined, nativeEvent)
-                      }
-                    }}
-                  >
-                    <span
-                      part="header-label"
-                      data-slot="data-grid-header-label"
-                    >
-                      {column.header}
-                    </span>
 
-                    <span
-                      part="resize-handle"
-                      data-slot="data-grid-resize-handle"
-                      role="separator"
-                      aria-label={() =>
-                        getDataGridResizeHandleAriaLabel(column)
-                      }
-                      aria-orientation="vertical"
-                      aria-valuenow={() => {
-                        void columnRangeRenderVersion.value
+                    if (nativeEvent.key === 'Home') {
+                      nativeEvent.preventDefault()
+                      applyColumnResize(
+                        currentColumn.id,
+                        currentColumn.minWidth,
+                        nativeEvent,
+                      )
+                    }
 
-                        const currentColumn = getDataGridColumnById(
-                          columns,
-                          column.id,
-                        )
-
-                        return String(
-                          currentColumn ? currentColumn.width : column.width,
-                        )
-                      }}
-                      aria-valuemin={() => String(column.minWidth)}
-                      aria-valuemax={() => String(column.maxWidth)}
-                      tabindex={() =>
-                        props.resizable && column.resizable ? 0 : undefined
-                      }
-                      hidden={() => !(props.resizable && column.resizable)}
-                      onPointerDown={(nativeEvent: PointerEvent) => {
-                        let currentColumn = getDataGridColumnById(
-                          columns,
-                          column.id,
-                        )
-
-                        if (!currentColumn) currentColumn = column
-
-                        startResize(currentColumn, nativeEvent)
-                      }}
-                      onPointerMove={(nativeEvent: PointerEvent) => {
-                        moveResize(nativeEvent)
-                      }}
-                      onPointerUp={(nativeEvent: PointerEvent) => {
-                        endResize(nativeEvent)
-                      }}
-                      onPointerCancel={(nativeEvent: PointerEvent) => {
-                        endResize(nativeEvent)
-                      }}
-                      onKeyDown={(nativeEvent: KeyboardEvent) => {
-                        const currentColumn = getDataGridColumnById(
-                          columns,
-                          column.id,
-                        )
-
-                        if (
-                          !props.resizable ||
-                          !currentColumn ||
-                          !currentColumn.resizable
-                        ) {
-                          return
-                        }
-
-                        if (nativeEvent.key === 'ArrowLeft') {
-                          nativeEvent.preventDefault()
-                          applyColumnResize(
-                            currentColumn.id,
-                            currentColumn.width - 16,
-                            nativeEvent,
-                          )
-                        }
-
-                        if (nativeEvent.key === 'ArrowRight') {
-                          nativeEvent.preventDefault()
-                          applyColumnResize(
-                            currentColumn.id,
-                            currentColumn.width + 16,
-                            nativeEvent,
-                          )
-                        }
-
-                        if (nativeEvent.key === 'Home') {
-                          nativeEvent.preventDefault()
-                          applyColumnResize(
-                            currentColumn.id,
-                            currentColumn.minWidth,
-                            nativeEvent,
-                          )
-                        }
-
-                        if (nativeEvent.key === 'End') {
-                          nativeEvent.preventDefault()
-                          applyColumnResize(
-                            currentColumn.id,
-                            currentColumn.maxWidth,
-                            nativeEvent,
-                          )
-                        }
-                      }}
-                    />
-                  </div>
-                )
-              })()
-            }
+                    if (nativeEvent.key === 'End') {
+                      nativeEvent.preventDefault()
+                      applyColumnResize(
+                        currentColumn.id,
+                        currentColumn.maxWidth,
+                        nativeEvent,
+                      )
+                    }
+                  }}
+                />
+              </div>
+            )}
           </For>
         </div>
 
@@ -1737,171 +2237,165 @@ function setup(
         />
 
         <div part="body" data-slot="data-grid-body" role="rowgroup">
-          <For
-            each={getBodyRowsForRender()}
-            by={item => `${rowRenderVersion.value}:${item.key}`}
-          >
-            {item =>
-              (() => {
-                const row = item.data as DataGridRow
+          <For each={getBodyRowsForRender()} by={getBodyRowReconciliationKey}>
+            {rowItem => (
+              <div
+                key={rowItem.key}
+                part="row"
+                data-slot="data-grid-row"
+                data-row-key={rowItem.data.key}
+                data-row-index={() => String(rowItem.data.index)}
+                data-selected={() =>
+                  selection.isSelected(rowItem.data.key) ? '' : undefined
+                }
+                role="row"
+                aria-rowindex={() =>
+                  String(getDataGridDataRowAriaIndex(rowItem.data.index))
+                }
+                aria-selected={() =>
+                  getDataGridAriaSelected(
+                    resolveSelectionMode(props.selectionMode),
+                    selection.isSelected(rowItem.data.key),
+                  )
+                }
+                style={() => ({
+                  display: 'grid',
+                  gridTemplateColumns: getGridTemplateColumns(),
+                  width: `${columnVirtualizer.getTotalSize()}px`,
+                  transform: props.virtual
+                    ? `translateY(${rowItem.start}px)`
+                    : undefined,
+                })}
+                onClick={(nativeEvent: Event) => {
+                  if (resolveSelectionMode(props.selectionMode) !== 'none') {
+                    selection.toggle(rowItem.data.key)
+                    syncSelectionPropsFromModel()
+                    emitSelection(rowItem.data.key, nativeEvent)
+                  }
 
-                return (
-                  <div
-                    key={item.key}
-                    part="row"
-                    data-slot="data-grid-row"
-                    data-row-key={row.key}
-                    data-row-index={() => String(row.index)}
-                    data-selected={() =>
-                      selection.isSelected(row.key) ? '' : undefined
-                    }
-                    role="row"
-                    aria-rowindex={() =>
-                      String(getDataGridDataRowAriaIndex(row.index))
-                    }
-                    aria-selected={() =>
-                      getDataGridAriaSelected(
-                        resolveSelectionMode(props.selectionMode),
-                        selection.isSelected(row.key),
-                      )
-                    }
-                    style={() => ({
-                      display: 'grid',
-                      gridTemplateColumns: getGridTemplateColumns(),
-                      width: `${columnVirtualizer.getTotalSize()}px`,
-                      transform: props.virtual
-                        ? `translateY(${item.start}px)`
-                        : undefined,
-                    })}
-                    onClick={(nativeEvent: Event) => {
-                      if (
-                        resolveSelectionMode(props.selectionMode) !== 'none'
-                      ) {
-                        selection.toggle(row.key)
-                        syncSelectionPropsFromModel()
-                        emitSelection(row.key, nativeEvent)
+                  emitRowAction('click', rowItem.data, nativeEvent)
+                }}
+                onDblClick={(nativeEvent: Event) => {
+                  emitRowAction('dblclick', rowItem.data, nativeEvent)
+                }}
+                onKeyDown={(nativeEvent: KeyboardEvent) => {
+                  emitRowAction('keydown', rowItem.data, nativeEvent)
+                }}
+              >
+                <For
+                  each={getBodyColumnsForRender()}
+                  by={getBodyColumnReconciliationKey}
+                >
+                  {columnItem => (
+                    <div
+                      key={columnItem.data.id}
+                      id={
+                        getDataGridActiveCellId({
+                          rowIndex: rowItem.data.index,
+                          rowKey: rowItem.data.key,
+                          columnId: columnItem.data.id,
+                          columnIndex: columnItem.index,
+                        }) ?? undefined
                       }
-
-                      emitRowAction('click', row, nativeEvent)
-                    }}
-                    onDblClick={(nativeEvent: Event) => {
-                      emitRowAction('dblclick', row, nativeEvent)
-                    }}
-                    onKeyDown={(nativeEvent: KeyboardEvent) => {
-                      emitRowAction('keydown', row, nativeEvent)
-                    }}
-                  >
-                    <For
-                      each={getVisibleColumnsForRender()}
-                      by={item => `${columnRenderVersion.value}:${item.key}`}
-                    >
-                      {item =>
-                        (() => {
-                          const column = item.data
-                          const columnIndex = item.index
-                          const cellId =
-                            getDataGridActiveCellId({
-                              rowIndex: row.index,
-                              rowKey: row.key,
-                              columnId: column.id,
-                              columnIndex,
-                            }) ?? undefined
-
-                          return (
-                            <div
-                              key={column.id}
-                              id={cellId}
-                              part="cell"
-                              data-slot="data-grid-cell"
-                              data-column-id={column.id}
-                              data-row-key={row.key}
-                              data-align={column.align}
-                              data-active={() =>
-                                isActiveCellForRender(row.key, column.id)
-                                  ? ''
-                                  : undefined
-                              }
-                              role="gridcell"
-                              style={() => ({
-                                gridColumnStart: getGridColumnStart(item),
-                              })}
-                              aria-colindex={() =>
-                                String(getDataGridColumnAriaIndex(columnIndex))
-                              }
-                              aria-selected={() =>
-                                getDataGridAriaSelected(
-                                  resolveSelectionMode(props.selectionMode),
-                                  selection.isSelected(row.key),
-                                )
-                              }
-                              tabindex={() =>
-                                getDataGridCellTabIndex(
-                                  props.keyboardNavigation !== false,
-                                  isActiveCellForRender(row.key, column.id),
-                                )
-                              }
-                              onFocus={(nativeEvent: FocusEvent) => {
-                                setActiveCellByKey(
-                                  row.key,
-                                  column.id,
-                                  nativeEvent,
-                                )
-                              }}
-                              onClick={(nativeEvent: Event) => {
-                                setActiveCellByKey(
-                                  row.key,
-                                  column.id,
-                                  nativeEvent,
-                                )
-                                emitCellAction(
-                                  'click',
-                                  row,
-                                  column,
-                                  nativeEvent,
-                                )
-                              }}
-                              onDblClick={(nativeEvent: Event) => {
-                                emitCellAction(
-                                  'dblclick',
-                                  row,
-                                  column,
-                                  nativeEvent,
-                                )
-                              }}
-                              onKeyDown={(nativeEvent: KeyboardEvent) => {
-                                if (
-                                  props.keyboardNavigation !== false &&
-                                  isNavigationKey(nativeEvent.key)
-                                ) {
-                                  nativeEvent.preventDefault()
-                                  moveActiveCellFromCell(
-                                    row.key,
-                                    column.id,
-                                    nativeEvent.key,
-                                    nativeEvent,
-                                  )
-                                }
-
-                                emitCellAction(
-                                  'keydown',
-                                  row,
-                                  column,
-                                  nativeEvent,
-                                )
-                              }}
-                            >
-                              {String(
-                                getDataGridCellValue(row, column.field) ?? '',
-                              )}
-                            </div>
+                      part="cell"
+                      data-slot="data-grid-cell"
+                      data-column-id={columnItem.data.id}
+                      data-row-key={rowItem.data.key}
+                      data-align={columnItem.data.align}
+                      data-active={() =>
+                        isActiveCellForRender(
+                          rowItem.data.key,
+                          columnItem.data.id,
+                        )
+                          ? ''
+                          : undefined
+                      }
+                      role="gridcell"
+                      style={() => ({
+                        gridColumnStart: getGridColumnStart(columnItem),
+                      })}
+                      aria-colindex={() =>
+                        String(getDataGridColumnAriaIndex(columnItem.index))
+                      }
+                      aria-selected={() =>
+                        getDataGridAriaSelected(
+                          resolveSelectionMode(props.selectionMode),
+                          selection.isSelected(rowItem.data.key),
+                        )
+                      }
+                      tabindex={() =>
+                        getDataGridCellTabIndex(
+                          props.keyboardNavigation !== false,
+                          isActiveCellForRender(
+                            rowItem.data.key,
+                            columnItem.data.id,
+                          ),
+                        )
+                      }
+                      onFocus={(nativeEvent: FocusEvent) => {
+                        preserveFocusedDomPoolForCurrentRange =
+                          poolRowsForCurrentReconciliation &&
+                          poolBodyColumnsForCurrentReconciliation
+                        setActiveCellByKey(
+                          rowItem.data.key,
+                          columnItem.data.id,
+                          nativeEvent,
+                        )
+                      }}
+                      onClick={(nativeEvent: Event) => {
+                        setActiveCellByKey(
+                          rowItem.data.key,
+                          columnItem.data.id,
+                          nativeEvent,
+                        )
+                        emitCellAction(
+                          'click',
+                          rowItem.data,
+                          columnItem.data,
+                          nativeEvent,
+                        )
+                      }}
+                      onDblClick={(nativeEvent: Event) => {
+                        emitCellAction(
+                          'dblclick',
+                          rowItem.data,
+                          columnItem.data,
+                          nativeEvent,
+                        )
+                      }}
+                      onKeyDown={(nativeEvent: KeyboardEvent) => {
+                        if (
+                          props.keyboardNavigation !== false &&
+                          isNavigationKey(nativeEvent.key)
+                        ) {
+                          nativeEvent.preventDefault()
+                          moveActiveCellFromCell(
+                            rowItem.data.key,
+                            columnItem.data.id,
+                            nativeEvent.key,
+                            nativeEvent,
                           )
-                        })()
-                      }
-                    </For>
-                  </div>
-                )
-              })()
-            }
+                        }
+
+                        emitCellAction(
+                          'keydown',
+                          rowItem.data,
+                          columnItem.data,
+                          nativeEvent,
+                        )
+                      }}
+                    >
+                      {String(
+                        getDataGridCellValue(
+                          rowItem.data,
+                          columnItem.data.field,
+                        ) ?? '',
+                      )}
+                    </div>
+                  )}
+                </For>
+              </div>
+            )}
           </For>
         </div>
 
@@ -1922,8 +2416,14 @@ export const DataGrid = defineElement<
   {
     shadow: false,
     props: {
-      rows: Array,
-      columns: Array,
+      rows: {
+        type: Array,
+        reactivity: 'shallow',
+      },
+      columns: {
+        type: Array,
+        reactivity: 'shallow',
+      },
       rowHeight: prop(Number, {
         attr: 'row-height',
         default: 40,

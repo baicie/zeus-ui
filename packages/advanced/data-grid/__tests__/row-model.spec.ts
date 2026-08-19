@@ -62,6 +62,15 @@ describe('row model', () => {
     expect(rows[0].key).toBe('u1')
   })
 
+  it('rejects duplicate row keys before rendering', () => {
+    expect(() =>
+      createDataGridRows([
+        { id: 'duplicate', value: 'first' },
+        { id: 'duplicate', value: 'second' },
+      ]),
+    ).toThrow('[Data Grid] duplicate row key "duplicate" at index 1.')
+  })
+
   it('finds row by key', () => {
     const rows = createDataGridRows([{ id: 'a' }, { id: 'b' }])
 

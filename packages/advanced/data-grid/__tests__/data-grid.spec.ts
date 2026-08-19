@@ -66,6 +66,10 @@ describe('data-grid component protocol', () => {
         activeColumnId: {
           type: 'string',
         },
+        diagnostics: {
+          type: 'object',
+          attr: false,
+        },
       },
       events: {
         rangeChange: {
@@ -377,7 +381,10 @@ describe('data-grid component protocol', () => {
   })
 
   it('renders grid collections as nodes and binds native scroll directly', () => {
-    expect(source).toContain('each={getVisibleColumnsForRender()}')
+    expect(source).toContain('each={getHeaderColumnsForRender()}')
+    expect(source).toContain('each={getBodyColumnsForRender()}')
+    expect(source).toContain('by={getHeaderColumnReconciliationKey}')
+    expect(source).toContain('by={getBodyColumnReconciliationKey}')
     expect(source).toContain('each={getBodyRowsForRender()}')
     expect(source).toContain(
       "element.addEventListener('scroll', scheduleUpdateRange)",

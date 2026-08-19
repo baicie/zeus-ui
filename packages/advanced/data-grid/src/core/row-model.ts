@@ -19,11 +19,29 @@ export function createDataGridRows(
   rows: DataGridRowData[] | undefined,
   getRowKey: DataGridGetRowKey = fallbackRowKey,
 ): DataGridRow[] {
-  return (rows ?? []).map((row, index) => ({
-    key: getRowKey(row, index),
-    index,
-    data: row,
-  }))
+  const source = rows ?? []
+  const result: DataGridRow[] = []
+  const keys = new Set<DataGridRowKey>()
+
+  for (let index = 0; index < source.length; index += 1) {
+    const row = source[index]
+    const key = getRowKey(row, index)
+
+    if (keys.has(key)) {
+      throw new Error(
+        `[Data Grid] duplicate row key "${String(key)}" at index ${index}.`,
+      )
+    }
+
+    keys.add(key)
+    result.push({
+      key,
+      index,
+      data: row,
+    })
+  }
+
+  return result
 }
 
 export function getDataGridRowByKey(

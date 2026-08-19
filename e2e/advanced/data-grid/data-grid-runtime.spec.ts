@@ -114,8 +114,8 @@ describe('zw-data-grid runtime', () => {
     cleanupDataGridFixtures()
   })
 
-  it('builds the row model exactly once during first mount', async () => {
-    const rows = createWideRows(10)
+  it('builds 10k row wrappers exactly once during first mount', async () => {
+    const rows = createWideRows(10_000)
 
     await mountDataGrid({
       rows,
@@ -188,6 +188,49 @@ describe('zw-data-grid runtime', () => {
     expect(
       Array.from(grid.querySelectorAll('[data-slot="data-grid-row"]')).length,
     ).toBe(3)
+  })
+
+  it('treats rows and columns as replace-on-write shallow props', async () => {
+    const rows = [
+      { id: 'row-1', name: 'Initial' },
+      { id: 'row-2', name: 'Second' },
+    ]
+    const columns = [{ id: 'name', header: 'Name', field: 'name', width: 120 }]
+    const grid = await mountDataGrid({ rows, columns })
+
+    expect(grid.rows).toBe(rows)
+    expect(grid.columns).toBe(columns)
+    expect(grid.getRows()[0].data).toBe(rows[0])
+    expect(grid.getColumns()[0]).not.toBe(columns[0])
+
+    grid.rows![0].name = 'Nested mutation'
+    grid.columns![0].header = 'Nested header'
+    await nextFrame()
+
+    expect(getCell(grid, 'row-1', 'name').textContent).toBe('Initial')
+    expect(getHeaderCell(grid, 'name').textContent).toContain('Name')
+    expect(getHeaderCell(grid, 'name').textContent).not.toContain(
+      'Nested header',
+    )
+
+    const nextRows = [
+      { id: 'row-1', name: 'Replacement' },
+      { id: 'row-2', name: 'Second' },
+    ]
+    const nextColumns = [
+      { id: 'name', header: 'Replacement header', field: 'name', width: 140 },
+    ]
+    grid.rows = nextRows
+    grid.columns = nextColumns
+    await nextFrame()
+
+    expect(grid.rows).toBe(nextRows)
+    expect(grid.columns).toBe(nextColumns)
+    expect(grid.getRows()[0].data).toBe(nextRows[0])
+    expect(getCell(grid, 'row-1', 'name').textContent).toBe('Replacement')
+    expect(getHeaderCell(grid, 'name').textContent).toContain(
+      'Replacement header',
+    )
   })
 
   it('updates rows and columns when controlled references change with the same length', async () => {

@@ -484,6 +484,28 @@ Web Component 标签：`zw-data-grid`。
 | `keyboardNavigation` | `boolean`                          | `true`   | 启用单元格键盘导航     |
 | `activeRowKey`       | `DataGridRowKey`                   | -        | 受控活动行             |
 | `activeColumnId`     | `string`                           | -        | 受控活动列             |
+| `diagnostics`        | `DataGridDiagnostics`              | -        | 可选性能诊断回调       |
+
+`rows` 与 `columns` 使用 shallow reactivity。读取 `grid.rows` / `grid.columns` 会保留调用方传入数组的
+referential identity，Zeus 不会为数组或其中的对象创建 deep proxy。替换顶层数组引用会触发更新；直接修改
+`rows[index]`、row 字段或 column 字段不会触发响应式刷新。调用方必须采用 replace-on-write，或通过
+`setRows(nextRows)` / `setColumns(nextColumns)` 提交新的数组引用。
+
+`diagnostics` 仅作为 DOM property 使用，不映射 attribute。未配置回调时 Data Grid 不读取诊断时钟，也不创建
+DOM mutation observer。配置后可按需接收两类只读样本：
+
+```ts
+interface DataGridDiagnostics {
+  onModelBuild?(sample: Readonly<DataGridModelBuildTiming>): void
+  onCommit?(sample: Readonly<DataGridCommitTiming>): void
+}
+```
+
+`onModelBuild` 报告 model version、row/column 总量、可见列数量、sort state 是否启用以及是否直接复用
+row model。
+`onCommit` 报告 input、handler、range calculation、layout read 与 DOM commit 的单调时间点、当前二维 range
+以及本次 commit 在 Data Grid header/body 渲染区插入或移除的 DOM 子树节点数。观察区间在每次 commit
+开始时重置，不包含 empty slot 等外部投影变化。节点 churn 不等同于 Zeus effect 创建或释放数量。
 
 ### 组件方法
 
