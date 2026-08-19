@@ -6,6 +6,8 @@ import {
   cleanupDataGridFixtures,
   click,
   collectEvents,
+  getCell,
+  getHeaderCell,
   getViewport,
   mountDataGrid,
   nextFrame,
@@ -172,6 +174,234 @@ describe('zw-data-grid fixed-row DOM pooling', () => {
     expect(lastAction?.detail.cell.value).toBe(`Value ${firstColumn.index}`)
 
     actions.dispose()
+  })
+
+  it('does not rebind a focused header cell to another column while scrolling horizontally', async () => {
+    const wideColumns = createColumns(30)
+    const grid = await mountDataGrid({
+      rows: [createWideRow(wideColumns.length)],
+      columns: wideColumns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 0,
+      overscanColumns: 1,
+      selectionMode: 'none',
+    })
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 40)
+    setElementClientWidth(viewport, 200)
+    grid.refreshViewport()
+    grid.scrollToColumn(5)
+
+    const focusedColumnId = 'column-5'
+    const focusedHeader = getHeaderCell(grid, focusedColumnId)
+
+    focusedHeader.focus()
+
+    expect(document.activeElement).toBe(focusedHeader)
+
+    grid.scrollToColumn(20)
+    await nextFrame()
+
+    expect(grid.getColumnItems().map(item => item.key)).not.toContain(
+      focusedColumnId,
+    )
+    expect(document.activeElement).not.toBe(focusedHeader)
+    expect(
+      document.activeElement?.closest('[data-slot="data-grid-header-cell"]'),
+    ).toBeNull()
+    expect(focusedHeader.getAttribute('data-column-id')).toBe(focusedColumnId)
+  })
+
+  it('restores a focused header cell when its column remains rendered', async () => {
+    const wideColumns = createColumns(30)
+    const grid = await mountDataGrid({
+      rows: [createWideRow(wideColumns.length)],
+      columns: wideColumns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 0,
+      overscanColumns: 1,
+      selectionMode: 'none',
+    })
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 40)
+    setElementClientWidth(viewport, 200)
+    grid.refreshViewport()
+    grid.scrollToColumn(5)
+
+    const focusedColumnId = 'column-5'
+    const focusedHeader = getHeaderCell(grid, focusedColumnId)
+
+    focusedHeader.focus()
+    grid.scrollToColumn(6)
+    await nextFrame()
+
+    expect(grid.getColumnItems().map(item => item.key)).toContain(
+      focusedColumnId,
+    )
+
+    const restoredHeader = getHeaderCell(grid, focusedColumnId)
+
+    expect(document.activeElement).toBe(restoredHeader)
+    expect(restoredHeader.getAttribute('data-column-id')).toBe(focusedColumnId)
+  })
+
+  it('keeps body column slots pooled while a header cell is focused', async () => {
+    const wideColumns = createColumns(30)
+    const grid = await mountDataGrid({
+      rows: [createWideRow(wideColumns.length)],
+      columns: wideColumns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 0,
+      overscanColumns: 1,
+      selectionMode: 'none',
+    })
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 40)
+    setElementClientWidth(viewport, 200)
+    grid.refreshViewport()
+    grid.scrollToColumn(5)
+
+    const cellsBefore = getRenderedCells(getRenderedRows(grid)[0])
+
+    getHeaderCell(grid, 'column-5').focus()
+    grid.scrollToColumn(6)
+    await nextFrame()
+
+    const cellsAfter = getRenderedCells(getRenderedRows(grid)[0])
+
+    expect(cellsAfter).toHaveLength(cellsBefore.length)
+    expect(cellsAfter.every((cell, index) => cell === cellsBefore[index])).toBe(
+      true,
+    )
+  })
+
+  it('keeps header slots pooled while a body cell is focused', async () => {
+    const wideColumns = createColumns(30)
+    const grid = await mountDataGrid({
+      rows: [createWideRow(wideColumns.length)],
+      columns: wideColumns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 0,
+      overscanColumns: 1,
+      selectionMode: 'none',
+    })
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 40)
+    setElementClientWidth(viewport, 200)
+    grid.refreshViewport()
+    grid.scrollToColumn(5)
+
+    const headersBefore = Array.from(
+      grid.querySelectorAll<HTMLElement>('[data-slot="data-grid-header-cell"]'),
+    )
+
+    getCell(grid, 'row-0', 'column-5').focus()
+    grid.scrollToColumn(6)
+    await nextFrame()
+
+    const headersAfter = Array.from(
+      grid.querySelectorAll<HTMLElement>('[data-slot="data-grid-header-cell"]'),
+    )
+
+    expect(headersAfter).toHaveLength(headersBefore.length)
+    expect(
+      headersAfter.every((header, index) => header === headersBefore[index]),
+    ).toBe(true)
+  })
+
+  it('does not rebind a focused resize handle to another column while scrolling horizontally', async () => {
+    const wideColumns = createColumns(30)
+    const grid = await mountDataGrid({
+      rows: [createWideRow(wideColumns.length)],
+      columns: wideColumns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 0,
+      overscanColumns: 1,
+      selectionMode: 'none',
+      resizable: true,
+    })
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 40)
+    setElementClientWidth(viewport, 200)
+    grid.refreshViewport()
+    grid.scrollToColumn(5)
+
+    const focusedColumnId = 'column-5'
+    const focusedHeader = getHeaderCell(grid, focusedColumnId)
+    const focusedResizeHandle = focusedHeader.querySelector<HTMLElement>(
+      '[data-slot="data-grid-resize-handle"]',
+    )
+
+    if (!focusedResizeHandle) {
+      throw new Error('expected a resize handle focus target')
+    }
+
+    focusedResizeHandle.focus()
+
+    expect(document.activeElement).toBe(focusedResizeHandle)
+
+    grid.scrollToColumn(20)
+    await nextFrame()
+
+    expect(grid.getColumnItems().map(item => item.key)).not.toContain(
+      focusedColumnId,
+    )
+    expect(document.activeElement).not.toBe(focusedResizeHandle)
+    expect(
+      document.activeElement?.closest('[data-slot="data-grid-header-cell"]'),
+    ).toBeNull()
+    expect(focusedHeader.getAttribute('data-column-id')).toBe(focusedColumnId)
+  })
+
+  it('restores a focused resize handle when its column remains rendered', async () => {
+    const wideColumns = createColumns(30)
+    const grid = await mountDataGrid({
+      rows: [createWideRow(wideColumns.length)],
+      columns: wideColumns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 0,
+      overscanColumns: 1,
+      selectionMode: 'none',
+      resizable: true,
+    })
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 40)
+    setElementClientWidth(viewport, 200)
+    grid.refreshViewport()
+    grid.scrollToColumn(5)
+
+    const focusedColumnId = 'column-5'
+    const focusedResizeHandle = getHeaderCell(
+      grid,
+      focusedColumnId,
+    ).querySelector<HTMLElement>('[data-slot="data-grid-resize-handle"]')
+
+    if (!focusedResizeHandle) {
+      throw new Error('expected a resize handle focus target')
+    }
+
+    focusedResizeHandle.focus()
+    grid.scrollToColumn(6)
+    await nextFrame()
+
+    const restoredResizeHandle = getHeaderCell(
+      grid,
+      focusedColumnId,
+    ).querySelector<HTMLElement>('[data-slot="data-grid-resize-handle"]')
+
+    expect(document.activeElement).toBe(restoredResizeHandle)
   })
 
   it('disables pooling for measured rows and restores it after reset', async () => {

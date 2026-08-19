@@ -207,6 +207,88 @@ describe('zw-data-grid diagnostics', () => {
     expect(grid.textContent).toContain('Next')
   })
 
+  it('preserves setRows DOM churn when an API commit follows in the same task', async () => {
+    const commits: Readonly<DataGridCommitTiming>[] = []
+    const grid = await mountDataGrid({
+      rows: [{ id: 'initial-row', value: 'Initial' }],
+      columns: [{ id: 'value', field: 'value' }],
+      diagnostics: {
+        onCommit(sample) {
+          commits.push(sample)
+        },
+      },
+    })
+
+    commits.length = 0
+    batch(() => {
+      grid.setRows([{ id: 'next-row', value: 'Next' }])
+    })
+    grid.scrollToOffset(0)
+    await Promise.resolve()
+
+    expect(commits).toHaveLength(1)
+    expect(commits[0].source).toBe('data')
+    expectCommitTimingOrder(commits[0], 2)
+    expect(commits[0].createdNodeCount).toBeGreaterThan(0)
+    expect(commits[0].removedNodeCount).toBeGreaterThan(0)
+    expect(grid.textContent).toContain('Next')
+    expect(grid.textContent).not.toContain('Initial')
+  })
+
+  it('preserves setRows DOM churn when an API commit shares the caller batch', async () => {
+    const commits: Readonly<DataGridCommitTiming>[] = []
+    const grid = await mountDataGrid({
+      rows: [{ id: 'initial-row', value: 'Initial' }],
+      columns: [{ id: 'value', field: 'value' }],
+      diagnostics: {
+        onCommit(sample) {
+          commits.push(sample)
+        },
+      },
+    })
+
+    commits.length = 0
+    batch(() => {
+      grid.setRows([{ id: 'next-row', value: 'Next' }])
+      grid.scrollToOffset(0)
+    })
+    await Promise.resolve()
+
+    expect(commits).toHaveLength(1)
+    expect(commits[0].source).toBe('data')
+    expectCommitTimingOrder(commits[0], 2)
+    expect(commits[0].createdNodeCount).toBeGreaterThan(0)
+    expect(commits[0].removedNodeCount).toBeGreaterThan(0)
+    expect(grid.textContent).toContain('Next')
+    expect(grid.textContent).not.toContain('Initial')
+  })
+
+  it('merges consecutive deferred data commits without losing churn', async () => {
+    const commits: Readonly<DataGridCommitTiming>[] = []
+    const grid = await mountDataGrid({
+      rows: [{ id: 'initial-row', value: 'Initial' }],
+      columns: [{ id: 'value', field: 'value' }],
+      diagnostics: {
+        onCommit(sample) {
+          commits.push(sample)
+        },
+      },
+    })
+
+    commits.length = 0
+    grid.setRows([{ id: 'intermediate-row', value: 'Intermediate' }])
+    grid.setRows([{ id: 'final-row', value: 'Final' }])
+    await Promise.resolve()
+
+    expect(commits).toHaveLength(1)
+    expect(commits[0].source).toBe('data')
+    expectCommitTimingOrder(commits[0], 2)
+    expect(commits[0].createdNodeCount).toBeGreaterThan(0)
+    expect(commits[0].removedNodeCount).toBeGreaterThan(0)
+    expect(grid.textContent).toContain('Final')
+    expect(grid.textContent).not.toContain('Intermediate')
+  })
+
   it('reports DOM churn after setColumns flushes its outer batch', async () => {
     const commits: Readonly<DataGridCommitTiming>[] = []
     const grid = await mountDataGrid({
@@ -256,6 +338,32 @@ describe('zw-data-grid diagnostics', () => {
     expect(commits[0].createdNodeCount).toBeGreaterThan(0)
     expect(commits[0].removedNodeCount).toBeGreaterThan(0)
     expect(grid.textContent).toContain('Second')
+  })
+
+  it('preserves setColumns DOM churn when an API commit follows in the same task', async () => {
+    const commits: Readonly<DataGridCommitTiming>[] = []
+    const grid = await mountDataGrid({
+      rows: [{ id: 'row-1', first: 'First', second: 'Second' }],
+      columns: [{ id: 'first', field: 'first' }],
+      diagnostics: {
+        onCommit(sample) {
+          commits.push(sample)
+        },
+      },
+    })
+
+    commits.length = 0
+    grid.setColumns([{ id: 'second', field: 'second' }])
+    grid.scrollToOffset(0)
+    await Promise.resolve()
+
+    expect(commits).toHaveLength(1)
+    expect(commits[0].source).toBe('data')
+    expectCommitTimingOrder(commits[0], 2)
+    expect(commits[0].createdNodeCount).toBeGreaterThan(0)
+    expect(commits[0].removedNodeCount).toBeGreaterThan(0)
+    expect(grid.textContent).toContain('Second')
+    expect(grid.textContent).not.toContain('First')
   })
 
   it('reports DOM churn after controlled rows property assignment', async () => {
@@ -470,7 +578,10 @@ describe('zw-data-grid diagnostics', () => {
   })
 })
 
-function expectCommitTimingOrder(sample: Readonly<DataGridCommitTiming>): void {
+function expectCommitTimingOrder(
+  sample: Readonly<DataGridCommitTiming>,
+  layoutReadCount = 1,
+): void {
   expect(sample.transactionId).toBeGreaterThan(0)
   expect(sample.handlerStartTime).toBeGreaterThanOrEqual(sample.inputTime)
   expect(sample.handlerEndTime).toBeGreaterThanOrEqual(sample.handlerStartTime)
@@ -482,16 +593,13 @@ function expectCommitTimingOrder(sample: Readonly<DataGridCommitTiming>): void {
     sample.rangeCalculatedTime,
   )
   expect(sample.commitEndTime).toBeGreaterThanOrEqual(sample.commitStartTime)
-  expect(sample.layoutReadIntervals).toHaveLength(1)
-  expect(sample.layoutReadIntervals[0][0]).toBeGreaterThanOrEqual(
-    sample.rangeStartTime,
-  )
-  expect(sample.layoutReadIntervals[0][1]).toBeGreaterThanOrEqual(
-    sample.layoutReadIntervals[0][0],
-  )
-  expect(sample.rangeCalculatedTime).toBeGreaterThanOrEqual(
-    sample.layoutReadIntervals[0][1],
-  )
+  expect(sample.layoutReadIntervals).toHaveLength(layoutReadCount)
+
+  for (const interval of sample.layoutReadIntervals) {
+    expect(interval[0]).toBeGreaterThanOrEqual(sample.rangeStartTime)
+    expect(interval[1]).toBeGreaterThanOrEqual(interval[0])
+    expect(sample.rangeCalculatedTime).toBeGreaterThanOrEqual(interval[1])
+  }
 }
 
 function isDataGridDiagnosticsMutationTarget(target: Node): boolean {

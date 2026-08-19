@@ -202,6 +202,27 @@ interface PendingDataGridRangeUpdate {
   preservePendingNodeChurn: boolean
 }
 
+interface FocusedDataGridHeaderTarget {
+  columnId: string
+  kind: 'header-cell' | 'resize-handle'
+}
+
+interface PendingDataGridDiagnosticsCommit {
+  observer: NonNullable<DataGridDiagnostics['onCommit']>
+  source: DataGridCommitSource
+  inputTime: number
+  handlerStartTime: number
+  handlerEndTime: number
+  rangeStartTime: number
+  rangeCalculatedTime: number
+  commitStartTime: number
+  layoutReadIntervals: Array<readonly [number, number]>
+  firstRowIndex: number
+  lastRowIndex: number
+  firstColumnIndex: number
+  lastColumnIndex: number
+}
+
 const FALLBACK_COLUMN_VIEWPORT_SIZE = 640
 
 function getDataGridCommitPriority(source: DataGridCommitSource): number {
@@ -347,7 +368,7 @@ function setup(
   let diagnosticsMutationObserver: MutationObserver | undefined
   let pendingCreatedNodes: Set<Node> | undefined
   let pendingRemovedNodes: Set<Node> | undefined
-  let pendingDiagnosticsCommitFinalize: (() => void) | undefined
+  let pendingDiagnosticsCommit: PendingDataGridDiagnosticsCommit | undefined
   let diagnosticsCommitFinalizeScheduled = false
   let hasCompletedMountCommit = false
   let modelBuildSequence = 0
@@ -360,7 +381,10 @@ function setup(
   let poolRowsForCurrentReconciliation = false
   let poolHeaderColumnsForCurrentReconciliation = false
   let poolBodyColumnsForCurrentReconciliation = false
-  let preserveFocusedDomPoolForCurrentRange = false
+  let preserveFocusedBodyDomPoolForCurrentRange = false
+  let disableRowPoolingForCurrentRange = false
+  let disableHeaderColumnPoolingForCurrentRange = false
+  let disableBodyColumnPoolingForCurrentRange = false
 
   let rowsSource = resolveRows(props)
   let columnsSource = resolveColumns(props)
@@ -569,17 +593,77 @@ function setup(
   }
 
   const hasFocusedBodyDescendant = (): boolean => {
-    const body = viewport?.querySelector<HTMLElement>(
-      '[data-slot="data-grid-body"]',
-    )
-    const activeElement = body?.ownerDocument.activeElement
+    const currentViewport = viewport
+    const activeElement = currentViewport?.ownerDocument.activeElement
 
-    return Boolean(body && activeElement && body.contains(activeElement))
+    return Boolean(
+      currentViewport &&
+      activeElement &&
+      currentViewport.contains(activeElement) &&
+      activeElement.closest('[data-slot="data-grid-body"]'),
+    )
+  }
+
+  const getFocusedHeaderTarget = ():
+    | FocusedDataGridHeaderTarget
+    | undefined => {
+    const currentViewport = viewport
+    const activeElement = currentViewport?.ownerDocument.activeElement
+
+    if (
+      !currentViewport ||
+      !activeElement ||
+      !currentViewport.contains(activeElement)
+    ) {
+      return undefined
+    }
+
+    const headerCell = activeElement.closest<HTMLElement>(
+      '[data-slot="data-grid-header-cell"]',
+    )
+
+    if (!headerCell) return undefined
+
+    const columnId = headerCell.getAttribute('data-column-id')
+
+    if (columnId === null) return undefined
+
+    return {
+      columnId,
+      kind:
+        activeElement.getAttribute('data-slot') === 'data-grid-resize-handle'
+          ? 'resize-handle'
+          : 'header-cell',
+    }
+  }
+
+  const focusHeaderTarget = (target: FocusedDataGridHeaderTarget): void => {
+    const headerCell = ctx.host.querySelector<HTMLElement>(
+      `[data-slot="data-grid-header-cell"][data-column-id="${escapeDataGridSelectorValue(
+        target.columnId,
+      )}"]`,
+    )
+    const focusTarget =
+      target.kind === 'resize-handle'
+        ? headerCell?.querySelector<HTMLElement>(
+            '[data-slot="data-grid-resize-handle"]',
+          )
+        : headerCell
+
+    focusTarget?.focus()
   }
 
   const scheduleFocusActiveCellElement = (): void => {
     focusScheduler.schedule(() => {
       focusActiveCellElement()
+    })
+  }
+
+  const scheduleFocusHeaderTarget = (
+    target: FocusedDataGridHeaderTarget,
+  ): void => {
+    focusScheduler.schedule(() => {
+      focusHeaderTarget(target)
     })
   }
 
@@ -1056,8 +1140,60 @@ function setup(
     return getDiagnosticTime()
   }
 
-  const scheduleDiagnosticsCommitFinalize = (finalize: () => void): void => {
-    pendingDiagnosticsCommitFinalize = finalize
+  const mergeDiagnosticsCommits = (
+    current: PendingDataGridDiagnosticsCommit,
+    next: PendingDataGridDiagnosticsCommit,
+  ): PendingDataGridDiagnosticsCommit => {
+    return {
+      observer: current.observer,
+      source: current.source,
+      inputTime: current.inputTime,
+      handlerStartTime: current.handlerStartTime,
+      handlerEndTime: current.handlerEndTime,
+      rangeStartTime: current.rangeStartTime,
+      rangeCalculatedTime: next.rangeCalculatedTime,
+      commitStartTime: next.commitStartTime,
+      layoutReadIntervals: current.layoutReadIntervals.concat(
+        next.layoutReadIntervals,
+      ),
+      firstRowIndex: next.firstRowIndex,
+      lastRowIndex: next.lastRowIndex,
+      firstColumnIndex: next.firstColumnIndex,
+      lastColumnIndex: next.lastColumnIndex,
+    }
+  }
+
+  const finalizeDiagnosticsCommit = (
+    commit: PendingDataGridDiagnosticsCommit,
+  ): void => {
+    const nodeChurn = consumeDiagnosticsNodeChurn()
+    commitTransactionId += 1
+    commit.observer({
+      transactionId: commitTransactionId,
+      source: commit.source,
+      inputTime: commit.inputTime,
+      handlerStartTime: commit.handlerStartTime,
+      rangeStartTime: commit.rangeStartTime,
+      rangeCalculatedTime: commit.rangeCalculatedTime,
+      commitStartTime: commit.commitStartTime,
+      commitEndTime: getDiagnosticTime(),
+      handlerEndTime: commit.handlerEndTime,
+      layoutReadIntervals: commit.layoutReadIntervals,
+      firstRowIndex: commit.firstRowIndex,
+      lastRowIndex: commit.lastRowIndex,
+      firstColumnIndex: commit.firstColumnIndex,
+      lastColumnIndex: commit.lastColumnIndex,
+      createdNodeCount: nodeChurn.createdNodeCount,
+      removedNodeCount: nodeChurn.removedNodeCount,
+    })
+  }
+
+  const scheduleDiagnosticsCommitFinalize = (
+    commit: PendingDataGridDiagnosticsCommit,
+  ): void => {
+    pendingDiagnosticsCommit = pendingDiagnosticsCommit
+      ? mergeDiagnosticsCommits(pendingDiagnosticsCommit, commit)
+      : commit
 
     if (diagnosticsCommitFinalizeScheduled) return
 
@@ -1065,9 +1201,10 @@ function setup(
     queueMicrotask(() => {
       diagnosticsCommitFinalizeScheduled = false
 
-      const pendingFinalize = pendingDiagnosticsCommitFinalize
-      pendingDiagnosticsCommitFinalize = undefined
-      pendingFinalize?.()
+      const pendingCommit = pendingDiagnosticsCommit
+      pendingDiagnosticsCommit = undefined
+
+      if (pendingCommit) finalizeDiagnosticsCommit(pendingCommit)
     })
   }
 
@@ -1080,13 +1217,26 @@ function setup(
     preservePendingNodeChurn = source === 'mount' && !hasCompletedMountCommit,
     deferCommitDiagnostics = false,
   ): void => {
+    const hasFocusedBodyForCurrentRange = hasFocusedBodyDescendant()
     const shouldRestoreFocusAfterPoolExit =
-      preserveFocusedDomPoolForCurrentRange && hasFocusedBodyDescendant()
+      preserveFocusedBodyDomPoolForCurrentRange && hasFocusedBodyForCurrentRange
+    const focusedHeaderTarget = getFocusedHeaderTarget()
+    const shouldRestoreHeaderFocusAfterPoolExit = Boolean(
+      poolHeaderColumnsForCurrentReconciliation && focusedHeaderTarget,
+    )
 
-    preserveFocusedDomPoolForCurrentRange = false
+    disableRowPoolingForCurrentRange = hasFocusedBodyForCurrentRange
+    disableHeaderColumnPoolingForCurrentRange =
+      focusedHeaderTarget !== undefined
+    disableBodyColumnPoolingForCurrentRange = hasFocusedBodyForCurrentRange
+
+    preserveFocusedBodyDomPoolForCurrentRange = false
 
     if (shouldRestoreFocusAfterPoolExit) {
       scheduleFocusActiveCellElement()
+    }
+    if (focusedHeaderTarget && shouldRestoreHeaderFocusAfterPoolExit) {
+      scheduleFocusHeaderTarget(focusedHeaderTarget)
     }
 
     const diagnostics = props.diagnostics
@@ -1109,7 +1259,9 @@ function setup(
       ensureDiagnosticsMutationObserver()
     }
     if (commitObserver) {
-      prepareDiagnosticsNodeChurn(preservePendingNodeChurn)
+      prepareDiagnosticsNodeChurn(
+        preservePendingNodeChurn || pendingDiagnosticsCommit !== undefined,
+      )
     }
     rebuildModels()
 
@@ -1147,37 +1299,31 @@ function setup(
       })
     }
 
-    const finalizeCommit = (): void => {
-      if (source === 'mount') hasCompletedMountCommit = true
-      if (!commitObserver) return
+    if (source === 'mount') hasCompletedMountCommit = true
+    if (!commitObserver) return
 
-      const nodeChurn = consumeDiagnosticsNodeChurn()
-      commitTransactionId += 1
-      commitObserver({
-        transactionId: commitTransactionId,
-        source,
-        inputTime,
-        handlerStartTime,
-        rangeStartTime,
-        rangeCalculatedTime,
-        commitStartTime,
-        commitEndTime: getDiagnosticTime(),
-        handlerEndTime,
-        layoutReadIntervals: [[layoutReadStartTime, layoutReadEndTime]],
-        firstRowIndex: nextSnapshot.range.start,
-        lastRowIndex: nextSnapshot.range.end,
-        firstColumnIndex: nextColumnSnapshot.range.start,
-        lastColumnIndex: nextColumnSnapshot.range.end,
-        createdNodeCount: nodeChurn.createdNodeCount,
-        removedNodeCount: nodeChurn.removedNodeCount,
-      })
+    const diagnosticsCommit: PendingDataGridDiagnosticsCommit = {
+      observer: commitObserver,
+      source,
+      inputTime,
+      handlerStartTime,
+      handlerEndTime,
+      rangeStartTime,
+      rangeCalculatedTime,
+      commitStartTime,
+      layoutReadIntervals: [[layoutReadStartTime, layoutReadEndTime]],
+      firstRowIndex: nextSnapshot.range.start,
+      lastRowIndex: nextSnapshot.range.end,
+      firstColumnIndex: nextColumnSnapshot.range.start,
+      lastColumnIndex: nextColumnSnapshot.range.end,
     }
 
-    if (commitObserver && deferCommitDiagnostics) {
-      scheduleDiagnosticsCommitFinalize(finalizeCommit)
-    } else {
-      finalizeCommit()
+    if (pendingDiagnosticsCommit || deferCommitDiagnostics) {
+      scheduleDiagnosticsCommitFinalize(diagnosticsCommit)
+      return
     }
+
+    finalizeDiagnosticsCommit(diagnosticsCommit)
   }
 
   const scheduleUpdateRange = (
@@ -1246,7 +1392,7 @@ function setup(
     if (!props.diagnostics?.onCommit) return false
 
     ensureDiagnosticsMutationObserver()
-    if (!pendingDiagnosticsCommitFinalize) {
+    if (!pendingDiagnosticsCommit) {
       prepareDiagnosticsNodeChurn(false)
     }
     return true
@@ -1865,19 +2011,27 @@ function setup(
     return getSnapshot().items
   }
 
-  const shouldPoolDomForCurrentViewport = (): boolean => {
+  const shouldPoolRowsForCurrentViewport = (): boolean => {
     return (
       resolveVirtual(props) &&
       !hasRowMeasurementOverrides &&
-      (!hasFocusedBodyDescendant() || preserveFocusedDomPoolForCurrentRange)
+      !disableRowPoolingForCurrentRange
     )
+  }
+
+  const shouldPoolHeaderColumnsForCurrentViewport = (): boolean => {
+    return resolveVirtual(props) && !disableHeaderColumnPoolingForCurrentRange
+  }
+
+  const shouldPoolBodyColumnsForCurrentViewport = (): boolean => {
+    return resolveVirtual(props) && !disableBodyColumnPoolingForCurrentRange
   }
 
   const getBodyRowsForRender = (): RenderedDataGridVirtualItem[] => {
     void renderVersion()
     void rowRenderVersion()
 
-    const shouldPoolRows = shouldPoolDomForCurrentViewport()
+    const shouldPoolRows = shouldPoolRowsForCurrentViewport()
     const shouldRestoreFocus =
       poolRowsForCurrentReconciliation &&
       !shouldPoolRows &&
@@ -1910,13 +2064,14 @@ function setup(
 
   const getHeaderColumnsForRender = (): DataGridColumnVirtualItem[] => {
     poolHeaderColumnsForCurrentReconciliation =
-      shouldPoolDomForCurrentViewport()
+      shouldPoolHeaderColumnsForCurrentViewport()
 
     return getVisibleColumnsForRender()
   }
 
   const getBodyColumnsForRender = (): DataGridColumnVirtualItem[] => {
-    poolBodyColumnsForCurrentReconciliation = shouldPoolDomForCurrentViewport()
+    poolBodyColumnsForCurrentReconciliation =
+      shouldPoolBodyColumnsForCurrentViewport()
 
     return getVisibleColumnsForRender()
   }
@@ -2062,7 +2217,7 @@ function setup(
           }
           pendingCreatedNodes = undefined
           pendingRemovedNodes = undefined
-          pendingDiagnosticsCommitFinalize = undefined
+          pendingDiagnosticsCommit = undefined
           scheduler.cancel()
           pendingRangeUpdate = undefined
           focusScheduler.cancel()
@@ -2333,7 +2488,7 @@ function setup(
                         )
                       }
                       onFocus={(nativeEvent: FocusEvent) => {
-                        preserveFocusedDomPoolForCurrentRange =
+                        preserveFocusedBodyDomPoolForCurrentRange =
                           poolRowsForCurrentReconciliation &&
                           poolBodyColumnsForCurrentReconciliation
                         setActiveCellByKey(
