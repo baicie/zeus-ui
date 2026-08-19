@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
+import { transformModule } from '@zeus-js/compiler'
 import { analyzeFile } from '@zeus-js/component-analyzer'
 import { describe, expect, it } from 'vitest'
 
@@ -347,6 +348,27 @@ describe('data-grid component protocol', () => {
     expect(source).toContain('aria-colindex')
     expect(source).toContain('aria-selected')
     expect(source).toContain('aria-multiselectable')
+  })
+
+  it('compiles fixed header values without reactive effects', () => {
+    const result = transformModule({
+      source,
+      filename: 'packages/advanced/data-grid/src/components/data-grid.tsx',
+      target: 'dom',
+      runtimeModule: '@zeus-js/runtime-dom',
+      delegateEvents: true,
+      sourceMap: false,
+    })
+
+    expect(result.diagnostics).toEqual([])
+
+    const headerAriaBinding = result.code.match(
+      /\$zeusBindAttr\([^;]+, "aria-rowindex", [^;]+\);/,
+    )?.[0]
+
+    expect(headerAriaBinding).toContain(', true)')
+    expect(result.code).toContain('role=\\"columnheader\\" tabindex=\\"0\\"')
+    expect(result.code).not.toContain('"tabindex", () => (0)')
   })
 
   it('uses viewport measurement model and exposes refreshViewport', () => {

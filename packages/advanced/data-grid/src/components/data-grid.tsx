@@ -2285,7 +2285,9 @@ function setup(
           part="header"
           data-slot="data-grid-header"
           role="row"
-          aria-rowindex={() => String(getDataGridHeaderRowAriaIndex())}
+          aria-rowindex={
+            /* @once */ () => String(getDataGridHeaderRowAriaIndex())
+          }
           style={() => ({
             display: 'grid',
             gridTemplateColumns: getGridTemplateColumns(),
@@ -2314,7 +2316,7 @@ function setup(
                   String(getDataGridColumnAriaIndex(item.index))
                 }
                 aria-sort={() => getDataGridAriaSort(item.data, sort)}
-                tabindex={0}
+                tabindex="0"
                 style={() => ({
                   gridColumnStart: getGridColumnStart(item),
                 })}
