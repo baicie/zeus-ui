@@ -2,11 +2,17 @@ import { describe, expect, it } from 'vitest'
 
 import {
   collectImportSpecifiers,
+  getExpectedZeusPeerRequirement,
   getZeusImportViolationMessage,
   isAllowedZeusImport,
 } from '../check-zeus-workspace'
 
 describe('check-zeus-workspace import policy', () => {
+  it('pins prerelease Zeus peers to the exact baseline', () => {
+    expect(getExpectedZeusPeerRequirement('0.1.1-beta.1')).toBe('0.1.1-beta.1')
+    expect(getExpectedZeusPeerRequirement('0.1.1')).toBe('>=0.1.1 <0.2.0')
+  })
+
   it('allows zeus-compat to import upstream Zeus runtime APIs', () => {
     expect(
       isAllowedZeusImport('packages/zeus-compat/src/index.ts', '@zeus-js/zeus'),

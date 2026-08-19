@@ -6,6 +6,7 @@ import { execa } from 'execa'
 import pc from 'picocolors'
 import ts from 'typescript'
 
+import { createZeusPeerRequirement } from '../release/zeus-peer-requirement'
 import { validatePackageRules } from './package-rules'
 
 const root = process.cwd()
@@ -43,6 +44,10 @@ function listPackageJsons(): string[] {
 
 function slash(value: string): string {
   return value.replace(/\\/g, '/')
+}
+
+export function getExpectedZeusPeerRequirement(version: string): string {
+  return createZeusPeerRequirement(version)
 }
 
 // ---------------------------------------------------------------------------
@@ -130,21 +135,7 @@ function checkZeusBaseline(errors: string[]): void {
   }
 
   const baseline = [...versions][0]
-  const versionParts = /^\d+\.\d+\.\d+/
-    .exec(baseline)?.[0]
-    ?.split('.')
-    .map(Number)
-
-  if (!versionParts) {
-    errors.push(`Invalid Zeus baseline version: ${baseline}`)
-    return
-  }
-
-  const upperBound =
-    versionParts[0] === 0
-      ? `<0.${versionParts[1] + 1}.0`
-      : `<${versionParts[0] + 1}.0.0`
-  const expectedPeer = `>=${baseline} ${upperBound}`
+  const expectedPeer = getExpectedZeusPeerRequirement(baseline)
 
   for (const file of listPackageJsons()) {
     const pkg = JSON.parse(readFileSync(file, 'utf8')) as {
