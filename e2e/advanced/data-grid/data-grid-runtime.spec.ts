@@ -5,7 +5,7 @@ import type {
   DataGridSelectionChangeDetail,
   DataGridSortChangeDetail,
 } from './data-grid-runtime-harness'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   cleanupDataGridFixtures,
@@ -21,6 +21,49 @@ import {
   setElementClientHeight,
   setElementClientWidth,
 } from './data-grid-runtime-harness'
+
+const initialModelDiagnostics = vi.hoisted(() => ({
+  createRowsCallSizes: [] as number[],
+  modeledRows: [] as unknown[][],
+  rowVirtualizerRows: [] as unknown[][],
+  sortRowsHasActiveSort: [] as boolean[],
+}))
+
+vi.mock(
+  '../../../packages/advanced/data-grid/src/core',
+  async importOriginal => {
+    const actual =
+      await importOriginal<
+        typeof import('../../../packages/advanced/data-grid/src/core')
+      >()
+
+    return {
+      ...actual,
+      createDataGridRows(
+        ...args: Parameters<typeof actual.createDataGridRows>
+      ): ReturnType<typeof actual.createDataGridRows> {
+        initialModelDiagnostics.createRowsCallSizes.push(args[0]?.length ?? 0)
+        const rows = actual.createDataGridRows(...args)
+        initialModelDiagnostics.modeledRows.push(rows)
+        return rows
+      },
+      createDataGridRowVirtualizer(
+        ...args: Parameters<typeof actual.createDataGridRowVirtualizer>
+      ): ReturnType<typeof actual.createDataGridRowVirtualizer> {
+        initialModelDiagnostics.rowVirtualizerRows.push(args[0].rows)
+        return actual.createDataGridRowVirtualizer(...args)
+      },
+      sortDataGridRows(
+        ...args: Parameters<typeof actual.sortDataGridRows>
+      ): ReturnType<typeof actual.sortDataGridRows> {
+        initialModelDiagnostics.sortRowsHasActiveSort.push(
+          args[2] !== undefined,
+        )
+        return actual.sortDataGridRows(...args)
+      },
+    }
+  },
+)
 
 function createWideColumns(count: number) {
   return Array.from({ length: count }, (_, index) => ({
@@ -60,8 +103,62 @@ function pointer(
 }
 
 describe('zw-data-grid runtime', () => {
+  beforeEach(() => {
+    initialModelDiagnostics.createRowsCallSizes.length = 0
+    initialModelDiagnostics.modeledRows.length = 0
+    initialModelDiagnostics.rowVirtualizerRows.length = 0
+    initialModelDiagnostics.sortRowsHasActiveSort.length = 0
+  })
+
   afterEach(() => {
     cleanupDataGridFixtures()
+  })
+
+  it('builds the row model exactly once during first mount', async () => {
+    const rows = createWideRows(10)
+
+    await mountDataGrid({
+      rows,
+      columns: createWideColumns(3),
+      virtual: true,
+    })
+
+    expect(initialModelDiagnostics.createRowsCallSizes).toEqual([rows.length])
+  })
+
+  it('reuses modeled rows when first mount has no active sort', async () => {
+    await mountDataGrid({
+      rows: createWideRows(10),
+      columns: createWideColumns(3),
+      virtual: true,
+    })
+
+    expect(initialModelDiagnostics.sortRowsHasActiveSort).toEqual([])
+    expect(initialModelDiagnostics.rowVirtualizerRows[0]).toBe(
+      initialModelDiagnostics.modeledRows[0],
+    )
+  })
+
+  it('preserves the fallback active row across the next rows rebuild', async () => {
+    const grid = await mountDataGrid({
+      rows: [{ id: 'row-a' }, { id: 'row-b' }],
+      columns: createWideColumns(1),
+      virtual: true,
+    })
+
+    expect(grid.getActiveCell()).toMatchObject({
+      rowKey: 'row-a',
+      columnId: 'column-1',
+    })
+
+    grid.setRows([{ id: 'row-new' }, { id: 'row-a' }, { id: 'row-b' }])
+
+    await nextFrame()
+
+    expect(grid.getActiveCell()).toMatchObject({
+      rowKey: 'row-a',
+      columnId: 'column-1',
+    })
   })
 
   it('mounts as a custom element and exposes runtime methods', async () => {

@@ -12,6 +12,8 @@ import type {
   DataGridColumnVirtualItem,
   DataGridColumnVirtualRange,
   DataGridColumnVirtualSnapshot,
+  DataGridCommitSource,
+  DataGridDiagnostics,
   DataGridNavigationKey,
   DataGridRangeChangeDetail,
   DataGridRow,
@@ -98,6 +100,7 @@ export interface DataGridProps {
   keyboardNavigation?: boolean
   activeRowKey?: DataGridRowKey
   activeColumnId?: string
+  diagnostics?: DataGridDiagnostics
 }
 
 export interface DataGridElement extends HTMLElement {
@@ -115,6 +118,7 @@ export interface DataGridElement extends HTMLElement {
   keyboardNavigation?: boolean
   activeRowKey?: DataGridRowKey
   activeColumnId?: string
+  diagnostics?: DataGridDiagnostics
   setRows: (rows: DataGridRowData[]) => void
   setColumns: (columns: DataGridColumn[]) => void
   getRows: () => DataGridRow[]
@@ -239,6 +243,12 @@ function getViewportClientWidth(viewport: HTMLElement | undefined): number {
   return viewport ? viewport.clientWidth : 0
 }
 
+function getDiagnosticTime(): number {
+  return typeof globalThis.performance === 'undefined'
+    ? Date.now()
+    : globalThis.performance.now()
+}
+
 function setScrollOffset(
   viewport: HTMLElement | undefined,
   offset: number,
@@ -295,10 +305,18 @@ function setup(
   let viewport: HTMLElement | undefined
   let viewportResizeObserver: ResizeObserver | undefined
   let resizeSession: ResizeSession | undefined
+  let modelBuildSequence = 0
+  let commitTransactionId = 0
 
   let rowsSource = resolveRows(props)
   let columnsSource = resolveColumns(props)
 
+  const initialDiagnostics = props.diagnostics
+  const initialModelBuildObserver =
+    initialDiagnostics && initialDiagnostics.onModelBuild
+  const initialModelBuildStart = initialModelBuildObserver
+    ? getDiagnosticTime()
+    : 0
   let baseColumns = normalizeDataGridColumns(columnsSource)
   let defaultColumnWidths = createDataGridColumnWidthState(baseColumns)
   let columnWidths = createDataGridColumnWidthState(baseColumns)
@@ -309,7 +327,7 @@ function setup(
     props.sortColumn,
     props.sortDirection,
   )
-  let visibleRows = sortDataGridRows(rows, columns, sort)
+  let visibleRows = sort ? sortDataGridRows(rows, columns, sort) : rows
   const selection = createDataGridSelectionModel(
     resolveSelectionMode(props.selectionMode),
     props.selectedKeys ?? [],
@@ -323,6 +341,18 @@ function setup(
     columns: visibleColumns,
     overscan: resolveColumnOverscan(props),
   })
+  modelBuildSequence += 1
+  if (initialModelBuildObserver) {
+    initialModelBuildObserver({
+      sequence: modelBuildSequence,
+      modelVersion: 0,
+      startTime: initialModelBuildStart,
+      endTime: getDiagnosticTime(),
+      rowCount: rows.length,
+      columnCount: visibleColumns.length,
+      sorted: sort !== undefined,
+    })
+  }
   let currentSnapshot = cloneEmptySnapshot()
   let currentColumnSnapshot = cloneEmptyColumnSnapshot()
   const renderVersion = state(0)
@@ -333,7 +363,7 @@ function setup(
     columnId: props.activeColumnId,
   })
   const activeCellRenderVersion = state(0)
-  let shouldSyncActiveCellFromProps = true
+  let shouldSyncActiveCellFromProps = false
   let modelVersion = 0
   const rowRenderVersion = state(0)
   const rowLayoutRenderVersion = state(0)
@@ -342,7 +372,7 @@ function setup(
   let shouldRefreshRowsForRender = false
   let shouldRefreshRowLayoutForRender = false
   let shouldRefreshColumnsForRender = false
-  let builtModelVersion = -1
+  let builtModelVersion = modelVersion
   const scheduler = createRafScheduler()
   const focusScheduler = createRafScheduler()
 
@@ -500,6 +530,10 @@ function setup(
 
     if (builtModelVersion === modelVersion) return
 
+    const diagnostics = props.diagnostics
+    const modelBuildObserver = diagnostics && diagnostics.onModelBuild
+    const modelBuildStart = modelBuildObserver ? getDiagnosticTime() : 0
+
     const shouldRestoreActiveCellFocus =
       (shouldRefreshRowsForRender || shouldRefreshColumnsForRender) &&
       isActiveCellElementFocused()
@@ -512,7 +546,7 @@ function setup(
 
     selection.setKeys(props.selectedKeys ?? [])
 
-    visibleRows = sortDataGridRows(rows, columns, sort)
+    visibleRows = sort ? sortDataGridRows(rows, columns, sort) : rows
     virtualizer = createDataGridRowVirtualizer({
       rows: visibleRows,
       rowHeight: resolveRowHeight(props),
@@ -545,6 +579,19 @@ function setup(
     currentSnapshot = cloneEmptySnapshot()
     currentColumnSnapshot = cloneEmptyColumnSnapshot()
     builtModelVersion = modelVersion
+    modelBuildSequence += 1
+
+    if (modelBuildObserver) {
+      modelBuildObserver({
+        sequence: modelBuildSequence,
+        modelVersion: builtModelVersion,
+        startTime: modelBuildStart,
+        endTime: getDiagnosticTime(),
+        rowCount: rows.length,
+        columnCount: visibleColumns.length,
+        sorted: sort !== undefined,
+      })
+    }
 
     if (shouldRefreshRowsForRender) {
       shouldRefreshRowsForRender = false
@@ -749,9 +796,21 @@ function setup(
     )
   }
 
-  const updateRange = (nativeEvent?: Event): void => {
+  const updateRange = (
+    nativeEvent?: Event,
+    source: DataGridCommitSource = 'api',
+    scheduledInputTime?: number,
+  ): void => {
+    const diagnostics = props.diagnostics
+    const commitObserver = diagnostics && diagnostics.onCommit
+    const inputTime = commitObserver
+      ? (scheduledInputTime ?? getDiagnosticTime())
+      : 0
+    const handlerStartTime = commitObserver ? getDiagnosticTime() : 0
+
     rebuildModels()
 
+    const rangeStartTime = commitObserver ? getDiagnosticTime() : 0
     const scrollOffset = getScrollOffset(viewport)
     const viewportSize = measureViewport().size
     const nextSnapshot = getSnapshotFromModels(scrollOffset, viewportSize)
@@ -759,11 +818,14 @@ function setup(
       getColumnScrollOffset(viewport),
       getResolvedColumnViewportSize(),
     )
+    const rangeCalculatedTime = commitObserver ? getDiagnosticTime() : 0
+    const commitStartTime = commitObserver ? getDiagnosticTime() : 0
 
     batch(() => {
       emitSnapshotIfChanged(nextSnapshot, scrollOffset, viewportSize)
       updateColumnSnapshotIfChanged(nextColumnSnapshot)
     })
+    const commitEndTime = commitObserver ? getDiagnosticTime() : 0
 
     if (nativeEvent) {
       ctx.emit.scrollOffsetChange({
@@ -771,10 +833,36 @@ function setup(
         nativeEvent,
       })
     }
+
+    if (commitObserver) {
+      const handlerEndTime = getDiagnosticTime()
+      commitTransactionId += 1
+      commitObserver({
+        transactionId: commitTransactionId,
+        source,
+        inputTime,
+        handlerStartTime,
+        rangeStartTime,
+        rangeCalculatedTime,
+        commitStartTime,
+        commitEndTime,
+        handlerEndTime,
+        firstRowIndex: nextSnapshot.range.start,
+        lastRowIndex: nextSnapshot.range.end,
+        firstColumnIndex: nextColumnSnapshot.range.start,
+        lastColumnIndex: nextColumnSnapshot.range.end,
+      })
+    }
   }
 
-  const scheduleUpdateRange = (nativeEvent?: Event): void => {
-    scheduler.schedule(() => updateRange(nativeEvent))
+  const scheduleUpdateRange = (
+    nativeEvent?: Event,
+    source: DataGridCommitSource = nativeEvent ? 'scroll' : 'api',
+  ): void => {
+    const diagnostics = props.diagnostics
+    const inputTime =
+      diagnostics && diagnostics.onCommit ? getDiagnosticTime() : undefined
+    scheduler.schedule(() => updateRange(nativeEvent, source, inputTime))
   }
 
   const scrollToColumnIndex = (
@@ -800,7 +888,7 @@ function setup(
 
     viewportResizeObserver = new ResizeObserver(() => {
       measureViewport()
-      scheduleUpdateRange()
+      scheduleUpdateRange(undefined, 'resize')
     })
     viewportResizeObserver.observe(element)
   }
@@ -1070,7 +1158,7 @@ function setup(
 
     sort = createNextDataGridSortState(sort, columnId, direction)
     syncSortPropsFromModel()
-    visibleRows = sortDataGridRows(rows, columns, sort)
+    visibleRows = sort ? sortDataGridRows(rows, columns, sort) : rows
     virtualizer = createDataGridRowVirtualizer({
       rows: visibleRows,
       rowHeight: resolveRowHeight(props),
@@ -1084,7 +1172,7 @@ function setup(
       nativeEvent,
     })
 
-    updateRange()
+    updateRange(undefined, 'data')
   }
 
   ctx.expose({
@@ -1096,7 +1184,7 @@ function setup(
         shouldRefreshRowsForRender = true
         syncHostProps()
         commitControlledState()
-        updateRange()
+        updateRange(undefined, 'data')
       })
     },
 
@@ -1111,7 +1199,7 @@ function setup(
         shouldRefreshColumnsForRender = true
         syncHostProps()
         commitControlledState()
-        updateRange()
+        updateRange(undefined, 'data')
       })
     },
 
@@ -1164,14 +1252,14 @@ function setup(
     clearSort(): void {
       sort = undefined
       syncSortPropsFromModel()
-      visibleRows = sortDataGridRows(rows, columns, sort)
+      visibleRows = sort ? sortDataGridRows(rows, columns, sort) : rows
       currentSnapshot = cloneEmptySnapshot()
 
       ctx.emit.sortChange({
         sort,
       })
 
-      updateRange()
+      updateRange(undefined, 'data')
     },
 
     getSort(): DataGridSortState | undefined {
@@ -1461,7 +1549,7 @@ function setup(
             element.addEventListener('scroll', scheduleUpdateRange)
             connectViewportObserver(element)
             measureViewport()
-            scheduleUpdateRange()
+            scheduleUpdateRange(undefined, 'mount')
             return
           }
 
@@ -1877,6 +1965,9 @@ export const DataGrid = defineElement<
       }),
       activeColumnId: prop(String, {
         attr: 'active-column-id',
+      }),
+      diagnostics: prop<DataGridDiagnostics>(Object, {
+        attr: false,
       }),
     },
     emits: {

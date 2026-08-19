@@ -2,6 +2,7 @@ import type {
   DataGridActiveCellChangeDetail,
   DataGridColumn,
   DataGridColumnResizeDetail,
+  DataGridDiagnostics,
   DataGridElement,
   DataGridRangeChangeDetail,
   DataGridRowData,
@@ -74,6 +75,7 @@ export interface MountedDataGridOptions {
   sortDirection?: 'asc' | 'desc'
   activeRowKey?: string
   activeColumnId?: string
+  diagnostics?: DataGridDiagnostics
 }
 
 export interface EventCollector<T> {
@@ -123,6 +125,7 @@ export async function mountDataGrid(
   grid.sortDirection = options.sortDirection
   grid.activeRowKey = options.activeRowKey
   grid.activeColumnId = options.activeColumnId
+  grid.diagnostics = options.diagnostics
 
   document.body.append(grid)
 

@@ -32,6 +32,44 @@ export type DataGridAriaSort = 'ascending' | 'descending' | 'none'
 
 export type DataGridViewportSizeSource = 'client' | 'fallback'
 
+export type DataGridCommitSource =
+  | 'mount'
+  | 'scroll'
+  | 'resize'
+  | 'data'
+  | 'api'
+
+export interface DataGridModelBuildTiming {
+  sequence: number
+  modelVersion: number
+  startTime: number
+  endTime: number
+  rowCount: number
+  columnCount: number
+  sorted: boolean
+}
+
+export interface DataGridCommitTiming {
+  transactionId: number
+  source: DataGridCommitSource
+  inputTime: number
+  handlerStartTime: number
+  rangeStartTime: number
+  rangeCalculatedTime: number
+  commitStartTime: number
+  commitEndTime: number
+  handlerEndTime: number
+  firstRowIndex: number
+  lastRowIndex: number
+  firstColumnIndex: number
+  lastColumnIndex: number
+}
+
+export interface DataGridDiagnostics {
+  onModelBuild?: (sample: Readonly<DataGridModelBuildTiming>) => void
+  onCommit?: (sample: Readonly<DataGridCommitTiming>) => void
+}
+
 export interface DataGridColumn {
   id: string
   header?: string
