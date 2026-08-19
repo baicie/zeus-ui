@@ -18,26 +18,26 @@ afterEach(() => {
 })
 
 describe('checkZeusBetaAlignment', () => {
-  it('passes when root and package Zeus versions are aligned to beta.8', () => {
+  it('defaults to the coordinated beta when packages are aligned', () => {
     const root = createTempRoot()
 
     writePackage(root, 'package.json', {
       name: 'zeus-ui-workspace',
       private: true,
       devDependencies: {
-        '@zeus-js/zeus': '0.1.0-beta.8',
-        '@zeus-js/runtime-dom': '0.1.0-beta.8',
+        '@zeus-js/zeus': '0.1.1-beta.1',
+        '@zeus-js/runtime-dom': '0.1.1-beta.1',
       },
     })
 
     writePackage(root, 'packages/advanced/data-grid/package.json', {
       name: '@zeus-web/data-grid',
       peerDependencies: {
-        '@zeus-js/zeus': '0.1.0-beta.8',
+        '@zeus-js/zeus': '0.1.1-beta.1',
       },
       dependencies: {
-        '@zeus-js/runtime-dom': '0.1.0-beta.8',
-        '@zeus-js/web-c-runtime': '0.1.0-beta.8',
+        '@zeus-js/runtime-dom': '0.1.1-beta.1',
+        '@zeus-js/web-c-runtime': '0.1.1-beta.1',
       },
     })
 
@@ -55,15 +55,12 @@ export function createPrimitiveRolldownConfig() {
 `,
     )
 
-    const result = checkZeusBetaAlignment({
-      root,
-      expectedVersion: '0.1.0-beta.8',
-    })
+    const result = checkZeusBetaAlignment({ root })
 
     expect(result).toEqual({
       ok: true,
-      expectedVersion: '0.1.0-beta.8',
-      expectedPeerRange: '0.1.0-beta.8',
+      expectedVersion: '0.1.1-beta.1',
+      expectedPeerRange: '0.1.1-beta.1',
       problems: [],
     })
   })

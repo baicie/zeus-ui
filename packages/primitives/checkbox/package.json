@@ -59,7 +59,7 @@
     "test": "vitest --root ../../.. --project unit packages/primitives/checkbox/__tests__/checkbox.spec.ts"
   },
   "peerDependencies": {
-    "@zeus-js/zeus": "0.1.0-beta.8",
+    "@zeus-js/zeus": "0.1.1-beta.1",
     "react": ">=18 || >=19",
     "vue": ">=3"
   },
@@ -72,10 +72,10 @@
     }
   },
   "dependencies": {
-    "@zeus-js/output-react-wrapper": "0.1.0-beta.8",
-    "@zeus-js/output-vue-wrapper": "0.1.0-beta.8",
-    "@zeus-js/runtime-dom": "0.1.0-beta.8",
-    "@zeus-js/web-c-runtime": "0.1.0-beta.8",
+    "@zeus-js/output-react-wrapper": "0.1.1-beta.1",
+    "@zeus-js/output-vue-wrapper": "0.1.1-beta.1",
+    "@zeus-js/runtime-dom": "0.1.1-beta.1",
+    "@zeus-js/web-c-runtime": "0.1.1-beta.1",
     "@zeus-web/zeus-compat": "workspace:*"
   }
 }
