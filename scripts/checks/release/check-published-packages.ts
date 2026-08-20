@@ -620,6 +620,18 @@ export function createBrowserEntry(
   return lines.join('\n')
 }
 
+export function createRuntimeSmokeEntry(): string {
+  return [
+    "import assert from 'node:assert/strict'",
+    "import * as compat from '@zeus-web/zeus-compat'",
+    '',
+    "assert.equal(typeof compat.defineElement, 'function')",
+    "assert.equal(typeof compat.createSignal, 'function')",
+    "assert.equal(typeof compat.createEffect, 'function')",
+    '',
+  ].join('\n')
+}
+
 export function parsePublishedPackageOptions(
   args: string[],
 ): PublishedPackageCheckOptions {
@@ -956,18 +968,7 @@ function writeConsumerProject(
     join(sourceDirectory, 'styles.d.ts'),
     "declare module '*.css'\n",
   )
-  writeFileSync(
-    join(directory, 'runtime-smoke.mjs'),
-    [
-      "import assert from 'node:assert/strict'",
-      "import * as compat from '@zeus-web/zeus-compat'",
-      '',
-      "assert.equal(typeof compat.defineElement, 'function')",
-      "assert.equal(typeof compat.state, 'function')",
-      "assert.equal(typeof compat.effect, 'function')",
-      '',
-    ].join('\n'),
-  )
+  writeFileSync(join(directory, 'runtime-smoke.mjs'), createRuntimeSmokeEntry())
 }
 
 function runCommand(
