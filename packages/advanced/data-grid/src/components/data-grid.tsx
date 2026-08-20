@@ -55,7 +55,6 @@ import {
   createDataGridColumnVirtualizer,
   createDataGridColumnWidthState,
   createDataGridControlledSortState,
-  createDataGridControlledStateController,
   createDataGridRowModel,
   createDataGridRowVirtualizer,
   createDataGridSelectionModel,
@@ -87,6 +86,10 @@ import {
   shouldUpdateDataGridVirtualSnapshot,
   sortDataGridRowCollection,
 } from '../core'
+import {
+  createDataGridControlledStateTracker,
+  DataGridControlledStateChange,
+} from '../core/controlled-state-tracker'
 
 export interface DataGridProps {
   rows?: DataGridRowData[]
@@ -529,7 +532,7 @@ function setup(
   let viewportMeasurement: DataGridViewportMeasurement =
     viewportMeasure.measure(0, resolveRowHeight(props), visibleRows.length)
 
-  const controlledState = createDataGridControlledStateController({
+  const controlledState = createDataGridControlledStateTracker({
     rows: rowsSource,
     columns: columnsSource,
     selectedKeys: props.selectedKeys,
@@ -766,9 +769,9 @@ function setup(
   const syncControlledSources = (): boolean => {
     const changes = controlledState.update(readControlledStateSources())
 
-    if (!changes.changed) return false
+    if (!changes) return false
 
-    if (changes.rowsChanged) {
+    if (changes & DataGridControlledStateChange.Rows) {
       rowsSource = resolveRows(props, fallbackRows)
       rowsSourceDirty = true
       rowVirtualizerDirty = true
@@ -777,14 +780,15 @@ function setup(
     }
 
     if (
-      changes.rowsChanged ||
-      changes.reasons.includes('rowHeight') ||
-      changes.reasons.includes('virtual')
+      changes &
+      (DataGridControlledStateChange.Rows |
+        DataGridControlledStateChange.RowHeight |
+        DataGridControlledStateChange.Virtual)
     ) {
       shouldRefreshRowLayoutForRender = true
     }
 
-    if (changes.columnsChanged) {
+    if (changes & DataGridControlledStateChange.Columns) {
       columnsSource = resolveColumns(props, fallbackColumns)
       columnsSourceDirty = true
       columnVirtualizerDirty = true
@@ -792,17 +796,17 @@ function setup(
       shouldRefreshColumnsForRender = true
     }
 
-    if (changes.selectedKeysChanged) {
+    if (changes & DataGridControlledStateChange.SelectedKeys) {
       selection.setKeys(props.selectedKeys ?? [])
       setSelectionRenderVersion(value => value + 1)
     }
 
-    if (changes.selectionModeChanged) {
+    if (changes & DataGridControlledStateChange.SelectionMode) {
       selection.setMode(resolveSelectionMode(props.selectionMode))
       setSelectionRenderVersion(value => value + 1)
     }
 
-    if (changes.sortChanged) {
+    if (changes & DataGridControlledStateChange.Sort) {
       sort = createDataGridControlledSortState(
         props.sortColumn,
         props.sortDirection,
@@ -811,37 +815,42 @@ function setup(
       activeCellDirty = true
     }
 
-    if (changes.columnsChanged && sort !== undefined) {
+    if (changes & DataGridControlledStateChange.Columns && sort !== undefined) {
       rowVirtualizerDirty = true
     }
 
-    if (changes.activeCellChanged) {
+    if (changes & DataGridControlledStateChange.ActiveCell) {
       shouldSyncActiveCellFromProps = true
       activeCellDirty = true
     }
 
     if (
-      changes.reasons.includes('rowHeight') ||
-      changes.reasons.includes('overscan')
+      changes &
+      (DataGridControlledStateChange.RowHeight |
+        DataGridControlledStateChange.Overscan)
     ) {
       rowVirtualizerDirty = true
     }
 
-    if (changes.reasons.includes('overscanColumns')) {
+    if (changes & DataGridControlledStateChange.OverscanColumns) {
       columnVirtualizerDirty = true
     }
 
-    if (changes.reasons.includes('virtual')) {
+    if (changes & DataGridControlledStateChange.Virtual) {
       rowVirtualizerDirty = true
       columnVirtualizerDirty = true
     }
 
     if (
-      changes.rowsChanged ||
-      changes.columnsChanged ||
-      changes.sortChanged ||
-      changes.activeCellChanged ||
-      changes.layoutChanged
+      changes &
+      (DataGridControlledStateChange.Rows |
+        DataGridControlledStateChange.Columns |
+        DataGridControlledStateChange.Sort |
+        DataGridControlledStateChange.ActiveCell |
+        DataGridControlledStateChange.RowHeight |
+        DataGridControlledStateChange.Overscan |
+        DataGridControlledStateChange.OverscanColumns |
+        DataGridControlledStateChange.Virtual)
     ) {
       modelVersion += 1
     }

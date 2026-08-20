@@ -6,6 +6,8 @@ import type {
 } from '../types'
 import type { DataGridRowCollection } from './row-model'
 
+import { clamp } from '@zeus-web/virtual'
+
 export interface DataGridNavigationStateOptions {
   rows: DataGridRowCollection
   columns: NormalizedDataGridColumn[]
@@ -20,10 +22,6 @@ export interface DataGridMoveActiveCellOptions {
   current: DataGridActiveCell | undefined
   key: DataGridNavigationKey
   pageSize?: number
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value))
 }
 
 function getColumnIndex(

@@ -272,7 +272,7 @@ describe('data-grid component protocol', () => {
     )
   })
 
-  it('uses controlled state model instead of ad-hoc source tracking', () => {
+  it('uses controlled state tracker instead of ad-hoc source tracking', () => {
     const rebuildModelsSource = source.slice(
       source.indexOf('const rebuildModels ='),
       source.indexOf('const emitSnapshotIfChanged ='),
@@ -282,7 +282,8 @@ describe('data-grid component protocol', () => {
       source.indexOf('const scrollToColumnIndex ='),
     )
 
-    expect(source).toContain('createDataGridControlledStateController')
+    expect(source).toContain('createDataGridControlledStateTracker')
+    expect(source).toContain('DataGridControlledStateChange')
     expect(source).toContain('createDataGridControlledSortState')
     expect(source).toContain('readControlledStateSources')
     expect(source).toContain('syncControlledSources')
@@ -298,8 +299,8 @@ describe('data-grid component protocol', () => {
     expect(source).toContain('sortDirection: props.sortDirection')
     expect(source).toContain('activeRowKey: props.activeRowKey')
     expect(source).toContain('activeColumnId: props.activeColumnId')
-    expect(source).toContain('changes.sortChanged')
-    expect(source).toContain('changes.activeCellChanged')
+    expect(source).toContain('DataGridControlledStateChange.Sort')
+    expect(source).toContain('DataGridControlledStateChange.ActiveCell')
   })
 
   it('syncs internal model mutations back to host props', () => {

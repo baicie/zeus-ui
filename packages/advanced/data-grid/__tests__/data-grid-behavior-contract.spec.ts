@@ -24,7 +24,7 @@ describe('data-grid behavior contract', () => {
   })
 
   it('rebuilds columns and default widths when controlled columns change', () => {
-    expect(source).toContain('changes.columnsChanged')
+    expect(source).toContain('DataGridControlledStateChange.Columns')
     expect(source).toContain(
       'baseColumns = normalizeDataGridColumns(columnsSource)',
     )
@@ -58,20 +58,20 @@ describe('data-grid behavior contract', () => {
   })
 
   it('syncs controlled selectedKeys into selection model and clears undefined', () => {
-    expect(source).toContain('changes.selectedKeysChanged')
+    expect(source).toContain('DataGridControlledStateChange.SelectedKeys')
     expect(source).toContain('selection.setKeys(props.selectedKeys ?? [])')
     expect(source).not.toContain('Array.isArray(props.selectedKeys)')
   })
 
   it('syncs controlled sort props into internal sort state', () => {
-    expect(source).toContain('changes.sortChanged')
+    expect(source).toContain('DataGridControlledStateChange.Sort')
     expect(source).toContain(
       'sort = createDataGridControlledSortState(\n        props.sortColumn,\n        props.sortDirection,\n      )',
     )
   })
 
   it('syncs controlled active cell props into internal active cell state', () => {
-    expect(source).toContain('changes.activeCellChanged')
+    expect(source).toContain('DataGridControlledStateChange.ActiveCell')
     expect(source).toContain('shouldSyncActiveCellFromProps = true')
     expect(source).toContain('rowKey: shouldSyncActiveCellFromProps')
     expect(source).toContain('columnId: shouldSyncActiveCellFromProps')
