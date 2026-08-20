@@ -614,6 +614,48 @@ describe('zw-data-grid fixed-row DOM pooling', () => {
     expect(document.activeElement).toBe(getHeaderCell(grid, 'column-5'))
   })
 
+  it.each(['header-cell', 'resize-handle'] as const)(
+    'restores a focused %s when non-virtual columns are replaced',
+    async focusKind => {
+      const grid = await mountDataGrid({
+        rows: createRows(2),
+        columns,
+        virtual: false,
+        resizable: true,
+      })
+      const initialHeader = getHeaderCell(grid, 'name')
+      const initialTarget =
+        focusKind === 'resize-handle'
+          ? initialHeader.querySelector<HTMLElement>(
+              '[data-slot="data-grid-resize-handle"]',
+            )
+          : initialHeader
+
+      if (!initialTarget) throw new Error(`expected a focused ${focusKind}`)
+
+      initialTarget.focus()
+      expect(document.activeElement).toBe(initialTarget)
+
+      grid.columns = columns.map(column => ({
+        ...column,
+        header: `${column.header} updated`,
+      }))
+      grid.getColumns()
+      await nextFrame()
+
+      const nextHeader = getHeaderCell(grid, 'name')
+      const nextTarget =
+        focusKind === 'resize-handle'
+          ? nextHeader.querySelector<HTMLElement>(
+              '[data-slot="data-grid-resize-handle"]',
+            )
+          : nextHeader
+
+      expect(nextHeader.textContent).toContain('Name updated')
+      expect(document.activeElement).toBe(nextTarget)
+    },
+  )
+
   it('does not recycle a focused cell and preserves focus while it stays rendered', async () => {
     const grid = await mountDataGrid({
       rows: createRows(100),

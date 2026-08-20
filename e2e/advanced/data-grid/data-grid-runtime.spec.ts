@@ -5,6 +5,7 @@ import type {
   DataGridSelectionChangeDetail,
   DataGridSortChangeDetail,
 } from './data-grid-runtime-harness'
+import { batch } from '@zeus-js/zeus'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -774,6 +775,48 @@ describe('zw-data-grid runtime', () => {
           expect(spacer.style.height).toBe('4000px')
         })
     })
+  })
+
+  it('updates the virtual spacer when setRows replaces the initial rows', async () => {
+    const grid = await mountDataGrid({
+      rows: createWideRows(2),
+      columns: createWideColumns(1),
+      virtual: true,
+      rowHeight: 40,
+    })
+    const spacer = grid.querySelector<HTMLElement>(
+      '[data-slot="data-grid-spacer"]',
+    )
+
+    if (!spacer) throw new Error('Data Grid spacer not found.')
+
+    expect(grid.getTotalSize()).toBe(80)
+    expect(spacer.style.height).toBe('80px')
+
+    grid.setRows(createWideRows(10))
+    await nextFrame()
+
+    expect(grid.getTotalSize()).toBe(400)
+    expect(spacer.style.height).toBe('400px')
+  })
+
+  it('preserves an outer-batched rows assignment when selection is committed', async () => {
+    const grid = await mountDataGrid({
+      rows: [{ id: 'initial-row', value: 'Initial' }],
+      columns: [{ id: 'value', field: 'value' }],
+      selectionMode: 'multiple',
+    })
+    const nextRows = [{ id: 'next-row', value: 'Next' }]
+
+    batch(() => {
+      grid.rows = nextRows
+      grid.setSelection(['next-row'])
+    })
+    await nextFrame()
+
+    expect.soft(grid.getRows().map(row => row.key)).toEqual(['next-row'])
+    expect.soft(grid.textContent).toContain('Next')
+    expect(grid.textContent).not.toContain('Initial')
   })
 
   it('updates the virtual spacer when row layout measurements change', () => {

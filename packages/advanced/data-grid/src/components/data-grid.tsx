@@ -230,12 +230,18 @@ function getDataGridCommitPriority(source: DataGridCommitSource): number {
   return source === 'mount' || source === 'resize' ? 1 : 0
 }
 
-function resolveRows(props: DataGridProps): DataGridRowData[] {
-  return Array.isArray(props.rows) ? props.rows : []
+function resolveRows(
+  props: DataGridProps,
+  fallback: DataGridRowData[],
+): DataGridRowData[] {
+  return Array.isArray(props.rows) ? props.rows : fallback
 }
 
-function resolveColumns(props: DataGridProps): DataGridColumn[] {
-  return Array.isArray(props.columns) ? props.columns : []
+function resolveColumns(
+  props: DataGridProps,
+  fallback: DataGridColumn[],
+): DataGridColumn[] {
+  return Array.isArray(props.columns) ? props.columns : fallback
 }
 
 function resolveRowHeight(props: DataGridProps): number {
@@ -386,9 +392,12 @@ function setup(
   let disableRowPoolingForCurrentRange = false
   let disableHeaderColumnPoolingForCurrentRange = false
   let disableBodyColumnPoolingForCurrentRange = false
+  let preserveScheduledHeaderFocusForDataRebuild = false
 
-  let rowsSource = resolveRows(props)
-  let columnsSource = resolveColumns(props)
+  const fallbackRows: DataGridRowData[] = []
+  const fallbackColumns: DataGridColumn[] = []
+  let rowsSource = resolveRows(props, fallbackRows)
+  let columnsSource = resolveColumns(props, fallbackColumns)
 
   const initialDiagnostics = props.diagnostics
   const initialModelBuildObserver =
@@ -497,8 +506,8 @@ function setup(
   })
 
   const readControlledStateSources = () => ({
-    rows: resolveRows(props),
-    columns: resolveColumns(props),
+    rows: resolveRows(props, fallbackRows),
+    columns: resolveColumns(props, fallbackColumns),
     selectedKeys: props.selectedKeys,
     sortColumn: props.sortColumn,
     sortDirection: props.sortDirection,
@@ -693,11 +702,14 @@ function setup(
 
   const scheduleFocusHeaderTarget = (
     target: FocusedDataGridHeaderTarget,
+    preserveForDataRebuild = false,
   ): void => {
     const ownerDocument = viewport?.ownerDocument
     const scheduledActiveElement = ownerDocument?.activeElement
+    preserveScheduledHeaderFocusForDataRebuild = preserveForDataRebuild
 
     headerFocusScheduler.schedule(() => {
+      preserveScheduledHeaderFocusForDataRebuild = false
       const activeElement = ownerDocument?.activeElement
 
       if (
@@ -718,7 +730,7 @@ function setup(
     if (!changes.changed) return false
 
     if (changes.rowsChanged) {
-      rowsSource = resolveRows(props)
+      rowsSource = resolveRows(props, fallbackRows)
       rowsSourceDirty = true
       rowVirtualizerDirty = true
       activeCellDirty = true
@@ -734,7 +746,7 @@ function setup(
     }
 
     if (changes.columnsChanged) {
-      columnsSource = resolveColumns(props)
+      columnsSource = resolveColumns(props, fallbackColumns)
       columnsSourceDirty = true
       columnVirtualizerDirty = true
       activeCellDirty = true
@@ -815,6 +827,9 @@ function setup(
     const shouldRestoreActiveCellFocus =
       (shouldRefreshRowsForRender || shouldRefreshColumnsForRender) &&
       isActiveCellElementFocused()
+    const focusedHeaderTarget = shouldRefreshColumnsForRender
+      ? getFocusedHeaderTarget()
+      : undefined
 
     if (columnsSourceDirty) {
       baseColumns = normalizeDataGridColumns(columnsSource)
@@ -898,6 +913,10 @@ function setup(
     if (shouldRefreshColumnsForRender) {
       shouldRefreshColumnsForRender = false
       setColumnRenderVersion(value => value + 1)
+    }
+
+    if (focusedHeaderTarget) {
+      scheduleFocusHeaderTarget(focusedHeaderTarget, true)
     }
 
     if (shouldRestoreActiveCellFocus) {
@@ -1335,7 +1354,7 @@ function setup(
       poolHeaderColumnsForCurrentReconciliation && focusedHeaderTarget,
     )
 
-    if (!focusedHeaderTarget) {
+    if (!focusedHeaderTarget && !preserveScheduledHeaderFocusForDataRebuild) {
       headerFocusScheduler.cancel()
     }
 
@@ -1578,13 +1597,15 @@ function setup(
     viewportResizeObserver.observe(element)
   }
 
-  const commitControlledState = (): void => {
-    controlledState.commit(readControlledStateSources())
+  const commitControlledState = (
+    nextSources: Parameters<typeof controlledState.commit>[0],
+  ): void => {
+    controlledState.commit(nextSources)
   }
 
   const syncHostProps = (): void => {
-    ctx.host.rows = resolveRows(props)
-    ctx.host.columns = resolveColumns(props)
+    ctx.host.rows = resolveRows(props, fallbackRows)
+    ctx.host.columns = resolveColumns(props, fallbackColumns)
   }
 
   const emitSelection = (
@@ -1603,7 +1624,7 @@ function setup(
   const syncSelectionPropsFromModel = (): void => {
     batch(() => {
       props.selectedKeys = selection.getState().keys
-      commitControlledState()
+      commitControlledState({ selectedKeys: props.selectedKeys })
       setSelectionRenderVersion(value => value + 1)
     })
   }
@@ -1612,7 +1633,10 @@ function setup(
     batch(() => {
       props.sortColumn = sort ? sort.columnId : undefined
       props.sortDirection = sort ? sort.direction : undefined
-      commitControlledState()
+      commitControlledState({
+        sortColumn: props.sortColumn,
+        sortDirection: props.sortDirection,
+      })
     })
   }
 
@@ -1620,7 +1644,10 @@ function setup(
     batch(() => {
       props.activeRowKey = activeCell ? activeCell.rowKey : undefined
       props.activeColumnId = activeCell ? activeCell.columnId : undefined
-      commitControlledState()
+      commitControlledState({
+        activeRowKey: props.activeRowKey,
+        activeColumnId: props.activeColumnId,
+      })
     })
   }
 
@@ -1867,8 +1894,9 @@ function setup(
         rowVirtualizerDirty = true
         activeCellDirty = true
         shouldRefreshRowsForRender = true
+        shouldRefreshRowLayoutForRender = true
         syncHostProps()
-        commitControlledState()
+        commitControlledState({ rows: nextRows })
       })
 
       updateRange(
@@ -1894,7 +1922,7 @@ function setup(
         if (sort !== undefined) rowVirtualizerDirty = true
         shouldRefreshColumnsForRender = true
         syncHostProps()
-        commitControlledState()
+        commitControlledState({ columns: nextColumns })
       })
 
       updateRange(
@@ -2308,8 +2336,10 @@ function setup(
         props.keyboardNavigation !== false ? '' : undefined
       }
       data-selection-mode={() => resolveSelectionMode(props.selectionMode)}
-      data-row-count={() => String(resolveRows(props).length)}
-      data-column-count={() => String(resolveColumns(props).length)}
+      data-row-count={() => String(resolveRows(props, fallbackRows).length)}
+      data-column-count={() =>
+        String(resolveColumns(props, fallbackColumns).length)
+      }
       data-total-size={() => String(virtualizer.getTotalSize())}
     >
       <div
@@ -2317,7 +2347,9 @@ function setup(
         data-slot="data-grid-viewport"
         role="grid"
         aria-label={() => props.ariaLabel}
-        aria-rowcount={() => String(resolveRows(props).length + 1)}
+        aria-rowcount={() =>
+          String(resolveRows(props, fallbackRows).length + 1)
+        }
         aria-colcount={() => String(visibleColumns.length)}
         aria-activedescendant={() => getActiveDescendantForRender()}
         aria-multiselectable={() =>
@@ -2354,6 +2386,7 @@ function setup(
           pendingRangeUpdate = undefined
           focusScheduler.cancel()
           headerFocusScheduler.cancel()
+          preserveScheduledHeaderFocusForDataRebuild = false
 
           if (viewport) {
             viewport.removeEventListener('scroll', scheduleUpdateRange)

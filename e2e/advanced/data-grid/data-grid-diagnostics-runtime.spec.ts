@@ -88,6 +88,34 @@ describe('zw-data-grid diagnostics', () => {
     expectCommitTimingOrder(commits[0])
   })
 
+  it('builds the initial model once when rows and columns are omitted', async () => {
+    defineDataGridElement()
+    const modelBuilds: Readonly<DataGridModelBuildTiming>[] = []
+    const grid = document.createElement('zw-data-grid') as HTMLElement & {
+      diagnostics: {
+        onModelBuild: (sample: Readonly<DataGridModelBuildTiming>) => void
+      }
+    }
+
+    grid.diagnostics = {
+      onModelBuild(sample) {
+        modelBuilds.push(sample)
+      },
+    }
+    document.body.append(grid)
+
+    await nextFrame()
+
+    expect(modelBuilds).toHaveLength(1)
+    expect(modelBuilds[0]).toMatchObject({
+      sequence: 1,
+      modelVersion: 0,
+      rowCount: 0,
+      columnCount: 0,
+      rowModelReused: true,
+    })
+  })
+
   it('does not read the diagnostics clock or observe render churn by default', async () => {
     const requestFrame = vi
       .spyOn(globalThis, 'requestAnimationFrame')
