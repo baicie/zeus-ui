@@ -6,7 +6,7 @@
 
 ## `@zeus-web/zeus-compat`
 
-状态：`0.1.0-beta.3`，MVP 阶段，不承诺向后兼容。
+状态：`0.1.0-beta.4`，MVP 阶段，不承诺向后兼容。
 
 Zeus 兼容基线：`0.1.1-beta.1`。该包只转发 Zeus 当前公共 API，不暴露 Zeus 内部实现。
 
@@ -57,7 +57,7 @@ function assertZeusCompatRequirements(): void
 
 ## 所有组件包共享契约
 
-状态：`0.1.0-beta.3`，MVP 阶段，不承诺向后兼容。
+状态：`0.1.0-beta.4`，MVP 阶段，不承诺向后兼容。
 
 本节适用于 `packages/primitives/*` 和 `packages/advanced/*` 的 25 个公开组件包。
 每个组件包都必须提供以下入口：
@@ -86,7 +86,7 @@ React 类型会产生重复属性，wrapper runtime 也会截获本应传给自�
 
 ## `@zeus-web/chat`
 
-状态：`0.1.0-beta.3`，MVP 阶段，不承诺向后兼容。
+状态：`0.1.0-beta.4`，MVP 阶段，不承诺向后兼容。
 
 入口：
 
@@ -244,7 +244,7 @@ function createChatThreadVirtualizer(
 
 ## `@zeus-web/agent-console`
 
-状态：`0.1.0-beta.3`，MVP 阶段，不承诺向后兼容。
+状态：`0.1.0-beta.4`，MVP 阶段，不承诺向后兼容。
 
 入口：
 
@@ -504,7 +504,7 @@ function createReplayAgentProvider(
 
 ## `@zeus-web/data-grid`
 
-状态：`0.1.0-beta.3`，MVP 阶段，不承诺向后兼容。
+状态：`0.1.0-beta.4`，MVP 阶段，不承诺向后兼容。
 
 入口：
 
