@@ -146,8 +146,9 @@ function getComponentContractRows(directory: string): string[] {
 function getRootEntryApi(
   directory: string,
   documentedInterfaces: string[],
+  entryFile = 'src/index.ts',
 ): RootEntryApi {
-  const entry = resolve(workspaceRoot, directory, 'src/index.ts')
+  const entry = resolve(workspaceRoot, directory, entryFile)
   const program = ts.createProgram([entry], {
     module: ts.ModuleKind.ESNext,
     moduleResolution: ts.ModuleResolutionKind.Bundler,
@@ -231,6 +232,32 @@ function getRootEntryApi(
 }
 
 describe('internal package API documentation contract', () => {
+  it('documents every @zeus-web/zeus-compat public export', () => {
+    const section = extractPackageSection('@zeus-web/zeus-compat')
+    const rootApi = getRootEntryApi('packages/zeus-compat', [])
+    const capabilitiesApi = getRootEntryApi(
+      'packages/zeus-compat',
+      [],
+      'src/capabilities.ts',
+    )
+    const normalizedSection = normalizeTypeScriptDeclaration(section)
+
+    expect(section).toContain('### 根入口 API')
+    expect(section).toContain('### `./capabilities` API')
+
+    for (const api of [rootApi, capabilitiesApi]) {
+      for (const exported of api.exportedNames) {
+        expect(section).toContain(`\`${exported}\``)
+      }
+    }
+
+    for (const signature of capabilitiesApi.functionSignatures) {
+      expect(normalizedSection).toContain(
+        normalizeTypeScriptDeclaration(signature),
+      )
+    }
+  })
+
   for (const documentedPackage of documentedPackages) {
     it(`documents the complete ${documentedPackage.packageName} component contract`, () => {
       const section = normalizeMarkdownTables(

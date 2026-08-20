@@ -5,6 +5,7 @@ import type {
   DataGridSelectionChangeDetail,
   DataGridSortChangeDetail,
 } from './data-grid-runtime-harness'
+import { batch } from '@zeus-js/zeus'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -114,8 +115,8 @@ describe('zw-data-grid runtime', () => {
     cleanupDataGridFixtures()
   })
 
-  it('builds the row model exactly once during first mount', async () => {
-    const rows = createWideRows(10)
+  it('builds 10k row wrappers exactly once during first mount', async () => {
+    const rows = createWideRows(10_000)
 
     await mountDataGrid({
       rows,
@@ -188,6 +189,49 @@ describe('zw-data-grid runtime', () => {
     expect(
       Array.from(grid.querySelectorAll('[data-slot="data-grid-row"]')).length,
     ).toBe(3)
+  })
+
+  it('treats rows and columns as replace-on-write shallow props', async () => {
+    const rows = [
+      { id: 'row-1', name: 'Initial' },
+      { id: 'row-2', name: 'Second' },
+    ]
+    const columns = [{ id: 'name', header: 'Name', field: 'name', width: 120 }]
+    const grid = await mountDataGrid({ rows, columns })
+
+    expect(grid.rows).toBe(rows)
+    expect(grid.columns).toBe(columns)
+    expect(grid.getRows()[0].data).toBe(rows[0])
+    expect(grid.getColumns()[0]).not.toBe(columns[0])
+
+    grid.rows![0].name = 'Nested mutation'
+    grid.columns![0].header = 'Nested header'
+    await nextFrame()
+
+    expect(getCell(grid, 'row-1', 'name').textContent).toBe('Initial')
+    expect(getHeaderCell(grid, 'name').textContent).toContain('Name')
+    expect(getHeaderCell(grid, 'name').textContent).not.toContain(
+      'Nested header',
+    )
+
+    const nextRows = [
+      { id: 'row-1', name: 'Replacement' },
+      { id: 'row-2', name: 'Second' },
+    ]
+    const nextColumns = [
+      { id: 'name', header: 'Replacement header', field: 'name', width: 140 },
+    ]
+    grid.rows = nextRows
+    grid.columns = nextColumns
+    await nextFrame()
+
+    expect(grid.rows).toBe(nextRows)
+    expect(grid.columns).toBe(nextColumns)
+    expect(grid.getRows()[0].data).toBe(nextRows[0])
+    expect(getCell(grid, 'row-1', 'name').textContent).toBe('Replacement')
+    expect(getHeaderCell(grid, 'name').textContent).toContain(
+      'Replacement header',
+    )
   })
 
   it('updates rows and columns when controlled references change with the same length', async () => {
@@ -278,6 +322,26 @@ describe('zw-data-grid runtime', () => {
       mode: 'multiple',
       keys: [],
     })
+  })
+
+  it('treats selectedKeys as a replace-on-write shallow prop', async () => {
+    const selectedKeys = ['u1']
+    const grid = await mountDataGrid({
+      selectedKeys,
+      selectionMode: 'multiple',
+    })
+
+    expect(grid.selectedKeys).toBe(selectedKeys)
+
+    grid.selectedKeys!.push('u2')
+    await nextFrame()
+
+    expect(grid.getSelection().keys).toEqual(['u1'])
+
+    grid.selectedKeys = [...grid.selectedKeys!]
+    await nextFrame()
+
+    expect(grid.getSelection().keys).toEqual(['u1', 'u2'])
   })
 
   it('emits selection-change and syncs selectedKeys when selection is changed by methods', async () => {
@@ -711,6 +775,48 @@ describe('zw-data-grid runtime', () => {
           expect(spacer.style.height).toBe('4000px')
         })
     })
+  })
+
+  it('updates the virtual spacer when setRows replaces the initial rows', async () => {
+    const grid = await mountDataGrid({
+      rows: createWideRows(2),
+      columns: createWideColumns(1),
+      virtual: true,
+      rowHeight: 40,
+    })
+    const spacer = grid.querySelector<HTMLElement>(
+      '[data-slot="data-grid-spacer"]',
+    )
+
+    if (!spacer) throw new Error('Data Grid spacer not found.')
+
+    expect(grid.getTotalSize()).toBe(80)
+    expect(spacer.style.height).toBe('80px')
+
+    grid.setRows(createWideRows(10))
+    await nextFrame()
+
+    expect(grid.getTotalSize()).toBe(400)
+    expect(spacer.style.height).toBe('400px')
+  })
+
+  it('preserves an outer-batched rows assignment when selection is committed', async () => {
+    const grid = await mountDataGrid({
+      rows: [{ id: 'initial-row', value: 'Initial' }],
+      columns: [{ id: 'value', field: 'value' }],
+      selectionMode: 'multiple',
+    })
+    const nextRows = [{ id: 'next-row', value: 'Next' }]
+
+    batch(() => {
+      grid.rows = nextRows
+      grid.setSelection(['next-row'])
+    })
+    await nextFrame()
+
+    expect.soft(grid.getRows().map(row => row.key)).toEqual(['next-row'])
+    expect.soft(grid.textContent).toContain('Next')
+    expect(grid.textContent).not.toContain('Initial')
   })
 
   it('updates the virtual spacer when row layout measurements change', () => {

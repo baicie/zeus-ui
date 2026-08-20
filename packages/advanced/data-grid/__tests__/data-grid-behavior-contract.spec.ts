@@ -19,8 +19,8 @@ describe('data-grid behavior contract', () => {
   it('does not use row or column length as the controlled update signal', () => {
     expect(source).not.toContain('rowsLength')
     expect(source).not.toContain('columnsLength')
-    expect(source).toContain('rows: resolveRows(props)')
-    expect(source).toContain('columns: resolveColumns(props)')
+    expect(source).toContain('rows: resolveRows(props, fallbackRows)')
+    expect(source).toContain('columns: resolveColumns(props, fallbackColumns)')
   })
 
   it('rebuilds columns and default widths when controlled columns change', () => {
@@ -35,7 +35,7 @@ describe('data-grid behavior contract', () => {
       'columnWidths = createDataGridColumnWidthState(baseColumns)',
     )
     expect(source).toContain('shouldRefreshColumnsForRender = true')
-    expect(source).toContain('columnRenderVersion.value += 1')
+    expect(source).toContain('setColumnRenderVersion(value => value + 1)')
   })
 
   it('tracks column overscan as a layout input', () => {
@@ -46,8 +46,8 @@ describe('data-grid behavior contract', () => {
 
   it('refreshes keyed rows when a controlled row keeps the same key', () => {
     expect(source).toContain('shouldRefreshRowsForRender = true')
-    expect(source).toContain('rowRenderVersion.value += 1')
-    expect(source).toContain('void rowRenderVersion.value')
+    expect(source).toContain('setRowRenderVersion(value => value + 1)')
+    expect(source).toContain('void rowRenderVersion()')
   })
 
   it('batches model-to-prop synchronization', () => {
@@ -79,7 +79,10 @@ describe('data-grid behavior contract', () => {
 
   it('commits internal mutations into controlled state controller', () => {
     expect(source).toContain('commitControlledState')
-    expect(source).toContain(
+    expect(source).toContain('controlledState.commit(nextSources)')
+    expect(source).toContain('commitControlledState({ rows: nextRows })')
+    expect(source).toContain('commitControlledState({ columns: nextColumns })')
+    expect(source).not.toContain(
       'controlledState.commit(readControlledStateSources())',
     )
   })

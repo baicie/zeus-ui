@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
+import { transformModule } from '@zeus-js/compiler'
 import { analyzeFile } from '@zeus-js/component-analyzer'
 import { describe, expect, it } from 'vitest'
 
@@ -65,6 +66,10 @@ describe('data-grid component protocol', () => {
         },
         activeColumnId: {
           type: 'string',
+        },
+        diagnostics: {
+          type: 'object',
+          attr: false,
         },
       },
       events: {
@@ -268,11 +273,22 @@ describe('data-grid component protocol', () => {
   })
 
   it('uses controlled state model instead of ad-hoc source tracking', () => {
+    const rebuildModelsSource = source.slice(
+      source.indexOf('const rebuildModels ='),
+      source.indexOf('const emitSnapshotIfChanged ='),
+    )
+    const controlledEffectSource = source.slice(
+      source.indexOf('createEffect(() =>'),
+      source.indexOf('const scrollToColumnIndex ='),
+    )
+
     expect(source).toContain('createDataGridControlledStateController')
     expect(source).toContain('createDataGridControlledSortState')
     expect(source).toContain('readControlledStateSources')
     expect(source).toContain('syncControlledSources')
     expect(source).toContain('commitControlledState')
+    expect(controlledEffectSource).toContain('syncControlledSources()')
+    expect(rebuildModelsSource).not.toContain('syncControlledSources()')
     expect(source).not.toContain('rowsLength: resolveRows(props).length')
     expect(source).not.toContain('columnsLength: resolveColumns(props).length')
   })
@@ -345,6 +361,29 @@ describe('data-grid component protocol', () => {
     expect(source).toContain('aria-multiselectable')
   })
 
+  it('compiles fixed header values without reactive effects', () => {
+    const result = transformModule({
+      source,
+      filename: 'packages/advanced/data-grid/src/components/data-grid.tsx',
+      target: 'dom',
+      runtimeModule: '@zeus-js/runtime-dom',
+      delegateEvents: true,
+      sourceMap: false,
+    })
+
+    expect(result.diagnostics).toEqual([])
+
+    const headerAriaBinding = result.code.match(
+      /\$zeusBindAttr\([^;]+, "aria-rowindex", [^;]+\);/,
+    )?.[0]
+
+    expect(headerAriaBinding).toContain(', true)')
+    expect(result.code).toContain('role=\\"columnheader\\" tabindex=\\"0\\"')
+    expect(result.code).not.toContain(
+      '$zeusBindAttr($zeusInlineElement0, "tabindex"',
+    )
+  })
+
   it('uses viewport measurement model and exposes refreshViewport', () => {
     expect(source).toContain('createDataGridViewportMeasureController')
     expect(source).toContain('shouldEmitDataGridViewportResize')
@@ -377,7 +416,10 @@ describe('data-grid component protocol', () => {
   })
 
   it('renders grid collections as nodes and binds native scroll directly', () => {
-    expect(source).toContain('each={getVisibleColumnsForRender()}')
+    expect(source).toContain('each={getHeaderColumnsForRender()}')
+    expect(source).toContain('each={getBodyColumnsForRender()}')
+    expect(source).toContain('by={getHeaderColumnReconciliationKey}')
+    expect(source).toContain('by={getBodyColumnReconciliationKey}')
     expect(source).toContain('each={getBodyRowsForRender()}')
     expect(source).toContain(
       "element.addEventListener('scroll', scheduleUpdateRange)",

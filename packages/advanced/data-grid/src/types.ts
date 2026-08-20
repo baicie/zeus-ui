@@ -46,7 +46,9 @@ export interface DataGridModelBuildTiming {
   endTime: number
   rowCount: number
   columnCount: number
-  sorted: boolean
+  visibleColumnCount: number
+  sortActive: boolean
+  rowModelReused: boolean
 }
 
 export interface DataGridCommitTiming {
@@ -59,10 +61,13 @@ export interface DataGridCommitTiming {
   commitStartTime: number
   commitEndTime: number
   handlerEndTime: number
+  layoutReadIntervals: ReadonlyArray<readonly [number, number]>
   firstRowIndex: number
   lastRowIndex: number
   firstColumnIndex: number
   lastColumnIndex: number
+  createdNodeCount: number
+  removedNodeCount: number
 }
 
 export interface DataGridDiagnostics {

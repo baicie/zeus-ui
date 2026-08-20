@@ -177,4 +177,33 @@ describe('controlled state model', () => {
 
     expect(controller.update(next).changed).toBe(false)
   })
+
+  it('commits only the supplied controlled fields', () => {
+    const controller = createDataGridControlledStateController(createSources())
+    const selectedKeys = ['next']
+    const nextRows = [{ id: 'next', name: 'Next' }]
+
+    controller.commit({ selectedKeys })
+
+    expect(controller.read()).toMatchObject({
+      rows,
+      columns,
+      selectedKeys,
+      rowHeight: 40,
+      virtual: true,
+    })
+    expect(controller.update(createSources({ selectedKeys })).changed).toBe(
+      false,
+    )
+
+    const changes = controller.update(
+      createSources({
+        rows: nextRows,
+        selectedKeys,
+      }),
+    )
+
+    expect(changes.rowsChanged).toBe(true)
+    expect(changes.reasons).toContain('rows')
+  })
 })

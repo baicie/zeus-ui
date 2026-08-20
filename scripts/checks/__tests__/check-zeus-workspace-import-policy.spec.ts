@@ -1,12 +1,33 @@
-import { describe, expect, it } from 'vitest'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+import { afterEach, describe, expect, it } from 'vitest'
 
 import {
   collectImportSpecifiers,
+  collectZeusImportViolations,
+  getExpectedZeusPeerRequirement,
   getZeusImportViolationMessage,
   isAllowedZeusImport,
+  ZEUS_IMPORT_CHECKED_ROOTS,
 } from '../check-zeus-workspace'
 
 describe('check-zeus-workspace import policy', () => {
+  const temporaryRoots: string[] = []
+
+  afterEach(() => {
+    for (const root of temporaryRoots.splice(0)) {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('pins prerelease Zeus peers to the exact baseline', () => {
+    expect(getExpectedZeusPeerRequirement('0.1.1-beta.1')).toBe('0.1.1-beta.1')
+    expect(getExpectedZeusPeerRequirement('0.1.1')).toBe('>=0.1.1 <0.2.0')
+    expect(getExpectedZeusPeerRequirement('workspace:*')).toBeUndefined()
+  })
+
   it('allows zeus-compat to import upstream Zeus runtime APIs', () => {
     expect(
       isAllowedZeusImport('packages/zeus-compat/src/index.ts', '@zeus-js/zeus'),
@@ -73,7 +94,7 @@ describe('check-zeus-workspace import policy', () => {
     ).toBe(false)
   })
 
-  it('allows component tests to import component analyzer', () => {
+  it('allows component tests to import build-time contract tools', () => {
     expect(
       isAllowedZeusImport(
         'packages/primitives/button/__tests__/button.spec.ts',
@@ -94,6 +115,29 @@ describe('check-zeus-workspace import policy', () => {
         '@zeus-js/component-analyzer',
       ),
     ).toBe(true)
+
+    expect(
+      isAllowedZeusImport(
+        'packages/advanced/data-grid/__tests__/data-grid.spec.ts',
+        '@zeus-js/compiler',
+      ),
+    ).toBe(true)
+  })
+
+  it('limits compiler imports to the Data Grid compiler contract', () => {
+    expect(
+      isAllowedZeusImport(
+        'packages/primitives/button/__tests__/button.spec.ts',
+        '@zeus-js/compiler',
+      ),
+    ).toBe(false)
+
+    expect(
+      isAllowedZeusImport(
+        'packages/advanced/chat/__tests__/chat-components.spec.ts',
+        '@zeus-js/compiler',
+      ),
+    ).toBe(false)
   })
 
   it('does not allow component tests to import arbitrary Zeus packages', () => {
@@ -151,5 +195,28 @@ const runtime = await import('@zeus-js/runtime-dom')
     ).toBe(
       'packages/utils/src/index.ts: do not import @zeus-js/zeus directly. Use @zeus-web/zeus-compat instead.',
     )
+  })
+
+  it('scans advanced packages with the shared import policy', () => {
+    const root = mkdtempSync(join(tmpdir(), 'zeus-import-policy-'))
+    temporaryRoots.push(root)
+
+    const dataGridTest = join(
+      root,
+      'packages/advanced/data-grid/__tests__/data-grid.spec.ts',
+    )
+    const chatTest = join(
+      root,
+      'packages/advanced/chat/__tests__/chat-components.spec.ts',
+    )
+    mkdirSync(join(dataGridTest, '..'), { recursive: true })
+    mkdirSync(join(chatTest, '..'), { recursive: true })
+    writeFileSync(dataGridTest, "import '@zeus-js/compiler'\n")
+    writeFileSync(chatTest, "import '@zeus-js/compiler'\n")
+
+    expect(ZEUS_IMPORT_CHECKED_ROOTS).toContain('packages/advanced')
+    expect(collectZeusImportViolations(root)).toEqual([
+      'packages/advanced/chat/__tests__/chat-components.spec.ts: do not import @zeus-js/compiler directly. Use @zeus-web/zeus-compat instead.',
+    ])
   })
 })

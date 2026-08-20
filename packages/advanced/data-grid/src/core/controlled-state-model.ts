@@ -56,7 +56,7 @@ export interface DataGridControlledStateController {
   update: (
     next: DataGridControlledStateSources,
   ) => DataGridControlledStateChanges
-  commit: (next: DataGridControlledStateSources) => void
+  commit: (next: Partial<DataGridControlledStateSources>) => void
 }
 
 function normalizeSources(
@@ -178,8 +178,8 @@ export function createDataGridControlledStateController(
       return changes
     },
 
-    commit(nextSources: DataGridControlledStateSources): void {
-      current = normalizeSources(nextSources)
+    commit(nextSources: Partial<DataGridControlledStateSources>): void {
+      current = normalizeSources({ ...current, ...nextSources })
     },
   }
 }

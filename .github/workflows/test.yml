@@ -39,6 +39,7 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @zeus-web/data-grid test:e2e
       - run: pnpm build:examples
       - run: pnpm test-unit:node
       - run: pnpm test-unit:jsdom
