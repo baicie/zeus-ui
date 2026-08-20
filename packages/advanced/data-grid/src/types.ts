@@ -49,12 +49,14 @@ export interface DataGridModelBuildTiming {
   visibleColumnCount: number
   sortActive: boolean
   rowModelReused: boolean
+  rowIndexEntryCount: number
+  eagerRowWrapperAllocationCount: number
 }
 
 export interface DataGridCommitTiming {
   transactionId: number
   source: DataGridCommitSource
-  inputTime: number
+  inputTime?: number
   handlerStartTime: number
   rangeStartTime: number
   rangeCalculatedTime: number
@@ -68,6 +70,7 @@ export interface DataGridCommitTiming {
   lastColumnIndex: number
   createdNodeCount: number
   removedNodeCount: number
+  rowWrapperAllocationCount: number
 }
 
 export interface DataGridDiagnostics {

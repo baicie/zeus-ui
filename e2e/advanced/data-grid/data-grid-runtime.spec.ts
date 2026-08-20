@@ -24,9 +24,11 @@ import {
 } from './data-grid-runtime-harness'
 
 const initialModelDiagnostics = vi.hoisted(() => ({
-  createRowsCallSizes: [] as number[],
-  modeledRows: [] as unknown[][],
-  rowVirtualizerRows: [] as unknown[][],
+  createRowModelCallSizes: [] as number[],
+  rowModels: [] as Array<{
+    readonly wrapperCount: number
+  }>,
+  rowVirtualizerRows: [] as unknown[],
   sortRowsHasActiveSort: [] as boolean[],
 }))
 
@@ -40,13 +42,15 @@ vi.mock(
 
     return {
       ...actual,
-      createDataGridRows(
-        ...args: Parameters<typeof actual.createDataGridRows>
-      ): ReturnType<typeof actual.createDataGridRows> {
-        initialModelDiagnostics.createRowsCallSizes.push(args[0]?.length ?? 0)
-        const rows = actual.createDataGridRows(...args)
-        initialModelDiagnostics.modeledRows.push(rows)
-        return rows
+      createDataGridRowModel(
+        ...args: Parameters<typeof actual.createDataGridRowModel>
+      ): ReturnType<typeof actual.createDataGridRowModel> {
+        initialModelDiagnostics.createRowModelCallSizes.push(
+          args[0]?.length ?? 0,
+        )
+        const model = actual.createDataGridRowModel(...args)
+        initialModelDiagnostics.rowModels.push(model)
+        return model
       },
       createDataGridRowVirtualizer(
         ...args: Parameters<typeof actual.createDataGridRowVirtualizer>
@@ -54,13 +58,13 @@ vi.mock(
         initialModelDiagnostics.rowVirtualizerRows.push(args[0].rows)
         return actual.createDataGridRowVirtualizer(...args)
       },
-      sortDataGridRows(
-        ...args: Parameters<typeof actual.sortDataGridRows>
-      ): ReturnType<typeof actual.sortDataGridRows> {
+      sortDataGridRowCollection(
+        ...args: Parameters<typeof actual.sortDataGridRowCollection>
+      ): ReturnType<typeof actual.sortDataGridRowCollection> {
         initialModelDiagnostics.sortRowsHasActiveSort.push(
           args[2] !== undefined,
         )
-        return actual.sortDataGridRows(...args)
+        return actual.sortDataGridRowCollection(...args)
       },
     }
   },
@@ -105,8 +109,8 @@ function pointer(
 
 describe('zw-data-grid runtime', () => {
   beforeEach(() => {
-    initialModelDiagnostics.createRowsCallSizes.length = 0
-    initialModelDiagnostics.modeledRows.length = 0
+    initialModelDiagnostics.createRowModelCallSizes.length = 0
+    initialModelDiagnostics.rowModels.length = 0
     initialModelDiagnostics.rowVirtualizerRows.length = 0
     initialModelDiagnostics.sortRowsHasActiveSort.length = 0
   })
@@ -115,7 +119,7 @@ describe('zw-data-grid runtime', () => {
     cleanupDataGridFixtures()
   })
 
-  it('builds 10k row wrappers exactly once during first mount', async () => {
+  it('indexes 10k rows once and only materializes viewport rows', async () => {
     const rows = createWideRows(10_000)
 
     await mountDataGrid({
@@ -124,7 +128,11 @@ describe('zw-data-grid runtime', () => {
       virtual: true,
     })
 
-    expect(initialModelDiagnostics.createRowsCallSizes).toEqual([rows.length])
+    expect(initialModelDiagnostics.createRowModelCallSizes).toEqual([
+      rows.length,
+    ])
+    expect(initialModelDiagnostics.rowModels[0].wrapperCount).toBeGreaterThan(0)
+    expect(initialModelDiagnostics.rowModels[0].wrapperCount).toBeLessThan(100)
   })
 
   it('reuses modeled rows when first mount has no active sort', async () => {
@@ -136,7 +144,7 @@ describe('zw-data-grid runtime', () => {
 
     expect(initialModelDiagnostics.sortRowsHasActiveSort).toEqual([])
     expect(initialModelDiagnostics.rowVirtualizerRows[0]).toBe(
-      initialModelDiagnostics.modeledRows[0],
+      initialModelDiagnostics.rowModels[0],
     )
   })
 
@@ -511,6 +519,58 @@ describe('zw-data-grid runtime', () => {
     expect(grid.getSort()).toEqual({
       columnId: 'age',
       direction: 'desc',
+    })
+  })
+
+  it('preserves active row identity and updates its visible index after sort', async () => {
+    const grid = await mountDataGrid({
+      activeRowKey: 'u3',
+      activeColumnId: 'age',
+      keyboardNavigation: true,
+    })
+
+    expect(grid.getActiveCell()).toMatchObject({
+      rowKey: 'u3',
+      rowIndex: 2,
+    })
+
+    grid.setSort('age', 'desc')
+    await nextFrame()
+
+    expect(grid.getActiveCell()).toMatchObject({
+      rowKey: 'u3',
+      rowIndex: 0,
+    })
+    expect(grid.getVisibleRows().map(row => row.index)).toEqual([2, 0, 1])
+
+    grid.moveActiveCell('ArrowDown')
+    await nextFrame()
+
+    expect(grid.getActiveCell()).toMatchObject({
+      rowKey: 'u1',
+      rowIndex: 1,
+    })
+  })
+
+  it('updates active indexes after row and column replacement', async () => {
+    const grid = await mountDataGrid({
+      activeRowKey: 'u2',
+      activeColumnId: 'role',
+    })
+
+    grid.setRows([
+      { id: 'u2', name: 'Grace', age: 37, role: 'Engineer' },
+      { id: 'u1', name: 'Ada', age: 36, role: 'Engineer' },
+      { id: 'u3', name: 'Linus', age: 55, role: 'Maintainer' },
+    ])
+    grid.setColumns([runtimeColumns[2], runtimeColumns[0], runtimeColumns[1]])
+    await nextFrame()
+
+    expect(grid.getActiveCell()).toMatchObject({
+      rowKey: 'u2',
+      rowIndex: 0,
+      columnId: 'role',
+      columnIndex: 0,
     })
   })
 

@@ -4,6 +4,10 @@ import {
   createDataGridControlledSortState,
   createDataGridControlledStateController,
 } from '../src/core'
+import {
+  createDataGridControlledStateTracker,
+  DataGridControlledStateChange,
+} from '../src/core/controlled-state-tracker'
 
 const rows = [{ id: 'a', name: 'Ada' }]
 const columns = [{ id: 'name' }]
@@ -205,5 +209,84 @@ describe('controlled state model', () => {
 
     expect(changes.rowsChanged).toBe(true)
     expect(changes.reasons).toContain('rows')
+  })
+})
+
+describe('controlled state tracker', () => {
+  it.each([
+    [
+      'rows',
+      DataGridControlledStateChange.Rows,
+      { rows: [{ id: 'b', name: 'Grace' }] },
+    ],
+    [
+      'columns',
+      DataGridControlledStateChange.Columns,
+      { columns: [{ id: 'role' }] },
+    ],
+    [
+      'selectedKeys',
+      DataGridControlledStateChange.SelectedKeys,
+      { selectedKeys: ['a'] },
+    ],
+    [
+      'sort',
+      DataGridControlledStateChange.Sort,
+      { sortDirection: 'desc' as const },
+    ],
+    [
+      'activeCell',
+      DataGridControlledStateChange.ActiveCell,
+      { activeColumnId: 'role' },
+    ],
+    ['rowHeight', DataGridControlledStateChange.RowHeight, { rowHeight: 48 }],
+    ['overscan', DataGridControlledStateChange.Overscan, { overscan: 8 }],
+    [
+      'overscanColumns',
+      DataGridControlledStateChange.OverscanColumns,
+      { overscanColumns: 6 },
+    ],
+    ['virtual', DataGridControlledStateChange.Virtual, { virtual: false }],
+    [
+      'selectionMode',
+      DataGridControlledStateChange.SelectionMode,
+      { selectionMode: 'single' as const },
+    ],
+    [
+      'resizable',
+      DataGridControlledStateChange.Resizable,
+      { resizable: false },
+    ],
+    [
+      'keyboardNavigation',
+      DataGridControlledStateChange.KeyboardNavigation,
+      { keyboardNavigation: false },
+    ],
+  ])(
+    'matches the public controller for %s changes',
+    (reason, flag, overrides) => {
+      const initial = createSources()
+      const controller = createDataGridControlledStateController(initial)
+      const tracker = createDataGridControlledStateTracker(initial)
+      const next = createSources(overrides)
+
+      expect(controller.update(next).reasons).toEqual([reason])
+      expect(tracker.update(next)).toBe(flag)
+    },
+  )
+
+  it('commits partial state with the same semantics as the public controller', () => {
+    const initial = createSources()
+    const controller = createDataGridControlledStateController(initial)
+    const tracker = createDataGridControlledStateTracker(initial)
+    const selectedKeys = ['next']
+
+    controller.commit({ selectedKeys })
+    tracker.commit({ selectedKeys })
+
+    const next = createSources({ selectedKeys })
+
+    expect(controller.update(next).changed).toBe(false)
+    expect(tracker.update(next)).toBe(0)
   })
 })

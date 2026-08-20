@@ -9,6 +9,7 @@ import type {
 
 import {
   areVirtualRangesEqual,
+  clamp,
   createEmptyVirtualRange,
 } from '@zeus-web/virtual'
 
@@ -33,10 +34,6 @@ export interface DataGridColumnVirtualizer {
     align?: VirtualScrollAlign,
     viewportSize?: number,
   ) => number
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max)
 }
 
 function normalizeOverscan(value: number | undefined): number {

@@ -158,7 +158,7 @@ describe('data-grid benchmark contract', () => {
       "return import('../../../../e2e/advanced/data-grid/data-grid-runtime-harness')",
     )
     const mountIndex = metrics.indexOf(
-      'return mountBenchmarkGrid(input, harness)',
+      'return mountBenchmarkGrid(input, harness, diagnostics)',
     )
     const frameDurationIndex = metrics.indexOf(
       'frameDurationMs += performance.now() - frameStart',
@@ -171,11 +171,18 @@ describe('data-grid benchmark contract', () => {
     expect(dynamicImportIndex).toBeGreaterThan(-1)
     expect(createRunIndex).toBeGreaterThan(dynamicImportIndex)
     expect(mountIndex).toBeGreaterThan(createRunIndex)
+    expect(metrics).toContain('observeAllocations = false')
+    expect(metrics).toMatch(
+      /const diagnostics = observeAllocations\s+\? createBenchmarkDiagnostics\(\)\s+: undefined/,
+    )
+    expect(metrics).toMatch(
+      /measureDataGridUpdates[\s\S]*?runMountedBenchmark\([\s\S]*?true,?\s*\)/,
+    )
     expect(metrics).toMatch(
       /measureDataGridFirstRender[\s\S]*?runMountedBenchmark\(input, \(\) => \{[\s\S]*?sampleDataGridMemory\(\)[\s\S]*?performance\.now\(\)/,
     )
     expect(metrics).toMatch(
-      /measureDataGridUpdates[\s\S]*?runMountedBenchmark\(input, \(\) => \{[\s\S]*?sampleDataGridMemory\(\)[\s\S]*?performance\.now\(\)/,
+      /measureDataGridUpdates[\s\S]*?runMountedBenchmark\(\s*input,\s*\(\) => \{[\s\S]*?sampleDataGridMemory\(\)[\s\S]*?performance\.now\(\)/,
     )
     expect(frameDurationIndex).toBeGreaterThan(-1)
     expect(frameSnapshotIndex).toBeGreaterThan(frameDurationIndex)

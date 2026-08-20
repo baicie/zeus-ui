@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   areDataGridVirtualItemsEqual,
-  createDataGridRows,
+  createDataGridRowModel,
   createDataGridRowVirtualizer,
   shouldUpdateDataGridVirtualSnapshot,
 } from '../src/core'
@@ -10,7 +10,7 @@ import {
 describe('data grid row virtualizer', () => {
   it('returns empty snapshot for empty rows', () => {
     const virtualizer = createDataGridRowVirtualizer({
-      rows: [],
+      rows: createDataGridRowModel([]),
       rowHeight: 40,
       overscan: 2,
     })
@@ -28,7 +28,7 @@ describe('data grid row virtualizer', () => {
   })
 
   it('calculates row range and includes row data', () => {
-    const rows = createDataGridRows([
+    const rows = createDataGridRowModel([
       {
         id: 'a',
       },
@@ -68,8 +68,28 @@ describe('data grid row virtualizer', () => {
     expect(snapshot.totalSize).toBe(160)
   })
 
+  it('reuses wrappers for rows shared by adjacent virtual ranges', () => {
+    const rows = createDataGridRowModel([
+      { id: 'a' },
+      { id: 'b' },
+      { id: 'c' },
+      { id: 'd' },
+    ])
+    const virtualizer = createDataGridRowVirtualizer({
+      rows,
+      rowHeight: 40,
+      overscan: 0,
+    })
+
+    const first = virtualizer.getSnapshot(0, 80)
+    const second = virtualizer.getSnapshot(40, 80)
+
+    expect(second.items[0].data).toBe(first.items[1].data)
+    expect(rows.wrapperCount).toBe(3)
+  })
+
   it('calculates offset for row index', () => {
-    const rows = createDataGridRows(
+    const rows = createDataGridRowModel(
       Array.from({ length: 10 }, (_, index) => ({ id: String(index) })),
     )
     const virtualizer = createDataGridRowVirtualizer({
@@ -82,7 +102,7 @@ describe('data grid row virtualizer', () => {
   })
 
   it('updates item shape after measurement', () => {
-    const rows = createDataGridRows([
+    const rows = createDataGridRowModel([
       { id: 'a' },
       { id: 'b' },
       { id: 'c' },

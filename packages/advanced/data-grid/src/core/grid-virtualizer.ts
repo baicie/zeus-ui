@@ -1,10 +1,10 @@
 import type {
-  DataGridRow,
   DataGridVirtualItem,
   DataGridVirtualRange,
   DataGridVirtualSnapshot,
   VirtualScrollAlign,
 } from '../types'
+import type { DataGridRowCollection } from './row-model'
 
 import {
   areVirtualRangesEqual,
@@ -13,7 +13,7 @@ import {
 } from '@zeus-web/virtual'
 
 export interface DataGridRowVirtualizerOptions {
-  rows: DataGridRow[]
+  rows: DataGridRowCollection
   rowHeight: number
   overscan?: number
 }
@@ -43,16 +43,6 @@ function normalizeRowHeight(value: number): number {
 function normalizeOverscan(value: number | undefined): number {
   if (value === undefined || !Number.isFinite(value) || value < 0) return 4
   return Math.floor(value)
-}
-
-function toVirtualItems(
-  rows: DataGridRow[],
-  items: Array<Omit<DataGridVirtualItem, 'data'>>,
-): DataGridVirtualItem[] {
-  return items.map(item => ({
-    ...item,
-    data: rows[item.index],
-  }))
 }
 
 export function areDataGridVirtualItemsEqual(
@@ -95,11 +85,12 @@ export function createDataGridRowVirtualizer(
   options: DataGridRowVirtualizerOptions,
 ): DataGridRowVirtualizer {
   const rows = options.rows
+  let materializedItems: DataGridVirtualItem[] = []
   const virtualizer = createVirtualizer({
     count: rows.length,
     estimateSize: normalizeRowHeight(options.rowHeight),
     overscan: normalizeOverscan(options.overscan),
-    getItemKey: index => rows[index]?.key ?? String(index),
+    getItemKey: index => rows.getKey(index)!,
   })
 
   function getRange(
@@ -110,7 +101,18 @@ export function createDataGridRowVirtualizer(
   }
 
   function getItems(range: DataGridVirtualRange): DataGridVirtualItem[] {
-    return toVirtualItems(rows, virtualizer.getItems(range))
+    const previousStart = materializedItems.length
+      ? materializedItems[0].index
+      : -1
+    const items = virtualizer.getItems(range) as DataGridVirtualItem[]
+
+    for (const item of items) {
+      const previous = materializedItems[item.index - previousStart]
+      item.data = previous ? previous.data : rows.getRow(item.index)
+    }
+
+    materializedItems = items
+    return items
   }
 
   function getTotalSize(): number {
