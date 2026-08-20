@@ -513,6 +513,107 @@ describe('zw-data-grid fixed-row DOM pooling', () => {
     )
   })
 
+  it('preserves focused cells during horizontal scroll after row measurement', async () => {
+    const wideColumns = createColumns(30)
+    const grid = await mountDataGrid({
+      rows: [createWideRow(wideColumns.length)],
+      columns: wideColumns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 0,
+      overscanColumns: 1,
+    })
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 40)
+    setElementClientWidth(viewport, 200)
+    grid.refreshViewport()
+    grid.measure(0, 80)
+    await nextFrame()
+    grid.scrollToColumn(5)
+
+    getCell(grid, 'row-0', 'column-5').focus()
+    expect(document.activeElement).toBe(getCell(grid, 'row-0', 'column-5'))
+    await nextFrame()
+
+    grid.scrollToColumn(6)
+    await nextFrame()
+
+    expect(document.activeElement).toBe(getCell(grid, 'row-0', 'column-5'))
+  })
+
+  it('keeps the focused row identity synchronously when controlled rows change', async () => {
+    const grid = await mountDataGrid({
+      rows: createRows(100),
+      columns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 1,
+      overscanColumns: 0,
+    })
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 120)
+    setElementClientWidth(viewport, 220)
+    grid.refreshViewport()
+    grid.scrollToOffset(200)
+
+    getCell(grid, 'row-5', 'name').focus()
+    await nextFrame()
+
+    grid.rows = [
+      { id: 'prepended-row', name: 'Prepended', value: -1 },
+      ...createRows(100),
+    ]
+
+    expect(
+      (document.activeElement as HTMLElement).getAttribute('data-row-key'),
+    ).toBe('row-5')
+
+    await nextFrame()
+
+    expect(document.activeElement).toBe(getCell(grid, 'row-5', 'name'))
+  })
+
+  it('keeps the focused header identity synchronously when controlled columns change', async () => {
+    const wideColumns = createColumns(30)
+    const grid = await mountDataGrid({
+      rows: [createWideRow(wideColumns.length)],
+      columns: wideColumns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 0,
+      overscanColumns: 1,
+    })
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 40)
+    setElementClientWidth(viewport, 200)
+    grid.refreshViewport()
+    grid.scrollToColumn(5)
+
+    getHeaderCell(grid, 'column-5').focus()
+    await nextFrame()
+
+    grid.columns = [
+      {
+        id: 'prepended-column',
+        header: 'Prepended',
+        field: 'prepended',
+        width: 100,
+      },
+      ...wideColumns,
+    ]
+
+    expect(
+      (document.activeElement as HTMLElement).getAttribute('data-column-id'),
+    ).toBe('column-5')
+
+    await nextFrame()
+
+    expect(document.activeElement).toBe(getHeaderCell(grid, 'column-5'))
+  })
+
   it('does not recycle a focused cell and preserves focus while it stays rendered', async () => {
     const grid = await mountDataGrid({
       rows: createRows(100),

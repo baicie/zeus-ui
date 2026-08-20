@@ -188,7 +188,7 @@ interface RenderedDataGridVirtualItem extends DataGridVirtualItem {
 
 interface DataGridSnapshotCache<T> {
   snapshot: T
-  modelVersion: number
+  revision: number
   scrollOffset: number
   viewportSize: number
 }
@@ -377,8 +377,6 @@ function setup(
   let modelBuildSequence = 0
   let commitTransactionId = 0
   let controlledPropsReady = false
-  let observedRowsProp: DataGridRowData[] | undefined
-  let observedColumnsProp: DataGridColumn[] | undefined
   let pendingRangeUpdate: PendingDataGridRangeUpdate | undefined
   let hasRowMeasurementOverrides = false
   let poolRowsForCurrentReconciliation = false
@@ -447,6 +445,7 @@ function setup(
   let viewportClientHeight = 0
   let viewportClientWidth = 0
   const [renderVersion, setRenderVersion] = createSignal(0)
+  const [selectionRenderVersion, setSelectionRenderVersion] = createSignal(0)
   let activeCell = createInitialDataGridActiveCell({
     rows: visibleRows,
     columns: visibleColumns,
@@ -456,6 +455,13 @@ function setup(
   const [activeCellRenderVersion, setActiveCellRenderVersion] = createSignal(0)
   let shouldSyncActiveCellFromProps = false
   let modelVersion = 0
+  let rowSnapshotRevision = 0
+  let columnSnapshotRevision = 0
+  let rowsSourceDirty = false
+  let columnsSourceDirty = false
+  let rowVirtualizerDirty = false
+  let columnVirtualizerDirty = false
+  let activeCellDirty = false
   const [rowRenderVersion, setRowRenderVersion] = createSignal(0)
   const [rowLayoutRenderVersion, setRowLayoutRenderVersion] = createSignal(0)
   const [columnRenderVersion, setColumnRenderVersion] = createSignal(0)
@@ -508,16 +514,38 @@ function setup(
   })
 
   const invalidateRowSnapshotCache = (): void => {
+    rowSnapshotRevision += 1
     rowSnapshotCache = undefined
   }
 
   const invalidateColumnSnapshotCache = (): void => {
+    columnSnapshotRevision += 1
     columnSnapshotCache = undefined
   }
 
   const invalidateSnapshotCaches = (): void => {
     invalidateRowSnapshotCache()
     invalidateColumnSnapshotCache()
+  }
+
+  const rebuildColumnVirtualizer = (): void => {
+    columnVirtualizer = createDataGridColumnVirtualizer({
+      columns: visibleColumns,
+      overscan: resolveColumnOverscan(props),
+    })
+    currentColumnSnapshot = cloneEmptyColumnSnapshot()
+    invalidateColumnSnapshotCache()
+  }
+
+  const rebuildRowVirtualizer = (): void => {
+    virtualizer = createDataGridRowVirtualizer({
+      rows: visibleRows,
+      rowHeight: resolveRowHeight(props),
+      overscan: resolveOverscan(props),
+    })
+    hasRowMeasurementOverrides = false
+    currentSnapshot = cloneEmptySnapshot()
+    invalidateRowSnapshotCache()
   }
 
   const measureViewport = (
@@ -555,11 +583,11 @@ function setup(
       previousClientHeight !== clientHeight ||
       previousViewportSize !== nextMeasurement.size
     ) {
-      rowSnapshotCache = undefined
+      invalidateRowSnapshotCache()
     }
 
     if (previousClientWidth !== clientWidth) {
-      columnSnapshotCache = undefined
+      invalidateColumnSnapshotCache()
     }
 
     return viewportMeasurement
@@ -684,15 +712,16 @@ function setup(
     })
   }
 
-  const syncControlledSources = (): void => {
+  const syncControlledSources = (): boolean => {
     const changes = controlledState.update(readControlledStateSources())
 
-    if (!changes.changed) return
-
-    rowsSource = resolveRows(props)
-    columnsSource = resolveColumns(props)
+    if (!changes.changed) return false
 
     if (changes.rowsChanged) {
+      rowsSource = resolveRows(props)
+      rowsSourceDirty = true
+      rowVirtualizerDirty = true
+      activeCellDirty = true
       shouldRefreshRowsForRender = true
     }
 
@@ -705,18 +734,21 @@ function setup(
     }
 
     if (changes.columnsChanged) {
+      columnsSource = resolveColumns(props)
+      columnsSourceDirty = true
+      columnVirtualizerDirty = true
+      activeCellDirty = true
       shouldRefreshColumnsForRender = true
-      baseColumns = normalizeDataGridColumns(columnsSource)
-      defaultColumnWidths = createDataGridColumnWidthState(baseColumns)
-      columnWidths = createDataGridColumnWidthState(baseColumns)
     }
 
     if (changes.selectedKeysChanged) {
       selection.setKeys(props.selectedKeys ?? [])
+      setSelectionRenderVersion(value => value + 1)
     }
 
     if (changes.selectionModeChanged) {
       selection.setMode(resolveSelectionMode(props.selectionMode))
+      setSelectionRenderVersion(value => value + 1)
     }
 
     if (changes.sortChanged) {
@@ -724,19 +756,57 @@ function setup(
         props.sortColumn,
         props.sortDirection,
       )
+      rowVirtualizerDirty = true
+      activeCellDirty = true
+    }
+
+    if (changes.columnsChanged && sort !== undefined) {
+      rowVirtualizerDirty = true
     }
 
     if (changes.activeCellChanged) {
       shouldSyncActiveCellFromProps = true
+      activeCellDirty = true
     }
 
-    modelVersion += 1
+    if (
+      changes.reasons.includes('rowHeight') ||
+      changes.reasons.includes('overscan')
+    ) {
+      rowVirtualizerDirty = true
+    }
+
+    if (changes.reasons.includes('overscanColumns')) {
+      columnVirtualizerDirty = true
+    }
+
+    if (changes.reasons.includes('virtual')) {
+      rowVirtualizerDirty = true
+      columnVirtualizerDirty = true
+    }
+
+    if (
+      changes.rowsChanged ||
+      changes.columnsChanged ||
+      changes.sortChanged ||
+      changes.activeCellChanged ||
+      changes.layoutChanged
+    ) {
+      modelVersion += 1
+    }
+
+    return true
   }
 
   const rebuildModels = (): void => {
-    syncControlledSources()
+    const hasModelWork =
+      rowsSourceDirty ||
+      columnsSourceDirty ||
+      rowVirtualizerDirty ||
+      columnVirtualizerDirty ||
+      activeCellDirty
 
-    if (builtModelVersion === modelVersion) return
+    if (!hasModelWork) return
 
     const diagnostics = props.diagnostics
     const modelBuildObserver = diagnostics && diagnostics.onModelBuild
@@ -746,48 +816,54 @@ function setup(
       (shouldRefreshRowsForRender || shouldRefreshColumnsForRender) &&
       isActiveCellElementFocused()
 
-    baseColumns = normalizeDataGridColumns(columnsSource)
-    columns = applyDataGridColumnWidths(baseColumns, columnWidths)
-    visibleColumns = getVisibleDataGridColumns(columns)
-    rows = createDataGridRows(rowsSource)
-    selection.setMode(resolveSelectionMode(props.selectionMode))
-
-    selection.setKeys(props.selectedKeys ?? [])
-
-    visibleRows = sort ? sortDataGridRows(rows, columns, sort) : rows
-    virtualizer = createDataGridRowVirtualizer({
-      rows: visibleRows,
-      rowHeight: resolveRowHeight(props),
-      overscan: resolveOverscan(props),
-    })
-    hasRowMeasurementOverrides = false
-    columnVirtualizer = createDataGridColumnVirtualizer({
-      columns: visibleColumns,
-      overscan: resolveColumnOverscan(props),
-    })
-
-    const nextActiveCell = createInitialDataGridActiveCell({
-      rows: visibleRows,
-      columns: visibleColumns,
-      rowKey: shouldSyncActiveCellFromProps
-        ? props.activeRowKey
-        : (activeCell?.rowKey ?? props.activeRowKey),
-      columnId: shouldSyncActiveCellFromProps
-        ? props.activeColumnId
-        : (activeCell?.columnId ?? props.activeColumnId),
-    })
-
-    if (!areDataGridActiveCellsEqual(activeCell, nextActiveCell)) {
-      activeCell = nextActiveCell
-      setActiveCellRenderVersion(value => value + 1)
-    } else {
-      activeCell = nextActiveCell
+    if (columnsSourceDirty) {
+      baseColumns = normalizeDataGridColumns(columnsSource)
+      defaultColumnWidths = createDataGridColumnWidthState(baseColumns)
+      columnWidths = createDataGridColumnWidthState(baseColumns)
+      columns = applyDataGridColumnWidths(baseColumns, columnWidths)
+      visibleColumns = getVisibleDataGridColumns(columns)
+      columnsSourceDirty = false
     }
 
-    shouldSyncActiveCellFromProps = false
-    currentSnapshot = cloneEmptySnapshot()
-    currentColumnSnapshot = cloneEmptyColumnSnapshot()
-    invalidateSnapshotCaches()
+    if (rowsSourceDirty) {
+      rows = createDataGridRows(rowsSource)
+      rowsSourceDirty = false
+    }
+
+    if (rowVirtualizerDirty) {
+      visibleRows = sort ? sortDataGridRows(rows, columns, sort) : rows
+      rebuildRowVirtualizer()
+      rowVirtualizerDirty = false
+    }
+
+    if (columnVirtualizerDirty) {
+      rebuildColumnVirtualizer()
+      columnVirtualizerDirty = false
+    }
+
+    if (activeCellDirty) {
+      const nextActiveCell = createInitialDataGridActiveCell({
+        rows: visibleRows,
+        columns: visibleColumns,
+        rowKey: shouldSyncActiveCellFromProps
+          ? props.activeRowKey
+          : (activeCell?.rowKey ?? props.activeRowKey),
+        columnId: shouldSyncActiveCellFromProps
+          ? props.activeColumnId
+          : (activeCell?.columnId ?? props.activeColumnId),
+      })
+
+      if (!areDataGridActiveCellsEqual(activeCell, nextActiveCell)) {
+        activeCell = nextActiveCell
+        setActiveCellRenderVersion(value => value + 1)
+      } else {
+        activeCell = nextActiveCell
+      }
+
+      shouldSyncActiveCellFromProps = false
+      activeCellDirty = false
+    }
+
     builtModelVersion = modelVersion
 
     if (viewportClientHeight <= 0) {
@@ -836,7 +912,7 @@ function setup(
   ): void => {
     rowSnapshotCache = {
       snapshot: nextSnapshot,
-      modelVersion,
+      revision: rowSnapshotRevision,
       scrollOffset,
       viewportSize,
     }
@@ -864,7 +940,7 @@ function setup(
   ): void => {
     columnSnapshotCache = {
       snapshot: nextSnapshot,
-      modelVersion,
+      revision: columnSnapshotRevision,
       scrollOffset,
       viewportSize,
     }
@@ -919,7 +995,7 @@ function setup(
     const viewportSize = getResolvedViewportSize()
 
     if (
-      rowSnapshotCache?.modelVersion === modelVersion &&
+      rowSnapshotCache?.revision === rowSnapshotRevision &&
       rowSnapshotCache.scrollOffset === scrollOffset &&
       rowSnapshotCache.viewportSize === viewportSize
     ) {
@@ -930,7 +1006,7 @@ function setup(
 
     rowSnapshotCache = {
       snapshot,
-      modelVersion,
+      revision: rowSnapshotRevision,
       scrollOffset,
       viewportSize,
     }
@@ -989,7 +1065,7 @@ function setup(
     const viewportSize = getResolvedColumnViewportSize()
 
     if (
-      columnSnapshotCache?.modelVersion === modelVersion &&
+      columnSnapshotCache?.revision === columnSnapshotRevision &&
       columnSnapshotCache.scrollOffset === scrollOffset &&
       columnSnapshotCache.viewportSize === viewportSize
     ) {
@@ -1000,7 +1076,7 @@ function setup(
 
     columnSnapshotCache = {
       snapshot,
-      modelVersion,
+      revision: columnSnapshotRevision,
       scrollOffset,
       viewportSize,
     }
@@ -1335,6 +1411,20 @@ function setup(
         columnViewportSize,
       )
     })
+    if (
+      source === 'data' &&
+      hasFocusedBodyForCurrentRange &&
+      focusScheduler.isScheduled()
+    ) {
+      focusScheduler.flush()
+    }
+    if (
+      source === 'data' &&
+      focusedHeaderTarget &&
+      headerFocusScheduler.isScheduled()
+    ) {
+      headerFocusScheduler.flush()
+    }
     if (nativeEvent) {
       ctx.emit.scrollOffsetChange({
         offset: scrollOffset,
@@ -1444,23 +1534,14 @@ function setup(
   }
 
   createEffect(() => {
-    const nextRowsProp = props.rows
-    const nextColumnsProp = props.columns
+    const controlledSourcesChanged = syncControlledSources()
 
     if (!controlledPropsReady) {
-      observedRowsProp = nextRowsProp
-      observedColumnsProp = nextColumnsProp
       controlledPropsReady = true
       return
     }
 
-    const rowsChanged = nextRowsProp !== observedRowsProp
-    const columnsChanged = nextColumnsProp !== observedColumnsProp
-
-    observedRowsProp = nextRowsProp
-    observedColumnsProp = nextColumnsProp
-
-    if (!rowsChanged && !columnsChanged) return
+    if (!controlledSourcesChanged) return
 
     scheduleUpdateRange(undefined, 'data', undefined, true)
   })
@@ -1523,7 +1604,7 @@ function setup(
     batch(() => {
       props.selectedKeys = selection.getState().keys
       commitControlledState()
-      modelVersion += 1
+      setSelectionRenderVersion(value => value + 1)
     })
   }
 
@@ -1532,7 +1613,6 @@ function setup(
       props.sortColumn = sort ? sort.columnId : undefined
       props.sortDirection = sort ? sort.direction : undefined
       commitControlledState()
-      modelVersion += 1
     })
   }
 
@@ -1675,6 +1755,7 @@ function setup(
     columns = result.columns
     visibleColumns = getVisibleDataGridColumns(columns)
     modelVersion += 1
+    columnVirtualizerDirty = true
     updateRange()
 
     ctx.emit.columnResize({
@@ -1724,6 +1805,7 @@ function setup(
     columns = result.columns
     visibleColumns = getVisibleDataGridColumns(columns)
     modelVersion += 1
+    columnVirtualizerDirty = true
     scheduleUpdateRange()
 
     ctx.emit.columnResize({
@@ -1761,15 +1843,9 @@ function setup(
 
     sort = createNextDataGridSortState(sort, columnId, direction)
     syncSortPropsFromModel()
-    visibleRows = sort ? sortDataGridRows(rows, columns, sort) : rows
-    virtualizer = createDataGridRowVirtualizer({
-      rows: visibleRows,
-      rowHeight: resolveRowHeight(props),
-      overscan: resolveOverscan(props),
-    })
-    hasRowMeasurementOverrides = false
-    invalidateSnapshotCaches()
-    currentSnapshot = cloneEmptySnapshot()
+    modelVersion += 1
+    rowVirtualizerDirty = true
+    activeCellDirty = true
 
     ctx.emit.sortChange({
       sort,
@@ -1782,12 +1858,14 @@ function setup(
 
   ctx.expose({
     setRows(nextRows: DataGridRowData[]): void {
-      observedRowsProp = nextRows
       const preservePendingNodeChurn = beginDiagnosticsNodeChurn()
       batch(() => {
         props.rows = nextRows
         rowsSource = nextRows
         modelVersion += 1
+        rowsSourceDirty = true
+        rowVirtualizerDirty = true
+        activeCellDirty = true
         shouldRefreshRowsForRender = true
         syncHostProps()
         commitControlledState()
@@ -1805,15 +1883,15 @@ function setup(
     },
 
     setColumns(nextColumns: DataGridColumn[]): void {
-      observedColumnsProp = nextColumns
       const preservePendingNodeChurn = beginDiagnosticsNodeChurn()
       batch(() => {
         props.columns = nextColumns
         columnsSource = nextColumns
-        baseColumns = normalizeDataGridColumns(nextColumns)
-        defaultColumnWidths = createDataGridColumnWidthState(baseColumns)
-        columnWidths = createDataGridColumnWidthState(baseColumns)
         modelVersion += 1
+        columnsSourceDirty = true
+        columnVirtualizerDirty = true
+        activeCellDirty = true
+        if (sort !== undefined) rowVirtualizerDirty = true
         shouldRefreshColumnsForRender = true
         syncHostProps()
         commitControlledState()
@@ -1879,9 +1957,9 @@ function setup(
     clearSort(): void {
       sort = undefined
       syncSortPropsFromModel()
-      visibleRows = sort ? sortDataGridRows(rows, columns, sort) : rows
-      invalidateSnapshotCaches()
-      currentSnapshot = cloneEmptySnapshot()
+      modelVersion += 1
+      rowVirtualizerDirty = true
+      activeCellDirty = true
 
       ctx.emit.sortChange({
         sort,
@@ -1992,6 +2070,7 @@ function setup(
       columns = result.columns
       visibleColumns = getVisibleDataGridColumns(columns)
       modelVersion += 1
+      columnVirtualizerDirty = true
       updateRange()
     },
 
@@ -2054,6 +2133,11 @@ function setup(
 
   const getBodyRows = (): DataGridVirtualItem[] => {
     return getSnapshot().items
+  }
+
+  const isRowSelectedForRender = (rowKey: DataGridRowKey): boolean => {
+    void selectionRenderVersion()
+    return selection.isSelected(rowKey)
   }
 
   const shouldPoolRowsForCurrentViewport = (): boolean => {
@@ -2316,6 +2400,7 @@ function setup(
                   String(getDataGridColumnAriaIndex(item.index))
                 }
                 aria-sort={() => getDataGridAriaSort(item.data, sort)}
+                // @ts-expect-error Static HTML tabindex values serialize as strings.
                 tabindex="0"
                 style={() => ({
                   gridColumnStart: getGridColumnStart(item),
@@ -2452,7 +2537,7 @@ function setup(
                 data-row-key={rowItem.data.key}
                 data-row-index={() => String(rowItem.data.index)}
                 data-selected={() =>
-                  selection.isSelected(rowItem.data.key) ? '' : undefined
+                  isRowSelectedForRender(rowItem.data.key) ? '' : undefined
                 }
                 role="row"
                 aria-rowindex={() =>
@@ -2461,7 +2546,7 @@ function setup(
                 aria-selected={() =>
                   getDataGridAriaSelected(
                     resolveSelectionMode(props.selectionMode),
-                    selection.isSelected(rowItem.data.key),
+                    isRowSelectedForRender(rowItem.data.key),
                   )
                 }
                 style={() => ({
@@ -2526,7 +2611,7 @@ function setup(
                       aria-selected={() =>
                         getDataGridAriaSelected(
                           resolveSelectionMode(props.selectionMode),
-                          selection.isSelected(rowItem.data.key),
+                          isRowSelectedForRender(rowItem.data.key),
                         )
                       }
                       tabindex={() =>
@@ -2540,7 +2625,7 @@ function setup(
                       }
                       onFocus={(nativeEvent: FocusEvent) => {
                         preserveFocusedBodyDomPoolForCurrentRange =
-                          poolRowsForCurrentReconciliation &&
+                          poolRowsForCurrentReconciliation ||
                           poolBodyColumnsForCurrentReconciliation
                         setActiveCellByKey(
                           rowItem.data.key,
@@ -2649,7 +2734,10 @@ export const DataGrid = defineElement<
         default: 'none',
         reflect: true,
       }),
-      selectedKeys: Array,
+      selectedKeys: {
+        type: Array,
+        reactivity: 'shallow',
+      },
       sortColumn: prop(String, {
         attr: 'sort-column',
       }),

@@ -323,6 +323,26 @@ describe('zw-data-grid runtime', () => {
     })
   })
 
+  it('treats selectedKeys as a replace-on-write shallow prop', async () => {
+    const selectedKeys = ['u1']
+    const grid = await mountDataGrid({
+      selectedKeys,
+      selectionMode: 'multiple',
+    })
+
+    expect(grid.selectedKeys).toBe(selectedKeys)
+
+    grid.selectedKeys!.push('u2')
+    await nextFrame()
+
+    expect(grid.getSelection().keys).toEqual(['u1'])
+
+    grid.selectedKeys = [...grid.selectedKeys!]
+    await nextFrame()
+
+    expect(grid.getSelection().keys).toEqual(['u1', 'u2'])
+  })
+
   it('emits selection-change and syncs selectedKeys when selection is changed by methods', async () => {
     const grid = await mountDataGrid({
       selectionMode: 'multiple',

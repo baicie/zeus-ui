@@ -273,11 +273,22 @@ describe('data-grid component protocol', () => {
   })
 
   it('uses controlled state model instead of ad-hoc source tracking', () => {
+    const rebuildModelsSource = source.slice(
+      source.indexOf('const rebuildModels ='),
+      source.indexOf('const emitSnapshotIfChanged ='),
+    )
+    const controlledEffectSource = source.slice(
+      source.indexOf('createEffect(() =>'),
+      source.indexOf('const scrollToColumnIndex ='),
+    )
+
     expect(source).toContain('createDataGridControlledStateController')
     expect(source).toContain('createDataGridControlledSortState')
     expect(source).toContain('readControlledStateSources')
     expect(source).toContain('syncControlledSources')
     expect(source).toContain('commitControlledState')
+    expect(controlledEffectSource).toContain('syncControlledSources()')
+    expect(rebuildModelsSource).not.toContain('syncControlledSources()')
     expect(source).not.toContain('rowsLength: resolveRows(props).length')
     expect(source).not.toContain('columnsLength: resolveColumns(props).length')
   })
@@ -368,7 +379,9 @@ describe('data-grid component protocol', () => {
 
     expect(headerAriaBinding).toContain(', true)')
     expect(result.code).toContain('role=\\"columnheader\\" tabindex=\\"0\\"')
-    expect(result.code).not.toContain('"tabindex", () => (0)')
+    expect(result.code).not.toContain(
+      '$zeusBindAttr($zeusInlineElement0, "tabindex"',
+    )
   })
 
   it('uses viewport measurement model and exposes refreshViewport', () => {

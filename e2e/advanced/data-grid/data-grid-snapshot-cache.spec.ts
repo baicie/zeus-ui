@@ -10,11 +10,15 @@ import {
 } from './data-grid-runtime-harness'
 
 const snapshotDiagnostics = vi.hoisted(() => ({
+  rowVirtualizerBuilds: 0,
+  columnVirtualizerBuilds: 0,
   rowSnapshotCalls: 0,
   columnSnapshotCalls: 0,
 }))
 
 function resetSnapshotDiagnostics(): void {
+  snapshotDiagnostics.rowVirtualizerBuilds = 0
+  snapshotDiagnostics.columnVirtualizerBuilds = 0
   snapshotDiagnostics.rowSnapshotCalls = 0
   snapshotDiagnostics.columnSnapshotCalls = 0
 }
@@ -30,6 +34,7 @@ function createColumns(count = 20) {
     id: `column-${index}`,
     header: `Column ${index}`,
     width: 100,
+    sortable: true,
   }))
 }
 
@@ -57,6 +62,7 @@ vi.mock(
       createDataGridRowVirtualizer(
         ...args: Parameters<typeof actual.createDataGridRowVirtualizer>
       ): ReturnType<typeof actual.createDataGridRowVirtualizer> {
+        snapshotDiagnostics.rowVirtualizerBuilds += 1
         const virtualizer = actual.createDataGridRowVirtualizer(...args)
 
         return {
@@ -70,6 +76,7 @@ vi.mock(
       createDataGridColumnVirtualizer(
         ...args: Parameters<typeof actual.createDataGridColumnVirtualizer>
       ): ReturnType<typeof actual.createDataGridColumnVirtualizer> {
+        snapshotDiagnostics.columnVirtualizerBuilds += 1
         const virtualizer = actual.createDataGridColumnVirtualizer(...args)
 
         return {
@@ -209,7 +216,7 @@ describe('zw-data-grid viewport snapshot cache', () => {
     }
   })
 
-  it('invalidates cached snapshots when row and column models change', async () => {
+  it('invalidates only the row snapshot when rows change', async () => {
     const grid = await mountVirtualDataGrid()
     const viewport = getViewport(grid)
 
@@ -223,12 +230,44 @@ describe('zw-data-grid viewport snapshot cache', () => {
     await nextFrame()
 
     expect(snapshotDiagnostics.rowSnapshotCalls).toBe(1)
-    expect(snapshotDiagnostics.columnSnapshotCalls).toBe(1)
+    expect(snapshotDiagnostics.columnSnapshotCalls).toBe(0)
+  })
+
+  it('invalidates only the column snapshot when columns change without sorting', async () => {
+    const grid = await mountVirtualDataGrid()
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 120)
+    setElementClientWidth(viewport, 240)
+    grid.refreshViewport()
+    await nextFrame()
+
+    grid.measure(0, 80)
+    expect(grid.getTotalSize()).toBe(4_040)
 
     resetSnapshotDiagnostics()
     grid.setColumns(createColumns(24))
     await nextFrame()
 
+    expect(grid.getTotalSize()).toBe(4_040)
+    expect(snapshotDiagnostics.rowVirtualizerBuilds).toBe(0)
+    expect(snapshotDiagnostics.columnVirtualizerBuilds).toBe(1)
+    expect(snapshotDiagnostics.rowSnapshotCalls).toBe(0)
+    expect(snapshotDiagnostics.columnSnapshotCalls).toBe(1)
+  })
+
+  it('invalidates both snapshots when columns change under an active sort', async () => {
+    const grid = await mountVirtualDataGrid()
+
+    grid.setSort('column-0', 'asc')
+    await nextFrame()
+    resetSnapshotDiagnostics()
+
+    grid.setColumns(createColumns(24))
+    await nextFrame()
+
+    expect(snapshotDiagnostics.rowVirtualizerBuilds).toBe(1)
+    expect(snapshotDiagnostics.columnVirtualizerBuilds).toBe(1)
     expect(snapshotDiagnostics.rowSnapshotCalls).toBe(1)
     expect(snapshotDiagnostics.columnSnapshotCalls).toBe(1)
   })
@@ -371,5 +410,73 @@ describe('zw-data-grid viewport snapshot cache', () => {
     expect(snapshotDiagnostics.rowSnapshotCalls).toBe(1)
     expect(snapshotDiagnostics.columnSnapshotCalls).toBe(0)
     expect(grid.getTotalSize()).toBe(4_000)
+  })
+
+  it('preserves measured rows and both virtualizers when selection changes', async () => {
+    const grid = await mountVirtualDataGrid()
+
+    grid.measure(0, 80)
+    expect(grid.getTotalSize()).toBe(4_040)
+    resetSnapshotDiagnostics()
+
+    grid.toggleRowSelection('row-0')
+    await nextFrame()
+
+    expect(grid.getSelection().keys).toEqual(['row-0'])
+    expect(grid.getTotalSize()).toBe(4_040)
+    expect(snapshotDiagnostics.rowVirtualizerBuilds).toBe(0)
+    expect(snapshotDiagnostics.columnVirtualizerBuilds).toBe(0)
+    expect(snapshotDiagnostics.rowSnapshotCalls).toBe(0)
+    expect(snapshotDiagnostics.columnSnapshotCalls).toBe(0)
+  })
+
+  it('preserves measured rows when controlled selection is replaced', async () => {
+    const grid = await mountVirtualDataGrid()
+
+    grid.measure(0, 80)
+    expect(grid.getTotalSize()).toBe(4_040)
+    resetSnapshotDiagnostics()
+
+    grid.selectedKeys = ['row-1']
+    await nextFrame()
+
+    expect(grid.getSelection().keys).toEqual(['row-1'])
+    expect(grid.getTotalSize()).toBe(4_040)
+    expect(snapshotDiagnostics.rowVirtualizerBuilds).toBe(0)
+    expect(snapshotDiagnostics.columnVirtualizerBuilds).toBe(0)
+    expect(snapshotDiagnostics.rowSnapshotCalls).toBe(0)
+    expect(snapshotDiagnostics.columnSnapshotCalls).toBe(0)
+  })
+
+  it('rebuilds only the column virtualizer when a column is resized', async () => {
+    const grid = await mountVirtualDataGrid()
+
+    grid.measure(0, 80)
+    expect(grid.getTotalSize()).toBe(4_040)
+    resetSnapshotDiagnostics()
+
+    grid.resizeColumn('column-0', 160)
+    await nextFrame()
+
+    expect(grid.getColumnWidths()['column-0']).toBe(160)
+    expect(grid.getTotalSize()).toBe(4_040)
+    expect(snapshotDiagnostics.rowVirtualizerBuilds).toBe(0)
+    expect(snapshotDiagnostics.columnVirtualizerBuilds).toBe(1)
+  })
+
+  it('builds one row virtualizer for each sort change', async () => {
+    const grid = await mountVirtualDataGrid()
+
+    resetSnapshotDiagnostics()
+
+    grid.setSort('column-0', 'asc')
+    await nextFrame()
+
+    expect(grid.getSort()).toEqual({
+      columnId: 'column-0',
+      direction: 'asc',
+    })
+    expect(snapshotDiagnostics.rowVirtualizerBuilds).toBe(1)
+    expect(snapshotDiagnostics.columnVirtualizerBuilds).toBe(0)
   })
 })
