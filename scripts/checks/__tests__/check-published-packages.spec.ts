@@ -21,6 +21,7 @@ import {
   capturePublishedPackageLatestBaseline,
   createBrowserEntry,
   createConsumerPackageJson,
+  createRuntimeSmokeEntry,
   fetchPublishedPackageMetadata,
   getPublishedMetadataProblems,
   parsePublishedPackageOptions,
@@ -1129,5 +1130,21 @@ describe('published package smoke check', () => {
     expect(source).not.toContain("from '@zeus-web/cli'")
     expect(source).not.toContain("from '@zeus-web/zeus-compat/react'")
     expect(source).not.toContain("from '@zeus-web/zeus-compat/vue'")
+  })
+
+  it('checks the current Zeus compatibility runtime API', () => {
+    const source = createRuntimeSmokeEntry()
+
+    expect(source).toContain(
+      "assert.equal(typeof compat.defineElement, 'function')",
+    )
+    expect(source).toContain(
+      "assert.equal(typeof compat.createSignal, 'function')",
+    )
+    expect(source).toContain(
+      "assert.equal(typeof compat.createEffect, 'function')",
+    )
+    expect(source).not.toContain('typeof compat.state')
+    expect(source).not.toContain('typeof compat.effect')
   })
 })
