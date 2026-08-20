@@ -167,7 +167,7 @@ function checkZeusBaseline(errors: string[]): void {
 // check:zeus-imports
 // ---------------------------------------------------------------------------
 
-const checkedRoots = [
+export const ZEUS_IMPORT_CHECKED_ROOTS = [
   'packages/zeus-compat',
   'packages/primitives',
   'packages/advanced',
@@ -178,7 +178,10 @@ const checkedRoots = [
   'packages/utils',
   'packages/registry',
   'packages/cli',
-]
+] as const
+
+const DATA_GRID_COMPILER_CONTRACT =
+  'packages/advanced/data-grid/__tests__/data-grid.spec.ts'
 
 export function isAllowedZeusImport(file: string, specifier: string): boolean {
   const rel = slash(file)
@@ -200,7 +203,10 @@ export function isAllowedZeusImport(file: string, specifier: string): boolean {
   }
 
   if (isComponentContractTestFile(rel)) {
-    return specifier === '@zeus-js/component-analyzer'
+    return (
+      specifier === '@zeus-js/component-analyzer' ||
+      (specifier === '@zeus-js/compiler' && rel === DATA_GRID_COMPILER_CONTRACT)
+    )
   }
 
   return false
@@ -307,10 +313,14 @@ export function collectImportSpecifiers(
   return specifiers
 }
 
-async function checkZeusImports(errors: string[]): Promise<void> {
-  for (const relRoot of checkedRoots) {
-    for (const file of collectTypeScriptFiles(join(root, relRoot))) {
-      const rel = slash(relative(root, file))
+export function collectZeusImportViolations(
+  rootDir: string = process.cwd(),
+): string[] {
+  const errors: string[] = []
+
+  for (const relRoot of ZEUS_IMPORT_CHECKED_ROOTS) {
+    for (const file of collectTypeScriptFiles(join(rootDir, relRoot)).sort()) {
+      const rel = slash(relative(rootDir, file))
       const source = readFileSync(file, 'utf8')
       const specifiers = collectImportSpecifiers(rel, source)
 
@@ -327,6 +337,12 @@ async function checkZeusImports(errors: string[]): Promise<void> {
       }
     }
   }
+
+  return errors
+}
+
+function checkZeusImports(errors: string[]): void {
+  errors.push(...collectZeusImportViolations(root))
 }
 
 // ---------------------------------------------------------------------------

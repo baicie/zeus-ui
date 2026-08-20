@@ -7,68 +7,55 @@
 
 ## Status
 
-The Data Grid branch cannot be verified from a clean install against a
-published Zeus version yet.
+The Zeus publication blocker is cleared. Zeus `0.1.1-beta.1` contains every
+runtime and compiler capability required by this Data Grid branch:
 
-The newest published package version visible during this audit is
-`0.1.1-canary.20260812.108.1.b919e736`. It predates the following required
-Zeus changes:
+| Capability                                           | Integrated commit |
+| ---------------------------------------------------- | ----------------- |
+| Opt-in shallow custom-element props                  | `974a0c4`         |
+| Explicit once DOM bindings                           | `9807fe5`         |
+| Keyed `For` item accessors and identity preservation | `9807fe5`         |
 
-| Capability                                           | Required Zeus commit    |
-| ---------------------------------------------------- | ----------------------- |
-| Opt-in shallow custom-element props                  | `9cc9da2`               |
-| Explicit once DOM bindings                           | `c19af4c` and `2f1ed9d` |
-| Keyed `For` item accessors and identity preservation | `0222d4b`               |
+The release tag [`v0.1.1-beta.1`](https://github.com/baicie/zeus/releases/tag/v0.1.1-beta.1)
+and Zeus `main` both resolve to
+`6deffa28d6f58bd4039765c73504f00a825249e9`. GitHub Actions run
+[`32260211154`](https://github.com/baicie/zeus/actions/runs/32260211154)
+published the packages with provenance, built all seven native compiler
+platform packages, and passed registry smoke tests on Node 22 and Node 24.
+The npm `beta` dist-tag resolves to `0.1.1-beta.1`.
 
-Tarball inspection confirms that canary 108:
-
-- exports `transformModule` from `@zeus-js/compiler`;
-- does not expose prop `reactivity` metadata from `@zeus-js/runtime-dom`;
-- still updates a reused keyed record by assigning `oldRecord.item` and
-  `oldRecord.index`, leaving the render closure bound to the old values;
-- does not contain the explicit once binding API.
-
-The currently pinned `0.1.0-beta.8` dependency is older still and does not
-export `transformModule`, the current signal API, or shallow prop metadata.
-
-The registry `canary` dist-tag currently points to
-`0.1.1-canary.20260812.105.1.aaffcfa2`; canary 108 is visible in the complete
-version list but is not tagged as `canary`.
+Publication occurred only in GitHub Actions. No package was packed or
+published from a local checkout. The npm `latest` dist-tag is outside this
+remediation's acceptance criteria and remains unchanged.
 
 ## Clean-install evidence
 
-After removing every local Zeus override, the workspace and lockfile contain
-no `link:` entry targeting the adjacent Zeus repository. A frozen offline
-install resolves `@zeus-js/zeus`, `@zeus-js/runtime-dom`, `@zeus-js/signal`,
-`@zeus-js/compiler`, and `@zeus-js/bundler-plugin` to registry
-`0.1.0-beta.8` packages under pnpm's content-addressed store.
+The zeus-ui manifests and lockfile pin their Zeus dependency closure to
+registry version `0.1.1-beta.1`. The final evidence for this branch must be
+captured from a fresh checkout of its remote commit, using
+`pnpm install --frozen-lockfile` without an adjacent Zeus workspace or an
+`@zeus-js/*` `link:`/`file:` override. Normal links between packages inside
+the zeus-ui workspace, including `link:../../zeus-compat`, are expected.
 
-The first capability check then fails while loading `vitest.config.ts`:
-
-```text
-SyntaxError: @zeus-js/compiler/dist/compiler.esm-bundler.js
-does not provide an export named 'transformModule'
-```
-
-This is the expected published-package boundary. It occurs before Data Grid
-tests can execute and confirms that local workspace validation cannot be
-presented as clean-install evidence.
+That final fresh-checkout run is intentionally not claimed by this revision
+of the document. Its commit, install audit, test totals, build result and CI
+URL will be recorded here after the branch is pushed and the clean checkout
+has completed.
 
 ## Consequence
 
-Local workspace links are suitable only for development. They must not be
-committed and cannot be used as evidence that the branch is reproducible.
-Removing those links currently restores beta.8 and makes the Data Grid test
-compiler and shallow prop schema unavailable.
+The upstream release is no longer a blocker. Merge readiness now depends on
+the zeus-ui implementation, its full validation matrix, and the remote
+fresh-checkout registry-only verification.
 
 ## Release gate
 
-This blocker is cleared only after one coordinated published Zeus version
-contains all commits above and zeus-ui has:
+The release gate is complete only after zeus-ui has:
 
 1. pinned all related `@zeus-js/*` packages and peer ranges to that version;
-2. regenerated `pnpm-lock.yaml` without `link:` overrides;
+2. regenerated `pnpm-lock.yaml` without an adjacent Zeus workspace or
+   `@zeus-js/*` `link:`/`file:` overrides;
 3. passed install, typecheck, Data Grid unit/runtime/benchmark tests, build,
    and workspace dependency checks using only registry packages.
 
-Publishing or changing npm dist-tags is outside this remediation task.
+Publishing another Zeus beta or changing npm `latest` is not required.

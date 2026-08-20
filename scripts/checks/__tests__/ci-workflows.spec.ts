@@ -81,6 +81,21 @@ describe('ci workflow contract', () => {
     expect(getObject(jobs, 'lint-and-test-dts')['timeout-minutes']).toBe(15)
   })
 
+  it('runs the Data Grid runtime e2e after a frozen install', () => {
+    const jobs = getObject(readWorkflow('test.yml'), 'jobs')
+    const commands = getRunCommands(getObject(jobs, 'unit-test'))
+    const installIndex = commands.indexOf('pnpm install --frozen-lockfile')
+    const dataGridE2eIndex = commands.indexOf(
+      'pnpm --filter @zeus-web/data-grid test:e2e',
+    )
+
+    expect(installIndex).toBeGreaterThanOrEqual(0)
+    expect(dataGridE2eIndex).toBeGreaterThan(installIndex)
+    expect(
+      commands.filter(command => command.includes('data-grid test:e2e')),
+    ).toEqual(['pnpm --filter @zeus-web/data-grid test:e2e'])
+  })
+
   it('uses an explicit Bash shell so artifact logging pipelines preserve failures', () => {
     const defaults = getObject(readWorkflow('showcase.yml'), 'defaults')
 

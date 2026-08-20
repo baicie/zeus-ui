@@ -1,8 +1,59 @@
 # Zeus 包公共 API
 
-本文件是 Zeus 包公共 API 的唯一权威来源。当前覆盖 `@zeus-web/chat`、
-`@zeus-web/agent-console` 与 `@zeus-web/data-grid`；尚未迁移到本文件的包继续保持现有
-发布出口，后续变更公共 API 时必须补充对应章节。
+本文件是 Zeus 包公共 API 的唯一权威来源。当前覆盖 `@zeus-web/zeus-compat`、
+`@zeus-web/chat`、`@zeus-web/agent-console` 与 `@zeus-web/data-grid`；尚未迁移到本文件的包
+继续保持现有发布出口，后续变更公共 API 时必须补充对应章节。
+
+## `@zeus-web/zeus-compat`
+
+状态：`0.1.0-beta.2`，MVP 阶段，不承诺向后兼容。
+
+Zeus 兼容基线：`0.1.1-beta.1`。该包只转发 Zeus 当前公共 API，不暴露 Zeus 内部实现。
+
+入口：
+
+- `@zeus-web/zeus-compat`
+- `@zeus-web/zeus-compat/capabilities`
+
+### 根入口 API
+
+响应式值：`createSignal`、`createMemo`、`createEffect`、`createRoot`、`batch`、`onCleanup`。
+
+响应式类型：`Accessor`、`Setter`。
+
+组件与 DOM runtime 值：`For`、`Host`、`Show`、`Slot`、`defineElement`、`render`。
+
+context 值：`createContext`、`inject`、`provide`、`useContext`。
+
+DOM context 值：`provideDOMContext`、`resolveDOMContext`。
+
+capability 值：`ZEUS_CAPABILITIES`、`getMissingZeusCompatRequirements`、
+`assertZeusCompatRequirements`。
+
+公共类型：`Component`、`Context`、`ContextBridgeProps`、`ContextProviderProps`、
+`DefineElementContext`、`DefineElementMeta`、`DefineElementOptions`、`DefineElementSetup`、
+`ForProps`、`HostProps`、`JSXValue`、`ShowProps`、`SlotProps`、`DOMContext`、
+`ZeusCapabilities`、`ZeusCompatRequirement`。
+
+```ts
+function getMissingZeusCompatRequirements(): ZeusCompatRequirement[]
+function assertZeusCompatRequirements(): void
+```
+
+### `./capabilities` API
+
+值：`ZEUS_CAPABILITIES`、`getMissingZeusCompatRequirements`、
+`assertZeusCompatRequirements`。
+
+类型：`ZeusCapabilities`、`ZeusCompatRequirement`。
+
+```ts
+function getMissingZeusCompatRequirements(): ZeusCompatRequirement[]
+function assertZeusCompatRequirements(): void
+```
+
+历史 alias `computed`、`effect`、`nextTick`、`scope`、`state`、`untrack`、`watch` 已删除，且不提供
+兼容转发。
 
 ## 所有组件包共享契约
 
@@ -486,10 +537,11 @@ Web Component 标签：`zw-data-grid`。
 | `activeColumnId`     | `string`                           | -        | 受控活动列             |
 | `diagnostics`        | `DataGridDiagnostics`              | -        | 可选性能诊断回调       |
 
-`rows` 与 `columns` 使用 shallow reactivity。读取 `grid.rows` / `grid.columns` 会保留调用方传入数组的
+`rows`、`columns` 与 `selectedKeys` 使用 shallow reactivity。读取这些 property 会保留调用方传入数组的
 referential identity，Zeus 不会为数组或其中的对象创建 deep proxy。替换顶层数组引用会触发更新；直接修改
-`rows[index]`、row 字段或 column 字段不会触发响应式刷新。调用方必须采用 replace-on-write，或通过
-`setRows(nextRows)` / `setColumns(nextColumns)` 提交新的数组引用。
+`rows[index]`、row/column 字段，或对 `selectedKeys` 执行 `push` / `splice`，不会触发响应式刷新。调用方必须
+采用 replace-on-write，或通过 `setRows(nextRows)`、`setColumns(nextColumns)` / `setSelection(keys)` 提交
+新的状态。
 
 `diagnostics` 仅作为 DOM property 使用，不映射 attribute。未配置回调时 Data Grid 不读取诊断时钟，也不创建
 DOM mutation observer。配置后可按需接收两类只读样本：
