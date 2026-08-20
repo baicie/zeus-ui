@@ -1,5 +1,6 @@
 import type {
   DataGridCommitTiming,
+  DataGridElement,
   DataGridModelBuildTiming,
 } from '../../../packages/advanced/data-grid/src'
 import { batch } from '@zeus-js/zeus'
@@ -8,6 +9,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   cleanupDataGridFixtures,
   defineDataGridElement,
+  getHeaderCell,
   getViewport,
   mountDataGrid,
   nextFrame,
@@ -54,6 +56,8 @@ describe('zw-data-grid diagnostics', () => {
       visibleColumnCount: 4,
       sortActive: false,
       rowModelReused: true,
+      rowIndexEntryCount: 10_000,
+      eagerRowWrapperAllocationCount: 0,
     })
     expect(modelBuilds[0].endTime).toBeGreaterThanOrEqual(
       modelBuilds[0].startTime,
@@ -62,6 +66,9 @@ describe('zw-data-grid diagnostics', () => {
     const mountCommit = commits.find(sample => sample.source === 'mount')
     expect(mountCommit).toBeDefined()
     expectCommitTimingOrder(mountCommit as Readonly<DataGridCommitTiming>)
+    expect(mountCommit?.inputTime).toBeUndefined()
+    expect(mountCommit?.rowWrapperAllocationCount).toBeGreaterThan(0)
+    expect(mountCommit?.rowWrapperAllocationCount).toBeLessThan(100)
     expect(mountCommit?.createdNodeCount).toBeGreaterThan(0)
     expect(mountCommit?.removedNodeCount).toBe(0)
 
@@ -71,12 +78,18 @@ describe('zw-data-grid diagnostics', () => {
     grid.scrollToOffset(400)
     commits.length = 0
 
+    const scrollInputTime = Math.max(0, performance.now() - 1)
+    const scrollEvent = new Event('scroll')
+    Object.defineProperty(scrollEvent, 'timeStamp', {
+      value: scrollInputTime,
+    })
     viewport.scrollTop = 4_000
-    viewport.dispatchEvent(new Event('scroll'))
+    viewport.dispatchEvent(scrollEvent)
     await nextFrame()
 
     expect(commits).toHaveLength(1)
     expect(commits[0].source).toBe('scroll')
+    expect(commits[0].inputTime).toBe(scrollInputTime)
     expect(commits[0].firstRowIndex).toBeGreaterThan(0)
     expect(commits[0].lastRowIndex).toBeGreaterThanOrEqual(
       commits[0].firstRowIndex,
@@ -85,6 +98,8 @@ describe('zw-data-grid diagnostics', () => {
     expect(commits[0].lastColumnIndex).toBeGreaterThanOrEqual(0)
     expect(commits[0].createdNodeCount).toBe(0)
     expect(commits[0].removedNodeCount).toBe(0)
+    expect(commits[0].rowWrapperAllocationCount).toBeGreaterThan(0)
+    expect(commits[0].rowWrapperAllocationCount).toBeLessThan(100)
     expectCommitTimingOrder(commits[0])
   })
 
@@ -113,6 +128,8 @@ describe('zw-data-grid diagnostics', () => {
       rowCount: 0,
       columnCount: 0,
       rowModelReused: true,
+      rowIndexEntryCount: 0,
+      eagerRowWrapperAllocationCount: 0,
     })
   })
 
@@ -147,6 +164,49 @@ describe('zw-data-grid diagnostics', () => {
     }
   })
 
+  it('disconnects diagnostics immediately when the prop is cleared', async () => {
+    const disconnect = vi.spyOn(MutationObserver.prototype, 'disconnect')
+
+    try {
+      const grid = await mountDataGrid({
+        diagnostics: {
+          onCommit() {},
+        },
+      })
+      disconnect.mockClear()
+
+      grid.diagnostics = undefined
+      await Promise.resolve()
+
+      expect(disconnect).toHaveBeenCalledTimes(1)
+    } finally {
+      disconnect.mockRestore()
+    }
+  })
+
+  it('does not deliver a pending commit after diagnostics is cleared', async () => {
+    const commits: Readonly<DataGridCommitTiming>[] = []
+    const grid = await mountDataGrid({
+      rows: [{ id: 'initial-row', value: 'Initial' }],
+      columns: [{ id: 'value', field: 'value' }],
+      diagnostics: {
+        onCommit(sample) {
+          commits.push(sample)
+        },
+      },
+    })
+
+    commits.length = 0
+    batch(() => {
+      grid.setRows([{ id: 'next-row', value: 'Next' }])
+      grid.diagnostics = undefined
+    })
+    await Promise.resolve()
+
+    expect(commits).toHaveLength(0)
+    expect(grid.textContent).toContain('Next')
+  })
+
   it('reports active sort without claiming row model reuse', async () => {
     const modelBuilds: Readonly<DataGridModelBuildTiming>[] = []
 
@@ -175,7 +235,160 @@ describe('zw-data-grid diagnostics', () => {
     expect(modelBuilds[0]).toMatchObject({
       sortActive: true,
       rowModelReused: false,
+      rowIndexEntryCount: 2,
+      eagerRowWrapperAllocationCount: 0,
     })
+  })
+
+  it('attributes a sortable header click to its input timestamp', async () => {
+    const commits: Readonly<DataGridCommitTiming>[] = []
+    const grid = await mountDataGrid({
+      rows: [
+        { id: 'row-a', score: 2 },
+        { id: 'row-b', score: 1 },
+      ],
+      columns: [{ id: 'score', field: 'score', sortable: true }],
+      diagnostics: {
+        onCommit(sample) {
+          commits.push(sample)
+        },
+      },
+    })
+    commits.length = 0
+
+    const inputTime = Math.max(0, performance.now() - 1)
+    const clickEvent = new MouseEvent('click', {
+      bubbles: true,
+      composed: true,
+    })
+    Object.defineProperty(clickEvent, 'timeStamp', { value: inputTime })
+    getHeaderCell(grid, 'score').dispatchEvent(clickEvent)
+
+    expect(commits).toHaveLength(1)
+    expect(commits[0].source).toBe('data')
+    expect(commits[0].inputTime).toBe(inputTime)
+    expectCommitTimingOrder(commits[0])
+  })
+
+  it('attributes a column resize commit to its input timestamp', async () => {
+    const commits: Readonly<DataGridCommitTiming>[] = []
+    const grid = await mountDataGrid({
+      columns: [
+        {
+          id: 'name',
+          field: 'name',
+          width: 100,
+          resizable: true,
+        },
+      ],
+      diagnostics: {
+        onCommit(sample) {
+          commits.push(sample)
+        },
+      },
+    })
+    commits.length = 0
+
+    const inputTime = Math.max(0, performance.now() - 1)
+    const resizeEvent = new Event('pointermove')
+    Object.defineProperty(resizeEvent, 'timeStamp', { value: inputTime })
+    grid.resizeColumn('name', 140, resizeEvent)
+
+    expect(commits).toHaveLength(1)
+    expect(commits[0].source).toBe('data')
+    expect(commits[0].inputTime).toBe(inputTime)
+    expectCommitTimingOrder(commits[0])
+  })
+
+  it('preserves the earliest input timestamp when scroll events coalesce', async () => {
+    const commits: Readonly<DataGridCommitTiming>[] = []
+    const grid = await mountDataGrid({
+      rows: Array.from({ length: 100 }, (_, index) => ({
+        id: `row-${index}`,
+      })),
+      columns: [{ id: 'value' }],
+      virtual: true,
+      diagnostics: {
+        onCommit(sample) {
+          commits.push(sample)
+        },
+      },
+    })
+    const viewport = getViewport(grid)
+    setElementClientHeight(viewport, 60)
+    grid.refreshViewport()
+    commits.length = 0
+
+    const firstInputTime = Math.max(0, performance.now() - 2)
+    const secondInputTime = firstInputTime + 1
+    const firstEvent = new Event('scroll')
+    const secondEvent = new Event('scroll')
+    Object.defineProperty(firstEvent, 'timeStamp', {
+      value: firstInputTime,
+    })
+    Object.defineProperty(secondEvent, 'timeStamp', {
+      value: secondInputTime,
+    })
+
+    viewport.scrollTop = 40
+    viewport.dispatchEvent(firstEvent)
+    viewport.scrollTop = 80
+    viewport.dispatchEvent(secondEvent)
+    await nextFrame()
+
+    expect(commits).toHaveLength(1)
+    expect(commits[0].source).toBe('scroll')
+    expect(commits[0].inputTime).toBe(firstInputTime)
+  })
+
+  it('keeps mount timing separate from a coalesced scroll input', async () => {
+    defineDataGridElement()
+    const commits: Readonly<DataGridCommitTiming>[] = []
+    const grid = document.createElement('zw-data-grid') as DataGridElement
+    grid.diagnostics = {
+      onCommit(sample) {
+        commits.push(sample)
+      },
+    }
+
+    document.body.append(grid)
+    const viewport = getViewport(grid)
+    viewport.dispatchEvent(new Event('scroll'))
+    await nextFrame()
+
+    expect(commits).toHaveLength(1)
+    expect(commits[0].source).toBe('mount')
+    expect(commits[0].inputTime).toBeUndefined()
+    expectCommitTimingOrder(commits[0])
+  })
+
+  it('does not attribute wrapper allocations outside a commit to scroll', async () => {
+    const commits: Readonly<DataGridCommitTiming>[] = []
+    const grid = await mountDataGrid({
+      rows: Array.from({ length: 1_000 }, (_, index) => ({
+        id: `row-${index}`,
+      })),
+      columns: [{ id: 'value' }],
+      virtual: true,
+      diagnostics: {
+        onCommit(sample) {
+          commits.push(sample)
+        },
+      },
+    })
+    const viewport = getViewport(grid)
+    setElementClientHeight(viewport, 60)
+    grid.refreshViewport()
+    commits.length = 0
+
+    grid.getRows()
+    viewport.scrollTop = 400
+    viewport.dispatchEvent(new Event('scroll'))
+    await nextFrame()
+
+    expect(commits).toHaveLength(1)
+    expect(commits[0].source).toBe('scroll')
+    expect(commits[0].rowWrapperAllocationCount).toBeLessThan(100)
   })
 
   it('reports DOM churn after setRows flushes its outer batch', async () => {
@@ -324,6 +537,43 @@ describe('zw-data-grid diagnostics', () => {
     expect(commits[0].removedNodeCount).toBeGreaterThan(0)
     expect(grid.textContent).toContain('Next')
     expect(grid.textContent).not.toContain('Initial')
+  })
+
+  it('keeps the first timing window when a later input shares the batch', async () => {
+    const commits: Readonly<DataGridCommitTiming>[] = []
+    const grid = await mountDataGrid({
+      rows: [{ id: 'initial-row', name: 'Initial' }],
+      columns: [
+        {
+          id: 'name',
+          field: 'name',
+          width: 100,
+          resizable: true,
+        },
+      ],
+      diagnostics: {
+        onCommit(sample) {
+          commits.push(sample)
+        },
+      },
+    })
+
+    commits.length = 0
+    batch(() => {
+      grid.setRows([{ id: 'next-row', name: 'Next' }])
+      const laterInputTime = performance.now()
+      const resizeEvent = new Event('pointermove')
+      Object.defineProperty(resizeEvent, 'timeStamp', {
+        value: laterInputTime,
+      })
+      grid.resizeColumn('name', 140, resizeEvent)
+    })
+    await Promise.resolve()
+
+    expect(commits).toHaveLength(1)
+    expect(commits[0].source).toBe('data')
+    expect(commits[0].inputTime).toBeUndefined()
+    expectCommitTimingOrder(commits[0], 2)
   })
 
   it('finalizes consecutive deferred data commits without losing churn', async () => {
@@ -556,6 +806,65 @@ describe('zw-data-grid diagnostics', () => {
     }
   })
 
+  it('keeps resize timing separate from a coalesced scroll input', async () => {
+    const originalResizeObserver = Object.getOwnPropertyDescriptor(
+      globalThis,
+      'ResizeObserver',
+    )
+    let resizeCallback: ResizeObserverCallback | undefined
+
+    class TestResizeObserver implements ResizeObserver {
+      constructor(callback: ResizeObserverCallback) {
+        resizeCallback = callback
+      }
+
+      disconnect(): void {}
+
+      observe(): void {}
+
+      unobserve(): void {}
+    }
+
+    Object.defineProperty(globalThis, 'ResizeObserver', {
+      configurable: true,
+      writable: true,
+      value: TestResizeObserver,
+    })
+
+    try {
+      const commits: Readonly<DataGridCommitTiming>[] = []
+      const grid = await mountDataGrid({
+        diagnostics: {
+          onCommit(sample) {
+            commits.push(sample)
+          },
+        },
+      })
+      const viewport = getViewport(grid)
+      commits.length = 0
+
+      if (!resizeCallback) throw new Error('ResizeObserver was not connected')
+      resizeCallback([], {} as ResizeObserver)
+      viewport.dispatchEvent(new Event('scroll'))
+      await nextFrame()
+
+      expect(commits).toHaveLength(1)
+      expect(commits[0].source).toBe('resize')
+      expect(commits[0].inputTime).toBeUndefined()
+      expectCommitTimingOrder(commits[0])
+    } finally {
+      if (originalResizeObserver) {
+        Object.defineProperty(
+          globalThis,
+          'ResizeObserver',
+          originalResizeObserver,
+        )
+      } else {
+        Reflect.deleteProperty(globalThis, 'ResizeObserver')
+      }
+    }
+  })
+
   it('excludes external slot projection from component node churn', async () => {
     const commits: Readonly<DataGridCommitTiming>[] = []
     const grid = await mountDataGrid({
@@ -656,7 +965,9 @@ function expectCommitTimingOrder(
   layoutReadCount = 1,
 ): void {
   expect(sample.transactionId).toBeGreaterThan(0)
-  expect(sample.handlerStartTime).toBeGreaterThanOrEqual(sample.inputTime)
+  if (sample.inputTime !== undefined) {
+    expect(sample.handlerStartTime).toBeGreaterThanOrEqual(sample.inputTime)
+  }
   expect(sample.handlerEndTime).toBeGreaterThanOrEqual(sample.handlerStartTime)
   expect(sample.rangeStartTime).toBeGreaterThanOrEqual(sample.handlerEndTime)
   expect(sample.rangeCalculatedTime).toBeGreaterThanOrEqual(

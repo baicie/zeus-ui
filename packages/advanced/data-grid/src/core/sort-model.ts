@@ -1,9 +1,9 @@
 import type {
-  DataGridRow,
   DataGridSortDirection,
   DataGridSortState,
   NormalizedDataGridColumn,
 } from '../types'
+import type { DataGridRowCollection, DataGridRowModel } from './row-model'
 
 function comparePrimitive(left: unknown, right: unknown): number {
   if (left === right) return 0
@@ -54,27 +54,47 @@ export function createNextDataGridSortState(
   return undefined
 }
 
-export function sortDataGridRows(
-  rows: DataGridRow[],
+export function sortDataGridRowCollection(
+  rows: DataGridRowModel,
   columns: NormalizedDataGridColumn[],
   sort: DataGridSortState | undefined,
-): DataGridRow[] {
-  if (!sort) return [...rows]
+): DataGridRowCollection {
+  if (!sort) return rows
 
   const column = columns.find(item => item.id === sort.columnId)
-
-  if (!column || !column.sortable) return [...rows]
+  if (!column || !column.sortable) return rows
 
   const sign = sort.direction === 'asc' ? 1 : -1
+  const order = rows.source.map((_, index) => index)
 
-  return [...rows].sort((left, right) => {
-    const result = comparePrimitive(
-      left.data[column.field],
-      right.data[column.field],
-    )
+  order.sort((leftIndex, rightIndex) => {
+    const left = rows.source[leftIndex]
+    const right = rows.source[rightIndex]
+    const result = comparePrimitive(left[column.field], right[column.field])
 
-    if (result === 0) return left.index - right.index
+    if (result !== 0) return result * sign
 
-    return result * sign
+    return leftIndex - rightIndex
   })
+
+  const indexBySource: number[] = []
+  order.forEach((sourceIndex, index) => {
+    indexBySource[sourceIndex] = index
+  })
+
+  return {
+    length: order.length,
+
+    getRow(index) {
+      return rows.getRow(order[index])
+    },
+
+    getKey(index) {
+      return rows.getKey(order[index])
+    },
+
+    getIndexByKey(key) {
+      return indexBySource[rows.getIndexByKey(key)!]
+    },
+  }
 }

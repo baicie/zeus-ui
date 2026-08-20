@@ -382,6 +382,7 @@ describe('data-grid component protocol', () => {
     expect(result.code).not.toContain(
       '$zeusBindAttr($zeusInlineElement0, "tabindex"',
     )
+    expect(result.code).not.toContain(', "key",')
   })
 
   it('uses viewport measurement model and exposes refreshViewport', () => {

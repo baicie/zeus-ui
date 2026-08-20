@@ -55,6 +55,9 @@ describe('data-grid update benchmark', () => {
           scenario.columnCount,
         )
         expect(result.firstCellTextAfterColumnsUpdate).toBe('R1-C2')
+        expect(result.rowsUpdateEagerRowWrapperAllocationCount).toBe(0)
+        expect(result.rowsUpdateRowWrapperAllocationCount).toBeGreaterThan(0)
+        expect(result.rowsUpdateRowWrapperAllocationCount).toBeLessThan(100)
         expect(result.memoryTrend).toBeDefined()
       })
     })

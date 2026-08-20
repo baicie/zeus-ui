@@ -1,6 +1,9 @@
 import type {
   DataGridColumn,
+  DataGridCommitTiming,
+  DataGridDiagnostics,
   DataGridElement,
+  DataGridModelBuildTiming,
   DataGridRangeChangeDetail,
   DataGridRowData,
 } from '../src'
@@ -97,17 +100,28 @@ export interface DataGridUpdateBenchmarkResult {
   domAfterRowsUpdate: DataGridDomSnapshot
   domAfterColumnsUpdate: DataGridDomSnapshot
   firstCellTextAfterColumnsUpdate: string
+  rowsUpdateEagerRowWrapperAllocationCount: number
+  rowsUpdateRowWrapperAllocationCount: number
   memoryBefore: DataGridMemorySample
   memoryAfter: DataGridMemorySample
   memoryTrend: DataGridMemoryTrend
 }
 
 interface MountedBenchmarkRun<T> {
-  run: (grid: DataGridElement, harness: DataGridRuntimeHarness) => Promise<T>
+  run: (
+    grid: DataGridElement,
+    harness: DataGridRuntimeHarness,
+    diagnostics?: DataGridBenchmarkDiagnostics,
+  ) => Promise<T>
 }
 
 interface MountedBenchmarkRunFactory<T> {
   (): MountedBenchmarkRun<T>
+}
+
+interface DataGridBenchmarkDiagnostics extends DataGridDiagnostics {
+  eagerRowWrapperAllocationCount: number
+  rowWrapperAllocationCount: number
 }
 
 export type DataGridBenchmarkKind = 'render' | 'scroll' | 'update'
@@ -211,6 +225,7 @@ export function sampleDataGridMemory(): DataGridMemorySample {
 function mountBenchmarkGrid(
   input: DataGridBenchmarkInput,
   harness: DataGridRuntimeHarness,
+  diagnostics?: DataGridDiagnostics,
 ): Promise<DataGridElement> {
   return harness
     .mountDataGrid({
@@ -220,6 +235,7 @@ function mountBenchmarkGrid(
       overscan: input.overscan,
       overscanColumns: input.overscanColumns,
       virtual: true,
+      diagnostics,
     })
     .then(grid => {
       const viewport = harness.getViewport(grid)
@@ -231,17 +247,37 @@ function mountBenchmarkGrid(
     })
 }
 
+function createBenchmarkDiagnostics(): DataGridBenchmarkDiagnostics {
+  const diagnostics: DataGridBenchmarkDiagnostics = {
+    eagerRowWrapperAllocationCount: 0,
+    rowWrapperAllocationCount: 0,
+    onModelBuild(sample: Readonly<DataGridModelBuildTiming>) {
+      diagnostics.eagerRowWrapperAllocationCount +=
+        sample.eagerRowWrapperAllocationCount
+    },
+    onCommit(sample: Readonly<DataGridCommitTiming>) {
+      diagnostics.rowWrapperAllocationCount += sample.rowWrapperAllocationCount
+    },
+  }
+
+  return diagnostics
+}
+
 function runMountedBenchmark<T>(
   input: DataGridBenchmarkInput,
   createBenchmarkRun: MountedBenchmarkRunFactory<T>,
+  observeAllocations = false,
 ): Promise<T> {
   return import('../../../../e2e/advanced/data-grid/data-grid-runtime-harness').then(
     harness => {
       harness.cleanupDataGridFixtures()
       const benchmark = createBenchmarkRun()
+      const diagnostics = observeAllocations
+        ? createBenchmarkDiagnostics()
+        : undefined
 
-      return mountBenchmarkGrid(input, harness)
-        .then(grid => benchmark.run(grid, harness))
+      return mountBenchmarkGrid(input, harness, diagnostics)
+        .then(grid => benchmark.run(grid, harness, diagnostics))
         .then(
           result => {
             harness.cleanupDataGridFixtures()
@@ -397,52 +433,74 @@ export function measureDataGridScroll(
 export function measureDataGridUpdates(
   input: DataGridUpdateBenchmarkInput,
 ): Promise<DataGridUpdateBenchmarkResult> {
-  return runMountedBenchmark(input, () => {
-    const memoryBefore = sampleDataGridMemory()
-    const initialStart = performance.now()
+  return runMountedBenchmark(
+    input,
+    () => {
+      const memoryBefore = sampleDataGridMemory()
+      const initialStart = performance.now()
 
-    return {
-      run(grid, harness) {
-        const initialRenderMs = performance.now() - initialStart
-        const rowsUpdateStart = performance.now()
+      return {
+        run(grid, harness, diagnostics) {
+          if (!diagnostics) {
+            throw new Error('Update benchmark diagnostics were not enabled.')
+          }
 
-        grid.setRows(input.nextRows)
+          const initialRenderMs = performance.now() - initialStart
+          const eagerRowWrapperAllocationsBeforeUpdate =
+            diagnostics.eagerRowWrapperAllocationCount
+          const rowWrapperAllocationsBeforeUpdate =
+            diagnostics.rowWrapperAllocationCount
+          const rowsUpdateStart = performance.now()
 
-        return harness.nextFrame().then(() => {
-          const rowsUpdateMs = performance.now() - rowsUpdateStart
-          const totalSizeAfterRowsUpdate = grid.getTotalSize()
-          const domAfterRowsUpdate = captureDataGridDomSnapshot(grid)
-          const columnsUpdateStart = performance.now()
-
-          grid.setColumns(input.nextColumns)
+          grid.setRows(input.nextRows)
 
           return harness.nextFrame().then(() => {
-            const columnsUpdateMs = performance.now() - columnsUpdateStart
-            const domAfterColumnsUpdate = captureDataGridDomSnapshot(grid)
-            const firstCell = grid.querySelector<HTMLElement>(
-              '[data-slot="data-grid-cell"]',
-            )
-            const memoryAfter = sampleDataGridMemory()
+            const rowsUpdateMs = performance.now() - rowsUpdateStart
+            const rowsUpdateEagerRowWrapperAllocationCount =
+              diagnostics.eagerRowWrapperAllocationCount -
+              eagerRowWrapperAllocationsBeforeUpdate
+            const rowsUpdateRowWrapperAllocationCount =
+              diagnostics.rowWrapperAllocationCount -
+              rowWrapperAllocationsBeforeUpdate
+            const totalSizeAfterRowsUpdate = grid.getTotalSize()
+            const domAfterRowsUpdate = captureDataGridDomSnapshot(grid)
+            const columnsUpdateStart = performance.now()
 
-            return {
-              name: input.name,
-              initialRenderMs,
-              rowsUpdateMs,
-              columnsUpdateMs,
-              rowCountAfterUpdate: grid.getRows().length,
-              columnCountAfterUpdate: grid.getColumns().length,
-              totalSizeAfterRowsUpdate,
-              domAfterRowsUpdate,
-              domAfterColumnsUpdate,
-              firstCellTextAfterColumnsUpdate:
-                firstCell && firstCell.textContent ? firstCell.textContent : '',
-              memoryBefore,
-              memoryAfter,
-              memoryTrend: getDataGridMemoryTrend(memoryBefore, memoryAfter),
-            }
+            grid.setColumns(input.nextColumns)
+
+            return harness.nextFrame().then(() => {
+              const columnsUpdateMs = performance.now() - columnsUpdateStart
+              const domAfterColumnsUpdate = captureDataGridDomSnapshot(grid)
+              const firstCell = grid.querySelector<HTMLElement>(
+                '[data-slot="data-grid-cell"]',
+              )
+              const memoryAfter = sampleDataGridMemory()
+
+              return {
+                name: input.name,
+                initialRenderMs,
+                rowsUpdateMs,
+                columnsUpdateMs,
+                rowCountAfterUpdate: grid.getRows().length,
+                columnCountAfterUpdate: grid.getColumns().length,
+                totalSizeAfterRowsUpdate,
+                domAfterRowsUpdate,
+                domAfterColumnsUpdate,
+                firstCellTextAfterColumnsUpdate:
+                  firstCell && firstCell.textContent
+                    ? firstCell.textContent
+                    : '',
+                rowsUpdateEagerRowWrapperAllocationCount,
+                rowsUpdateRowWrapperAllocationCount,
+                memoryBefore,
+                memoryAfter,
+                memoryTrend: getDataGridMemoryTrend(memoryBefore, memoryAfter),
+              }
+            })
           })
-        })
-      },
-    }
-  })
+        },
+      }
+    },
+    true,
+  )
 }

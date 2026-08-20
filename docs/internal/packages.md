@@ -553,11 +553,13 @@ interface DataGridDiagnostics {
 }
 ```
 
-`onModelBuild` 报告 model version、row/column 总量、可见列数量、sort state 是否启用以及是否直接复用
-row model。
-`onCommit` 报告 input、handler、range calculation、layout read 与 DOM commit 的单调时间点、当前二维 range
-以及本次 commit 在 Data Grid header/body 渲染区插入或移除的 DOM 子树节点数。观察区间在每次 commit
-开始时重置，不包含 empty slot 等外部投影变化。节点 churn 不等同于 Zeus effect 创建或释放数量。
+`onModelBuild` 报告 model version、row/column 总量、可见列数量、sort state 是否启用、是否直接复用
+row model、row key 索引条目数，以及建模阶段 eager 创建的 row wrapper 数量。
+`onCommit` 报告真实 input event timestamp（无原始输入的 mount/API commit 为 `undefined`）、handler、range
+calculation、layout read 与 DOM commit 的单调时间点、当前二维 range、本次 commit 创建的 row wrapper 数量，
+以及 Data Grid header/body 渲染区插入或移除的 DOM 子树节点数。观察区间在每次 commit 开始时重置，
+不包含 commit 之间由公开查询方法创建的 wrapper，也不包含 empty slot 等外部投影变化。节点 churn 不等同于
+Zeus effect 创建或释放数量。
 若延迟完成的 data commit 已完成 DOM reconciliation，Data Grid 会在后续同步调用开始前先生成独立
 sample，避免后一次调用的 timing 覆盖前一次 DOM churn。若多次调用仍处于同一个外层 reactive batch，
 DOM 尚未提交，则它们会合并为一个 sample，并保留全部 layout read 区间、最新二维 range 和累计 DOM

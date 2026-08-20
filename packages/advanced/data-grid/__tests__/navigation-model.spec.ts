@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   areDataGridActiveCellsEqual,
   createDataGridActiveCell,
-  createDataGridRows,
+  createDataGridRowModel,
   createInitialDataGridActiveCell,
   getDataGridActiveCellId,
   moveDataGridActiveCell,
@@ -11,7 +11,7 @@ import {
 } from '../src/core'
 
 describe('navigation model', () => {
-  const rows = createDataGridRows([
+  const rows = createDataGridRowModel([
     {
       id: 'a',
       name: 'Ada',
@@ -36,6 +36,9 @@ describe('navigation model', () => {
       id: 'status',
     },
   ])
+  const columnIndexById = new Map(
+    columns.map((column, index) => [column.id, index]),
+  )
 
   it('creates active cell', () => {
     expect(createDataGridActiveCell(rows, columns, 1, 2)).toEqual({
@@ -56,7 +59,9 @@ describe('navigation model', () => {
   })
 
   it('returns undefined when rows or columns are empty', () => {
-    expect(createDataGridActiveCell([], columns, 0, 0)).toBeUndefined()
+    expect(
+      createDataGridActiveCell(createDataGridRowModel([]), columns, 0, 0),
+    ).toBeUndefined()
     expect(createDataGridActiveCell(rows, [], 0, 0)).toBeUndefined()
   })
 
@@ -67,6 +72,7 @@ describe('navigation model', () => {
         columns,
         rowKey: 'b',
         columnId: 'role',
+        columnIndexById,
       }),
     ).toEqual({
       rowIndex: 1,
@@ -74,6 +80,42 @@ describe('navigation model', () => {
       columnId: 'role',
       columnIndex: 1,
     })
+  })
+
+  it('does not fall back to a linear column scan when an index is provided', () => {
+    const indexedColumns = [...columns]
+    indexedColumns.findIndex = () => {
+      throw new Error('linear scan')
+    }
+
+    expect(
+      createInitialDataGridActiveCell({
+        rows,
+        columns: indexedColumns,
+        rowKey: 'missing',
+        columnId: 'missing',
+        columnIndexById: new Map(),
+      }),
+    ).toMatchObject({
+      rowIndex: 0,
+      columnIndex: 0,
+    })
+  })
+
+  it('does not materialize row wrappers for active-cell navigation', () => {
+    const indexedRows = createDataGridRowModel([{ id: 'a' }, { id: 'b' }])
+
+    const active = createDataGridActiveCell(indexedRows, columns, 0, 0)
+    const moved = moveDataGridActiveCell({
+      rows: indexedRows,
+      columns,
+      current: active,
+      key: 'ArrowDown',
+    })
+
+    expect(active?.rowKey).toBe('a')
+    expect(moved?.rowKey).toBe('b')
+    expect(indexedRows.wrapperCount).toBe(0)
   })
 
   it('moves active cell with arrow keys', () => {

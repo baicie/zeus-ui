@@ -1,20 +1,21 @@
 import type {
   DataGridActiveCell,
   DataGridNavigationKey,
-  DataGridRow,
   DataGridRowKey,
   NormalizedDataGridColumn,
 } from '../types'
+import type { DataGridRowCollection } from './row-model'
 
 export interface DataGridNavigationStateOptions {
-  rows: DataGridRow[]
+  rows: DataGridRowCollection
   columns: NormalizedDataGridColumn[]
+  columnIndexById: ReadonlyMap<string, number>
   rowKey?: DataGridRowKey
   columnId?: string
 }
 
 export interface DataGridMoveActiveCellOptions {
-  rows: DataGridRow[]
+  rows: DataGridRowCollection
   columns: NormalizedDataGridColumn[]
   current: DataGridActiveCell | undefined
   key: DataGridNavigationKey
@@ -26,29 +27,27 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function getColumnIndex(
-  columns: NormalizedDataGridColumn[],
   columnId: string | undefined,
+  columnIndexById: ReadonlyMap<string, number>,
 ): number {
   if (!columnId) return 0
 
-  const index = columns.findIndex(column => column.id === columnId)
-
-  return index >= 0 ? index : 0
+  return columnIndexById.get(columnId) || 0
 }
 
 function getRowIndex(
-  rows: DataGridRow[],
+  rows: DataGridRowCollection,
   rowKey: DataGridRowKey | undefined,
 ): number {
   if (!rowKey) return 0
 
-  const index = rows.findIndex(row => row.key === rowKey)
+  const index = rows.getIndexByKey(rowKey)
 
-  return index >= 0 ? index : 0
+  return index === undefined ? 0 : index
 }
 
 export function createDataGridActiveCell(
-  rows: DataGridRow[],
+  rows: DataGridRowCollection,
   columns: NormalizedDataGridColumn[],
   rowIndex: number,
   columnIndex: number,
@@ -57,14 +56,12 @@ export function createDataGridActiveCell(
 
   const normalizedRowIndex = clamp(rowIndex, 0, rows.length - 1)
   const normalizedColumnIndex = clamp(columnIndex, 0, columns.length - 1)
-  const row = rows[normalizedRowIndex]
+  const rowKey = rows.getKey(normalizedRowIndex)!
   const column = columns[normalizedColumnIndex]
-
-  if (!row || !column) return undefined
 
   return {
     rowIndex: normalizedRowIndex,
-    rowKey: row.key,
+    rowKey,
     columnId: column.id,
     columnIndex: normalizedColumnIndex,
   }
@@ -77,7 +74,7 @@ export function createInitialDataGridActiveCell(
     options.rows,
     options.columns,
     getRowIndex(options.rows, options.rowKey),
-    getColumnIndex(options.columns, options.columnId),
+    getColumnIndex(options.columnId, options.columnIndexById),
   )
 }
 
@@ -86,10 +83,7 @@ export function moveDataGridActiveCell(
 ): DataGridActiveCell | undefined {
   const current =
     options.current ??
-    createInitialDataGridActiveCell({
-      rows: options.rows,
-      columns: options.columns,
-    })
+    createDataGridActiveCell(options.rows, options.columns, 0, 0)
 
   if (!current) return undefined
 

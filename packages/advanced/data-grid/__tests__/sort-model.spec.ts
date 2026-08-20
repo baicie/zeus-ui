@@ -1,11 +1,17 @@
+import type { DataGridRowCollection } from '../src/core'
+
 import { describe, expect, it } from 'vitest'
 
 import {
-  createDataGridRows,
+  createDataGridRowModel,
   createNextDataGridSortState,
   normalizeDataGridColumns,
-  sortDataGridRows,
+  sortDataGridRowCollection,
 } from '../src/core'
+
+function getRowKeys(rows: DataGridRowCollection): Array<string | undefined> {
+  return Array.from({ length: rows.length }, (_, index) => rows.getKey(index))
+}
 
 describe('sort model', () => {
   it('cycles sort state', () => {
@@ -46,7 +52,7 @@ describe('sort model', () => {
   })
 
   it('sorts rows by sortable column', () => {
-    const rows = createDataGridRows([
+    const rows = createDataGridRowModel([
       {
         id: 'a',
         age: 30,
@@ -68,22 +74,55 @@ describe('sort model', () => {
     ])
 
     expect(
-      sortDataGridRows(rows, columns, {
-        columnId: 'age',
-        direction: 'asc',
-      }).map(row => row.key),
+      getRowKeys(
+        sortDataGridRowCollection(rows, columns, {
+          columnId: 'age',
+          direction: 'asc',
+        }),
+      ),
     ).toEqual(['b', 'a', 'c'])
 
     expect(
-      sortDataGridRows(rows, columns, {
-        columnId: 'age',
-        direction: 'desc',
-      }).map(row => row.key),
+      getRowKeys(
+        sortDataGridRowCollection(rows, columns, {
+          columnId: 'age',
+          direction: 'desc',
+        }),
+      ),
     ).toEqual(['c', 'a', 'b'])
   })
 
+  it('sorts an indexed model without materializing row wrappers', () => {
+    const rows = createDataGridRowModel([
+      { id: 'a', age: 30 },
+      { id: 'b', age: 20 },
+      { id: 'c', age: 40 },
+    ])
+    const columns = normalizeDataGridColumns([
+      {
+        id: 'age',
+        sortable: true,
+      },
+    ])
+
+    const sorted = sortDataGridRowCollection(rows, columns, {
+      columnId: 'age',
+      direction: 'asc',
+    })
+
+    expect(
+      Array.from({ length: sorted.length }, (_, index) => sorted.getKey(index)),
+    ).toEqual(['b', 'a', 'c'])
+    expect(sorted.getIndexByKey('c')).toBe(2)
+    expect(sorted.getIndexByKey('b')).toBe(0)
+    expect(sorted.getIndexByKey('a')).toBe(1)
+    expect(rows.wrapperCount).toBe(0)
+    expect(sorted.getRow(0)?.index).toBe(1)
+    expect(rows.wrapperCount).toBe(1)
+  })
+
   it('keeps original order for non-sortable column', () => {
-    const rows = createDataGridRows([
+    const rows = createDataGridRowModel([
       { id: 'a', age: 30 },
       { id: 'b', age: 20 },
     ])
@@ -95,15 +134,15 @@ describe('sort model', () => {
     ])
 
     expect(
-      sortDataGridRows(rows, columns, {
+      sortDataGridRowCollection(rows, columns, {
         columnId: 'age',
         direction: 'asc',
-      }).map(row => row.key),
-    ).toEqual(['a', 'b'])
+      }),
+    ).toBe(rows)
   })
 
   it('keeps stable order for equal values', () => {
-    const rows = createDataGridRows([
+    const rows = createDataGridRowModel([
       {
         id: 'a',
         age: 20,
@@ -121,10 +160,12 @@ describe('sort model', () => {
     ])
 
     expect(
-      sortDataGridRows(rows, columns, {
-        columnId: 'age',
-        direction: 'asc',
-      }).map(row => row.key),
+      getRowKeys(
+        sortDataGridRowCollection(rows, columns, {
+          columnId: 'age',
+          direction: 'asc',
+        }),
+      ),
     ).toEqual(['a', 'b'])
   })
 })

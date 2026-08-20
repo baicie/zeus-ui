@@ -1,6 +1,7 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 import type { VirtualScrollAlign } from '@zeus-web/virtual'
 
+import type { DataGridRowCollection, DataGridRowModel } from '../core'
 import type {
   DataGridActiveCell,
   DataGridActiveCellChangeDetail,
@@ -13,6 +14,7 @@ import type {
   DataGridColumnVirtualRange,
   DataGridColumnVirtualSnapshot,
   DataGridCommitSource,
+  DataGridCommitTiming,
   DataGridDiagnostics,
   DataGridNavigationKey,
   DataGridRangeChangeDetail,
@@ -54,7 +56,7 @@ import {
   createDataGridColumnWidthState,
   createDataGridControlledSortState,
   createDataGridControlledStateController,
-  createDataGridRows,
+  createDataGridRowModel,
   createDataGridRowVirtualizer,
   createDataGridSelectionModel,
   createDataGridViewportMeasureController,
@@ -74,6 +76,7 @@ import {
   getDataGridResizeHandleAriaLabel,
   getDataGridRowByKey,
   getVisibleDataGridColumns,
+  materializeDataGridRows,
   moveDataGridActiveCell,
   normalizeDataGridColumns,
   resetDataGridColumnWidths,
@@ -82,7 +85,7 @@ import {
   shouldEmitDataGridViewportResize,
   shouldUpdateDataGridColumnVirtualSnapshot,
   shouldUpdateDataGridVirtualSnapshot,
-  sortDataGridRows,
+  sortDataGridRowCollection,
 } from '../core'
 
 export interface DataGridProps {
@@ -188,14 +191,14 @@ interface RenderedDataGridVirtualItem extends DataGridVirtualItem {
 
 interface DataGridSnapshotCache<T> {
   snapshot: T
-  revision: number
   scrollOffset: number
   viewportSize: number
 }
 
 interface PendingDataGridRangeUpdate {
-  nativeEvent?: Event
+  scrollEvent?: Event
   source: DataGridCommitSource
+  inputTime?: number | null
   handlerStartTime?: number
   handlerEndTime?: number
   measureViewportMetrics: boolean
@@ -207,21 +210,14 @@ interface FocusedDataGridHeaderTarget {
   kind: 'header-cell' | 'resize-handle'
 }
 
+interface PendingDataGridCommitTiming extends DataGridCommitTiming {
+  layoutReadIntervals: Array<readonly [number, number]>
+}
+
 interface PendingDataGridDiagnosticsCommit {
   observer: NonNullable<DataGridDiagnostics['onCommit']>
   renderToken: number
-  source: DataGridCommitSource
-  inputTime: number
-  handlerStartTime: number
-  handlerEndTime: number
-  rangeStartTime: number
-  rangeCalculatedTime: number
-  commitStartTime: number
-  layoutReadIntervals: Array<readonly [number, number]>
-  firstRowIndex: number
-  lastRowIndex: number
-  firstColumnIndex: number
-  lastColumnIndex: number
+  sample: PendingDataGridCommitTiming
 }
 
 const FALLBACK_COLUMN_VIEWPORT_SIZE = 640
@@ -302,6 +298,21 @@ function getDiagnosticTime(): number {
     : globalThis.performance.now()
 }
 
+function getDiagnosticInputTime(event: Event | undefined): number | undefined {
+  return event && event.timeStamp
+}
+
+function getEarliestDiagnosticTime(
+  left: number | null | undefined,
+  right: number | null | undefined,
+): number | null | undefined {
+  if (left === undefined) return right
+  if (right === undefined) return left
+  if (left === null) return right
+  if (right === null) return left
+  return Math.min(left, right)
+}
+
 function collectDiagnosticNodeTree(node: Node, nodes: Set<Node>): void {
   nodes.add(node)
 
@@ -361,6 +372,18 @@ function isNavigationKey(key: string): key is DataGridNavigationKey {
   )
 }
 
+function createColumnIndexById(
+  columns: NormalizedDataGridColumn[],
+): ReadonlyMap<string, number> {
+  const indexById = new Map<string, number>()
+
+  for (let index = columns.length - 1; index >= 0; index -= 1) {
+    indexById.set(columns[index].id, index)
+  }
+
+  return indexById
+}
+
 function escapeDataGridSelectorValue(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
@@ -400,6 +423,7 @@ function setup(
   let columnsSource = resolveColumns(props, fallbackColumns)
 
   const initialDiagnostics = props.diagnostics
+  let observedDiagnostics = initialDiagnostics
   const initialModelBuildObserver =
     initialDiagnostics && initialDiagnostics.onModelBuild
   const initialModelBuildStart = initialModelBuildObserver
@@ -410,12 +434,15 @@ function setup(
   let columnWidths = createDataGridColumnWidthState(baseColumns)
   let columns = applyDataGridColumnWidths(baseColumns, columnWidths)
   let visibleColumns = getVisibleDataGridColumns(columns)
-  let rows = createDataGridRows(rowsSource)
+  let columnIndexById = createColumnIndexById(visibleColumns)
+  let rows: DataGridRowModel = createDataGridRowModel(rowsSource)
   let sort: DataGridSortState | undefined = createDataGridControlledSortState(
     props.sortColumn,
     props.sortDirection,
   )
-  let visibleRows = sort ? sortDataGridRows(rows, columns, sort) : rows
+  let visibleRows: DataGridRowCollection = sort
+    ? sortDataGridRowCollection(rows, columns, sort)
+    : rows
   const selection = createDataGridSelectionModel(
     resolveSelectionMode(props.selectionMode),
     props.selectedKeys ?? [],
@@ -429,20 +456,35 @@ function setup(
     columns: visibleColumns,
     overscan: resolveColumnOverscan(props),
   })
-  if (initialModelBuildObserver) {
+  const emitModelBuild = (
+    observer: DataGridDiagnostics['onModelBuild'],
+    startTime: number,
+    version: number,
+    eagerRowWrapperAllocationCount: number,
+  ): void => {
+    if (!observer) return
+
     modelBuildSequence += 1
-    initialModelBuildObserver({
+    observer({
       sequence: modelBuildSequence,
-      modelVersion: 0,
-      startTime: initialModelBuildStart,
+      modelVersion: version,
+      startTime,
       endTime: getDiagnosticTime(),
       rowCount: rows.length,
       columnCount: columns.length,
       visibleColumnCount: visibleColumns.length,
       sortActive: sort !== undefined,
       rowModelReused: visibleRows === rows,
+      rowIndexEntryCount: rows.length,
+      eagerRowWrapperAllocationCount,
     })
   }
+  emitModelBuild(
+    initialModelBuildObserver,
+    initialModelBuildStart,
+    0,
+    rows.wrapperCount,
+  )
   let currentSnapshot = cloneEmptySnapshot()
   let currentColumnSnapshot = cloneEmptyColumnSnapshot()
   let rowSnapshotCache:
@@ -460,12 +502,11 @@ function setup(
     columns: visibleColumns,
     rowKey: props.activeRowKey,
     columnId: props.activeColumnId,
+    columnIndexById,
   })
   const [activeCellRenderVersion, setActiveCellRenderVersion] = createSignal(0)
   let shouldSyncActiveCellFromProps = false
   let modelVersion = 0
-  let rowSnapshotRevision = 0
-  let columnSnapshotRevision = 0
   let rowsSourceDirty = false
   let columnsSourceDirty = false
   let rowVirtualizerDirty = false
@@ -523,12 +564,10 @@ function setup(
   })
 
   const invalidateRowSnapshotCache = (): void => {
-    rowSnapshotRevision += 1
     rowSnapshotCache = undefined
   }
 
   const invalidateColumnSnapshotCache = (): void => {
-    columnSnapshotRevision += 1
     columnSnapshotCache = undefined
   }
 
@@ -830,6 +869,7 @@ function setup(
     const focusedHeaderTarget = shouldRefreshColumnsForRender
       ? getFocusedHeaderTarget()
       : undefined
+    let eagerRowWrapperAllocationCount = 0
 
     if (columnsSourceDirty) {
       baseColumns = normalizeDataGridColumns(columnsSource)
@@ -837,16 +877,18 @@ function setup(
       columnWidths = createDataGridColumnWidthState(baseColumns)
       columns = applyDataGridColumnWidths(baseColumns, columnWidths)
       visibleColumns = getVisibleDataGridColumns(columns)
+      columnIndexById = createColumnIndexById(visibleColumns)
       columnsSourceDirty = false
     }
 
     if (rowsSourceDirty) {
-      rows = createDataGridRows(rowsSource)
+      rows = createDataGridRowModel(rowsSource)
       rowsSourceDirty = false
+      eagerRowWrapperAllocationCount = rows.wrapperCount
     }
 
     if (rowVirtualizerDirty) {
-      visibleRows = sort ? sortDataGridRows(rows, columns, sort) : rows
+      visibleRows = sort ? sortDataGridRowCollection(rows, columns, sort) : rows
       rebuildRowVirtualizer()
       rowVirtualizerDirty = false
     }
@@ -866,6 +908,7 @@ function setup(
         columnId: shouldSyncActiveCellFromProps
           ? props.activeColumnId
           : (activeCell?.columnId ?? props.activeColumnId),
+        columnIndexById,
       })
 
       if (!areDataGridActiveCellsEqual(activeCell, nextActiveCell)) {
@@ -885,20 +928,12 @@ function setup(
       measureViewport(viewportClientHeight, viewportClientWidth)
     }
 
-    if (modelBuildObserver) {
-      modelBuildSequence += 1
-      modelBuildObserver({
-        sequence: modelBuildSequence,
-        modelVersion: builtModelVersion,
-        startTime: modelBuildStart,
-        endTime: getDiagnosticTime(),
-        rowCount: rows.length,
-        columnCount: columns.length,
-        visibleColumnCount: visibleColumns.length,
-        sortActive: sort !== undefined,
-        rowModelReused: visibleRows === rows,
-      })
-    }
+    emitModelBuild(
+      modelBuildObserver,
+      modelBuildStart,
+      builtModelVersion,
+      eagerRowWrapperAllocationCount,
+    )
 
     if (shouldRefreshRowsForRender) {
       shouldRefreshRowsForRender = false
@@ -929,13 +964,6 @@ function setup(
     scrollOffset: number,
     viewportSize: number,
   ): void => {
-    rowSnapshotCache = {
-      snapshot: nextSnapshot,
-      revision: rowSnapshotRevision,
-      scrollOffset,
-      viewportSize,
-    }
-
     if (!shouldUpdateDataGridVirtualSnapshot(currentSnapshot, nextSnapshot)) {
       return
     }
@@ -954,16 +982,7 @@ function setup(
 
   const updateColumnSnapshotIfChanged = (
     nextSnapshot: DataGridColumnVirtualSnapshot,
-    scrollOffset: number,
-    viewportSize: number,
   ): void => {
-    columnSnapshotCache = {
-      snapshot: nextSnapshot,
-      revision: columnSnapshotRevision,
-      scrollOffset,
-      viewportSize,
-    }
-
     if (
       !shouldUpdateDataGridColumnVirtualSnapshot(
         currentColumnSnapshot,
@@ -992,14 +1011,18 @@ function setup(
           overscanStart: 0,
           overscanEnd: visibleRows.length - 1,
         },
-        items: visibleRows.map((row, index) => ({
-          index,
-          key: row.key,
-          start: index * rowHeight,
-          size: rowHeight,
-          end: (index + 1) * rowHeight,
-          data: row,
-        })),
+        items: Array.from({ length: visibleRows.length }, (_, index) => {
+          const row = visibleRows.getRow(index)!
+
+          return {
+            index,
+            key: row.key,
+            start: index * rowHeight,
+            size: rowHeight,
+            end: (index + 1) * rowHeight,
+            data: row,
+          }
+        }),
         totalSize: total,
       }
     }
@@ -1014,8 +1037,7 @@ function setup(
     const viewportSize = getResolvedViewportSize()
 
     if (
-      rowSnapshotCache?.revision === rowSnapshotRevision &&
-      rowSnapshotCache.scrollOffset === scrollOffset &&
+      rowSnapshotCache?.scrollOffset === scrollOffset &&
       rowSnapshotCache.viewportSize === viewportSize
     ) {
       return rowSnapshotCache.snapshot
@@ -1025,7 +1047,6 @@ function setup(
 
     rowSnapshotCache = {
       snapshot,
-      revision: rowSnapshotRevision,
       scrollOffset,
       viewportSize,
     }
@@ -1084,8 +1105,7 @@ function setup(
     const viewportSize = getResolvedColumnViewportSize()
 
     if (
-      columnSnapshotCache?.revision === columnSnapshotRevision &&
-      columnSnapshotCache.scrollOffset === scrollOffset &&
+      columnSnapshotCache?.scrollOffset === scrollOffset &&
       columnSnapshotCache.viewportSize === viewportSize
     ) {
       return columnSnapshotCache.snapshot
@@ -1095,7 +1115,6 @@ function setup(
 
     columnSnapshotCache = {
       snapshot,
-      revision: columnSnapshotRevision,
       scrollOffset,
       viewportSize,
     }
@@ -1256,49 +1275,31 @@ function setup(
     current: PendingDataGridDiagnosticsCommit,
     next: PendingDataGridDiagnosticsCommit,
   ): PendingDataGridDiagnosticsCommit => {
-    return {
-      observer: current.observer,
-      renderToken: next.renderToken,
-      source: current.source,
-      inputTime: current.inputTime,
-      handlerStartTime: current.handlerStartTime,
-      handlerEndTime: current.handlerEndTime,
-      rangeStartTime: current.rangeStartTime,
-      rangeCalculatedTime: next.rangeCalculatedTime,
-      commitStartTime: next.commitStartTime,
-      layoutReadIntervals: current.layoutReadIntervals.concat(
-        next.layoutReadIntervals,
-      ),
-      firstRowIndex: next.firstRowIndex,
-      lastRowIndex: next.lastRowIndex,
-      firstColumnIndex: next.firstColumnIndex,
-      lastColumnIndex: next.lastColumnIndex,
-    }
+    const currentSample = current.sample
+    const nextSample = next.sample
+    current.renderToken = next.renderToken
+    currentSample.rangeCalculatedTime = nextSample.rangeCalculatedTime
+    currentSample.commitStartTime = nextSample.commitStartTime
+    currentSample.layoutReadIntervals.push(nextSample.layoutReadIntervals[0])
+    currentSample.firstRowIndex = nextSample.firstRowIndex
+    currentSample.lastRowIndex = nextSample.lastRowIndex
+    currentSample.firstColumnIndex = nextSample.firstColumnIndex
+    currentSample.lastColumnIndex = nextSample.lastColumnIndex
+    currentSample.rowWrapperAllocationCount +=
+      nextSample.rowWrapperAllocationCount
+    return current
   }
 
   const finalizeDiagnosticsCommit = (
     commit: PendingDataGridDiagnosticsCommit,
   ): void => {
     const nodeChurn = consumeDiagnosticsNodeChurn()
-    commitTransactionId += 1
-    commit.observer({
-      transactionId: commitTransactionId,
-      source: commit.source,
-      inputTime: commit.inputTime,
-      handlerStartTime: commit.handlerStartTime,
-      rangeStartTime: commit.rangeStartTime,
-      rangeCalculatedTime: commit.rangeCalculatedTime,
-      commitStartTime: commit.commitStartTime,
-      commitEndTime: getDiagnosticTime(),
-      handlerEndTime: commit.handlerEndTime,
-      layoutReadIntervals: commit.layoutReadIntervals,
-      firstRowIndex: commit.firstRowIndex,
-      lastRowIndex: commit.lastRowIndex,
-      firstColumnIndex: commit.firstColumnIndex,
-      lastColumnIndex: commit.lastColumnIndex,
-      createdNodeCount: nodeChurn.createdNodeCount,
-      removedNodeCount: nodeChurn.removedNodeCount,
-    })
+    const sample = commit.sample
+    sample.transactionId = ++commitTransactionId
+    sample.commitEndTime = getDiagnosticTime()
+    sample.createdNodeCount = nodeChurn.createdNodeCount
+    sample.removedNodeCount = nodeChurn.removedNodeCount
+    commit.observer(sample)
   }
 
   const finalizeCompletedPendingDiagnosticsCommit = (): void => {
@@ -1336,13 +1337,14 @@ function setup(
   }
 
   const updateRange = (
-    nativeEvent?: Event,
+    scrollEvent?: Event,
     source: DataGridCommitSource = 'api',
     scheduledHandlerStartTime?: number,
     scheduledHandlerEndTime?: number,
     measureViewportMetrics = source !== 'scroll',
     preservePendingNodeChurn = source === 'mount' && !hasCompletedMountCommit,
     deferCommitDiagnostics = false,
+    diagnosticInput?: Event | number | null,
   ): void => {
     finalizeCompletedPendingDiagnosticsCommit()
 
@@ -1378,8 +1380,18 @@ function setup(
       commitObserver && scheduledHandlerStartTime === undefined
         ? getDiagnosticTime()
         : 0
-    const inputTime = scheduledHandlerStartTime ?? directHandlerStartTime
-    const handlerStartTime = scheduledHandlerStartTime ?? directHandlerStartTime
+    const inputTime =
+      diagnosticInput === null
+        ? undefined
+        : typeof diagnosticInput === 'number'
+          ? diagnosticInput
+          : commitObserver
+            ? getDiagnosticInputTime(diagnosticInput ?? scrollEvent)
+            : undefined
+    const handlerStartTime =
+      scheduledHandlerStartTime !== undefined
+        ? scheduledHandlerStartTime
+        : directHandlerStartTime
     const handlerEndTime =
       scheduledHandlerEndTime !== undefined
         ? scheduledHandlerEndTime
@@ -1388,6 +1400,12 @@ function setup(
           : 0
     const rangeStartTime = commitObserver ? getDiagnosticTime() : 0
     const renderToken = commitObserver ? diagnosticsRenderToken + 1 : 0
+    const diagnosticsRowModel = rows
+    const rowWrapperAllocationStart = commitObserver
+      ? source === 'mount' && !hasCompletedMountCommit
+        ? 0
+        : rows.wrapperCount
+      : 0
 
     if (commitObserver) {
       diagnosticsRenderToken = renderToken
@@ -1405,7 +1423,6 @@ function setup(
 
     const layoutReadStartTime = commitObserver ? getDiagnosticTime() : 0
     const scrollOffset = getScrollOffset(viewport)
-    const columnScrollOffset = getColumnScrollOffset(viewport)
     const clientHeight = measureViewportMetrics
       ? getViewportClientHeight(viewport)
       : viewportClientHeight
@@ -1416,7 +1433,6 @@ function setup(
     const viewportSize = measureViewportMetrics
       ? measureViewport(clientHeight, clientWidth).size
       : getResolvedViewportSize()
-    const columnViewportSize = getResolvedColumnViewportSize(clientWidth)
     const nextSnapshot = getSnapshot()
     const nextColumnSnapshot = getColumnSnapshot()
     const rangeCalculatedTime = commitObserver ? getDiagnosticTime() : 0
@@ -1424,11 +1440,7 @@ function setup(
 
     batch(() => {
       emitSnapshotIfChanged(nextSnapshot, scrollOffset, viewportSize)
-      updateColumnSnapshotIfChanged(
-        nextColumnSnapshot,
-        columnScrollOffset,
-        columnViewportSize,
-      )
+      updateColumnSnapshotIfChanged(nextColumnSnapshot)
     })
     if (
       source === 'data' &&
@@ -1444,10 +1456,10 @@ function setup(
     ) {
       headerFocusScheduler.flush()
     }
-    if (nativeEvent) {
+    if (scrollEvent) {
       ctx.emit.scrollOffsetChange({
         offset: scrollOffset,
-        nativeEvent,
+        nativeEvent: scrollEvent,
       })
     }
 
@@ -1457,18 +1469,27 @@ function setup(
     const diagnosticsCommit: PendingDataGridDiagnosticsCommit = {
       observer: commitObserver,
       renderToken,
-      source,
-      inputTime,
-      handlerStartTime,
-      handlerEndTime,
-      rangeStartTime,
-      rangeCalculatedTime,
-      commitStartTime,
-      layoutReadIntervals: [[layoutReadStartTime, layoutReadEndTime]],
-      firstRowIndex: nextSnapshot.range.start,
-      lastRowIndex: nextSnapshot.range.end,
-      firstColumnIndex: nextColumnSnapshot.range.start,
-      lastColumnIndex: nextColumnSnapshot.range.end,
+      sample: {
+        transactionId: 0,
+        source,
+        inputTime,
+        handlerStartTime,
+        handlerEndTime,
+        rangeStartTime,
+        rangeCalculatedTime,
+        commitStartTime,
+        commitEndTime: 0,
+        layoutReadIntervals: [[layoutReadStartTime, layoutReadEndTime]],
+        firstRowIndex: nextSnapshot.range.start,
+        lastRowIndex: nextSnapshot.range.end,
+        firstColumnIndex: nextColumnSnapshot.range.start,
+        lastColumnIndex: nextColumnSnapshot.range.end,
+        createdNodeCount: 0,
+        removedNodeCount: 0,
+        rowWrapperAllocationCount:
+          rows.wrapperCount -
+          (rows === diagnosticsRowModel ? rowWrapperAllocationStart : 0),
+      },
     }
 
     if (pendingDiagnosticsCommit || deferCommitDiagnostics) {
@@ -1480,18 +1501,25 @@ function setup(
   }
 
   const scheduleUpdateRange = (
-    nativeEvent?: Event,
-    source: DataGridCommitSource = nativeEvent ? 'scroll' : 'api',
+    inputEvent?: Event,
+    source: DataGridCommitSource = inputEvent ? 'scroll' : 'api',
     scheduledHandlerStartTime?: number,
     preservePendingNodeChurn = source === 'mount' && !hasCompletedMountCommit,
   ): void => {
     const handlerStartTime =
-      scheduledHandlerStartTime ?? startDiagnosticsHandler()
+      scheduledHandlerStartTime !== undefined
+        ? scheduledHandlerStartTime
+        : startDiagnosticsHandler()
     const handlerEndTime =
       handlerStartTime === undefined ? undefined : getDiagnosticTime()
+    const inputTime =
+      handlerStartTime === undefined
+        ? undefined
+        : (getDiagnosticInputTime(inputEvent) ?? null)
     const nextUpdate: PendingDataGridRangeUpdate = {
-      nativeEvent,
+      scrollEvent: source === 'scroll' ? inputEvent : undefined,
       source,
+      inputTime,
       handlerStartTime,
       handlerEndTime,
       measureViewportMetrics: source === 'mount' || source === 'resize',
@@ -1506,22 +1534,27 @@ function setup(
         getDataGridCommitPriority(nextUpdate.source) >=
         getDataGridCommitPriority(previousUpdate.source)
 
-      pendingRangeUpdate = {
-        nativeEvent: nextUpdate.nativeEvent ?? previousUpdate.nativeEvent,
-        source: shouldReplaceTiming ? nextUpdate.source : previousUpdate.source,
-        handlerStartTime: shouldReplaceTiming
-          ? nextUpdate.handlerStartTime
-          : previousUpdate.handlerStartTime,
-        handlerEndTime: shouldReplaceTiming
-          ? nextUpdate.handlerEndTime
-          : previousUpdate.handlerEndTime,
-        measureViewportMetrics:
-          previousUpdate.measureViewportMetrics ||
-          nextUpdate.measureViewportMetrics,
-        preservePendingNodeChurn:
-          previousUpdate.preservePendingNodeChurn ||
-          nextUpdate.preservePendingNodeChurn,
+      if (nextUpdate.scrollEvent) {
+        previousUpdate.scrollEvent = nextUpdate.scrollEvent
       }
+      if (shouldReplaceTiming) {
+        previousUpdate.inputTime =
+          previousUpdate.source === nextUpdate.source
+            ? getEarliestDiagnosticTime(
+                previousUpdate.inputTime,
+                nextUpdate.inputTime,
+              )
+            : nextUpdate.inputTime
+        previousUpdate.source = nextUpdate.source
+        previousUpdate.handlerStartTime = nextUpdate.handlerStartTime
+        previousUpdate.handlerEndTime = nextUpdate.handlerEndTime
+      }
+      previousUpdate.measureViewportMetrics =
+        previousUpdate.measureViewportMetrics ||
+        nextUpdate.measureViewportMetrics
+      previousUpdate.preservePendingNodeChurn =
+        previousUpdate.preservePendingNodeChurn ||
+        nextUpdate.preservePendingNodeChurn
     }
 
     scheduler.schedule(() => {
@@ -1531,12 +1564,14 @@ function setup(
       if (!update) return
 
       updateRange(
-        update.nativeEvent,
+        update.scrollEvent,
         update.source,
         update.handlerStartTime,
         update.handlerEndTime,
         update.measureViewportMetrics,
         update.preservePendingNodeChurn,
+        false,
+        update.inputTime,
       )
     })
   }
@@ -1563,6 +1598,22 @@ function setup(
     if (!controlledSourcesChanged) return
 
     scheduleUpdateRange(undefined, 'data', undefined, true)
+  })
+
+  createEffect(() => {
+    const diagnostics = props.diagnostics
+    if (diagnostics === observedDiagnostics) return
+
+    observedDiagnostics = diagnostics
+    pendingDiagnosticsCommit = undefined
+    if (pendingRangeUpdate) {
+      pendingRangeUpdate.inputTime = null
+      pendingRangeUpdate.handlerStartTime = undefined
+      pendingRangeUpdate.handlerEndTime = undefined
+    }
+    if (pendingCreatedNodes) pendingCreatedNodes.clear()
+    if (pendingRemovedNodes) pendingRemovedNodes.clear()
+    ensureDiagnosticsMutationObserver()
   })
 
   const scrollToColumnIndex = (
@@ -1678,12 +1729,10 @@ function setup(
   ): void => {
     rebuildModels()
 
-    const rowIndex = visibleRows.findIndex(row => row.key === rowKey)
-    const columnIndex = visibleColumns.findIndex(
-      column => column.id === columnId,
-    )
+    const rowIndex = visibleRows.getIndexByKey(rowKey)
+    const columnIndex = columnIndexById.get(columnId)
 
-    if (rowIndex < 0 || columnIndex < 0) return
+    if (rowIndex === undefined || columnIndex === undefined) return
 
     emitActiveCell(
       createDataGridActiveCell(
@@ -1734,12 +1783,10 @@ function setup(
 
     if (props.keyboardNavigation === false) return
 
-    const rowIndex = visibleRows.findIndex(row => row.key === rowKey)
-    const columnIndex = visibleColumns.findIndex(
-      column => column.id === columnId,
-    )
+    const rowIndex = visibleRows.getIndexByKey(rowKey)
+    const columnIndex = columnIndexById.get(columnId)
 
-    if (rowIndex < 0 || columnIndex < 0) return
+    if (rowIndex === undefined || columnIndex === undefined) return
 
     const current = createDataGridActiveCell(
       visibleRows,
@@ -1773,6 +1820,7 @@ function setup(
     width: number,
     nativeEvent?: Event,
   ): void => {
+    const handlerStartTime = startDiagnosticsHandler()
     rebuildModels()
 
     const result = resizeDataGridColumn(columns, columnId, width, columnWidths)
@@ -1783,7 +1831,16 @@ function setup(
     visibleColumns = getVisibleDataGridColumns(columns)
     modelVersion += 1
     columnVirtualizerDirty = true
-    updateRange()
+    updateRange(
+      undefined,
+      'data',
+      handlerStartTime,
+      handlerStartTime === undefined ? undefined : getDiagnosticTime(),
+      true,
+      false,
+      false,
+      nativeEvent,
+    )
 
     ctx.emit.columnResize({
       column: result.column,
@@ -1817,6 +1874,7 @@ function setup(
 
   const moveResize = (nativeEvent: PointerEvent): void => {
     if (!resizeSession) return
+    const handlerStartTime = startDiagnosticsHandler()
 
     const result = resizeDataGridColumnByDelta({
       columns,
@@ -1833,7 +1891,7 @@ function setup(
     visibleColumns = getVisibleDataGridColumns(columns)
     modelVersion += 1
     columnVirtualizerDirty = true
-    scheduleUpdateRange()
+    scheduleUpdateRange(nativeEvent, 'data', handlerStartTime)
 
     ctx.emit.columnResize({
       column: result.column,
@@ -1863,6 +1921,7 @@ function setup(
     direction?: DataGridSortDirection,
     nativeEvent?: Event,
   ): void => {
+    const handlerStartTime = startDiagnosticsHandler()
     rebuildModels()
 
     const column = getDataGridColumnById(columns, columnId)
@@ -1880,7 +1939,16 @@ function setup(
       nativeEvent,
     })
 
-    updateRange(undefined, 'data')
+    updateRange(
+      undefined,
+      'data',
+      handlerStartTime,
+      handlerStartTime === undefined ? undefined : getDiagnosticTime(),
+      true,
+      false,
+      false,
+      nativeEvent,
+    )
   }
 
   ctx.expose({
@@ -1938,7 +2006,7 @@ function setup(
 
     getRows(): DataGridRow[] {
       rebuildModels()
-      return rows.map(row => ({ ...row }))
+      return materializeDataGridRows(rows)
     },
 
     getColumns(): NormalizedDataGridColumn[] {
@@ -1948,7 +2016,7 @@ function setup(
 
     getVisibleRows(): DataGridRow[] {
       rebuildModels()
-      return visibleRows.map(row => ({ ...row }))
+      return materializeDataGridRows(visibleRows)
     },
 
     getSelection(): DataGridSelectionState {
@@ -2127,16 +2195,14 @@ function setup(
     focusCell(rowKey: DataGridRowKey, columnId: string): void {
       rebuildModels()
 
-      const rowIndex = visibleRows.findIndex(row => row.key === rowKey)
-      const columnIndex = visibleColumns.findIndex(
-        column => column.id === columnId,
-      )
+      const rowIndex = visibleRows.getIndexByKey(rowKey)
+      const columnIndex = columnIndexById.get(columnId)
 
-      if (rowIndex >= 0) {
+      if (rowIndex !== undefined) {
         ctx.host.scrollToIndex(rowIndex, 'center')
       }
 
-      if (columnIndex >= 0) {
+      if (columnIndex !== undefined) {
         scrollToColumnIndex(columnIndex, 'center')
       }
 
@@ -2366,9 +2432,7 @@ function setup(
             viewport = element
             element.addEventListener('scroll', scheduleUpdateRange)
             connectViewportObserver(element)
-            if (initialDiagnostics && initialDiagnostics.onCommit) {
-              ensureDiagnosticsMutationObserver()
-            }
+            ensureDiagnosticsMutationObserver()
             scheduleUpdateRange(undefined, 'mount')
             return
           }
@@ -2417,7 +2481,6 @@ function setup(
           >
             {item => (
               <div
-                key={item.data.id}
                 part="header-cell"
                 data-slot="data-grid-header-cell"
                 data-column-id={item.data.id}
@@ -2564,7 +2627,6 @@ function setup(
           <For each={getBodyRowsForRender()} by={getBodyRowReconciliationKey}>
             {rowItem => (
               <div
-                key={rowItem.key}
                 part="row"
                 data-slot="data-grid-row"
                 data-row-key={rowItem.data.key}
@@ -2612,7 +2674,6 @@ function setup(
                 >
                   {columnItem => (
                     <div
-                      key={columnItem.data.id}
                       id={
                         getDataGridActiveCellId({
                           rowIndex: rowItem.data.index,
@@ -2793,9 +2854,11 @@ export const DataGrid = defineElement<
       activeColumnId: prop(String, {
         attr: 'active-column-id',
       }),
-      diagnostics: prop<DataGridDiagnostics>(Object, {
+      diagnostics: {
+        type: Object,
         attr: false,
-      }),
+        reactivity: 'shallow',
+      },
     },
     emits: {
       rangeChange: event<DataGridRangeChangeDetail>(),
