@@ -27,6 +27,7 @@ import {
   parsePublishedPackageOptions,
   parseRegistryPackageMetadata,
   readPublishedPackageLatestBaseline,
+  verifyPublishedPackageRegistry,
   verifySlsaProvenanceBundle,
 } from '../release/check-published-packages'
 
@@ -816,6 +817,48 @@ describe('published package smoke check', () => {
     )
 
     expect(problems).toEqual([])
+  })
+
+  it('keeps retrying registry verification across the propagation window', () => {
+    const attempts: number[] = []
+    const waits: number[] = []
+    const version = '0.1.0-beta.1'
+    const options = {
+      latestBaselinePath: '/tmp/latest.json',
+      releaseSha: RELEASE_SHA,
+      registry: 'https://registry.npmjs.org/',
+      root: process.cwd(),
+      tag: 'beta',
+      version,
+    }
+    const availableMetadata = createPublishedMetadata({ version })
+    const propagationMetadata = {
+      ...availableMetadata,
+      provenanceStatement: undefined,
+    }
+
+    return verifyPublishedPackageRegistry(
+      ['@zeus-web/button'],
+      options,
+      createLatestBaseline(),
+      {
+        fetchMetadata: () => {
+          attempts.push(attempts.length + 1)
+
+          return Promise.resolve(
+            attempts.length < 13 ? propagationMetadata : availableMetadata,
+          )
+        },
+        wait: milliseconds => {
+          waits.push(milliseconds)
+          return Promise.resolve()
+        },
+      },
+    ).then(() => {
+      expect(attempts).toHaveLength(13)
+      expect(waits).toEqual(Array.from({ length: 12 }).fill(10_000))
+      expect('Registry verification attempt').toHaveBeenWarnedTimes(12)
+    })
   })
 
   it('rejects a beta package first publish that unexpectedly creates latest', () => {
