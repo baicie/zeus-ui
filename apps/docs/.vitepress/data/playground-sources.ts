@@ -844,8 +844,7 @@ const advancedSources = {
       label: 'React',
       language: 'tsx',
       code: [
-        "import type { AgentConsoleProps } from '@zeus-web/agent-console/react'",
-        "import { AgentConsole } from '@zeus-web/agent-console/react'",
+        "import { AgentConsole, type AgentConsoleProps } from '@zeus-web/agent-console/react'",
         '',
         'const startedAt = Date.now()',
         "const messages: NonNullable<AgentConsoleProps['messages']> = [",
