@@ -819,9 +819,54 @@ describe('published package smoke check', () => {
     expect(problems).toEqual([])
   })
 
-  it('keeps retrying registry verification across the propagation window', () => {
-    const attempts: number[] = []
+  it('stops after the two-minute registry propagation window', () => {
+    const verificationError = new Error('attestation is still unavailable')
+    let attempts = 0
     const waits: number[] = []
+    const options = {
+      latestBaselinePath: '/tmp/latest.json',
+      releaseSha: RELEASE_SHA,
+      registry: 'https://registry.npmjs.org/',
+      root: process.cwd(),
+      tag: 'beta',
+      version: '0.1.0-beta.1',
+    }
+
+    return verifyPublishedPackageRegistry(
+      ['@zeus-web/button'],
+      options,
+      createLatestBaseline(),
+      {
+        fetchMetadata: () => {
+          attempts += 1
+
+          return Promise.reject(verificationError)
+        },
+        wait: milliseconds => {
+          waits.push(milliseconds)
+          return Promise.resolve()
+        },
+      },
+    ).then(
+      () => {
+        throw new Error('Expected registry verification to fail')
+      },
+      error => {
+        expect(error).toBe(verificationError)
+        expect(attempts).toBe(13)
+        expect(waits).toEqual(Array.from({ length: 12 }).fill(10_000))
+        expect('Registry verification attempt').toHaveBeenWarnedTimes(12)
+      },
+    )
+  })
+
+  it('waits for the retry delay before the next registry attempt', () => {
+    let attempts = 0
+    let releaseWait = () => {}
+    let signalWaitStarted = () => {}
+    const waitStarted = new Promise<void>(resolve => {
+      signalWaitStarted = resolve
+    })
     const version = '0.1.0-beta.1'
     const options = {
       latestBaselinePath: '/tmp/latest.json',
@@ -832,33 +877,43 @@ describe('published package smoke check', () => {
       version,
     }
     const availableMetadata = createPublishedMetadata({ version })
-    const propagationMetadata = {
-      ...availableMetadata,
+    const propagationMetadata = Object.assign({}, availableMetadata, {
       provenanceStatement: undefined,
-    }
-
-    return verifyPublishedPackageRegistry(
+    })
+    const verification = verifyPublishedPackageRegistry(
       ['@zeus-web/button'],
       options,
       createLatestBaseline(),
       {
         fetchMetadata: () => {
-          attempts.push(attempts.length + 1)
+          attempts += 1
 
           return Promise.resolve(
-            attempts.length < 13 ? propagationMetadata : availableMetadata,
+            attempts === 1 ? propagationMetadata : availableMetadata,
           )
         },
         wait: milliseconds => {
-          waits.push(milliseconds)
-          return Promise.resolve()
+          expect(milliseconds).toBe(10_000)
+          signalWaitStarted()
+
+          return new Promise<void>(resolve => {
+            releaseWait = resolve
+          })
         },
       },
-    ).then(() => {
-      expect(attempts).toHaveLength(13)
-      expect(waits).toEqual(Array.from({ length: 12 }).fill(10_000))
-      expect('Registry verification attempt').toHaveBeenWarnedTimes(12)
-    })
+    )
+
+    return waitStarted
+      .then(() => {
+        expect(attempts).toBe(1)
+        releaseWait()
+
+        return verification
+      })
+      .then(() => {
+        expect(attempts).toBe(2)
+        expect('Registry verification attempt 1').toHaveBeenWarnedTimes(1)
+      })
   })
 
   it('rejects a beta package first publish that unexpectedly creates latest', () => {

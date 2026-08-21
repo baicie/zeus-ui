@@ -135,8 +135,10 @@ const EXPECTED_CERTIFICATE_ISSUER =
   'https://token.actions.githubusercontent.com'
 const EXPECTED_WORKFLOW_REPOSITORY = repositoryUrl.replace(/\.git$/, '')
 const EXPECTED_WORKFLOW_PATH = '.github/workflows/publish.yml'
-const MAX_REGISTRY_ATTEMPTS = 13
+const REGISTRY_PROPAGATION_WINDOW_MS = 120_000
 const REGISTRY_RETRY_DELAY_MS = 10_000
+const MAX_REGISTRY_ATTEMPTS =
+  REGISTRY_PROPAGATION_WINDOW_MS / REGISTRY_RETRY_DELAY_MS + 1
 const RELEASE_VERSION_PATTERN =
   /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-([\da-z-]+(?:\.[\da-z-]+)*))?$/i
 const SLSA_PREDICATE_TYPE = 'https://slsa.dev/provenance/v1'
@@ -899,9 +901,7 @@ function verifyRegistry(
   dependencies: PublishedPackageVerificationDependencies = {},
 ): Promise<void> {
   const fetchMetadata =
-    dependencies.fetchMetadata ||
-    ((packageName: string, version: string, registry: string) =>
-      fetchPublishedPackageMetadata(packageName, version, registry))
+    dependencies.fetchMetadata || fetchPublishedPackageMetadata
   const wait = dependencies.wait || delay
 
   return Promise.all(
