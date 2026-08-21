@@ -1,7 +1,7 @@
 {
   "name": "@zeus-web/revogrid-adapter",
   "type": "module",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "description": "RevoGrid-compatible adapter for Zeus Web DataGrid models.",
   "license": "MIT",
   "repository": {
