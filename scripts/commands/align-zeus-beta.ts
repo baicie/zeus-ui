@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url'
 
 import { createZeusPeerRequirement } from '../release/zeus-peer-requirement'
 
-const DEFAULT_VERSION = '0.1.1-beta.1'
+const DEFAULT_VERSION = '0.1.1-beta.2'
 const ZEUS_SCOPE = '@zeus-js/'
 
 const DEP_FIELDS = [
