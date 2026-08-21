@@ -56,10 +56,11 @@ Choose the framework entry that matches your application.
 ```
 
 ```tsx [React]
+import type { AgentConsoleProps } from '@zeus-web/agent-console/react'
 import { AgentConsole } from '@zeus-web/agent-console/react'
 
 const startedAt = Date.now()
-const messages = [
+const messages: NonNullable<AgentConsoleProps['messages']> = [
   {
     id: 'message-1',
     role: 'assistant',
