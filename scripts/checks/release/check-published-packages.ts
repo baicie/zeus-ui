@@ -115,6 +115,15 @@ export interface SigstoreVerifier {
   (bundle: unknown, options: SigstoreVerifyOptions): Promise<void>
 }
 
+export interface PublishedPackageVerificationDependencies {
+  fetchMetadata?: (
+    packageName: string,
+    version: string,
+    registry: string,
+  ) => Promise<PublishedPackageMetadata>
+  wait?: (milliseconds: number) => Promise<void>
+}
+
 interface CapturedPackageLatest {
   latest: string | null
   packageName: string
@@ -126,8 +135,10 @@ const EXPECTED_CERTIFICATE_ISSUER =
   'https://token.actions.githubusercontent.com'
 const EXPECTED_WORKFLOW_REPOSITORY = repositoryUrl.replace(/\.git$/, '')
 const EXPECTED_WORKFLOW_PATH = '.github/workflows/publish.yml'
-const MAX_REGISTRY_ATTEMPTS = 6
-const REGISTRY_RETRY_DELAY_MS = 5000
+const REGISTRY_PROPAGATION_WINDOW_MS = 120_000
+const REGISTRY_RETRY_DELAY_MS = 10_000
+const MAX_REGISTRY_ATTEMPTS =
+  REGISTRY_PROPAGATION_WINDOW_MS / REGISTRY_RETRY_DELAY_MS + 1
 const RELEASE_VERSION_PATTERN =
   /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-([\da-z-]+(?:\.[\da-z-]+)*))?$/i
 const SLSA_PREDICATE_TYPE = 'https://slsa.dev/provenance/v1'
@@ -873,19 +884,31 @@ function delay(milliseconds: number): Promise<void> {
   })
 }
 
+export function verifyPublishedPackageRegistry(
+  packageNames: string[],
+  options: PublishedPackageCheckOptions,
+  latestBaseline: PublishedPackageLatestBaseline,
+  dependencies: PublishedPackageVerificationDependencies = {},
+): Promise<void> {
+  return verifyRegistry(packageNames, options, latestBaseline, 1, dependencies)
+}
+
 function verifyRegistry(
   packageNames: string[],
   options: PublishedPackageCheckOptions,
   latestBaseline: PublishedPackageLatestBaseline,
   attempt = 1,
+  dependencies: PublishedPackageVerificationDependencies = {},
 ): Promise<void> {
+  const fetchMetadata =
+    dependencies.fetchMetadata || fetchPublishedPackageMetadata
+  const wait = dependencies.wait || delay
+
   return Promise.all(
     packageNames.map(packageName =>
-      fetchPublishedPackageMetadata(
-        packageName,
-        options.version,
-        options.registry,
-      ).then(metadata => ({ metadata, packageName })),
+      fetchMetadata(packageName, options.version, options.registry).then(
+        metadata => ({ metadata, packageName }),
+      ),
     ),
   )
     .then(results => {
@@ -919,8 +942,14 @@ function verifyRegistry(
         ),
       )
 
-      return delay(REGISTRY_RETRY_DELAY_MS).then(() =>
-        verifyRegistry(packageNames, options, latestBaseline, attempt + 1),
+      return wait(REGISTRY_RETRY_DELAY_MS).then(() =>
+        verifyRegistry(
+          packageNames,
+          options,
+          latestBaseline,
+          attempt + 1,
+          dependencies,
+        ),
       )
     })
 }
@@ -1067,7 +1096,11 @@ function main(): Promise<void> {
     options.latestBaselinePath,
   )
 
-  return verifyRegistry(packageNames, options, latestBaseline).then(() => {
+  return verifyPublishedPackageRegistry(
+    packageNames,
+    options,
+    latestBaseline,
+  ).then(() => {
     console.info(
       pc.green(
         `Verified npm metadata for ${packageNames.length} packages at ${options.version} (${options.tag})`,
