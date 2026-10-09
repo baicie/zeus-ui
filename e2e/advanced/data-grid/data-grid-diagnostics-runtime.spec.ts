@@ -103,6 +103,167 @@ describe('zw-data-grid diagnostics', () => {
     expectCommitTimingOrder(commits[0])
   })
 
+  it('records renderer commit end before diagnostics traversal ends', async () => {
+    const commits: Readonly<DataGridCommitTiming>[] = []
+    const takeRecordTimes: number[] = []
+    let clock = 0
+    const performanceNow = vi
+      .spyOn(globalThis.performance, 'now')
+      .mockImplementation(() => ++clock)
+    const takeRecords = vi
+      .spyOn(MutationObserver.prototype, 'takeRecords')
+      .mockImplementation(() => {
+        takeRecordTimes.push(performance.now())
+        return []
+      })
+
+    try {
+      const grid = await mountDataGrid({
+        rows: [{ id: 'row', value: 'value' }],
+        columns: [{ id: 'value', field: 'value' }],
+        diagnostics: {
+          onCommit(sample) {
+            commits.push(sample)
+          },
+        },
+      })
+
+      grid.scrollToOffset(0)
+      const commit = commits.find(sample => sample.source === 'api')
+
+      expect(commit).toBeDefined()
+      expect(commit?.diagnosticsEndTime).toBeGreaterThan(
+        commit?.commitEndTime ?? 0,
+      )
+      expect(
+        takeRecordTimes.some(
+          time =>
+            time > (commit?.commitEndTime ?? Number.POSITIVE_INFINITY) &&
+            time <= (commit?.diagnosticsEndTime ?? 0),
+        ),
+      ).toBe(true)
+    } finally {
+      takeRecords.mockRestore()
+      performanceNow.mockRestore()
+    }
+  })
+
+  it('skips node-churn traversal when measureNodeChurn is false', async () => {
+    const commits: Readonly<DataGridCommitTiming>[] = []
+    let clock = 0
+    const performanceNow = vi
+      .spyOn(globalThis.performance, 'now')
+      .mockImplementation(() => ++clock)
+    const observe = vi.spyOn(MutationObserver.prototype, 'observe')
+
+    try {
+      const grid = await mountDataGrid({
+        rows: [{ id: 'row', value: 'value' }],
+        columns: [{ id: 'value', field: 'value' }],
+        diagnostics: {
+          measureNodeChurn: false,
+          onCommit(sample) {
+            commits.push(sample)
+          },
+        },
+      })
+
+      expect(
+        observe.mock.calls.some(([target]) =>
+          isDataGridDiagnosticsMutationTarget(target),
+        ),
+      ).toBe(false)
+
+      const mountCommit = commits.find(sample => sample.source === 'mount')
+      expect(mountCommit).toBeDefined()
+      expectCommitTimingOrder(mountCommit as Readonly<DataGridCommitTiming>)
+      expect(mountCommit?.diagnosticsEndTime).toBe(mountCommit?.commitEndTime)
+      expect(mountCommit?.createdNodeCount).toBe(0)
+      expect(mountCommit?.removedNodeCount).toBe(0)
+      expect(mountCommit?.rowWrapperAllocationCount).toBeGreaterThan(0)
+
+      grid.scrollToOffset(0)
+      const apiCommit = commits.find(sample => sample.source === 'api')
+      expect(apiCommit).toBeDefined()
+      expectCommitTimingOrder(apiCommit as Readonly<DataGridCommitTiming>)
+      expect(apiCommit?.diagnosticsEndTime).toBe(apiCommit?.commitEndTime)
+      expect(apiCommit?.createdNodeCount).toBe(0)
+      expect(apiCommit?.removedNodeCount).toBe(0)
+    } finally {
+      observe.mockRestore()
+      performanceNow.mockRestore()
+    }
+  })
+
+  it('finalizes an observer-free data commit before the next setter prepares state', async () => {
+    const commits: Readonly<DataGridCommitTiming>[] = []
+    const grid = await mountDataGrid({
+      rows: [{ id: 'initial-row', value: 'Initial' }],
+      columns: [{ id: 'value', field: 'value' }],
+      diagnostics: {
+        measureNodeChurn: false,
+        onCommit(sample) {
+          commits.push(sample)
+        },
+      },
+    })
+
+    commits.length = 0
+    grid.setRows([{ id: 'next-row', value: 'Next' }])
+    expect(commits).toHaveLength(0)
+
+    let commitsBeforeColumnSync = -1
+    const descriptor = Object.getOwnPropertyDescriptor(grid, 'columns')!
+    Object.defineProperty(grid, 'columns', {
+      configurable: true,
+      get: descriptor.get,
+      set(value) {
+        commitsBeforeColumnSync = commits.length
+        descriptor.set!.call(grid, value)
+      },
+    })
+    try {
+      grid.setColumns([{ id: 'next-column', field: 'value' }])
+      expect(commitsBeforeColumnSync).toBe(1)
+      await Promise.resolve()
+
+      expect(commits.map(sample => sample.source)).toEqual(['data', 'data'])
+      expect(commits[0].commitEndTime).toBeLessThanOrEqual(
+        commits[1].commitStartTime,
+      )
+      for (const sample of commits) {
+        expect(sample.diagnosticsEndTime).toBe(sample.commitEndTime)
+        expect(sample.createdNodeCount).toBe(0)
+        expect(sample.removedNodeCount).toBe(0)
+      }
+    } finally {
+      Object.defineProperty(grid, 'columns', descriptor)
+    }
+  })
+
+  it('disconnects node churn observation when measureNodeChurn is turned off', async () => {
+    const disconnect = vi.spyOn(MutationObserver.prototype, 'disconnect')
+
+    try {
+      const grid = await mountDataGrid({
+        diagnostics: {
+          onCommit() {},
+        },
+      })
+      disconnect.mockClear()
+
+      grid.diagnostics = {
+        measureNodeChurn: false,
+        onCommit() {},
+      }
+      await Promise.resolve()
+
+      expect(disconnect).toHaveBeenCalledTimes(1)
+    } finally {
+      disconnect.mockRestore()
+    }
+  })
+
   it('builds the initial model once when rows and columns are omitted', async () => {
     defineDataGridElement()
     const modelBuilds: Readonly<DataGridModelBuildTiming>[] = []
@@ -205,6 +366,42 @@ describe('zw-data-grid diagnostics', () => {
 
     expect(commits).toHaveLength(0)
     expect(grid.textContent).toContain('Next')
+  })
+
+  it('drops an in-flight commit when measureNodeChurn is toggled off', async () => {
+    const commits: Readonly<DataGridCommitTiming>[] = []
+    const grid = await mountDataGrid({
+      rows: [{ id: 'initial-row', value: 'Initial' }],
+      columns: [{ id: 'value', field: 'value' }],
+      diagnostics: {
+        onCommit(sample) {
+          commits.push(sample)
+        },
+      },
+    })
+
+    commits.length = 0
+    batch(() => {
+      grid.setRows([{ id: 'next-row', value: 'Next' }])
+      grid.diagnostics = {
+        measureNodeChurn: false,
+        onCommit(sample) {
+          commits.push(sample)
+        },
+      }
+    })
+    await Promise.resolve()
+
+    expect(commits).toHaveLength(0)
+    expect(grid.textContent).toContain('Next')
+
+    grid.scrollToOffset(0)
+    const apiCommit = commits.find(sample => sample.source === 'api')
+    expect(apiCommit).toBeDefined()
+    expectCommitTimingOrder(apiCommit as Readonly<DataGridCommitTiming>)
+    expect(apiCommit?.diagnosticsEndTime).toBe(apiCommit?.commitEndTime)
+    expect(apiCommit?.createdNodeCount).toBe(0)
+    expect(apiCommit?.removedNodeCount).toBe(0)
   })
 
   it('reports active sort without claiming row model reuse', async () => {
@@ -977,6 +1174,7 @@ function expectCommitTimingOrder(
     sample.rangeCalculatedTime,
   )
   expect(sample.commitEndTime).toBeGreaterThanOrEqual(sample.commitStartTime)
+  expect(sample.diagnosticsEndTime).toBeGreaterThanOrEqual(sample.commitEndTime)
   expect(sample.layoutReadIntervals).toHaveLength(layoutReadCount)
 
   for (const interval of sample.layoutReadIntervals) {

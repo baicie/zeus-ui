@@ -214,11 +214,11 @@ describe('zw-data-grid accessibility runtime', () => {
       start: 0,
       end: 9,
       overscanStart: 0,
-      overscanEnd: 10,
+      overscanEnd: 12,
     })
     /* eslint-disable antfu/consistent-list-newline */
     expect(grid.getItems().map(item => item.index)).toEqual([
-      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
     ])
     /* eslint-enable antfu/consistent-list-newline */
   })
