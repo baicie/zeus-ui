@@ -1427,7 +1427,8 @@ function setup(
       ? measureViewport(clientHeight, clientWidth).size
       : getResolvedViewportSize()
     const nextColumnSnapshot =
-      scrollEvent && columnSnapshotCache?.scrollOffset === viewport!.scrollLeft
+      scrollEvent &&
+      columnSnapshotCache?.scrollOffset === getColumnScrollOffset(viewport)
         ? currentColumnSnapshot
         : getColumnSnapshot()
     const nextSnapshot = getSnapshot()
@@ -1570,7 +1571,7 @@ function setup(
     }
 
     scheduler.schedule(commit)
-    inputEvent && scheduler.flush()
+    source === 'scroll' && scheduler.flush()
   }
 
   const beginDiagnosticsNodeChurn = (): boolean => {
