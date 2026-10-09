@@ -1578,6 +1578,11 @@ function setup(
         update.inputTime,
       )
     })
+
+    // Native scroll events are already delivered at the browser's input
+    // cadence. Commit them in the same task so a queued rAF does not add a
+    // full presentation frame to the scroll completion boundary.
+    if (source === 'scroll') scheduler.flush()
   }
 
   const beginDiagnosticsNodeChurn = (): boolean => {
