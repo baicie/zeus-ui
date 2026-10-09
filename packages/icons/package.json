@@ -1,7 +1,7 @@
 {
   "name": "@zeus-web/icons",
   "type": "module",
-  "version": "0.1.0-beta.5",
+  "version": "0.1.0-beta.6",
   "description": "Multi-framework icon set for Zeus Web.",
   "license": "MIT",
   "repository": {
@@ -63,6 +63,6 @@
     }
   },
   "dependencies": {
-    "@zeus-js/output-icons": "0.1.1-beta.2"
+    "@zeus-js/output-icons": "0.1.1-beta.3"
   }
 }
