@@ -2,7 +2,6 @@
   "name": "@zeus-web/button",
   "type": "module",
   "version": "0.1.0-beta.9",
-  "version": "0.1.0-beta.9",
   "description": "Headless button primitive for Zeus Web.",
   "license": "MIT",
   "repository": {

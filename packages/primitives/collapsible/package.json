@@ -2,7 +2,6 @@
   "name": "@zeus-web/collapsible",
   "type": "module",
   "version": "0.1.0-beta.9",
-  "version": "0.1.0-beta.9",
   "description": "Headless collapsible primitive for Zeus Web.",
   "license": "MIT",
   "repository": {

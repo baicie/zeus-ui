@@ -2,7 +2,6 @@
   "name": "@zeus-web/registry",
   "type": "module",
   "version": "0.1.0-beta.9",
-  "version": "0.1.0-beta.9",
   "description": "Source component registry templates for Zeus Web.",
   "license": "MIT",
   "repository": {

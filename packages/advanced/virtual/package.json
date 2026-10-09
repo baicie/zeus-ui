@@ -2,7 +2,6 @@
   "name": "@zeus-web/virtual",
   "type": "module",
   "version": "0.1.0-beta.9",
-  "version": "0.1.0-beta.9",
   "description": "Headless virtual scrolling foundation for Zeus Web advanced components.",
   "license": "MIT",
   "repository": {
