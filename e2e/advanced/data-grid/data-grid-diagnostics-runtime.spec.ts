@@ -103,6 +103,40 @@ describe('zw-data-grid diagnostics', () => {
     expectCommitTimingOrder(commits[0])
   })
 
+  it('commits a native scroll in the same task without waiting for rAF', async () => {
+    const commits: Readonly<DataGridCommitTiming>[] = []
+    const grid = await mountDataGrid({
+      rows: Array.from({ length: 100 }, (_, index) => ({
+        id: `row-${index}`,
+      })),
+      columns: [{ id: 'value' }],
+      virtual: true,
+      diagnostics: {
+        onCommit(sample) {
+          commits.push(sample)
+        },
+      },
+    })
+    const viewport = getViewport(grid)
+    setElementClientHeight(viewport, 60)
+    grid.refreshViewport()
+    commits.length = 0
+
+    const inputTime = Math.max(0, performance.now() - 1)
+    const scrollEvent = new Event('scroll')
+    Object.defineProperty(scrollEvent, 'timeStamp', { value: inputTime })
+    viewport.scrollTop = 80
+    viewport.dispatchEvent(scrollEvent)
+
+    expect(commits).toHaveLength(1)
+    expect(commits[0].source).toBe('scroll')
+    expect(commits[0].inputTime).toBe(inputTime)
+    expect(commits[0].firstRowIndex).toBeGreaterThan(0)
+
+    await nextFrame()
+    expect(commits).toHaveLength(1)
+  })
+
   it('records renderer commit end before diagnostics traversal ends', async () => {
     const commits: Readonly<DataGridCommitTiming>[] = []
     const takeRecordTimes: number[] = []
@@ -497,7 +531,7 @@ describe('zw-data-grid diagnostics', () => {
     expectCommitTimingOrder(commits[0])
   })
 
-  it('preserves the earliest input timestamp when scroll events coalesce', async () => {
+  it('commits synchronous scroll events independently without rAF coalescing', async () => {
     const commits: Readonly<DataGridCommitTiming>[] = []
     const grid = await mountDataGrid({
       rows: Array.from({ length: 100 }, (_, index) => ({
@@ -531,11 +565,14 @@ describe('zw-data-grid diagnostics', () => {
     viewport.dispatchEvent(firstEvent)
     viewport.scrollTop = 80
     viewport.dispatchEvent(secondEvent)
-    await nextFrame()
-
-    expect(commits).toHaveLength(1)
+    expect(commits).toHaveLength(2)
     expect(commits[0].source).toBe('scroll')
     expect(commits[0].inputTime).toBe(firstInputTime)
+    expect(commits[1].source).toBe('scroll')
+    expect(commits[1].inputTime).toBe(secondInputTime)
+
+    await nextFrame()
+    expect(commits).toHaveLength(2)
   })
 
   it('keeps mount timing separate from a coalesced scroll input', async () => {
