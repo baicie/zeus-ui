@@ -2,6 +2,7 @@
   "name": "@zeus-web/alert",
   "type": "module",
   "version": "0.1.0-beta.9",
+  "version": "0.1.0-beta.9",
   "description": "Headless alert primitive for Zeus Web.",
   "license": "MIT",
   "repository": {
