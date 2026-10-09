@@ -1056,25 +1056,31 @@ function setup(
     return virtualizer.getSnapshot(scrollOffset, viewportSize)
   }
 
-  const getSnapshot = (): DataGridVirtualSnapshot => {
+  const getSnapshot = (
+    scrollOffset?: number,
+    viewportSize?: number,
+  ): DataGridVirtualSnapshot => {
     rebuildModels()
 
-    const scrollOffset = getScrollOffset(viewport)
-    const viewportSize = getResolvedViewportSize()
+    const resolvedScrollOffset = scrollOffset ?? getScrollOffset(viewport)
+    const resolvedViewportSize = viewportSize ?? getResolvedViewportSize()
 
     if (
-      rowSnapshotCache?.scrollOffset === scrollOffset &&
-      rowSnapshotCache.viewportSize === viewportSize
+      rowSnapshotCache?.scrollOffset === resolvedScrollOffset &&
+      rowSnapshotCache.viewportSize === resolvedViewportSize
     ) {
       return rowSnapshotCache.snapshot
     }
 
-    const snapshot = getSnapshotFromModels(scrollOffset, viewportSize)
+    const snapshot = getSnapshotFromModels(
+      resolvedScrollOffset,
+      resolvedViewportSize,
+    )
 
     rowSnapshotCache = {
       snapshot,
-      scrollOffset,
-      viewportSize,
+      scrollOffset: resolvedScrollOffset,
+      viewportSize: resolvedViewportSize,
     }
 
     return snapshot
@@ -1124,25 +1130,31 @@ function setup(
     return columnVirtualizer.getSnapshot(scrollOffset, viewportSize)
   }
 
-  const getColumnSnapshot = (): DataGridColumnVirtualSnapshot => {
+  const getColumnSnapshot = (
+    scrollOffset?: number,
+    viewportSize?: number,
+  ): DataGridColumnVirtualSnapshot => {
     rebuildModels()
 
-    const scrollOffset = getColumnScrollOffset(viewport)
-    const viewportSize = getResolvedColumnViewportSize()
+    const resolvedScrollOffset = scrollOffset ?? getColumnScrollOffset(viewport)
+    const resolvedViewportSize = viewportSize ?? getResolvedColumnViewportSize()
 
     if (
-      columnSnapshotCache?.scrollOffset === scrollOffset &&
-      columnSnapshotCache.viewportSize === viewportSize
+      columnSnapshotCache?.scrollOffset === resolvedScrollOffset &&
+      columnSnapshotCache.viewportSize === resolvedViewportSize
     ) {
       return columnSnapshotCache.snapshot
     }
 
-    const snapshot = getColumnSnapshotFromModels(scrollOffset, viewportSize)
+    const snapshot = getColumnSnapshotFromModels(
+      resolvedScrollOffset,
+      resolvedViewportSize,
+    )
 
     columnSnapshotCache = {
       snapshot,
-      scrollOffset,
-      viewportSize,
+      scrollOffset: resolvedScrollOffset,
+      viewportSize: resolvedViewportSize,
     }
 
     return snapshot
@@ -1426,12 +1438,15 @@ function setup(
     const viewportSize = measureViewportMetrics
       ? measureViewport(clientHeight, clientWidth).size
       : getResolvedViewportSize()
+    const columnScrollOffset = scrollEvent
+      ? getColumnScrollOffset(viewport)
+      : undefined
+    const columnViewportSize = getResolvedColumnViewportSize(clientWidth)
     const nextColumnSnapshot =
-      scrollEvent &&
-      columnSnapshotCache?.scrollOffset === getColumnScrollOffset(viewport)
+      scrollEvent && columnSnapshotCache?.scrollOffset === columnScrollOffset
         ? currentColumnSnapshot
-        : getColumnSnapshot()
-    const nextSnapshot = getSnapshot()
+        : getColumnSnapshot(columnScrollOffset, columnViewportSize)
+    const nextSnapshot = getSnapshot(scrollOffset, viewportSize)
     const rangeCalculatedTime = commitObserver ? getDiagnosticTime() : 0
     const commitStartTime = commitObserver ? getDiagnosticTime() : 0
 
@@ -2364,17 +2379,7 @@ function setup(
     const items = getVisibleColumnsForRender()
     if (items.length === 0) return ''
 
-    const tracks: string[] = []
-
-    if (items[0].start > 0) {
-      tracks.push(`${items[0].start}px`)
-    }
-
-    for (const item of items) {
-      tracks.push(`${item.size}px`)
-    }
-
-    return tracks.join(' ')
+    return `${items[0].start ? `${items[0].start}px ` : ''}${items.map(item => `${item.size}px`).join(' ')}`
   }
 
   const getGridColumnStart = (item: DataGridColumnVirtualItem): string => {
