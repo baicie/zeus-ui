@@ -199,13 +199,13 @@ interface DataGridSnapshotCache<T> {
 }
 
 interface PendingDataGridRangeUpdate {
-  scrollEvent?: Event
+  event?: Event
   source: DataGridCommitSource
   inputTime?: number | null
   handlerStartTime?: number
   handlerEndTime?: number
-  measureViewportMetrics: boolean
-  preservePendingNodeChurn: boolean
+  measure: boolean
+  preserve: boolean
 }
 
 interface FocusedDataGridHeaderTarget {
@@ -1124,11 +1124,10 @@ function setup(
     return columnVirtualizer.getSnapshot(scrollOffset, viewportSize)
   }
 
-  const getColumnSnapshot = (
-    scrollOffset: number = getColumnScrollOffset(viewport),
-  ): DataGridColumnVirtualSnapshot => {
+  const getColumnSnapshot = (): DataGridColumnVirtualSnapshot => {
     rebuildModels()
 
+    const scrollOffset = getColumnScrollOffset(viewport)
     const viewportSize = getResolvedColumnViewportSize()
 
     if (
@@ -1427,16 +1426,12 @@ function setup(
     const viewportSize = measureViewportMetrics
       ? measureViewport(clientHeight, clientWidth).size
       : getResolvedViewportSize()
+    const nextColumnSnapshot =
+      scrollEvent &&
+      columnSnapshotCache?.scrollOffset === getColumnScrollOffset(viewport)
+        ? currentColumnSnapshot
+        : getColumnSnapshot()
     const nextSnapshot = getSnapshot()
-    const columnScrollOffset =
-      source === 'scroll' ? getColumnScrollOffset(viewport) : undefined
-    const shouldRefreshColumnSnapshot =
-      source !== 'scroll' ||
-      columnSnapshotCache === undefined ||
-      columnSnapshotCache.scrollOffset !== columnScrollOffset
-    const nextColumnSnapshot = shouldRefreshColumnSnapshot
-      ? getColumnSnapshot(columnScrollOffset)
-      : currentColumnSnapshot
     const rangeCalculatedTime = commitObserver ? getDiagnosticTime() : 0
     const commitStartTime = commitObserver ? getDiagnosticTime() : 0
 
@@ -1521,13 +1516,13 @@ function setup(
         ? undefined
         : (getDiagnosticInputTime(inputEvent) ?? null)
     const nextUpdate: PendingDataGridRangeUpdate = {
-      scrollEvent: source === 'scroll' ? inputEvent : undefined,
+      event: source === 'scroll' ? inputEvent : undefined,
       source,
       inputTime,
       handlerStartTime,
       handlerEndTime,
-      measureViewportMetrics: source === 'mount' || source === 'resize',
-      preservePendingNodeChurn,
+      measure: source === 'mount' || source === 'resize',
+      preserve: preservePendingNodeChurn,
     }
     const previousUpdate = pendingRangeUpdate
 
@@ -1538,8 +1533,8 @@ function setup(
         getDataGridCommitPriority(nextUpdate.source) >=
         getDataGridCommitPriority(previousUpdate.source)
 
-      if (nextUpdate.scrollEvent) {
-        previousUpdate.scrollEvent = nextUpdate.scrollEvent
+      if (nextUpdate.event) {
+        previousUpdate.event = nextUpdate.event
       }
       if (shouldReplaceTiming) {
         previousUpdate.inputTime =
@@ -1553,36 +1548,30 @@ function setup(
         previousUpdate.handlerStartTime = nextUpdate.handlerStartTime
         previousUpdate.handlerEndTime = nextUpdate.handlerEndTime
       }
-      previousUpdate.measureViewportMetrics =
-        previousUpdate.measureViewportMetrics ||
-        nextUpdate.measureViewportMetrics
-      previousUpdate.preservePendingNodeChurn =
-        previousUpdate.preservePendingNodeChurn ||
-        nextUpdate.preservePendingNodeChurn
+      previousUpdate.measure = previousUpdate.measure || nextUpdate.measure
+      previousUpdate.preserve = previousUpdate.preserve || nextUpdate.preserve
     }
 
-    scheduler.schedule(() => {
+    const commit = () => {
       const update = pendingRangeUpdate
       pendingRangeUpdate = undefined
 
       if (!update) return
 
       updateRange(
-        update.scrollEvent,
+        update.event,
         update.source,
         update.handlerStartTime,
         update.handlerEndTime,
-        update.measureViewportMetrics,
-        update.preservePendingNodeChurn,
+        update.measure,
+        update.preserve,
         false,
         update.inputTime,
       )
-    })
+    }
 
-    // Native scroll events are already delivered at the browser's input
-    // cadence. Commit them in the same task so a queued rAF does not add a
-    // full presentation frame to the scroll completion boundary.
-    if (source === 'scroll') scheduler.flush()
+    scheduler.schedule(commit)
+    source === 'scroll' && scheduler.flush()
   }
 
   const beginDiagnosticsNodeChurn = (): boolean => {
