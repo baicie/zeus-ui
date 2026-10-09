@@ -64,6 +64,88 @@ describe('zw-data-grid fixed-row DOM pooling', () => {
     cleanupDataGridFixtures()
   })
 
+  it('keeps row and cell slots at overscan edges and fractional offsets', async () => {
+    const grid = await mountDataGrid({
+      rows: createRows(1_000),
+      columns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 1,
+      overscanColumns: 0,
+      selectionMode: 'none',
+    })
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 120)
+    setElementClientWidth(viewport, 220)
+    grid.refreshViewport()
+    grid.scrollToOffset(4_000)
+
+    const slots = getRenderedRows(grid)
+    const cells = slots.map(getRenderedCells)
+
+    for (const offset of [4_001, 0, 1, 39_880, 4_000]) {
+      grid.scrollToOffset(offset)
+
+      const rendered = getRenderedRows(grid)
+
+      expect(rendered).toHaveLength(slots.length)
+      expect(rendered.every((row, index) => row === slots[index])).toBe(true)
+      expect(
+        rendered.every((row, rowIndex) =>
+          getRenderedCells(row).every(
+            (cell, columnIndex) => cell === cells[rowIndex][columnIndex],
+          ),
+        ),
+      ).toBe(true)
+
+      const keys = rendered.map(row => row.getAttribute('data-row-key'))
+
+      expect(new Set(keys).size).toBe(rendered.length)
+      for (const row of rendered) {
+        const index = Number(row.getAttribute('data-row-index'))
+
+        expect(index).toBeGreaterThanOrEqual(0)
+        expect(index).toBeLessThan(1_000)
+        expect(row.getAttribute('aria-rowindex')).toBe(String(index + 2))
+        expect(getRenderedCells(row)[0].textContent).toBe(`Row ${index}`)
+      }
+
+      for (const item of grid.getItems()) {
+        expect(keys).toContain(item.key)
+      }
+    }
+
+    expect(slots.length).toBeLessThanOrEqual(6)
+  })
+
+  it('exposes the active descendant in a fixed-capacity overscan row', async () => {
+    const grid = await mountDataGrid({
+      rows: createRows(100),
+      columns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 1,
+      overscanColumns: 0,
+    })
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 120)
+    setElementClientWidth(viewport, 220)
+    grid.refreshViewport()
+    grid.scrollToOffset(0)
+
+    expect(grid.getRange().end).toBe(2)
+    expect(grid.getItems().map(item => item.key)).toContain('row-5')
+    grid.setActiveCell('row-5', 'value')
+
+    const activeCell = getCell(grid, 'row-5', 'value')
+
+    expect(viewport.getAttribute('aria-activedescendant')).toBe(activeCell.id)
+    expect(activeCell.getAttribute('tabindex')).toBe('0')
+    expect(activeCell.getAttribute('data-active')).toBe('')
+  })
+
   it('reuses viewport row and cell slots across a long-distance scroll', async () => {
     const grid = await mountDataGrid({
       rows: createRows(1_000),

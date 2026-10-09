@@ -10,12 +10,14 @@ import {
   areVirtualRangesEqual,
   createEmptyVirtualRange,
   createVirtualizer,
+  normalizePositiveNumber,
 } from '@zeus-web/virtual'
 
 export interface DataGridRowVirtualizerOptions {
   rows: DataGridRowCollection
   rowHeight: number
   overscan?: number
+  fixed?: boolean
 }
 
 export interface DataGridRowVirtualizer {
@@ -33,11 +35,6 @@ export interface DataGridRowVirtualizer {
   ) => number
   measure: (index: number, size: number) => void
   resetMeasurements: () => void
-}
-
-function normalizeRowHeight(value: number): number {
-  if (!Number.isFinite(value) || value <= 0) return 40
-  return value
 }
 
 function normalizeOverscan(value: number | undefined): number {
@@ -85,11 +82,14 @@ export function createDataGridRowVirtualizer(
   options: DataGridRowVirtualizerOptions,
 ): DataGridRowVirtualizer {
   const rows = options.rows
+  const rowHeight = normalizePositiveNumber(options.rowHeight, 40)
+  const overscan = normalizeOverscan(options.overscan)
+  let hasMeasurements = false
   let materializedItems: DataGridVirtualItem[] = []
   const virtualizer = createVirtualizer({
     count: rows.length,
-    estimateSize: normalizeRowHeight(options.rowHeight),
-    overscan: normalizeOverscan(options.overscan),
+    estimateSize: rowHeight,
+    overscan,
     getItemKey: index => rows.getKey(index)!,
   })
 
@@ -97,7 +97,22 @@ export function createDataGridRowVirtualizer(
     scrollOffset: number,
     viewportSize: number,
   ): DataGridVirtualRange {
-    return virtualizer.getRange(scrollOffset, viewportSize)
+    const range = virtualizer.getRange(scrollOffset, viewportSize)
+
+    if (options.fixed && !hasMeasurements && range.end > -1) {
+      // Keep slots for a partially visible row, including at clipped edges.
+      const capacity = Math.min(
+        rows.length,
+        Math.ceil(viewportSize / rowHeight) + overscan * 2 + 1,
+      )
+      range.overscanStart = Math.min(
+        range.overscanStart,
+        rows.length - capacity,
+      )
+      range.overscanEnd = range.overscanStart + capacity - 1
+    }
+
+    return range
   }
 
   function getItems(range: DataGridVirtualRange): DataGridVirtualItem[] {
@@ -154,10 +169,12 @@ export function createDataGridRowVirtualizer(
 
     measure(index: number, size: number): void {
       virtualizer.measure(index, size)
+      hasMeasurements = true
     },
 
     resetMeasurements(): void {
       virtualizer.resetMeasurements()
+      hasMeasurements = false
     },
   }
 }

@@ -1,5 +1,7 @@
 import type { DataGridRow, DataGridRowData, DataGridRowKey } from '../types'
 
+const ROW_WRAPPER_CACHE_CAPACITY = 128
+
 export type DataGridGetRowKey = (
   row: DataGridRowData,
   index: number,
@@ -34,6 +36,7 @@ export function createDataGridRowModel(
   const source = rows || []
   const keys: DataGridRowKey[] = []
   const indexByKey = new Map<DataGridRowKey, number>()
+  const wrappers: DataGridRow[] = []
 
   for (let index = 0; index < source.length; index += 1) {
     const row = source[index]
@@ -59,13 +62,30 @@ export function createDataGridRowModel(
 
       if (key === undefined) return undefined
 
+      // Direct mapping bounds retained wrappers without touching a Map on hits.
+      const cacheIndex = index % ROW_WRAPPER_CACHE_CAPACITY
+      const cached = wrappers[cacheIndex]
+      const data = source[index]
+
+      if (
+        cached &&
+        cached.index === index &&
+        cached.key === key &&
+        cached.data === data
+      ) {
+        return cached
+      }
+
       model.wrapperCount += 1
 
-      return {
+      const row = {
         key,
         index,
-        data: source[index],
+        data,
       }
+
+      wrappers[cacheIndex] = row
+      return row
     },
 
     getKey(index: number): DataGridRowKey | undefined {

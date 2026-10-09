@@ -6,7 +6,7 @@
 
 ## `@zeus-web/zeus-compat`
 
-状态：`0.1.0-beta.4`，MVP 阶段，不承诺向后兼容。
+状态：`0.1.0-beta.5`，MVP 阶段，不承诺向后兼容。
 
 Zeus 兼容基线：`0.1.1-beta.2`。该包只转发 Zeus 当前公共 API，不暴露 Zeus 内部实现。
 
@@ -57,7 +57,7 @@ function assertZeusCompatRequirements(): void
 
 ## 所有组件包共享契约
 
-状态：`0.1.0-beta.4`，MVP 阶段，不承诺向后兼容。
+状态：`0.1.0-beta.5`，MVP 阶段，不承诺向后兼容。
 
 本节适用于 `packages/primitives/*` 和 `packages/advanced/*` 的 25 个公开组件包。
 每个组件包都必须提供以下入口：
@@ -86,7 +86,7 @@ React 类型会产生重复属性，wrapper runtime 也会截获本应传给自�
 
 ## `@zeus-web/chat`
 
-状态：`0.1.0-beta.4`，MVP 阶段，不承诺向后兼容。
+状态：`0.1.0-beta.5`，MVP 阶段，不承诺向后兼容。
 
 入口：
 
@@ -244,7 +244,7 @@ function createChatThreadVirtualizer(
 
 ## `@zeus-web/agent-console`
 
-状态：`0.1.0-beta.4`，MVP 阶段，不承诺向后兼容。
+状态：`0.1.0-beta.5`，MVP 阶段，不承诺向后兼容。
 
 入口：
 
@@ -504,7 +504,7 @@ function createReplayAgentProvider(
 
 ## `@zeus-web/data-grid`
 
-状态：`0.1.0-beta.4`，MVP 阶段，不承诺向后兼容。
+状态：`0.1.0-beta.5`，MVP 阶段，不承诺向后兼容。
 
 入口：
 
@@ -550,6 +550,7 @@ DOM mutation observer。配置后可按需接收两类只读样本：
 interface DataGridDiagnostics {
   onModelBuild?(sample: Readonly<DataGridModelBuildTiming>): void
   onCommit?(sample: Readonly<DataGridCommitTiming>): void
+  measureNodeChurn?: boolean
 }
 ```
 
@@ -560,6 +561,14 @@ calculation、layout read 与 DOM commit 的单调时间点、当前二维 range
 以及 Data Grid header/body 渲染区插入或移除的 DOM 子树节点数。观察区间在每次 commit 开始时重置，
 不包含 commit 之间由公开查询方法创建的 wrapper，也不包含 empty slot 等外部投影变化。节点 churn 不等同于
 Zeus effect 创建或释放数量。
+`commitEndTime` 是 renderer commit 边界，发生在 diagnostics 遍历之前。`MutationObserver.takeRecords()` 与
+Node tree 计数记在 `diagnosticsEndTime`，不计入 renderer commit 区间。诊断遍历时长不能当成生产 pool 或
+wrapper 成本，也不应进入生产 bench 主指标。
+`measureNodeChurn` 默认 `true`。设为 `false` 时不创建 MutationObserver、不遍历 Node tree，
+`createdNodeCount` / `removedNodeCount` 为 0，且 `diagnosticsEndTime === commitEndTime`。这是诊断 A/B
+开关，不是生产 renderer 模式；生产 bench 主指标不得依赖它。切换该字段必须替换整个 `diagnostics` 对象。
+每次 commit 创建时固化是否计量 churn；替换 `diagnostics` 对象会丢弃尚未 finalize 的 in-flight sample，
+后续 commit 一律按新对象的设置处理。
 若延迟完成的 data commit 已完成 DOM reconciliation，Data Grid 会在后续同步调用开始前先生成独立
 sample，避免后一次调用的 timing 覆盖前一次 DOM churn。若多次调用仍处于同一个外层 reactive batch，
 DOM 尚未提交，则它们会合并为一个 sample，并保留全部 layout read 区间、最新二维 range 和累计 DOM
@@ -629,7 +638,12 @@ refreshViewport(): void
 ### 二维虚拟化契约
 
 - `virtual=false` 时渲染全部行和全部可见列。
-- `virtual=true` 时渲染行窗口与列窗口的笛卡尔积。
+- `virtual=true` 时渲染行窗口与列窗口的笛卡尔积。固定行高且允许槽位复用时，行 DOM 容量为
+  `min(行数, ceil(viewportHeight / rowHeight) + 2 * overscan + 1)`；边界处以有效的额外 overscan 行
+  补足容量，避免整行与部分行之间滚动、滚至首尾时销毁再创建槽位。`getRange()` 的可见 `start/end`
+  不变，`overscanStart/overscanEnd`、`getItems()` 和 `range-change` 包含整个渲染窗口；额外行使用真实
+  key、内容和 ARIA 索引。测量行高后回到常规范围与按数据 key 协调，重置测量后恢复固定容量。
+- 行对象缓存仅保留 128 个槽位，命中时复用 wrapper；淘汰或源行对象替换时新建 wrapper，不改写外部保留的旧对象。
 - 列偏移使用前缀宽度表与二分查找，范围查询为 `O(log n)`。
 - 真实 `clientWidth` 不可用时使用 `640px` fallback，避免宽表首帧完整渲染。
 - DOM 单元格数量受 viewport 与 overscan 控制，不随总行列数线性增长。

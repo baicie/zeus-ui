@@ -797,10 +797,10 @@ describe('zw-data-grid runtime', () => {
       start: 2,
       end: 4,
       overscanStart: 1,
-      overscanEnd: 5,
+      overscanEnd: 6,
     })
 
-    expect(grid.getItems().map(item => item.index)).toEqual([1, 2, 3, 4, 5])
+    expect(grid.getItems().map(item => item.index)).toEqual([1, 2, 3, 4, 5, 6])
     expect(grid.getTotalSize()).toBe(800)
     expect(collector.events.length).toBeGreaterThanOrEqual(1)
     expect(
@@ -951,7 +951,7 @@ describe('zw-data-grid runtime', () => {
           ).toHaveLength(3)
           expect(
             grid.querySelectorAll('[data-slot="data-grid-cell"]'),
-          ).toHaveLength(12)
+          ).toHaveLength(18)
 
           grid.scrollToColumn(50)
 
@@ -973,7 +973,7 @@ describe('zw-data-grid runtime', () => {
           ).toHaveLength(4)
           expect(
             grid.querySelectorAll('[data-slot="data-grid-cell"]'),
-          ).toHaveLength(16)
+          ).toHaveLength(24)
           expect(
             getHeaderCell(grid, 'column-50').getAttribute('aria-colindex'),
           ).toBe('50')

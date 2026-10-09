@@ -58,11 +58,14 @@ export interface DataGridCommitTiming {
   source: DataGridCommitSource
   inputTime?: number
   handlerStartTime: number
+  handlerEndTime: number
   rangeStartTime: number
   rangeCalculatedTime: number
   commitStartTime: number
+  /** End of the renderer commit boundary, before diagnostics traversal. */
   commitEndTime: number
-  handlerEndTime: number
+  /** End of Node tree / MutationObserver.takeRecords diagnostics after commit. */
+  diagnosticsEndTime: number
   layoutReadIntervals: ReadonlyArray<readonly [number, number]>
   firstRowIndex: number
   lastRowIndex: number
@@ -76,6 +79,12 @@ export interface DataGridCommitTiming {
 export interface DataGridDiagnostics {
   onModelBuild?: (sample: Readonly<DataGridModelBuildTiming>) => void
   onCommit?: (sample: Readonly<DataGridCommitTiming>) => void
+  /**
+   * When false, skip MutationObserver / Node-tree counting after commit.
+   * Defaults to true whenever `onCommit` is set. This is a diagnostics A/B
+   * switch, not a production renderer mode.
+   */
+  measureNodeChurn?: boolean
 }
 
 export interface DataGridColumn {

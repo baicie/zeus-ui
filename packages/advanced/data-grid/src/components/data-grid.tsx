@@ -220,6 +220,11 @@ interface PendingDataGridCommitTiming extends DataGridCommitTiming {
 interface PendingDataGridDiagnosticsCommit {
   observer: NonNullable<DataGridDiagnostics['onCommit']>
   renderToken: number
+  /**
+   * Captured at commit creation so a mid-flight diagnostics toggle cannot
+   * reclassify an in-flight sample at finalize time.
+   */
+  measureChurn: boolean
   sample: PendingDataGridCommitTiming
 }
 
@@ -299,6 +304,16 @@ function getDiagnosticTime(): number {
   return typeof globalThis.performance === 'undefined'
     ? Date.now()
     : globalThis.performance.now()
+}
+
+function shouldMeasureDiagnosticsNodeChurn(
+  diagnostics: DataGridDiagnostics | undefined,
+): boolean {
+  return Boolean(
+    diagnostics &&
+    diagnostics.onCommit &&
+    diagnostics.measureNodeChurn !== false,
+  )
 }
 
 function getDiagnosticInputTime(event: Event | undefined): number | undefined {
@@ -454,6 +469,7 @@ function setup(
     rows: visibleRows,
     rowHeight: resolveRowHeight(props),
     overscan: resolveOverscan(props),
+    fixed: true,
   })
   let columnVirtualizer = createDataGridColumnVirtualizer({
     columns: visibleColumns,
@@ -593,6 +609,7 @@ function setup(
       rows: visibleRows,
       rowHeight: resolveRowHeight(props),
       overscan: resolveOverscan(props),
+      fixed: true,
     })
     hasRowMeasurementOverrides = false
     currentSnapshot = cloneEmptySnapshot()
@@ -1131,35 +1148,6 @@ function setup(
     return snapshot
   }
 
-  const getActiveDescendantForRender = (): string | undefined => {
-    void activeCellRenderVersion()
-    void renderVersion()
-    void rowRenderVersion()
-    void columnRangeRenderVersion()
-    void columnRenderVersion()
-
-    rebuildModels()
-
-    const currentActiveCell = activeCell
-    if (!currentActiveCell) return undefined
-
-    const rowSnapshot = rowSnapshotCache?.snapshot ?? getSnapshot()
-    const columnSnapshot = columnSnapshotCache?.snapshot ?? getColumnSnapshot()
-    const hasRenderedRow = rowSnapshot.items.some(
-      item => item.index === currentActiveCell.rowIndex,
-    )
-    const hasRenderedColumn = columnSnapshot.items.some(
-      item => item.index === currentActiveCell.columnIndex,
-    )
-
-    if (!hasRenderedRow || !hasRenderedColumn) return undefined
-
-    return getDataGridActiveDescendant(
-      currentActiveCell,
-      getDataGridActiveCellId,
-    )
-  }
-
   const isActiveCellForRender = (
     rowKey: DataGridRowKey,
     columnId: string,
@@ -1187,8 +1175,7 @@ function setup(
   const ensureDiagnosticsMutationObserver = (): void => {
     const diagnostics = props.diagnostics
     const shouldObserve = Boolean(
-      diagnostics &&
-      diagnostics.onCommit &&
+      shouldMeasureDiagnosticsNodeChurn(diagnostics) &&
       typeof MutationObserver !== 'undefined',
     )
 
@@ -1254,23 +1241,18 @@ function setup(
     if (pendingRemovedNodes) pendingRemovedNodes.clear()
   }
 
-  const consumeDiagnosticsNodeChurn = (): {
-    createdNodeCount: number
-    removedNodeCount: number
-  } => {
+  const consumeDiagnosticsNodeChurn = (
+    sample: PendingDataGridCommitTiming,
+  ): void => {
     if (diagnosticsMutationObserver) {
       recordDiagnosticsMutations(diagnosticsMutationObserver.takeRecords())
     }
 
-    const result = {
-      createdNodeCount: pendingCreatedNodes ? pendingCreatedNodes.size : 0,
-      removedNodeCount: pendingRemovedNodes ? pendingRemovedNodes.size : 0,
-    }
+    sample.createdNodeCount = pendingCreatedNodes ? pendingCreatedNodes.size : 0
+    sample.removedNodeCount = pendingRemovedNodes ? pendingRemovedNodes.size : 0
 
     if (pendingCreatedNodes) pendingCreatedNodes.clear()
     if (pendingRemovedNodes) pendingRemovedNodes.clear()
-
-    return result
   }
 
   const startDiagnosticsHandler = (): number | undefined => {
@@ -1302,12 +1284,14 @@ function setup(
   const finalizeDiagnosticsCommit = (
     commit: PendingDataGridDiagnosticsCommit,
   ): void => {
-    const nodeChurn = consumeDiagnosticsNodeChurn()
     const sample = commit.sample
     sample.transactionId = ++commitTransactionId
     sample.commitEndTime = getDiagnosticTime()
-    sample.createdNodeCount = nodeChurn.createdNodeCount
-    sample.removedNodeCount = nodeChurn.removedNodeCount
+    sample.diagnosticsEndTime = sample.commitEndTime
+    if (commit.measureChurn) {
+      consumeDiagnosticsNodeChurn(sample)
+      sample.diagnosticsEndTime = getDiagnosticTime()
+    }
     commit.observer(sample)
   }
 
@@ -1478,6 +1462,7 @@ function setup(
     const diagnosticsCommit: PendingDataGridDiagnosticsCommit = {
       observer: commitObserver,
       renderToken,
+      measureChurn: shouldMeasureDiagnosticsNodeChurn(props.diagnostics),
       sample: {
         transactionId: 0,
         source,
@@ -1488,6 +1473,7 @@ function setup(
         rangeCalculatedTime,
         commitStartTime,
         commitEndTime: 0,
+        diagnosticsEndTime: 0,
         layoutReadIntervals: [[layoutReadStartTime, layoutReadEndTime]],
         firstRowIndex: nextSnapshot.range.start,
         lastRowIndex: nextSnapshot.range.end,
@@ -1586,10 +1572,10 @@ function setup(
   }
 
   const beginDiagnosticsNodeChurn = (): boolean => {
-    if (!props.diagnostics?.onCommit) return false
+    finalizeCompletedPendingDiagnosticsCommit()
+    if (!shouldMeasureDiagnosticsNodeChurn(props.diagnostics)) return false
 
     ensureDiagnosticsMutationObserver()
-    finalizeCompletedPendingDiagnosticsCommit()
     if (!pendingDiagnosticsCommit) {
       prepareDiagnosticsNodeChurn(false)
     }
@@ -2282,9 +2268,9 @@ function setup(
   const getBodyRowReconciliationKey = (
     item: RenderedDataGridVirtualItem,
     index: number,
-  ): string => {
+  ): string | number => {
     return poolRowsForCurrentReconciliation
-      ? `viewport-row-slot:${index}`
+      ? index
       : `data-row:${rowRenderVersion()}:${item.key}`
   }
 
@@ -2314,19 +2300,48 @@ function setup(
   const getHeaderColumnReconciliationKey = (
     item: DataGridColumnVirtualItem,
     index: number,
-  ): string => {
+  ): string | number => {
     return poolHeaderColumnsForCurrentReconciliation
-      ? `viewport-header-slot:${index}`
+      ? index
       : `data-header:${columnRenderVersion()}:${item.key}`
   }
 
   const getBodyColumnReconciliationKey = (
     item: DataGridColumnVirtualItem,
     index: number,
-  ): string => {
+  ): string | number => {
     return poolBodyColumnsForCurrentReconciliation
-      ? `viewport-cell-slot:${index}`
+      ? index
       : `data-cell:${columnRenderVersion()}:${item.key}`
+  }
+
+  const getActiveDescendantForRender = (): string | undefined => {
+    void activeCellRenderVersion()
+    void renderVersion()
+    void rowRenderVersion()
+    void columnRangeRenderVersion()
+    void columnRenderVersion()
+
+    rebuildModels()
+
+    const currentActiveCell = activeCell
+    if (!currentActiveCell) return undefined
+
+    const columnSnapshot = columnSnapshotCache?.snapshot ?? getColumnSnapshot()
+    const rowSnapshot = rowSnapshotCache?.snapshot ?? getSnapshot()
+    const hasRenderedRow = rowSnapshot.items.some(
+      item => item.index === currentActiveCell.rowIndex,
+    )
+    const hasRenderedColumn = columnSnapshot.items.some(
+      item => item.index === currentActiveCell.columnIndex,
+    )
+
+    if (!hasRenderedRow || !hasRenderedColumn) return undefined
+
+    return getDataGridActiveDescendant(
+      currentActiveCell,
+      getDataGridActiveCellId,
+    )
   }
 
   const getSpacerStyle = (): Record<string, string> => {
