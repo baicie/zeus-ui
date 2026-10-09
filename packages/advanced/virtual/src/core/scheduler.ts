@@ -40,7 +40,6 @@ export function createRafScheduler(
 
   const run = () => {
     frameHandle = undefined
-
     const callback = queuedCallback
     queuedCallback = undefined
 
@@ -59,12 +58,11 @@ export function createRafScheduler(
     flush(): void {
       if (frameHandle !== undefined) {
         cancelFrame(frameHandle)
-        frameHandle = undefined
       }
 
+      frameHandle = undefined
       const callback = queuedCallback
       queuedCallback = undefined
-
       callback?.()
     },
 
