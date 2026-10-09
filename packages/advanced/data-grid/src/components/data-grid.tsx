@@ -1124,10 +1124,11 @@ function setup(
     return columnVirtualizer.getSnapshot(scrollOffset, viewportSize)
   }
 
-  const getColumnSnapshot = (): DataGridColumnVirtualSnapshot => {
+  const getColumnSnapshot = (
+    scrollOffset: number = getColumnScrollOffset(viewport),
+  ): DataGridColumnVirtualSnapshot => {
     rebuildModels()
 
-    const scrollOffset = getColumnScrollOffset(viewport)
     const viewportSize = getResolvedColumnViewportSize()
 
     if (
@@ -1427,7 +1428,15 @@ function setup(
       ? measureViewport(clientHeight, clientWidth).size
       : getResolvedViewportSize()
     const nextSnapshot = getSnapshot()
-    const nextColumnSnapshot = getColumnSnapshot()
+    const columnScrollOffset =
+      source === 'scroll' ? getColumnScrollOffset(viewport) : undefined
+    const shouldRefreshColumnSnapshot =
+      source !== 'scroll' ||
+      columnSnapshotCache === undefined ||
+      columnSnapshotCache.scrollOffset !== columnScrollOffset
+    const nextColumnSnapshot = shouldRefreshColumnSnapshot
+      ? getColumnSnapshot(columnScrollOffset)
+      : currentColumnSnapshot
     const rangeCalculatedTime = commitObserver ? getDiagnosticTime() : 0
     const commitStartTime = commitObserver ? getDiagnosticTime() : 0
 

@@ -157,6 +157,60 @@ describe('zw-data-grid viewport snapshot cache', () => {
     expect(grid.getColumnRange().start).toBe(2)
   })
 
+  it('skips the column snapshot when only the vertical offset changes', async () => {
+    const grid = await mountVirtualDataGrid()
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 120)
+    setElementClientWidth(viewport, 240)
+    grid.refreshViewport()
+    await nextFrame()
+
+    resetSnapshotDiagnostics()
+    let scrollLeftReads = 0
+    Object.defineProperty(viewport, 'scrollLeft', {
+      configurable: true,
+      get() {
+        scrollLeftReads += 1
+        return 0
+      },
+      set() {},
+    })
+
+    viewport.scrollTop = 80
+    viewport.dispatchEvent(new Event('scroll'))
+    await nextFrame()
+
+    expect(snapshotDiagnostics.rowSnapshotCalls).toBe(1)
+    expect(snapshotDiagnostics.columnSnapshotCalls).toBe(0)
+    // The axis must still be sampled once so simultaneous horizontal scrolling
+    // cannot reuse a stale column window.
+    expect(scrollLeftReads).toBe(1)
+    expect(grid.getRange().start).toBe(2)
+    expect(grid.getColumnRange().start).toBe(0)
+  })
+
+  it('refreshes the column snapshot when the horizontal offset changes', async () => {
+    const grid = await mountVirtualDataGrid()
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 120)
+    setElementClientWidth(viewport, 240)
+    grid.refreshViewport()
+    await nextFrame()
+
+    resetSnapshotDiagnostics()
+
+    viewport.scrollLeft = 200
+    viewport.dispatchEvent(new Event('scroll'))
+    await nextFrame()
+
+    expect(snapshotDiagnostics.rowSnapshotCalls).toBe(0)
+    expect(snapshotDiagnostics.columnSnapshotCalls).toBe(1)
+    expect(grid.getRange().start).toBe(0)
+    expect(grid.getColumnRange().start).toBe(2)
+  })
+
   it('invalidates both snapshots when viewport dimensions change', async () => {
     const originalResizeObserver = Object.getOwnPropertyDescriptor(
       globalThis,
