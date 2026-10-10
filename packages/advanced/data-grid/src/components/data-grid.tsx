@@ -230,18 +230,8 @@ interface PendingDataGridDiagnosticsCommit {
 
 const FALLBACK_COLUMN_VIEWPORT_SIZE = 640
 
-function resolveRows(
-  props: DataGridProps,
-  fallback: DataGridRowData[],
-): DataGridRowData[] {
-  return Array.isArray(props.rows) ? props.rows : fallback
-}
-
-function resolveColumns(
-  props: DataGridProps,
-  fallback: DataGridColumn[],
-): DataGridColumn[] {
-  return Array.isArray(props.columns) ? props.columns : fallback
+function resolveSource<T>(source: T[] | undefined, fallback: T[]): T[] {
+  return Array.isArray(source) ? source : fallback
 }
 
 function resolveRowHeight(props: DataGridProps): number {
@@ -349,20 +339,14 @@ function setColumnScrollOffset(
   viewport.scrollLeft = Math.max(0, offset)
 }
 
-function cloneEmptySnapshot(): DataGridVirtualSnapshot {
+function cloneEmptySnapshot<
+  T extends DataGridVirtualSnapshot | DataGridColumnVirtualSnapshot,
+>(): T {
   return {
     range: createEmptyVirtualRange(),
     items: [],
     totalSize: 0,
-  }
-}
-
-function cloneEmptyColumnSnapshot(): DataGridColumnVirtualSnapshot {
-  return {
-    range: createEmptyVirtualRange(),
-    items: [],
-    totalSize: 0,
-  }
+  } as unknown as T
 }
 
 function isNavigationKey(key: string): key is DataGridNavigationKey {
@@ -425,8 +409,8 @@ function setup(
 
   const fallbackRows: DataGridRowData[] = []
   const fallbackColumns: DataGridColumn[] = []
-  let rowsSource = resolveRows(props, fallbackRows)
-  let columnsSource = resolveColumns(props, fallbackColumns)
+  let rowsSource = resolveSource(props.rows, fallbackRows)
+  let columnsSource = resolveSource(props.columns, fallbackColumns)
 
   const initialDiagnostics = props.diagnostics
   let observedDiagnostics = initialDiagnostics
@@ -492,8 +476,9 @@ function setup(
     0,
     rows.wrapperCount,
   )
-  let currentSnapshot = cloneEmptySnapshot()
-  let currentColumnSnapshot = cloneEmptyColumnSnapshot()
+  let currentSnapshot = cloneEmptySnapshot<DataGridVirtualSnapshot>()
+  let currentColumnSnapshot =
+    cloneEmptySnapshot<DataGridColumnVirtualSnapshot>()
   let rowSnapshotCache:
     | DataGridSnapshotCache<DataGridVirtualSnapshot>
     | undefined
@@ -554,8 +539,8 @@ function setup(
   })
 
   const readControlledStateSources = () => ({
-    rows: resolveRows(props, fallbackRows),
-    columns: resolveColumns(props, fallbackColumns),
+    rows: resolveSource(props.rows, fallbackRows),
+    columns: resolveSource(props.columns, fallbackColumns),
     selectedKeys: props.selectedKeys,
     sortColumn: props.sortColumn,
     sortDirection: props.sortDirection,
@@ -588,7 +573,7 @@ function setup(
       columns: visibleColumns,
       overscan: resolveColumnOverscan(props),
     })
-    currentColumnSnapshot = cloneEmptyColumnSnapshot()
+    currentColumnSnapshot = cloneEmptySnapshot<DataGridColumnVirtualSnapshot>()
     invalidateColumnSnapshotCache()
   }
 
@@ -600,7 +585,7 @@ function setup(
       fixed: true,
     })
     hasRowMeasurementOverrides = false
-    currentSnapshot = cloneEmptySnapshot()
+    currentSnapshot = cloneEmptySnapshot<DataGridVirtualSnapshot>()
     invalidateRowSnapshotCache()
   }
 
@@ -775,7 +760,7 @@ function setup(
     if (!changes) return false
 
     if (changes & DataGridControlledStateChange.Rows) {
-      rowsSource = resolveRows(props, fallbackRows)
+      rowsSource = resolveSource(props.rows, fallbackRows)
       rowsSourceDirty = true
       rowVirtualizerDirty = true
       activeCellDirty = true
@@ -792,7 +777,7 @@ function setup(
     }
 
     if (changes & DataGridControlledStateChange.Columns) {
-      columnsSource = resolveColumns(props, fallbackColumns)
+      columnsSource = resolveSource(props.columns, fallbackColumns)
       columnsSourceDirty = true
       columnVirtualizerDirty = true
       activeCellDirty = true
@@ -1632,8 +1617,8 @@ function setup(
   }
 
   const syncHostProps = (): void => {
-    ctx.host.rows = resolveRows(props, fallbackRows)
-    ctx.host.columns = resolveColumns(props, fallbackColumns)
+    ctx.host.rows = resolveSource(props.rows, fallbackRows)
+    ctx.host.columns = resolveSource(props.columns, fallbackColumns)
   }
 
   const emitSelection = (
@@ -2393,9 +2378,11 @@ function setup(
         props.keyboardNavigation !== false ? '' : undefined
       }
       data-selection-mode={() => resolveSelectionMode(props.selectionMode)}
-      data-row-count={() => String(resolveRows(props, fallbackRows).length)}
+      data-row-count={() =>
+        String(resolveSource(props.rows, fallbackRows).length)
+      }
       data-column-count={() =>
-        String(resolveColumns(props, fallbackColumns).length)
+        String(resolveSource(props.columns, fallbackColumns).length)
       }
       data-total-size={() => String(virtualizer.getTotalSize())}
     >
@@ -2405,7 +2392,7 @@ function setup(
         role="grid"
         aria-label={() => props.ariaLabel}
         aria-rowcount={() =>
-          String(resolveRows(props, fallbackRows).length + 1)
+          String(resolveSource(props.rows, fallbackRows).length + 1)
         }
         aria-colcount={() => String(visibleColumns.length)}
         aria-activedescendant={() => getActiveDescendantForRender()}
