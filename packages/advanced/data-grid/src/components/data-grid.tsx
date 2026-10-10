@@ -288,14 +288,6 @@ function getColumnScrollOffset(viewport: HTMLElement | undefined): number {
   return viewport ? viewport.scrollLeft : 0
 }
 
-function getViewportClientHeight(viewport: HTMLElement | undefined): number {
-  return viewport?.clientHeight ?? 0
-}
-
-function getViewportClientWidth(viewport: HTMLElement | undefined): number {
-  return viewport ? viewport.clientWidth : 0
-}
-
 function getDiagnosticTime(): number {
   return typeof globalThis.performance === 'undefined'
     ? Date.now()
@@ -613,8 +605,8 @@ function setup(
   }
 
   const measureViewport = (
-    clientHeight: number = getViewportClientHeight(viewport),
-    clientWidth: number = getViewportClientWidth(viewport),
+    clientHeight: number = viewport ? viewport.clientHeight : 0,
+    clientWidth: number = viewport ? viewport.clientWidth : 0,
   ): DataGridViewportMeasurement => {
     const previousClientHeight = viewportClientHeight
     const previousClientWidth = viewportClientWidth
@@ -1394,10 +1386,14 @@ function setup(
     const layoutReadStartTime = commitObserver ? getDiagnosticTime() : 0
     const scrollOffset = getScrollOffset(viewport)
     const clientHeight = measureViewportMetrics
-      ? getViewportClientHeight(viewport)
+      ? viewport
+        ? viewport.clientHeight
+        : 0
       : viewportClientHeight
     const clientWidth = measureViewportMetrics
-      ? getViewportClientWidth(viewport)
+      ? viewport
+        ? viewport.clientWidth
+        : 0
       : viewportClientWidth
     const layoutReadEndTime = commitObserver ? getDiagnosticTime() : 0
     const viewportSize = measureViewportMetrics
@@ -2257,7 +2253,7 @@ function setup(
   ): string | number => {
     return poolRowsForCurrentReconciliation
       ? index
-      : `data-row:${rowRenderVersion()}:${item.key}`
+      : `r:${rowRenderVersion()}:${item.key}`
   }
 
   const getVisibleColumnsForRender = (): DataGridColumnVirtualItem[] => {
@@ -2289,7 +2285,7 @@ function setup(
   ): string | number => {
     return poolHeaderColumnsForCurrentReconciliation
       ? index
-      : `data-header:${columnRenderVersion()}:${item.key}`
+      : `h:${columnRenderVersion()}:${item.key}`
   }
 
   const getBodyColumnReconciliationKey = (
@@ -2298,7 +2294,7 @@ function setup(
   ): string | number => {
     return poolBodyColumnsForCurrentReconciliation
       ? index
-      : `data-cell:${columnRenderVersion()}:${item.key}`
+      : `c:${columnRenderVersion()}:${item.key}`
   }
 
   const getActiveDescendantForRender = (): string | undefined => {
