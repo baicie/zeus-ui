@@ -192,11 +192,7 @@ interface RenderedDataGridVirtualItem extends DataGridVirtualItem {
   data: DataGridRow
 }
 
-interface DataGridSnapshotCache<T> {
-  snapshot: T
-  scrollOffset: number
-  viewportSize: number
-}
+type DataGridSnapshotCache<T> = [snapshot: T, scrollOffset: number]
 
 interface PendingDataGridRangeUpdate {
   event?: Event
@@ -661,8 +657,6 @@ function setup(
     return viewportMeasurement
   }
 
-  const getResolvedViewportSize = (): number => viewportMeasurement.size
-
   const queryCell = (
     rowKey: DataGridRowKey,
     columnId: string,
@@ -1057,44 +1051,22 @@ function setup(
   }
 
   const getSnapshot = (
-    scrollOffset?: number,
-    viewportSize?: number,
+    scrollOffset = getScrollOffset(viewport),
   ): DataGridVirtualSnapshot => {
     rebuildModels()
 
-    const resolvedScrollOffset = scrollOffset ?? getScrollOffset(viewport)
-    const resolvedViewportSize = viewportSize ?? getResolvedViewportSize()
-
-    if (
-      rowSnapshotCache?.scrollOffset === resolvedScrollOffset &&
-      rowSnapshotCache.viewportSize === resolvedViewportSize
-    ) {
-      return rowSnapshotCache.snapshot
+    if (rowSnapshotCache?.[1] === scrollOffset) {
+      return rowSnapshotCache[0]
     }
 
     const snapshot = getSnapshotFromModels(
-      resolvedScrollOffset,
-      resolvedViewportSize,
+      scrollOffset,
+      viewportMeasurement.size,
     )
 
-    rowSnapshotCache = {
-      snapshot,
-      scrollOffset: resolvedScrollOffset,
-      viewportSize: resolvedViewportSize,
-    }
+    rowSnapshotCache = [snapshot, scrollOffset]
 
     return snapshot
-  }
-
-  const getResolvedColumnViewportSize = (
-    clientWidth: number = viewportClientWidth,
-  ): number => {
-    return clientWidth > 0
-      ? clientWidth
-      : Math.min(
-          FALLBACK_COLUMN_VIEWPORT_SIZE,
-          columnVirtualizer.getTotalSize(),
-        )
   }
 
   const getColumnSnapshotFromModels = (
@@ -1131,31 +1103,24 @@ function setup(
   }
 
   const getColumnSnapshot = (
-    scrollOffset?: number,
-    viewportSize?: number,
+    scrollOffset = getColumnScrollOffset(viewport),
   ): DataGridColumnVirtualSnapshot => {
     rebuildModels()
 
-    const resolvedScrollOffset = scrollOffset ?? getColumnScrollOffset(viewport)
-    const resolvedViewportSize = viewportSize ?? getResolvedColumnViewportSize()
-
-    if (
-      columnSnapshotCache?.scrollOffset === resolvedScrollOffset &&
-      columnSnapshotCache.viewportSize === resolvedViewportSize
-    ) {
-      return columnSnapshotCache.snapshot
+    if (columnSnapshotCache?.[1] === scrollOffset) {
+      return columnSnapshotCache[0]
     }
 
     const snapshot = getColumnSnapshotFromModels(
-      resolvedScrollOffset,
-      resolvedViewportSize,
+      scrollOffset,
+      viewportClientWidth ||
+        Math.min(
+          FALLBACK_COLUMN_VIEWPORT_SIZE,
+          columnVirtualizer.getTotalSize(),
+        ),
     )
 
-    columnSnapshotCache = {
-      snapshot,
-      scrollOffset: resolvedScrollOffset,
-      viewportSize: resolvedViewportSize,
-    }
+    columnSnapshotCache = [snapshot, scrollOffset]
 
     return snapshot
   }
@@ -1437,16 +1402,15 @@ function setup(
     const layoutReadEndTime = commitObserver ? getDiagnosticTime() : 0
     const viewportSize = measureViewportMetrics
       ? measureViewport(clientHeight, clientWidth).size
-      : getResolvedViewportSize()
+      : viewportMeasurement.size
     const columnScrollOffset = scrollEvent
       ? getColumnScrollOffset(viewport)
       : undefined
-    const columnViewportSize = getResolvedColumnViewportSize(clientWidth)
     const nextColumnSnapshot =
-      scrollEvent && columnSnapshotCache?.scrollOffset === columnScrollOffset
+      scrollEvent && columnSnapshotCache?.[1] === columnScrollOffset
         ? currentColumnSnapshot
-        : getColumnSnapshot(columnScrollOffset, columnViewportSize)
-    const nextSnapshot = getSnapshot(scrollOffset, viewportSize)
+        : getColumnSnapshot(columnScrollOffset)
+    const nextSnapshot = getSnapshot(scrollOffset)
     const rangeCalculatedTime = commitObserver ? getDiagnosticTime() : 0
     const commitStartTime = commitObserver ? getDiagnosticTime() : 0
 
@@ -1642,7 +1606,11 @@ function setup(
     const offset = columnVirtualizer.getOffsetForIndex(
       index,
       align,
-      getResolvedColumnViewportSize(),
+      viewportClientWidth ||
+        Math.min(
+          FALLBACK_COLUMN_VIEWPORT_SIZE,
+          columnVirtualizer.getTotalSize(),
+        ),
     )
 
     setColumnScrollOffset(viewport, offset)
@@ -1773,7 +1741,7 @@ function setup(
       key,
       pageSize: Math.max(
         1,
-        Math.floor(getResolvedViewportSize() / resolveRowHeight(props)),
+        Math.floor(viewportMeasurement.size / resolveRowHeight(props)),
       ),
     })
 
@@ -1815,7 +1783,7 @@ function setup(
       key,
       pageSize: Math.max(
         1,
-        Math.floor(getResolvedViewportSize() / resolveRowHeight(props)),
+        Math.floor(viewportMeasurement.size / resolveRowHeight(props)),
       ),
     })
 
@@ -2123,7 +2091,7 @@ function setup(
       }
 
       const offset = props.virtual
-        ? virtualizer.getOffsetForIndex(index, align, getResolvedViewportSize())
+        ? virtualizer.getOffsetForIndex(index, align, viewportMeasurement.size)
         : index * resolveRowHeight(props)
 
       setScrollOffset(viewport, offset)
@@ -2296,7 +2264,7 @@ function setup(
     void columnRangeRenderVersion()
     void columnRenderVersion()
 
-    return (columnSnapshotCache?.snapshot ?? getColumnSnapshot()).items
+    return (columnSnapshotCache?.[0] ?? getColumnSnapshot()).items
   }
 
   const getHeaderColumnsForRender = (): DataGridColumnVirtualItem[] => {
@@ -2345,8 +2313,8 @@ function setup(
     const currentActiveCell = activeCell
     if (!currentActiveCell) return undefined
 
-    const columnSnapshot = columnSnapshotCache?.snapshot ?? getColumnSnapshot()
-    const rowSnapshot = rowSnapshotCache?.snapshot ?? getSnapshot()
+    const columnSnapshot = columnSnapshotCache?.[0] ?? getColumnSnapshot()
+    const rowSnapshot = rowSnapshotCache?.[0] ?? getSnapshot()
     const hasRenderedRow = rowSnapshot.items.some(
       item => item.index === currentActiveCell.rowIndex,
     )
@@ -2377,16 +2345,20 @@ function setup(
 
   const getGridTemplateColumns = (): string => {
     const items = getVisibleColumnsForRender()
-    if (items.length === 0) return ''
+    if (!items[0]) return ''
 
-    return `${items[0].start ? `${items[0].start}px ` : ''}${items.map(item => `${item.size}px`).join(' ')}`
+    return (
+      // eslint-disable-next-line prefer-template
+      (items[0].start ? items[0].start + 'px ' : '') +
+      // eslint-disable-next-line prefer-template
+      items.map(item => item.size + 'px').join(' ')
+    )
   }
 
   const getGridColumnStart = (item: DataGridColumnVirtualItem): string => {
     void columnRangeRenderVersion()
 
-    const firstItem = (columnSnapshotCache?.snapshot ?? getColumnSnapshot())
-      .items[0]
+    const firstItem = (columnSnapshotCache?.[0] ?? getColumnSnapshot()).items[0]
     if (!firstItem) return '1'
 
     const leadingTrackCount = firstItem.start > 0 ? 1 : 0
