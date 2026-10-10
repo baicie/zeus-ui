@@ -2348,8 +2348,10 @@ function setup(
     if (!items[0]) return ''
 
     return (
-      (items[0].start ? `${items[0].start}px ` : '') +
-      items.map(item => `${item.size}px`).join(' ')
+      // eslint-disable-next-line prefer-template
+      (items[0].start ? items[0].start + 'px ' : '') +
+      // eslint-disable-next-line prefer-template
+      items.map(item => item.size + 'px').join(' ')
     )
   }
 
