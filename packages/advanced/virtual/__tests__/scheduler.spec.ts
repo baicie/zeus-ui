@@ -21,14 +21,12 @@ describe('createRafScheduler', () => {
     scheduler.schedule(first)
     scheduler.schedule(second)
 
-    expect(scheduler.isScheduled()).toBe(true)
     expect(queued).toHaveLength(1)
 
     queued[0](0)
 
     expect(first).not.toHaveBeenCalled()
     expect(second).toHaveBeenCalledTimes(1)
-    expect(scheduler.isScheduled()).toBe(false)
   })
 
   it('flushes the queued callback synchronously', () => {
@@ -47,7 +45,6 @@ describe('createRafScheduler', () => {
 
     expect(cancelFrame).toHaveBeenCalledWith(1)
     expect(callback).toHaveBeenCalledTimes(1)
-    expect(scheduler.isScheduled()).toBe(false)
   })
 
   it('cancels the queued callback', () => {
@@ -67,6 +64,5 @@ describe('createRafScheduler', () => {
 
     expect(cancelFrame).toHaveBeenCalledWith(1)
     expect(callback).not.toHaveBeenCalled()
-    expect(scheduler.isScheduled()).toBe(false)
   })
 })

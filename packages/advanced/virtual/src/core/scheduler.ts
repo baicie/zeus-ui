@@ -9,7 +9,6 @@ export interface RafScheduler {
   schedule: (callback: FrameCallback) => void
   flush: () => void
   cancel: () => void
-  isScheduled: () => boolean
 }
 
 function defaultRequestFrame(callback: FrameRequestCallback): number {
@@ -17,7 +16,7 @@ function defaultRequestFrame(callback: FrameRequestCallback): number {
     return globalThis.requestAnimationFrame(callback)
   }
 
-  return setTimeout(() => callback(Date.now()), 16) as unknown as number
+  return setTimeout(callback, 16) as unknown as number
 }
 
 function defaultCancelFrame(handle: number): void {
@@ -42,7 +41,6 @@ export function createRafScheduler(
     frameHandle = undefined
     const callback = queuedCallback
     queuedCallback = undefined
-
     callback?.()
   }
 
@@ -60,10 +58,7 @@ export function createRafScheduler(
         cancelFrame(frameHandle)
       }
 
-      frameHandle = undefined
-      const callback = queuedCallback
-      queuedCallback = undefined
-      callback?.()
+      run()
     },
 
     cancel(): void {
@@ -73,10 +68,6 @@ export function createRafScheduler(
 
       frameHandle = undefined
       queuedCallback = undefined
-    },
-
-    isScheduled(): boolean {
-      return frameHandle !== undefined
     },
   }
 }

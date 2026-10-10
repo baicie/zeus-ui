@@ -226,10 +226,6 @@ interface PendingDataGridDiagnosticsCommit {
 
 const FALLBACK_COLUMN_VIEWPORT_SIZE = 640
 
-function getDataGridCommitPriority(source: DataGridCommitSource): number {
-  return source === 'mount' || source === 'resize' ? 1 : 0
-}
-
 function resolveRows(
   props: DataGridProps,
   fallback: DataGridRowData[],
@@ -1414,19 +1410,9 @@ function setup(
       emitSnapshotIfChanged(nextSnapshot, scrollOffset, viewportSize)
       updateColumnSnapshotIfChanged(nextColumnSnapshot)
     })
-    if (
-      source === 'data' &&
-      hasFocusedBodyForCurrentRange &&
-      focusScheduler.isScheduled()
-    ) {
-      focusScheduler.flush()
-    }
-    if (
-      source === 'data' &&
-      focusedHeaderTarget &&
-      headerFocusScheduler.isScheduled()
-    ) {
-      headerFocusScheduler.flush()
+    if (source === 'data') {
+      if (hasFocusedBodyForCurrentRange) focusScheduler.flush()
+      if (focusedHeaderTarget) headerFocusScheduler.flush()
     }
     if (scrollEvent) {
       ctx.emit.scrollOffsetChange({
@@ -1503,9 +1489,8 @@ function setup(
       pendingRangeUpdate = nextUpdate
     } else {
       const previousUpdate = pendingRangeUpdate
-      const shouldReplaceTiming =
-        getDataGridCommitPriority(nextUpdate.source) >=
-        getDataGridCommitPriority(previousUpdate.source)
+      // `measure` stays true once a mount/resize update is merged in.
+      const shouldReplaceTiming = +nextUpdate.measure >= +previousUpdate.measure
 
       if (nextUpdate.event) {
         previousUpdate.event = nextUpdate.event
@@ -1546,8 +1531,7 @@ function setup(
 
     if (source === 'scroll') {
       scheduler.flush()
-      if (pendingRangeUpdate) commit()
-      return
+      return commit()
     }
 
     scheduler.schedule(commit)
