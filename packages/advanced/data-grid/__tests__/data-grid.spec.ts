@@ -392,7 +392,7 @@ describe('data-grid component protocol', () => {
     expect(source).toContain('viewportResize')
     expect(source).toContain('refreshViewport')
     expect(source).toContain('ResizeObserver')
-    expect(source).toContain('getResolvedViewportSize')
+    expect(source).toContain('viewportMeasurement.size')
   })
 
   it('exposes focus helpers for runtime focus management', () => {
