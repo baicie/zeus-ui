@@ -1116,8 +1116,10 @@ function setup(
     columnSnapshotCache = [
       snapshot,
       scrollOffset,
-      (first ? `${first.start}px ` : '') +
-        snapshot.items.map(({ size }) => `${size}px`).join(' '),
+      // eslint-disable-next-line prefer-template
+      (first?.start ? first.start + 'px ' : '') +
+        // eslint-disable-next-line prefer-template
+        snapshot.items.map(({ size }) => size + 'px').join(' '),
     ]
 
     return snapshot
