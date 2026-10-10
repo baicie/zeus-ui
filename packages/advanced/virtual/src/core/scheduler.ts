@@ -54,6 +54,8 @@ export function createRafScheduler(
     },
 
     flush(): void {
+      if (frameHandle === undefined && queuedCallback === undefined) return
+
       if (frameHandle !== undefined) {
         cancelFrame(frameHandle)
       }
