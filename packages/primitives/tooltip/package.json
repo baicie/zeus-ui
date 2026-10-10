@@ -1,7 +1,7 @@
 {
   "name": "@zeus-web/tooltip",
   "type": "module",
-  "version": "0.1.0-beta.11",
+  "version": "0.1.0-beta.12",
   "description": "Headless tooltip primitive for Zeus Web.",
   "license": "MIT",
   "repository": {
@@ -59,7 +59,7 @@
     "test": "vitest --root ../../.. --project unit packages/primitives/__tests__/phase12-contract.spec.ts"
   },
   "peerDependencies": {
-    "@zeus-js/zeus": "0.1.1-beta.3",
+    "@zeus-js/zeus": "0.1.1-beta.5",
     "react": ">=18 || >=19",
     "vue": ">=3"
   },
@@ -72,10 +72,10 @@
     }
   },
   "dependencies": {
-    "@zeus-js/output-react-wrapper": "0.1.1-beta.3",
-    "@zeus-js/output-vue-wrapper": "0.1.1-beta.3",
-    "@zeus-js/runtime-dom": "0.1.1-beta.3",
-    "@zeus-js/web-c-runtime": "0.1.1-beta.3",
+    "@zeus-js/output-react-wrapper": "0.1.1-beta.5",
+    "@zeus-js/output-vue-wrapper": "0.1.1-beta.5",
+    "@zeus-js/runtime-dom": "0.1.1-beta.5",
+    "@zeus-js/web-c-runtime": "0.1.1-beta.5",
     "@zeus-web/zeus-compat": "workspace:*"
   }
 }
