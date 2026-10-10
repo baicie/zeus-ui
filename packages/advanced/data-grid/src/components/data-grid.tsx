@@ -192,7 +192,11 @@ interface RenderedDataGridVirtualItem extends DataGridVirtualItem {
   data: DataGridRow
 }
 
-type DataGridSnapshotCache<T> = [snapshot: T, scrollOffset: number]
+type DataGridSnapshotCache<T> = [
+  snapshot: T,
+  scrollOffset: number,
+  layout?: string,
+]
 
 interface PendingDataGridRangeUpdate {
   event?: Event
@@ -496,9 +500,6 @@ function setup(
   let columnSnapshotCache:
     | DataGridSnapshotCache<DataGridColumnVirtualSnapshot>
     | undefined
-  let columnLayoutSnapshot: DataGridColumnVirtualSnapshot | undefined
-  let columnLayoutTemplate = ''
-  let columnLayoutWidth = 0
   let viewportClientHeight = 0
   let viewportClientWidth = 0
   const [renderVersion, setRenderVersion] = createSignal(0)
@@ -575,7 +576,6 @@ function setup(
 
   const invalidateColumnSnapshotCache = (): void => {
     columnSnapshotCache = undefined
-    columnLayoutSnapshot = undefined
   }
 
   const invalidateSnapshotCaches = (): void => {
@@ -1005,7 +1005,6 @@ function setup(
     }
 
     currentColumnSnapshot = nextSnapshot
-    columnLayoutSnapshot = undefined
     setColumnRangeRenderVersion(value => value + 1)
   }
 
@@ -1113,33 +1112,15 @@ function setup(
         ),
     )
 
-    columnSnapshotCache = [snapshot, scrollOffset]
+    const first = snapshot.items[0]
+    columnSnapshotCache = [
+      snapshot,
+      scrollOffset,
+      (first ? `${first.start}px ` : '') +
+        snapshot.items.map(({ size }) => `${size}px`).join(' '),
+    ]
 
     return snapshot
-  }
-
-  // Vertical scroll reuses the same column snapshot. Cache the derived CSS
-  // layout so every pooled row does not rebuild the same template string.
-  const getColumnLayout = (): {
-    snapshot: DataGridColumnVirtualSnapshot
-    template: string
-    width: number
-  } => {
-    const snapshot = columnSnapshotCache?.[0] ?? getColumnSnapshot()
-
-    if (columnLayoutSnapshot !== snapshot) {
-      columnLayoutSnapshot = snapshot
-      columnLayoutTemplate =
-        (snapshot.items[0]?.start ? `${snapshot.items[0].start}px ` : '') +
-        snapshot.items.map(item => `${item.size}px`).join(' ')
-      columnLayoutWidth = columnVirtualizer.getTotalSize()
-    }
-
-    return {
-      snapshot,
-      template: columnLayoutTemplate,
-      width: columnLayoutWidth,
-    }
   }
 
   const isActiveCellForRender = (
@@ -2277,7 +2258,7 @@ function setup(
     void columnRangeRenderVersion()
     void columnRenderVersion()
 
-    return getColumnLayout().snapshot.items
+    return currentColumnSnapshot.items
   }
 
   const getHeaderColumnsForRender = (): DataGridColumnVirtualItem[] => {
@@ -2351,21 +2332,18 @@ function setup(
 
     return {
       height: `${virtualizer.getTotalSize()}px`,
-      width: `${getColumnLayout().width}px`,
+      width: `${columnVirtualizer.getTotalSize()}px`,
       pointerEvents: 'none',
     }
   }
 
   const getGridTemplateColumns = (): string => {
     void columnRangeRenderVersion()
-    void columnRenderVersion()
-    return getColumnLayout().template
+    return columnSnapshotCache?.[2] || ''
   }
 
   const getGridColumnStart = (item: DataGridColumnVirtualItem): string => {
-    void columnRangeRenderVersion()
-
-    const firstItem = getColumnLayout().snapshot.items[0]
+    const firstItem = currentColumnSnapshot.items[0]
     if (!firstItem) return '1'
 
     const leadingTrackCount = firstItem.start > 0 ? 1 : 0
@@ -2483,7 +2461,7 @@ function setup(
           style={() => ({
             display: 'grid',
             gridTemplateColumns: getGridTemplateColumns(),
-            width: `${getColumnLayout().width}px`,
+            width: `${columnVirtualizer.getTotalSize()}px`,
           })}
         >
           <For
@@ -2658,7 +2636,7 @@ function setup(
                 style={() => ({
                   display: 'grid',
                   gridTemplateColumns: getGridTemplateColumns(),
-                  width: `${getColumnLayout().width}px`,
+                  width: `${columnVirtualizer.getTotalSize()}px`,
                   transform: props.virtual
                     ? `translateY(${rowItem.start}px)`
                     : undefined,
