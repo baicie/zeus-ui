@@ -137,6 +137,33 @@ describe('zw-data-grid diagnostics', () => {
     expect(commits).toHaveLength(1)
   })
 
+  it('does not schedule and cancel an rAF for a native scroll commit', async () => {
+    const grid = await mountDataGrid({
+      rows: Array.from({ length: 100 }, (_, index) => ({
+        id: `row-${index}`,
+      })),
+      columns: [{ id: 'value' }],
+      virtual: true,
+    })
+    const viewport = getViewport(grid)
+    setElementClientHeight(viewport, 60)
+    grid.refreshViewport()
+
+    const requestFrame = vi.spyOn(globalThis, 'requestAnimationFrame')
+    const cancelFrame = vi.spyOn(globalThis, 'cancelAnimationFrame')
+
+    try {
+      viewport.scrollTop = 80
+      viewport.dispatchEvent(new Event('scroll'))
+
+      expect(requestFrame).not.toHaveBeenCalled()
+      expect(cancelFrame).not.toHaveBeenCalled()
+    } finally {
+      requestFrame.mockRestore()
+      cancelFrame.mockRestore()
+    }
+  })
+
   it('records renderer commit end before diagnostics traversal ends', async () => {
     const commits: Readonly<DataGridCommitTiming>[] = []
     const takeRecordTimes: number[] = []

@@ -1545,8 +1545,19 @@ function setup(
       )
     }
 
+    if (source === 'scroll') {
+      // Native scroll events already run in the input task. Avoid creating and
+      // cancelling an rAF for the common case; flush only when an earlier
+      // coalesced update must be merged with this scroll.
+      if (scheduler.isScheduled()) {
+        scheduler.flush()
+      } else {
+        commit()
+      }
+      return
+    }
+
     scheduler.schedule(commit)
-    source === 'scroll' && scheduler.flush()
   }
 
   const beginDiagnosticsNodeChurn = (): boolean => {
