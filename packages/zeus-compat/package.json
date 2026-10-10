@@ -1,7 +1,7 @@
 {
   "name": "@zeus-web/zeus-compat",
   "type": "module",
-  "version": "0.1.0-beta.11",
+  "version": "0.1.0-beta.12",
   "description": "Compatibility layer between Zeus Web and @zeus-js public APIs.",
   "license": "MIT",
   "repository": {
@@ -34,9 +34,9 @@
     "test": "vitest --project unit-jsdom"
   },
   "peerDependencies": {
-    "@zeus-js/zeus": "0.1.1-beta.3"
+    "@zeus-js/zeus": "0.1.1-beta.5"
   },
   "dependencies": {
-    "@zeus-js/runtime-dom": "0.1.1-beta.3"
+    "@zeus-js/runtime-dom": "0.1.1-beta.5"
   }
 }
