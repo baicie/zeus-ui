@@ -19,8 +19,10 @@ describe('data-grid behavior contract', () => {
   it('does not use row or column length as the controlled update signal', () => {
     expect(source).not.toContain('rowsLength')
     expect(source).not.toContain('columnsLength')
-    expect(source).toContain('rows: resolveRows(props, fallbackRows)')
-    expect(source).toContain('columns: resolveColumns(props, fallbackColumns)')
+    expect(source).toContain('rows: resolveSource(props.rows, fallbackRows)')
+    expect(source).toContain(
+      'columns: resolveSource(props.columns, fallbackColumns)',
+    )
   })
 
   it('rebuilds columns and default widths when controlled columns change', () => {
