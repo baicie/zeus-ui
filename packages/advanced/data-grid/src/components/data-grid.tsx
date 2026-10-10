@@ -1499,11 +1499,10 @@ function setup(
       measure: source === 'mount' || source === 'resize',
       preserve: preservePendingNodeChurn,
     }
-    const previousUpdate = pendingRangeUpdate
-
-    if (!previousUpdate) {
+    if (!pendingRangeUpdate) {
       pendingRangeUpdate = nextUpdate
     } else {
+      const previousUpdate = pendingRangeUpdate
       const shouldReplaceTiming =
         getDataGridCommitPriority(nextUpdate.source) >=
         getDataGridCommitPriority(previousUpdate.source)
@@ -1546,14 +1545,8 @@ function setup(
     }
 
     if (source === 'scroll') {
-      // Native scroll events already run in the input task. Avoid creating and
-      // cancelling an rAF for the common case; flush only when an earlier
-      // coalesced update must be merged with this scroll.
-      if (scheduler.isScheduled()) {
-        scheduler.flush()
-      } else {
-        commit()
-      }
+      scheduler.flush()
+      if (pendingRangeUpdate) commit()
       return
     }
 
