@@ -47,6 +47,18 @@ describe('createRafScheduler', () => {
     expect(callback).toHaveBeenCalledTimes(1)
   })
 
+  it('does not run or cancel anything when the queue is empty', () => {
+    const cancelFrame = vi.fn()
+    const scheduler = createRafScheduler({
+      requestFrame: vi.fn(),
+      cancelFrame,
+    })
+
+    scheduler.flush()
+
+    expect(cancelFrame).not.toHaveBeenCalled()
+  })
+
   it('cancels the queued callback', () => {
     const callback = vi.fn()
     const cancelFrame = vi.fn()
