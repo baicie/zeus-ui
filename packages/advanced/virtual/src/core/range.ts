@@ -8,7 +8,7 @@ export const emptyVirtualRange: VirtualRange = {
 }
 
 export function createEmptyVirtualRange(): VirtualRange {
-  return { ...emptyVirtualRange }
+  return Object.assign({}, emptyVirtualRange)
 }
 
 export function isEmptyVirtualRange(range: VirtualRange): boolean {

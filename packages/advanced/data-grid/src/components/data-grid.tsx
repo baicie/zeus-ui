@@ -1995,7 +1995,7 @@ function setup(
 
     getColumns(): NormalizedDataGridColumn[] {
       rebuildModels()
-      return columns.map(column => ({ ...column }))
+      return columns.map(column => Object.assign({}, column))
     },
 
     getVisibleRows(): DataGridRow[] {
@@ -2050,7 +2050,7 @@ function setup(
 
     getSort(): DataGridSortState | undefined {
       rebuildModels()
-      return sort ? { ...sort } : undefined
+      return sort ? Object.assign({}, sort) : undefined
     },
 
     getRange(): DataGridVirtualRange {
@@ -2156,7 +2156,7 @@ function setup(
 
     getColumnWidths(): Record<string, number> {
       rebuildModels()
-      return { ...columnWidths }
+      return Object.assign({}, columnWidths)
     },
 
     setActiveCell(
@@ -2169,7 +2169,7 @@ function setup(
 
     getActiveCell(): DataGridActiveCell | undefined {
       rebuildModels()
-      return activeCell ? { ...activeCell } : undefined
+      return activeCell ? Object.assign({}, activeCell) : undefined
     },
 
     moveActiveCell(key: DataGridNavigationKey, nativeEvent?: Event): void {

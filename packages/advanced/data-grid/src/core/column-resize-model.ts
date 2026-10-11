@@ -40,17 +40,16 @@ export function applyDataGridColumnWidths(
   columns: NormalizedDataGridColumn[],
   widths: DataGridColumnWidthState | undefined,
 ): NormalizedDataGridColumn[] {
-  if (!widths) return columns.map(column => ({ ...column }))
+  if (!widths) return columns.map(column => Object.assign({}, column))
 
   return columns.map(column => {
     const nextWidth = widths[column.id]
 
-    if (nextWidth === undefined) return { ...column }
+    if (nextWidth === undefined) return Object.assign({}, column)
 
-    return {
-      ...column,
+    return Object.assign({}, column, {
       width: clampDataGridColumnWidth(column, nextWidth),
-    }
+    })
   })
 }
 
@@ -65,7 +64,7 @@ export function resizeDataGridColumn(
   if (!column || !column.resizable) {
     return {
       columns: applyDataGridColumnWidths(columns, widths),
-      widths: { ...widths },
+      widths: Object.assign({}, widths),
       column: undefined,
       previousWidth: undefined,
       width: undefined,
@@ -74,10 +73,7 @@ export function resizeDataGridColumn(
 
   const previousWidth = widths[columnId] ?? column.width
   const nextWidth = clampDataGridColumnWidth(column, width)
-  const nextWidths = {
-    ...widths,
-    [columnId]: nextWidth,
-  }
+  const nextWidths = Object.assign({}, widths, { [columnId]: nextWidth })
   const nextColumns = applyDataGridColumnWidths(columns, nextWidths)
   const nextColumn = nextColumns.find(item => item.id === columnId)
 
@@ -98,7 +94,7 @@ export function resizeDataGridColumnByDelta(
   if (!column) {
     return {
       columns: applyDataGridColumnWidths(options.columns, options.widths),
-      widths: { ...(options.widths ?? {}) },
+      widths: Object.assign({}, options.widths ?? {}),
       column: undefined,
       previousWidth: undefined,
       width: undefined,
@@ -124,7 +120,7 @@ export function resetDataGridColumnWidths(
     columns,
   ),
 ): DataGridColumnResizeResult {
-  const widths = { ...defaultWidths }
+  const widths = Object.assign({}, defaultWidths)
   const resetColumns = applyDataGridColumnWidths(columns, widths)
 
   return {
