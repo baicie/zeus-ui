@@ -73,7 +73,7 @@ export function createDataGridControlledStateTracker(
     },
 
     commit(next: Partial<DataGridControlledStateSources>): void {
-      current = { ...current, ...next }
+      current = Object.assign({}, current, next)
     },
   }
 }

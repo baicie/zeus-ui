@@ -179,7 +179,7 @@ export function createDataGridControlledStateController(
     },
 
     commit(nextSources: Partial<DataGridControlledStateSources>): void {
-      current = normalizeSources({ ...current, ...nextSources })
+      current = normalizeSources(Object.assign({}, current, nextSources))
     },
   }
 }
