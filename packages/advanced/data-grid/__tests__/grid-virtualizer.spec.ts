@@ -8,6 +8,21 @@ import {
 } from '../src/core'
 
 describe('data grid row virtualizer', () => {
+  it('does not update when the row snapshot object is reused', () => {
+    const snapshot = {
+      range: {
+        start: 0,
+        end: 1,
+        overscanStart: 0,
+        overscanEnd: 1,
+      },
+      items: [],
+      totalSize: 80,
+    }
+
+    expect(shouldUpdateDataGridVirtualSnapshot(snapshot, snapshot)).toBe(false)
+  })
+
   it('returns empty snapshot for empty rows', () => {
     const virtualizer = createDataGridRowVirtualizer({
       rows: createDataGridRowModel([]),

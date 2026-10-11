@@ -21,6 +21,23 @@ const columns = [
 }))
 
 describe('data grid column virtualizer', () => {
+  it('does not update when the column snapshot object is reused', () => {
+    const snapshot = {
+      range: {
+        start: 0,
+        end: 1,
+        overscanStart: 0,
+        overscanEnd: 1,
+      },
+      items: [],
+      totalSize: 200,
+    }
+
+    expect(shouldUpdateDataGridColumnVirtualSnapshot(snapshot, snapshot)).toBe(
+      false,
+    )
+  })
+
   it('renders a horizontally virtualized range with overscan', () => {
     const virtualizer = createDataGridColumnVirtualizer({
       columns,

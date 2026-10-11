@@ -1395,17 +1395,20 @@ function setup(
     const columnScrollOffset = scrollEvent
       ? getColumnScrollOffset(viewport)
       : undefined
-    const nextColumnSnapshot =
-      scrollEvent && columnSnapshotCache?.[1] === columnScrollOffset
-        ? currentColumnSnapshot
-        : getColumnSnapshot(columnScrollOffset)
+    const columnSnapshotReused =
+      Boolean(scrollEvent) && columnSnapshotCache?.[1] === columnScrollOffset
+    const nextColumnSnapshot = columnSnapshotReused
+      ? currentColumnSnapshot
+      : getColumnSnapshot(columnScrollOffset)
     const nextSnapshot = getSnapshot(scrollOffset)
     const rangeCalculatedTime = commitObserver ? getDiagnosticTime() : 0
     const commitStartTime = commitObserver ? getDiagnosticTime() : 0
 
     batch(() => {
       emitSnapshotIfChanged(nextSnapshot, scrollOffset, viewportSize)
-      updateColumnSnapshotIfChanged(nextColumnSnapshot)
+      if (!columnSnapshotReused) {
+        updateColumnSnapshotIfChanged(nextColumnSnapshot)
+      }
     })
     if (source === 'data') {
       if (hasFocusedBodyForCurrentRange) focusScheduler.flush()
