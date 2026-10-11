@@ -1473,6 +1473,23 @@ function setup(
       handlerStartTime === undefined
         ? undefined
         : (getDiagnosticInputTime(inputEvent) ?? null)
+
+    // Native scroll events are already synchronous. When no deferred update is
+    // pending, avoid allocating a queue record and probing the RAF scheduler.
+    if (source === 'scroll' && !pendingRangeUpdate) {
+      updateRange(
+        inputEvent,
+        source,
+        handlerStartTime,
+        handlerEndTime,
+        false,
+        preservePendingNodeChurn,
+        false,
+        inputTime,
+      )
+      return
+    }
+
     const nextUpdate: PendingDataGridRangeUpdate = {
       event: source === 'scroll' ? inputEvent : undefined,
       source,
