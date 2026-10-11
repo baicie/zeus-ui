@@ -2430,7 +2430,9 @@ function setup(
             }
 
             viewport = element
-            element.addEventListener('scroll', scheduleUpdateRange)
+            element.addEventListener('scroll', scheduleUpdateRange, {
+              passive: true,
+            })
             connectViewportObserver(element)
             ensureDiagnosticsMutationObserver()
             scheduleUpdateRange(undefined, 'mount')

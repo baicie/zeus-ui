@@ -424,7 +424,7 @@ describe('data-grid component protocol', () => {
     expect(source).toContain('by={getBodyColumnReconciliationKey}')
     expect(source).toContain('each={getBodyRowsForRender()}')
     expect(source).toContain(
-      "element.addEventListener('scroll', scheduleUpdateRange)",
+      "element.addEventListener('scroll', scheduleUpdateRange, {\n              passive: true,\n            })",
     )
     expect(source).not.toContain('{visibleColumns.map(')
     expect(source).not.toContain('{getBodyRows().map(')
