@@ -1031,8 +1031,9 @@ function setup(
 
   const getSnapshot = (
     scrollOffset = getScrollOffset(viewport),
+    modelsReady = false,
   ): DataGridVirtualSnapshot => {
-    rebuildModels()
+    if (!modelsReady) rebuildModels()
 
     if (rowSnapshotCache?.[1] === scrollOffset) {
       return rowSnapshotCache[0]
@@ -1083,8 +1084,9 @@ function setup(
 
   const getColumnSnapshot = (
     scrollOffset = getColumnScrollOffset(viewport),
+    modelsReady = false,
   ): DataGridColumnVirtualSnapshot => {
-    rebuildModels()
+    if (!modelsReady) rebuildModels()
 
     if (columnSnapshotCache?.[1] === scrollOffset) {
       return columnSnapshotCache[0]
@@ -1401,8 +1403,8 @@ function setup(
     const nextColumnSnapshot =
       scrollEvent && columnSnapshotCache?.[1] === columnScrollOffset
         ? currentColumnSnapshot
-        : getColumnSnapshot(columnScrollOffset)
-    const nextSnapshot = getSnapshot(scrollOffset)
+        : getColumnSnapshot(columnScrollOffset, true)
+    const nextSnapshot = getSnapshot(scrollOffset, true)
     const rangeCalculatedTime = commitObserver ? getDiagnosticTime() : 0
     const commitStartTime = commitObserver ? getDiagnosticTime() : 0
 
