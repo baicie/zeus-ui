@@ -213,6 +213,11 @@ interface FocusedDataGridHeaderTarget {
   kind: 'header-cell' | 'resize-handle'
 }
 
+interface FocusedDataGridViewportState {
+  body: boolean
+  header?: FocusedDataGridHeaderTarget
+}
+
 interface PendingDataGridCommitTiming extends DataGridCommitTiming {
   layoutReadIntervals: Array<readonly [number, number]>
 }
@@ -663,21 +668,7 @@ function setup(
     return cell !== null && cell.ownerDocument.activeElement === cell
   }
 
-  const hasFocusedBodyDescendant = (): boolean => {
-    const currentViewport = viewport
-    const activeElement = currentViewport?.ownerDocument.activeElement
-
-    return Boolean(
-      currentViewport &&
-      activeElement &&
-      currentViewport.contains(activeElement) &&
-      activeElement.closest('[data-slot="data-grid-body"]'),
-    )
-  }
-
-  const getFocusedHeaderTarget = ():
-    | FocusedDataGridHeaderTarget
-    | undefined => {
+  const getFocusedViewportState = (): FocusedDataGridViewportState => {
     const currentViewport = viewport
     const activeElement = currentViewport?.ownerDocument.activeElement
 
@@ -686,27 +677,38 @@ function setup(
       !activeElement ||
       !currentViewport.contains(activeElement)
     ) {
-      return undefined
+      return { body: false }
     }
 
+    const body = Boolean(activeElement.closest('[data-slot="data-grid-body"]'))
     const headerCell = activeElement.closest<HTMLElement>(
       '[data-slot="data-grid-header-cell"]',
     )
 
-    if (!headerCell) return undefined
+    if (!headerCell) return { body }
 
     const columnId = headerCell.getAttribute('data-column-id')
 
-    if (columnId === null) return undefined
+    if (columnId === null) return { body }
 
     return {
-      columnId,
-      kind:
-        activeElement.getAttribute('data-slot') === 'data-grid-resize-handle'
-          ? 'resize-handle'
-          : 'header-cell',
+      body,
+      header: {
+        columnId,
+        kind:
+          activeElement.getAttribute('data-slot') === 'data-grid-resize-handle'
+            ? 'resize-handle'
+            : 'header-cell',
+      },
     }
   }
+
+  const hasFocusedBodyDescendant = (): boolean => {
+    return getFocusedViewportState().body
+  }
+
+  const getFocusedHeaderTarget = (): FocusedDataGridHeaderTarget | undefined =>
+    getFocusedViewportState().header
 
   const focusHeaderTarget = (target: FocusedDataGridHeaderTarget): void => {
     const headerCell = ctx.host.querySelector<HTMLElement>(
@@ -1303,10 +1305,11 @@ function setup(
   ): void => {
     finalizeCompletedPendingDiagnosticsCommit()
 
-    const hasFocusedBodyForCurrentRange = hasFocusedBodyDescendant()
+    const focusedViewportState = getFocusedViewportState()
+    const hasFocusedBodyForCurrentRange = focusedViewportState.body
     const shouldRestoreFocusAfterPoolExit =
       preserveFocusedBodyDomPoolForCurrentRange && hasFocusedBodyForCurrentRange
-    const focusedHeaderTarget = getFocusedHeaderTarget()
+    const focusedHeaderTarget = focusedViewportState.header
     const shouldRestoreHeaderFocusAfterPoolExit = Boolean(
       poolHeaderColumnsForCurrentReconciliation && focusedHeaderTarget,
     )
