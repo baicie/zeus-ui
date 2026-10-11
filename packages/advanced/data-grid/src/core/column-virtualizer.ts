@@ -91,6 +91,8 @@ export function shouldUpdateDataGridColumnVirtualSnapshot(
   current: DataGridColumnVirtualSnapshot,
   next: DataGridColumnVirtualSnapshot,
 ): boolean {
+  if (current === next) return false
+
   return (
     current.totalSize !== next.totalSize ||
     !areVirtualRangesEqual(current.range, next.range) ||
