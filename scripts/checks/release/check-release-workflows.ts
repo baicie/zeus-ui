@@ -81,6 +81,25 @@ export function shellVariable(value: string): string {
   return `${dollar}{${value}}`
 }
 
+/**
+ * The publish workflow must confirm the release tag still points at the
+ * immutable release commit. A lightweight tag resolves straight to a commit
+ * while an annotated tag resolves to a tag object first, so compare the peeled
+ * commit and let either tag kind satisfy the same release SHA.
+ */
+export function revalidateReleaseTagScript(versionExpression: string): string {
+  return [
+    '# A lightweight tag resolves straight to a commit, while an annotated',
+    '# tag resolves to a tag object first. Compare the peeled commit so both',
+    '# tag kinds verify against the same immutable release SHA.',
+    'remote_tag_sha="$(',
+    `  git fetch --force --no-tags origin "refs/tags/v${versionExpression}:refs/tags/v${versionExpression}" >/dev/null 2>&1`,
+    `  git rev-parse "refs/tags/v${versionExpression}^{commit}"`,
+    ')"',
+    'test "$remote_tag_sha" = "$RELEASE_SHA"',
+  ].join('\n')
+}
+
 function getNamedStep(
   job: WorkflowObject,
   name: string,
@@ -1087,10 +1106,7 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       'pnpm build',
       'pnpm check:build-output',
       'pnpm release:verify:pack',
-      [
-        'remote_tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" --jq \'.object.sha\')"',
-        'test "$remote_tag_sha" = "$RELEASE_SHA"',
-      ].join('\n'),
+      revalidateReleaseTagScript('$VERSION'),
       'pnpm release:capture:latest --output "$LATEST_BASELINE"',
       'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
       'pnpm release:verify:published --version "$VERSION" --tag "$TAG" --latest-baseline "$LATEST_BASELINE" --release-sha "$RELEASE_SHA"',
@@ -1126,10 +1142,7 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
   )
   expectEqual(
     String(revalidateTag.run).trim(),
-    [
-      'remote_tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" --jq \'.object.sha\')"',
-      'test "$remote_tag_sha" = "$RELEASE_SHA"',
-    ].join('\n'),
+    revalidateReleaseTagScript('$VERSION'),
     'publish.jobs.publish.steps.Revalidate release tag.run',
     errors,
   )
