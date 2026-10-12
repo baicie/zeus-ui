@@ -389,6 +389,17 @@ function setup(
 ) {
   let viewport: HTMLElement | undefined
   let viewportResizeObserver: ResizeObserver | undefined
+  // The scroll hot path needs the focused viewport state on every commit, and
+  // deriving it walks the active element with closest(). Caching that derived
+  // state keeps the walk off the hot path, but the cache must never outlive the
+  // element it was derived from: DOM pooling recycles header cells without
+  // firing a focus event, so a header cell can lose focus while remaining in the
+  // cache. Comparing document.activeElement against the cached element by
+  // identity detects that in O(1) without touching layout.
+  let cachedFocusedViewportState:
+    | (FocusedDataGridViewportState & { source: Element | null })
+    | undefined
+  let focusedViewportStateListenerAttached = false
   let resizeSession: ResizeSession | undefined
   let diagnosticsMutationObserver: MutationObserver | undefined
   let pendingCreatedNodes: Set<Node> | undefined
@@ -668,7 +679,7 @@ function setup(
     return cell !== null && cell.ownerDocument.activeElement === cell
   }
 
-  const getFocusedViewportState = (): FocusedDataGridViewportState => {
+  const readFocusedViewportState = (): FocusedDataGridViewportState => {
     const currentViewport = viewport
     const activeElement = currentViewport?.ownerDocument.activeElement
 
@@ -701,6 +712,53 @@ function setup(
             : 'header-cell',
       },
     }
+  }
+
+  const invalidateFocusedViewportState = (): void => {
+    cachedFocusedViewportState = undefined
+  }
+
+  const ensureFocusedViewportStateListener = (): void => {
+    const currentViewport = viewport
+    if (!currentViewport) {
+      focusedViewportStateListenerAttached = false
+      return
+    }
+    if (focusedViewportStateListenerAttached) return
+    const ownerDocument = currentViewport.ownerDocument
+    ownerDocument.addEventListener(
+      'focusin',
+      invalidateFocusedViewportState,
+      true,
+    )
+    ownerDocument.addEventListener(
+      'focusout',
+      invalidateFocusedViewportState,
+      true,
+    )
+    focusedViewportStateListenerAttached = true
+  }
+
+  const getFocusedViewportState = (): FocusedDataGridViewportState => {
+    ensureFocusedViewportStateListener()
+    const activeElement = viewport?.ownerDocument.activeElement ?? null
+    if (
+      cachedFocusedViewportState &&
+      cachedFocusedViewportState.source === activeElement &&
+      (activeElement === null ||
+        (viewport?.contains(activeElement) === true &&
+          (!cachedFocusedViewportState.header ||
+            activeElement
+              .closest<HTMLElement>('[data-slot="data-grid-header-cell"]')
+              ?.getAttribute('data-column-id') ===
+              cachedFocusedViewportState.header.columnId)))
+    ) {
+      return cachedFocusedViewportState
+    }
+
+    const state = readFocusedViewportState()
+    cachedFocusedViewportState = { ...state, source: activeElement }
+    return state
   }
 
   const hasFocusedBodyDescendant = (): boolean => {
@@ -2430,6 +2488,7 @@ function setup(
             }
 
             viewport = element
+            invalidateFocusedViewportState()
             element.addEventListener('scroll', scheduleUpdateRange, {
               passive: true,
             })
@@ -2439,6 +2498,21 @@ function setup(
             return
           }
 
+          if (focusedViewportStateListenerAttached && viewport?.ownerDocument) {
+            const ownerDocument = viewport.ownerDocument
+            ownerDocument.removeEventListener(
+              'focusin',
+              invalidateFocusedViewportState,
+              true,
+            )
+            ownerDocument.removeEventListener(
+              'focusout',
+              invalidateFocusedViewportState,
+              true,
+            )
+          }
+          focusedViewportStateListenerAttached = false
+          invalidateFocusedViewportState()
           viewportResizeObserver?.disconnect()
           viewportResizeObserver = undefined
           if (diagnosticsMutationObserver) {
