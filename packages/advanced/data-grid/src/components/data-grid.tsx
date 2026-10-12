@@ -398,6 +398,7 @@ function setup(
   // identity detects that in O(1) without touching layout.
   let cachedFocusedViewportState: FocusedDataGridViewportState | undefined
   let cachedFocusedViewportSource: Element | null = null
+  let canReuseUnfocusedViewportState = false
   let focusedViewportStateListenerAttached = false
   let resizeSession: ResizeSession | undefined
   let diagnosticsMutationObserver: MutationObserver | undefined
@@ -716,6 +717,7 @@ function setup(
   const invalidateFocusedViewportState = (): void => {
     cachedFocusedViewportState = undefined
     cachedFocusedViewportSource = null
+    canReuseUnfocusedViewportState = false
   }
 
   const ensureFocusedViewportStateListener = (): void => {
@@ -737,6 +739,13 @@ function setup(
 
   const getFocusedViewportState = (): FocusedDataGridViewportState => {
     ensureFocusedViewportStateListener()
+
+    // Focus events invalidate this state. While the grid has no focused
+    // descendant, avoid reading document.activeElement for every scroll commit.
+    if (canReuseUnfocusedViewportState && cachedFocusedViewportState) {
+      return cachedFocusedViewportState
+    }
+
     const activeElement = viewport?.ownerDocument.activeElement ?? null
     const cachedHeader = cachedFocusedViewportState?.header
     if (
@@ -758,6 +767,7 @@ function setup(
     const state = readFocusedViewportState()
     cachedFocusedViewportSource = activeElement
     cachedFocusedViewportState = state
+    canReuseUnfocusedViewportState = !state.body && state.header === undefined
     return state
   }
 
@@ -1295,6 +1305,8 @@ function setup(
     current.renderToken = next.renderToken
     currentSample.rangeCalculatedTime = nextSample.rangeCalculatedTime
     currentSample.commitStartTime = nextSample.commitStartTime
+    currentSample.signalPublishStartTime = nextSample.signalPublishStartTime
+    currentSample.signalPublishEndTime = nextSample.signalPublishEndTime
     currentSample.layoutReadIntervals.push(nextSample.layoutReadIntervals[0])
     currentSample.firstRowIndex = nextSample.firstRowIndex
     currentSample.lastRowIndex = nextSample.lastRowIndex
@@ -1465,11 +1477,13 @@ function setup(
     const nextSnapshot = getSnapshot(scrollOffset, true)
     const rangeCalculatedTime = commitObserver ? getDiagnosticTime() : 0
     const commitStartTime = commitObserver ? getDiagnosticTime() : 0
+    const signalPublishStartTime = commitObserver ? getDiagnosticTime() : 0
 
     batch(() => {
       emitSnapshotIfChanged(nextSnapshot, scrollOffset, viewportSize)
       updateColumnSnapshotIfChanged(nextColumnSnapshot)
     })
+    const signalPublishEndTime = commitObserver ? getDiagnosticTime() : 0
     if (source === 'data') {
       if (hasFocusedBodyForCurrentRange) focusScheduler.flush()
       if (focusedHeaderTarget) headerFocusScheduler.flush()
@@ -1497,6 +1511,8 @@ function setup(
         rangeStartTime,
         rangeCalculatedTime,
         commitStartTime,
+        signalPublishStartTime,
+        signalPublishEndTime,
         commitEndTime: 0,
         diagnosticsEndTime: 0,
         layoutReadIntervals: [[layoutReadStartTime, layoutReadEndTime]],

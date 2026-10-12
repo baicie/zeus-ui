@@ -1237,6 +1237,12 @@ function expectCommitTimingOrder(
   expect(sample.commitStartTime).toBeGreaterThanOrEqual(
     sample.rangeCalculatedTime,
   )
+  expect(sample.signalPublishStartTime).toBeGreaterThanOrEqual(
+    sample.commitStartTime,
+  )
+  expect(sample.signalPublishEndTime).toBeGreaterThanOrEqual(
+    sample.signalPublishStartTime,
+  )
   expect(sample.commitEndTime).toBeGreaterThanOrEqual(sample.commitStartTime)
   expect(sample.diagnosticsEndTime).toBeGreaterThanOrEqual(sample.commitEndTime)
   expect(sample.layoutReadIntervals).toHaveLength(layoutReadCount)
