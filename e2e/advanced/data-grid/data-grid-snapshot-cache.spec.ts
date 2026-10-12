@@ -211,6 +211,62 @@ describe('zw-data-grid viewport snapshot cache', () => {
     expect(grid.getColumnRange().start).toBe(2)
   })
 
+  it('reuses an unfocused state until focus invalidates the cache', async () => {
+    const grid = await mountVirtualDataGrid()
+    const viewport = getViewport(grid)
+
+    setElementClientHeight(viewport, 120)
+    setElementClientWidth(viewport, 240)
+    grid.refreshViewport()
+    await nextFrame()
+
+    const documentPrototype = Object.getPrototypeOf(viewport.ownerDocument) as {
+      activeElement?: PropertyDescriptor
+    }
+    const activeElementDescriptor = Object.getOwnPropertyDescriptor(
+      documentPrototype,
+      'activeElement',
+    )
+    if (!activeElementDescriptor?.get) {
+      throw new Error('Document.activeElement getter is unavailable')
+    }
+
+    let activeElementReads = 0
+    Object.defineProperty(documentPrototype, 'activeElement', {
+      configurable: true,
+      get() {
+        activeElementReads += 1
+        return activeElementDescriptor.get!.call(this)
+      },
+    })
+
+    try {
+      viewport.scrollTop = 80
+      viewport.dispatchEvent(new Event('scroll'))
+      await nextFrame()
+      const readsAfterFirstScroll = activeElementReads
+
+      viewport.scrollTop = 120
+      viewport.dispatchEvent(new Event('scroll'))
+      await nextFrame()
+
+      expect(activeElementReads).toBe(readsAfterFirstScroll)
+
+      document.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+      viewport.scrollTop = 160
+      viewport.dispatchEvent(new Event('scroll'))
+      await nextFrame()
+
+      expect(activeElementReads).toBeGreaterThan(readsAfterFirstScroll)
+    } finally {
+      Object.defineProperty(
+        documentPrototype,
+        'activeElement',
+        activeElementDescriptor,
+      )
+    }
+  })
+
   it('invalidates both snapshots when viewport dimensions change', async () => {
     const originalResizeObserver = Object.getOwnPropertyDescriptor(
       globalThis,

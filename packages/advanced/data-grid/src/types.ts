@@ -62,6 +62,10 @@ export interface DataGridCommitTiming {
   rangeStartTime: number
   rangeCalculatedTime: number
   commitStartTime: number
+  /** Time immediately before the reactive snapshot signals are published. */
+  signalPublishStartTime: number
+  /** Time immediately after the reactive snapshot signals finish flushing. */
+  signalPublishEndTime: number
   /** End of the renderer commit boundary, before diagnostics traversal. */
   commitEndTime: number
   /** End of Node tree / MutationObserver.takeRecords diagnostics after commit. */
