@@ -7,6 +7,7 @@ import {
   CHECKOUT_ACTION_REF,
   githubExpression,
   PNPM_SETUP_ACTION_REF,
+  revalidateReleaseTagScript,
   SETUP_NODE_ACTION_REF,
   shellVariable,
 } from '../release/check-release-workflows'
@@ -619,10 +620,7 @@ describe('release script contract', () => {
       'pnpm build',
       'pnpm check:build-output',
       'pnpm release:verify:pack',
-      [
-        'remote_tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" --jq \'.object.sha\')"',
-        'test "$remote_tag_sha" = "$RELEASE_SHA"',
-      ].join('\n'),
+      revalidateReleaseTagScript('$VERSION'),
       'pnpm release:capture:latest --output "$LATEST_BASELINE"',
       'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
       'pnpm release:verify:published --version "$VERSION" --tag "$TAG" --latest-baseline "$LATEST_BASELINE" --release-sha "$RELEASE_SHA"',
@@ -640,10 +638,7 @@ describe('release script contract', () => {
       'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
     )
     expect(String(revalidateTag.run).trim()).toBe(
-      [
-        'remote_tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" --jq \'.object.sha\')"',
-        'test "$remote_tag_sha" = "$RELEASE_SHA"',
-      ].join('\n'),
+      revalidateReleaseTagScript('$VERSION'),
     )
     expect(getObject(revalidateTag, 'env')).toEqual({
       VERSION: githubExpression('inputs.version'),

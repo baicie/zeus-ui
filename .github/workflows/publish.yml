@@ -95,7 +95,13 @@ jobs:
 
       - name: Revalidate release tag
         run: |
-          remote_tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" --jq '.object.sha')"
+          # A lightweight tag resolves straight to a commit, while an annotated
+          # tag resolves to a tag object first. Compare the peeled commit so both
+          # tag kinds verify against the same immutable release SHA.
+          remote_tag_sha="$(
+            git fetch --force --no-tags origin "refs/tags/v$VERSION:refs/tags/v$VERSION" >/dev/null 2>&1
+            git rev-parse "refs/tags/v$VERSION^{commit}"
+          )"
           test "$remote_tag_sha" = "$RELEASE_SHA"
         env:
           VERSION: ${{ inputs.version }}
