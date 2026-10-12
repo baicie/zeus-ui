@@ -396,9 +396,8 @@ function setup(
   // firing a focus event, so a header cell can lose focus while remaining in the
   // cache. Comparing document.activeElement against the cached element by
   // identity detects that in O(1) without touching layout.
-  let cachedFocusedViewportState:
-    | (FocusedDataGridViewportState & { source: Element | null })
-    | undefined
+  let cachedFocusedViewportState: FocusedDataGridViewportState | undefined
+  let cachedFocusedViewportSource: Element | null = null
   let focusedViewportStateListenerAttached = false
   let resizeSession: ResizeSession | undefined
   let diagnosticsMutationObserver: MutationObserver | undefined
@@ -716,16 +715,13 @@ function setup(
 
   const invalidateFocusedViewportState = (): void => {
     cachedFocusedViewportState = undefined
+    cachedFocusedViewportSource = null
   }
 
   const ensureFocusedViewportStateListener = (): void => {
-    const currentViewport = viewport
-    if (!currentViewport) {
-      focusedViewportStateListenerAttached = false
-      return
-    }
+    const ownerDocument = viewport?.ownerDocument
+    if (!ownerDocument) return
     if (focusedViewportStateListenerAttached) return
-    const ownerDocument = currentViewport.ownerDocument
     ownerDocument.addEventListener(
       'focusin',
       invalidateFocusedViewportState,
@@ -742,22 +738,26 @@ function setup(
   const getFocusedViewportState = (): FocusedDataGridViewportState => {
     ensureFocusedViewportStateListener()
     const activeElement = viewport?.ownerDocument.activeElement ?? null
+    const cachedHeader = cachedFocusedViewportState?.header
     if (
-      cachedFocusedViewportState &&
-      cachedFocusedViewportState.source === activeElement &&
-      (activeElement === null ||
-        (viewport?.contains(activeElement) === true &&
-          (!cachedFocusedViewportState.header ||
-            activeElement
-              .closest<HTMLElement>('[data-slot="data-grid-header-cell"]')
-              ?.getAttribute('data-column-id') ===
-              cachedFocusedViewportState.header.columnId)))
+      cachedFocusedViewportState !== undefined &&
+      cachedFocusedViewportSource === activeElement
     ) {
-      return cachedFocusedViewportState
+      if (
+        activeElement === null ||
+        !cachedHeader ||
+        (viewport?.contains(activeElement) === true &&
+          activeElement
+            .closest<HTMLElement>('[data-slot="data-grid-header-cell"]')
+            ?.getAttribute('data-column-id') === cachedHeader.columnId)
+      ) {
+        return cachedFocusedViewportState
+      }
     }
 
     const state = readFocusedViewportState()
-    cachedFocusedViewportState = { ...state, source: activeElement }
+    cachedFocusedViewportSource = activeElement
+    cachedFocusedViewportState = state
     return state
   }
 
