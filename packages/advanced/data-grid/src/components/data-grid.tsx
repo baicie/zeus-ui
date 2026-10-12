@@ -389,6 +389,14 @@ function setup(
 ) {
   let viewport: HTMLElement | undefined
   let viewportResizeObserver: ResizeObserver | undefined
+  // Reading activeElement and walking up with closest() forces a synchronous
+  // style and layout flush. Doing that at the top of every scroll commit makes
+  // a scrollTop assignment pay for a synchronous reflow, which shows up as
+  // intermittent multi-frame stalls on large viewports. Focus only changes on
+  // focus events, so the state is cached and invalidated by those events
+  // instead of being re-read on the scroll hot path.
+  let cachedFocusedViewportState: FocusedDataGridViewportState | undefined
+  let focusedViewportStateListenerAttached = false
   let resizeSession: ResizeSession | undefined
   let diagnosticsMutationObserver: MutationObserver | undefined
   let pendingCreatedNodes: Set<Node> | undefined
@@ -668,7 +676,7 @@ function setup(
     return cell !== null && cell.ownerDocument.activeElement === cell
   }
 
-  const getFocusedViewportState = (): FocusedDataGridViewportState => {
+  const readFocusedViewportState = (): FocusedDataGridViewportState => {
     const currentViewport = viewport
     const activeElement = currentViewport?.ownerDocument.activeElement
 
@@ -701,6 +709,37 @@ function setup(
             : 'header-cell',
       },
     }
+  }
+
+  const invalidateFocusedViewportState = (): void => {
+    cachedFocusedViewportState = undefined
+  }
+
+  const ensureFocusedViewportStateListener = (): void => {
+    const currentViewport = viewport
+    if (!currentViewport) {
+      focusedViewportStateListenerAttached = false
+      return
+    }
+    if (focusedViewportStateListenerAttached) return
+    const ownerDocument = currentViewport.ownerDocument
+    ownerDocument.addEventListener(
+      'focusin',
+      invalidateFocusedViewportState,
+      true,
+    )
+    ownerDocument.addEventListener(
+      'focusout',
+      invalidateFocusedViewportState,
+      true,
+    )
+    focusedViewportStateListenerAttached = true
+  }
+
+  const getFocusedViewportState = (): FocusedDataGridViewportState => {
+    ensureFocusedViewportStateListener()
+    cachedFocusedViewportState ??= readFocusedViewportState()
+    return cachedFocusedViewportState
   }
 
   const hasFocusedBodyDescendant = (): boolean => {
@@ -2430,6 +2469,7 @@ function setup(
             }
 
             viewport = element
+            invalidateFocusedViewportState()
             element.addEventListener('scroll', scheduleUpdateRange, {
               passive: true,
             })
@@ -2439,6 +2479,21 @@ function setup(
             return
           }
 
+          if (focusedViewportStateListenerAttached && viewport?.ownerDocument) {
+            const ownerDocument = viewport.ownerDocument
+            ownerDocument.removeEventListener(
+              'focusin',
+              invalidateFocusedViewportState,
+              true,
+            )
+            ownerDocument.removeEventListener(
+              'focusout',
+              invalidateFocusedViewportState,
+              true,
+            )
+          }
+          focusedViewportStateListenerAttached = false
+          invalidateFocusedViewportState()
           viewportResizeObserver?.disconnect()
           viewportResizeObserver = undefined
           if (diagnosticsMutationObserver) {
