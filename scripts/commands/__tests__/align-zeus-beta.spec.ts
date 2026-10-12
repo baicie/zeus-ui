@@ -46,14 +46,14 @@ describe('alignZeusBeta', () => {
 
     const result = alignZeusBeta({ root })
 
-    expect(result.version).toBe('0.1.1-beta.7')
-    expect(result.peerRange).toBe('0.1.1-beta.7')
+    expect(result.version).toBe('0.1.1-beta.8')
+    expect(result.peerRange).toBe('0.1.1-beta.8')
     expect(result.changedFiles).toHaveLength(2)
 
     expect(readPackage(root, 'package.json')).toMatchObject({
       devDependencies: {
-        '@zeus-js/zeus': '0.1.1-beta.7',
-        '@zeus-js/runtime-dom': '0.1.1-beta.7',
+        '@zeus-js/zeus': '0.1.1-beta.8',
+        '@zeus-js/runtime-dom': '0.1.1-beta.8',
         typescript: '^6.0.3',
       },
     })
@@ -62,12 +62,12 @@ describe('alignZeusBeta', () => {
       readPackage(root, 'packages/advanced/data-grid/package.json'),
     ).toMatchObject({
       peerDependencies: {
-        '@zeus-js/zeus': '0.1.1-beta.7',
+        '@zeus-js/zeus': '0.1.1-beta.8',
         react: '>=18 || >=19',
       },
       dependencies: {
-        '@zeus-js/runtime-dom': '0.1.1-beta.7',
-        '@zeus-js/web-c-runtime': '0.1.1-beta.7',
+        '@zeus-js/runtime-dom': '0.1.1-beta.8',
+        '@zeus-js/web-c-runtime': '0.1.1-beta.8',
         '@zeus-web/virtual': 'workspace:*',
       },
     })
