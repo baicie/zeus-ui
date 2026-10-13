@@ -34,9 +34,9 @@
     "test": "vitest --project unit-jsdom"
   },
   "peerDependencies": {
-    "@zeus-js/zeus": "0.1.1-beta.10"
+    "@zeus-js/zeus": "0.1.1-beta.11"
   },
   "dependencies": {
-    "@zeus-js/runtime-dom": "0.1.1-beta.10"
+    "@zeus-js/runtime-dom": "0.1.1-beta.11"
   }
 }

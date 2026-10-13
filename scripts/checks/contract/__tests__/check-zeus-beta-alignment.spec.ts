@@ -25,19 +25,19 @@ describe('checkZeusBetaAlignment', () => {
       name: 'zeus-ui-workspace',
       private: true,
       devDependencies: {
-        '@zeus-js/zeus': '0.1.1-beta.10',
-        '@zeus-js/runtime-dom': '0.1.1-beta.10',
+        '@zeus-js/zeus': '0.1.1-beta.11',
+        '@zeus-js/runtime-dom': '0.1.1-beta.11',
       },
     })
 
     writePackage(root, 'packages/advanced/data-grid/package.json', {
       name: '@zeus-web/data-grid',
       peerDependencies: {
-        '@zeus-js/zeus': '0.1.1-beta.10',
+        '@zeus-js/zeus': '0.1.1-beta.11',
       },
       dependencies: {
-        '@zeus-js/runtime-dom': '0.1.1-beta.10',
-        '@zeus-js/web-c-runtime': '0.1.1-beta.10',
+        '@zeus-js/runtime-dom': '0.1.1-beta.11',
+        '@zeus-js/web-c-runtime': '0.1.1-beta.11',
       },
     })
 
@@ -59,8 +59,8 @@ export function createPrimitiveRolldownConfig() {
 
     expect(result).toEqual({
       ok: true,
-      expectedVersion: '0.1.1-beta.10',
-      expectedPeerRange: '0.1.1-beta.10',
+      expectedVersion: '0.1.1-beta.11',
+      expectedPeerRange: '0.1.1-beta.11',
       problems: [],
     })
   })
