@@ -43,38 +43,38 @@ importers:
         specifier: ^6.0.7
         version: 6.0.7(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/bundler-plugin':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/compiler':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/component-analyzer':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/component-dts':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/output-icons':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/output-wc':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/signal':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       esbuild:
         specifier: ^0.28.1
         version: 0.28.1
@@ -772,20 +772,20 @@ importers:
   packages/advanced/agent-console:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/chat':
         specifier: workspace:*
         version: link:../chat
@@ -808,20 +808,20 @@ importers:
   packages/advanced/chat:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/virtual':
         specifier: workspace:*
         version: link:../virtual
@@ -838,20 +838,20 @@ importers:
   packages/advanced/data-grid:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/virtual':
         specifier: workspace:*
         version: link:../virtual
@@ -868,20 +868,20 @@ importers:
   packages/advanced/revogrid-adapter:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/data-grid':
         specifier: workspace:*
         version: link:../data-grid
@@ -898,20 +898,20 @@ importers:
   packages/advanced/virtual:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -969,8 +969,8 @@ importers:
   packages/icons:
     dependencies:
       '@zeus-js/output-icons':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       react:
         specifier: '>=18 || >=19'
         version: 19.2.7
@@ -981,20 +981,20 @@ importers:
   packages/primitives/accordion:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1008,20 +1008,20 @@ importers:
   packages/primitives/alert:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1035,20 +1035,20 @@ importers:
   packages/primitives/avatar:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1062,20 +1062,20 @@ importers:
   packages/primitives/badge:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1089,20 +1089,20 @@ importers:
   packages/primitives/button:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1116,20 +1116,20 @@ importers:
   packages/primitives/card:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1143,20 +1143,20 @@ importers:
   packages/primitives/checkbox:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1170,20 +1170,20 @@ importers:
   packages/primitives/collapsible:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1197,20 +1197,20 @@ importers:
   packages/primitives/dialog:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1224,20 +1224,20 @@ importers:
   packages/primitives/input:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1251,20 +1251,20 @@ importers:
   packages/primitives/label:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1278,20 +1278,20 @@ importers:
   packages/primitives/progress:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1305,20 +1305,20 @@ importers:
   packages/primitives/radio-group:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1332,20 +1332,20 @@ importers:
   packages/primitives/select:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1359,20 +1359,20 @@ importers:
   packages/primitives/separator:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1386,20 +1386,20 @@ importers:
   packages/primitives/skeleton:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1413,20 +1413,20 @@ importers:
   packages/primitives/switch:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1440,20 +1440,20 @@ importers:
   packages/primitives/tabs:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1467,20 +1467,20 @@ importers:
   packages/primitives/textarea:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1494,20 +1494,20 @@ importers:
   packages/primitives/tooltip:
     dependencies:
       '@zeus-js/output-react-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/web-c-runtime':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
@@ -1607,11 +1607,11 @@ importers:
   packages/zeus-compat:
     dependencies:
       '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
       '@zeus-js/zeus':
-        specifier: 0.1.1-beta.9
-        version: 0.1.1-beta.9
+        specifier: 0.1.1-beta.10
+        version: 0.1.1-beta.10
 
 packages:
 
@@ -3567,6 +3567,11 @@ packages:
 
   '@volar/typescript@2.4.28':
     resolution: {integrity: sha512-Ja6yvWrbis2QtN4ClAKreeUZPVYMARDYZl9LMEv1iQ1QdepB6wn0jTRxA9MftYmYa4DQ4k/DaSZpFPUfxl8giw==}
+    peerDependencies:
+      typescript: '*'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   '@vue-macros/common@3.1.2':
     resolution: {integrity: sha512-h9t4ArDdniO9ekYHAD95t9AZcAbb19lEGK+26iAjUODOIJKmObDNBSe4+6ELQAA3vtYiFPPBtHh7+cQCKi3Dng==}
@@ -3690,8 +3695,8 @@ packages:
   '@vueuse/shared@12.8.2':
     resolution: {integrity: sha512-dznP38YzxZoNloI0qpEfpkms8knDtaoQ6Y/sfS0L7Yki4zh40LFHEhur0odJC6xTHG5dxWVPiUWBXn+wCG2s5w==}
 
-  '@zeus-js/bundler-plugin@0.1.1-beta.9':
-    resolution: {integrity: sha512-/NF+POezzN+imIwb6BaZuu9TvrMY8OASrcBrmTcK5za2S3XO9/ofuj1PLs1IIUa8pjKTBAhOCK1oT00BKYmIow==}
+  '@zeus-js/bundler-plugin@0.1.1-beta.10':
+    resolution: {integrity: sha512-uOem3isMv82siA73SQEndikivbPJB8KxN20NUrWW4MFK4vVsTRMDD0VUlBsWR9aabGXb3XbOCRaMFSGQt0swkg==}
     engines: {node: ^22.18.0 || >=24.11.0}
     peerDependencies:
       rolldown: ^1.0.0
@@ -3705,68 +3710,68 @@ packages:
       vite:
         optional: true
 
-  '@zeus-js/compiler-native-darwin-arm64@0.1.1-beta.9':
-    resolution: {integrity: sha512-PNcGJgvjT5EEsQpLUuibg+6562Cb+/BEu5LENppzk64NODYYvh0gQgoTF/gZgjINC1h7zzzbDwbUKYiHdZDXGw==}
+  '@zeus-js/compiler-native-darwin-arm64@0.1.1-beta.10':
+    resolution: {integrity: sha512-q9WA5Rp1wdzB5mrVhhtTnlcPiHafjPFtgBPpaFEcJsHU0USOh4NSI/xC8ashAG0hkjZUaYLwKpOyNlbjY+wA8Q==}
     engines: {node: ^22.18.0 || >=24.11.0}
     cpu: [arm64]
     os: [darwin]
 
-  '@zeus-js/compiler-native-darwin-x64@0.1.1-beta.9':
-    resolution: {integrity: sha512-/Bnj83QtuG9WSYZY73UsBy4VHuiWHarg5kXBp0/sjON1ZVtfCdkGmFB9VQiRNGxoWcbbXCOuTbEUyQOIOagozQ==}
+  '@zeus-js/compiler-native-darwin-x64@0.1.1-beta.10':
+    resolution: {integrity: sha512-AlCkSYLPf8Wz8b8HwFtYlvXWShLIlcneIkiW1mpYaGAh64I7mkSCT9rnn4rDkwMhGdlMHl4SbT+ugVxYuzkRtg==}
     engines: {node: ^22.18.0 || >=24.11.0}
     cpu: [x64]
     os: [darwin]
 
-  '@zeus-js/compiler-native-linux-arm64-gnu@0.1.1-beta.9':
-    resolution: {integrity: sha512-JG3URV0IBoDdOLC+UoKku1zIN2dgTRG7+S9OUsY81aBkXJQ2v3nuY1hdIeTc74S51DqTEYBKYbXNUpTZc3/xIw==}
+  '@zeus-js/compiler-native-linux-arm64-gnu@0.1.1-beta.10':
+    resolution: {integrity: sha512-Z5TQloRWZwRF/6H3rCNgj97HQuc9Pr/wmisi7zLiKx4qpnkrb1dbnXlaHXBHqp56s84wOkmONdog8TCaK26eYw==}
     engines: {node: ^22.18.0 || >=24.11.0}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@zeus-js/compiler-native-linux-x64-gnu@0.1.1-beta.9':
-    resolution: {integrity: sha512-pldlrVP9kcobmX3z9gRDQ0uVLLeXGzPmeo3Qr82ykA2sW3AA4FATKU8ZPgfZs0tsPegkCGu3sWRB7VGrUSM0LQ==}
+  '@zeus-js/compiler-native-linux-x64-gnu@0.1.1-beta.10':
+    resolution: {integrity: sha512-TpI4pLnkQODrksIddtF4t7YM47gQM+SWAJjUmVxUzpRz/SHbKkijJ7NhwruQF3MhuPM6rDaK/tRe8sFMkrIqxA==}
     engines: {node: ^22.18.0 || >=24.11.0}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@zeus-js/compiler-native-linux-x64-musl@0.1.1-beta.9':
-    resolution: {integrity: sha512-O/tWhb/yH7gNdZT/UZ4aJIGpzBAlwMlT0fA3kKXQx4yrImlS5onAScFNSf+RsMqkkm4fwlCPQohCbOGhc1TrVQ==}
+  '@zeus-js/compiler-native-linux-x64-musl@0.1.1-beta.10':
+    resolution: {integrity: sha512-w4kC0/Jr0cOKpWtPGsYyaPFLt/ThH0NDjjgZOR2EnHN7LkW/uDxIFClzNxzMW5GXuzg+whwX4uLWGa7a2701dg==}
     engines: {node: ^22.18.0 || >=24.11.0}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@zeus-js/compiler-native-win32-arm64-msvc@0.1.1-beta.9':
-    resolution: {integrity: sha512-x3SiLrcR5nJKcf8sxI4eS+ymhta3Sv7wIWb4O7CTsJfuqVW9SmXOEsljfiDTmFsPkyU19JgV1e8xK3MKJ/atPw==}
+  '@zeus-js/compiler-native-win32-arm64-msvc@0.1.1-beta.10':
+    resolution: {integrity: sha512-vORSV1MAD3bVaw+Q1TUyvGFkKj/7rk27A/wH5eZqTXJfO4fj5VErCZkdg/87QyfrYJ4f116Sg4azRFvOZ3ebPw==}
     engines: {node: ^22.18.0 || >=24.11.0}
     cpu: [arm64]
     os: [win32]
 
-  '@zeus-js/compiler-native-win32-x64-msvc@0.1.1-beta.9':
-    resolution: {integrity: sha512-9Uoy38xWVwIyWjnU21846v37wgvIg1Lwgn287H7Psnqmjdl63QoyeAxBAzzsU1TYNHMic1B3IT8dc7fCt3nQzg==}
+  '@zeus-js/compiler-native-win32-x64-msvc@0.1.1-beta.10':
+    resolution: {integrity: sha512-7DgTJHuezgQZ2XRbc8ugb0E9saf8grZIGvxihXVavVCk3nsz40tLVkSl6EK9f3PYJiScHxl4uyGXeeZq7i6mdg==}
     engines: {node: ^22.18.0 || >=24.11.0}
     cpu: [x64]
     os: [win32]
 
-  '@zeus-js/compiler-native@0.1.1-beta.9':
-    resolution: {integrity: sha512-CD9qyAjLG8CXFkxplr8pyFEs9MZzjQ5cnthWucM9VKwMOlNYUMeXIpGqg8aCtEykywkL3fPv7Ap1FP6zWwWMHw==}
+  '@zeus-js/compiler-native@0.1.1-beta.10':
+    resolution: {integrity: sha512-QA9+9SCz4tgxAzmQ7bOifURsmqNrTSGKJ7tNFPnd9zj4c0KMnp0bwiRi8z+l3wJQ3OnFqeJvJmv0bvBQxKWbPg==}
     engines: {node: ^22.18.0 || >=24.11.0}
 
-  '@zeus-js/compiler@0.1.1-beta.9':
-    resolution: {integrity: sha512-N7DNcEuKMEDKFT70FBVyg1jaG93lDZtZXhVP0JHoEz4SkbO4NaKbdxBRFYduNoLKYjQjHFY47b4QmnQp8jzueA==}
+  '@zeus-js/compiler@0.1.1-beta.10':
+    resolution: {integrity: sha512-X2XW3l4clxyhyzTg6NwIT7U5pUwmQZZWkrGZkllZEJNvGWeJAZ9S+yfqRKjB8T77ge4pp/Kplt8ziuHs3P3zfw==}
     engines: {node: ^22.18.0 || >=24.11.0}
 
-  '@zeus-js/component-analyzer@0.1.1-beta.9':
-    resolution: {integrity: sha512-3Mn/mRUg5kojOhVEI4sef0e0CSGE4/ogHOmBgQC/wicJn+XZ3pLDvYVmB/TVFPFA/3SRmKKkE8MyxDiOVnQSrw==}
+  '@zeus-js/component-analyzer@0.1.1-beta.10':
+    resolution: {integrity: sha512-d7DNErvpIQpxPMdZ+DRos7kR9NY6oFvEFSi4jiwCIBvwsOgvD+T24Z3DJpO3E8kr0/DZGn1iKJfnnGxc0YzjMA==}
     engines: {node: ^22.18.0 || >=24.11.0}
 
-  '@zeus-js/component-dts@0.1.1-beta.9':
-    resolution: {integrity: sha512-BntMrje8dRAVNGm/y+JQ943idX3cwkx6quOWgm0BXxPAJdDm40NGw7HkaQrEPfBE27V6Qn4pcBF0xQKGRTfBPw==}
+  '@zeus-js/component-dts@0.1.1-beta.10':
+    resolution: {integrity: sha512-PrZ4TeEtTDyIOx4pPVJSDyhpj5Up7A0HsYWVhOmklSLvhq7Az11SFNvSAnhz9CVNjduo1yivzbgwpFoemqXReA==}
 
-  '@zeus-js/output-icons@0.1.1-beta.9':
-    resolution: {integrity: sha512-VffykyKHrtaSRNMUnU9PigX2/YxrHFHTuMGGQbSLRmMZ2u0xh6XtsdiiTjrSNeoeRccZDD59oX5fk0cIHi9KVA==}
+  '@zeus-js/output-icons@0.1.1-beta.10':
+    resolution: {integrity: sha512-mNtyIxTkj32TnNRYQLCX43ZvC5mBJgcpqkzjarcIFnkxG4uEV8Gq2UV38UpiKU86ilrMteN5lgje9o/YG0hWvA==}
     peerDependencies:
       react: '>=18 || >=19'
       vue: 3.5.38
@@ -3776,8 +3781,8 @@ packages:
       vue:
         optional: true
 
-  '@zeus-js/output-react-wrapper@0.1.1-beta.9':
-    resolution: {integrity: sha512-RmvcJ0ct9nAmIOtO5Vbj8Uo2eWp4AQc7z2HWXDhug8CFJUmPQzLhLzZq0pB3B9mtoSUgPO2t3KEFrRjjRDy4Lg==}
+  '@zeus-js/output-react-wrapper@0.1.1-beta.10':
+    resolution: {integrity: sha512-MDblbUUvnnloCOhd0eLEIeP2GfivI8svNYJVJTWRp2fmCSBL1Nk8FE9SoytO3dg3BmB5r6ehxiu+rC44YV8dkA==}
     peerDependencies:
       '@types/react': 17 || 18 || 19
       react: '>=18'
@@ -3787,40 +3792,40 @@ packages:
       react:
         optional: true
 
-  '@zeus-js/output-vue-wrapper@0.1.1-beta.9':
-    resolution: {integrity: sha512-2+C9rI2UF/aMdDrqajD/FZDV1qevlLVhlkSljjS1YFmK3ysLyY8yNFKxNksqps3OxX3tBkSN8cialT/shHn2MQ==}
+  '@zeus-js/output-vue-wrapper@0.1.1-beta.10':
+    resolution: {integrity: sha512-7gKDazQk1+pQIbPnnFUtlOxoQs/orQXeUM+zslQ96a0v5DKD2zMUnrvgxfsS+G6ox6OEyo13q4uZgW6DyIBcsQ==}
     peerDependencies:
       vue: 3.5.38
     peerDependenciesMeta:
       vue:
         optional: true
 
-  '@zeus-js/output-wc@0.1.1-beta.9':
-    resolution: {integrity: sha512-/xW4+Ptqubd43e6qPIPIJRAGFzf1yHPQvYNcztvEl/ZQiAYE/hIRdGkO9V7eaUBP9DtIDj259LP0+Wzc7zKB6w==}
+  '@zeus-js/output-wc@0.1.1-beta.10':
+    resolution: {integrity: sha512-v41Uyphmmj143nAfVg5AXm5loeFKnAlxktBjov+XWs+WQ5lDr5hc3zxxVO0zfb4MdbwHVbnE/wyt6r6W82Pi1A==}
     peerDependencies:
       rollup: ^4.0.0
     peerDependenciesMeta:
       rollup:
         optional: true
 
-  '@zeus-js/runtime-dom@0.1.1-beta.9':
-    resolution: {integrity: sha512-sgjMOuTTp8WJQ89P2zsGb6L3MgN4hbn5WPGJfMBUTwCNzgT2KVlrbrzHzqwPBxf7PYcXZQQix6FsenvYHX/A5Q==}
+  '@zeus-js/runtime-dom@0.1.1-beta.10':
+    resolution: {integrity: sha512-CHIOXw7EU/SxQERe8y2EhKpYIQiBd52aHQqFI83NHxSuIui+iIryJoJJrwuj42gxcGNK8jzInWvaZsc48Ql5BA==}
 
-  '@zeus-js/runtime-ssr@0.1.1-beta.9':
-    resolution: {integrity: sha512-ID+SQDJc1MFTk+RdpZCUEPhYJNvFshzrhnZbWShMgHafv7JaCOzHbgii9l8UzAGCihduTiXJT3a954ReIA32aw==}
+  '@zeus-js/runtime-ssr@0.1.1-beta.10':
+    resolution: {integrity: sha512-5GiEB9ijv3UqUM7pgMLy8g4iliEnNLLXoBy0DZZ/WZeE1jJlNCMd7SErdJXgItaffkjn9u+VrwuI+rrhAmymQQ==}
     engines: {node: ^22.18.0 || >=24.11.0}
 
-  '@zeus-js/shared@0.1.1-beta.9':
-    resolution: {integrity: sha512-HrSjgGRSIbHx+Nkiv8fXQlVF1QQpg8EDHgYvI8GZ9SnmsarT/EzQ7Ny1USmp5ThS2BjvcCz/puarPWeW9QYmNQ==}
+  '@zeus-js/shared@0.1.1-beta.10':
+    resolution: {integrity: sha512-gmcGqe5sxRo1Hdvta7bdwFJ82J/YBRZefQ49FecGVAKsWuuAJN1fL3miZcF8/8giUKXi/lUcDmUZ5+EOGAq84Q==}
 
-  '@zeus-js/signal@0.1.1-beta.9':
-    resolution: {integrity: sha512-2bVisZnXNNU0PP9nzXnVm7XmOXPcaK27LClBqOUWd7EPC8UkX+Pr2MSmMIyC2vXmjFHF0yBAVm4vLYRPZOv6WQ==}
+  '@zeus-js/signal@0.1.1-beta.10':
+    resolution: {integrity: sha512-BFoFMv8638/Q4OfhgTsLae6kuFd5Eolx8i5dG7Gudb78z23CU1L5GgCBxxTILloBuh8fyGvaBrlOWgFEFVfTPg==}
 
-  '@zeus-js/web-c-runtime@0.1.1-beta.9':
-    resolution: {integrity: sha512-P/aq5YM9Bu33LCtFqLXLpGgipYmJ9fQSDJpZZvH7588E/zh21s1mmBzk5O0mD/Bo2Ri3yKG7AZ0vOGYGRbrdsQ==}
+  '@zeus-js/web-c-runtime@0.1.1-beta.10':
+    resolution: {integrity: sha512-zm+eR85Qc8US32HmLfOFWzvlKR2EtTFD4q+s+5NBdMXupPsEbvebjgGrIACiWglfrN4XO7C6Tq2IciL5VgQXqA==}
 
-  '@zeus-js/zeus@0.1.1-beta.9':
-    resolution: {integrity: sha512-06ge/fJEJcUwu7SXnwd60TGhRUVBCJgcCj1R4qRw8zpLXOF+9JDvR8e1J0I0M+QL93/B9fnPL0ABaaZuI+BZew==}
+  '@zeus-js/zeus@0.1.1-beta.10':
+    resolution: {integrity: sha512-zRoZPJIZkuYsCEGvq6nqEjVrkTAHnGfThomxegUb2KK9z5Qc2LSmBPNSX5IXMG13wolBCgbRXgNv5SqBJGZj8A==}
 
   abbrev@2.0.0:
     resolution: {integrity: sha512-6/mh1E2u2YgEsCHdY0Yx5oW+61gZU+1vXaoiHHrpKeuRNNgFvS+/jrwHiQhB5apAf5oB7UB7E19ol2R2LKH8hQ==}
@@ -7876,11 +7881,13 @@ snapshots:
 
   '@volar/source-map@2.4.28': {}
 
-  '@volar/typescript@2.4.28':
+  '@volar/typescript@2.4.28(typescript@6.0.3)':
     dependencies:
       '@volar/language-core': 2.4.28
       path-browserify: 1.0.1
       vscode-uri: 3.1.0
+    optionalDependencies:
+      typescript: 6.0.3
 
   '@vue-macros/common@3.1.2(vue@3.5.38(typescript@6.0.3))':
     dependencies:
@@ -8026,12 +8033,12 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@zeus-js/bundler-plugin@0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))':
+  '@zeus-js/bundler-plugin@0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))':
     dependencies:
       '@jridgewell/gen-mapping': 0.3.13
       '@jridgewell/trace-mapping': 0.3.31
-      '@zeus-js/compiler-native': 0.1.1-beta.9
-      '@zeus-js/component-analyzer': 0.1.1-beta.9
+      '@zeus-js/compiler-native': 0.1.1-beta.10
+      '@zeus-js/component-analyzer': 0.1.1-beta.10
       fast-glob: 3.3.3
       picomatch: 4.0.4
       typescript: 6.0.3
@@ -8040,54 +8047,54 @@ snapshots:
       rollup: 4.62.2
       vite: 8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0)
 
-  '@zeus-js/compiler-native-darwin-arm64@0.1.1-beta.9':
+  '@zeus-js/compiler-native-darwin-arm64@0.1.1-beta.10':
     optional: true
 
-  '@zeus-js/compiler-native-darwin-x64@0.1.1-beta.9':
+  '@zeus-js/compiler-native-darwin-x64@0.1.1-beta.10':
     optional: true
 
-  '@zeus-js/compiler-native-linux-arm64-gnu@0.1.1-beta.9':
+  '@zeus-js/compiler-native-linux-arm64-gnu@0.1.1-beta.10':
     optional: true
 
-  '@zeus-js/compiler-native-linux-x64-gnu@0.1.1-beta.9':
+  '@zeus-js/compiler-native-linux-x64-gnu@0.1.1-beta.10':
     optional: true
 
-  '@zeus-js/compiler-native-linux-x64-musl@0.1.1-beta.9':
+  '@zeus-js/compiler-native-linux-x64-musl@0.1.1-beta.10':
     optional: true
 
-  '@zeus-js/compiler-native-win32-arm64-msvc@0.1.1-beta.9':
+  '@zeus-js/compiler-native-win32-arm64-msvc@0.1.1-beta.10':
     optional: true
 
-  '@zeus-js/compiler-native-win32-x64-msvc@0.1.1-beta.9':
+  '@zeus-js/compiler-native-win32-x64-msvc@0.1.1-beta.10':
     optional: true
 
-  '@zeus-js/compiler-native@0.1.1-beta.9':
+  '@zeus-js/compiler-native@0.1.1-beta.10':
     optionalDependencies:
-      '@zeus-js/compiler-native-darwin-arm64': 0.1.1-beta.9
-      '@zeus-js/compiler-native-darwin-x64': 0.1.1-beta.9
-      '@zeus-js/compiler-native-linux-arm64-gnu': 0.1.1-beta.9
-      '@zeus-js/compiler-native-linux-x64-gnu': 0.1.1-beta.9
-      '@zeus-js/compiler-native-linux-x64-musl': 0.1.1-beta.9
-      '@zeus-js/compiler-native-win32-arm64-msvc': 0.1.1-beta.9
-      '@zeus-js/compiler-native-win32-x64-msvc': 0.1.1-beta.9
+      '@zeus-js/compiler-native-darwin-arm64': 0.1.1-beta.10
+      '@zeus-js/compiler-native-darwin-x64': 0.1.1-beta.10
+      '@zeus-js/compiler-native-linux-arm64-gnu': 0.1.1-beta.10
+      '@zeus-js/compiler-native-linux-x64-gnu': 0.1.1-beta.10
+      '@zeus-js/compiler-native-linux-x64-musl': 0.1.1-beta.10
+      '@zeus-js/compiler-native-win32-arm64-msvc': 0.1.1-beta.10
+      '@zeus-js/compiler-native-win32-x64-msvc': 0.1.1-beta.10
 
-  '@zeus-js/compiler@0.1.1-beta.9':
+  '@zeus-js/compiler@0.1.1-beta.10':
     dependencies:
-      '@zeus-js/compiler-native': 0.1.1-beta.9
+      '@zeus-js/compiler-native': 0.1.1-beta.10
 
-  '@zeus-js/component-analyzer@0.1.1-beta.9':
+  '@zeus-js/component-analyzer@0.1.1-beta.10':
     dependencies:
       '@babel/parser': 8.0.0
       '@babel/types': 8.0.0
       fast-glob: 3.3.3
 
-  '@zeus-js/component-dts@0.1.1-beta.9':
+  '@zeus-js/component-dts@0.1.1-beta.10':
     dependencies:
-      '@zeus-js/component-analyzer': 0.1.1-beta.9
+      '@zeus-js/component-analyzer': 0.1.1-beta.10
 
-  '@zeus-js/output-icons@0.1.1-beta.9(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))':
+  '@zeus-js/output-icons@0.1.1-beta.10(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))':
     dependencies:
-      '@zeus-js/bundler-plugin': 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+      '@zeus-js/bundler-plugin': 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
     optionalDependencies:
       react: 19.2.7
       vue: 3.5.38(typescript@6.0.3)
@@ -8096,12 +8103,12 @@ snapshots:
       - rollup
       - vite
 
-  '@zeus-js/output-react-wrapper@0.1.1-beta.9(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))':
+  '@zeus-js/output-react-wrapper@0.1.1-beta.10(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))':
     dependencies:
       '@lit/react': 1.0.8(@types/react@19.2.17)
-      '@zeus-js/bundler-plugin': 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
-      '@zeus-js/component-analyzer': 0.1.1-beta.9
-      '@zeus-js/component-dts': 0.1.1-beta.9
+      '@zeus-js/bundler-plugin': 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+      '@zeus-js/component-analyzer': 0.1.1-beta.10
+      '@zeus-js/component-dts': 0.1.1-beta.10
     optionalDependencies:
       '@types/react': 19.2.17
       react: 19.2.7
@@ -8110,11 +8117,11 @@ snapshots:
       - rollup
       - vite
 
-  '@zeus-js/output-vue-wrapper@0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))':
+  '@zeus-js/output-vue-wrapper@0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))':
     dependencies:
-      '@zeus-js/bundler-plugin': 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
-      '@zeus-js/component-analyzer': 0.1.1-beta.9
-      '@zeus-js/component-dts': 0.1.1-beta.9
+      '@zeus-js/bundler-plugin': 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+      '@zeus-js/component-analyzer': 0.1.1-beta.10
+      '@zeus-js/component-dts': 0.1.1-beta.10
     optionalDependencies:
       vue: 3.5.38(typescript@6.0.3)
     transitivePeerDependencies:
@@ -8122,43 +8129,43 @@ snapshots:
       - rollup
       - vite
 
-  '@zeus-js/output-wc@0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))':
+  '@zeus-js/output-wc@0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))':
     dependencies:
-      '@zeus-js/bundler-plugin': 0.1.1-beta.9(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
-      '@zeus-js/component-analyzer': 0.1.1-beta.9
-      '@zeus-js/component-dts': 0.1.1-beta.9
-      '@zeus-js/runtime-dom': 0.1.1-beta.9
-      '@zeus-js/web-c-runtime': 0.1.1-beta.9
+      '@zeus-js/bundler-plugin': 0.1.1-beta.10(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+      '@zeus-js/component-analyzer': 0.1.1-beta.10
+      '@zeus-js/component-dts': 0.1.1-beta.10
+      '@zeus-js/runtime-dom': 0.1.1-beta.10
+      '@zeus-js/web-c-runtime': 0.1.1-beta.10
     optionalDependencies:
       rollup: 4.62.2
     transitivePeerDependencies:
       - rolldown
       - vite
 
-  '@zeus-js/runtime-dom@0.1.1-beta.9':
+  '@zeus-js/runtime-dom@0.1.1-beta.10':
     dependencies:
-      '@zeus-js/signal': 0.1.1-beta.9
+      '@zeus-js/signal': 0.1.1-beta.10
 
-  '@zeus-js/runtime-ssr@0.1.1-beta.9':
+  '@zeus-js/runtime-ssr@0.1.1-beta.10':
     dependencies:
-      '@zeus-js/signal': 0.1.1-beta.9
+      '@zeus-js/signal': 0.1.1-beta.10
 
-  '@zeus-js/shared@0.1.1-beta.9': {}
+  '@zeus-js/shared@0.1.1-beta.10': {}
 
-  '@zeus-js/signal@0.1.1-beta.9':
+  '@zeus-js/signal@0.1.1-beta.10':
     dependencies:
-      '@zeus-js/shared': 0.1.1-beta.9
+      '@zeus-js/shared': 0.1.1-beta.10
       alien-signals: 3.2.1
 
-  '@zeus-js/web-c-runtime@0.1.1-beta.9':
+  '@zeus-js/web-c-runtime@0.1.1-beta.10':
     dependencies:
-      '@zeus-js/runtime-dom': 0.1.1-beta.9
+      '@zeus-js/runtime-dom': 0.1.1-beta.10
 
-  '@zeus-js/zeus@0.1.1-beta.9':
+  '@zeus-js/zeus@0.1.1-beta.10':
     dependencies:
-      '@zeus-js/runtime-dom': 0.1.1-beta.9
-      '@zeus-js/runtime-ssr': 0.1.1-beta.9
-      '@zeus-js/signal': 0.1.1-beta.9
+      '@zeus-js/runtime-dom': 0.1.1-beta.10
+      '@zeus-js/runtime-ssr': 0.1.1-beta.10
+      '@zeus-js/signal': 0.1.1-beta.10
 
   abbrev@2.0.0: {}
 
@@ -10759,7 +10766,7 @@ snapshots:
 
   vue-tsc@3.3.5(typescript@6.0.3):
     dependencies:
-      '@volar/typescript': 2.4.28
+      '@volar/typescript': 2.4.28(typescript@6.0.3)
       '@vue/language-core': 3.3.5
       typescript: 6.0.3
 
