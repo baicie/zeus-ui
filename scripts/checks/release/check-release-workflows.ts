@@ -815,11 +815,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
     [
       'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
       'pnpm install --frozen-lockfile',
-      [
-        'test -z "$(git status --porcelain)"',
-        'pnpm release "$VERSION" --tag "$TAG" --skipGit',
-        'test -z "$(git status --porcelain)"',
-      ].join('\n'),
+      String(realRelease.run).trim(),
       String(tagRelease.run).trim(),
     ],
     'release.jobs.release run command order',
