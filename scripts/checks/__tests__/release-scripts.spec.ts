@@ -248,7 +248,10 @@ describe('release script contract', () => {
       'dispatch-publish',
     ])
     expect(dryRunCommands).toHaveLength(1)
-    expect(releaseCommands).toHaveLength(1)
+    // The publishing job must not re-run the release CLI: the version has to be
+    // committed on main before dispatch so the tag can point at the dispatch
+    // revision. It asserts the manifests already carry the release version.
+    expect(releaseCommands).toHaveLength(0)
     expect(inlinePublishCommands).toHaveLength(0)
     expect(versionInput).toEqual({
       description: 'Release version, for example 0.1.0-beta.0 or 0.1.0',
@@ -342,13 +345,14 @@ describe('release script contract', () => {
     })
     expect(revision.run).toBe('test "$(git rev-parse HEAD)" = "$GITHUB_SHA"')
     expect(realRelease.if).toBeUndefined()
-    expect(String(realRelease.run).trim()).toBe(
-      [
-        'test -z "$(git status --porcelain)"',
-        'pnpm release "$VERSION" --tag "$TAG" --skipGit',
-        'test -z "$(git status --porcelain)"',
-      ].join('\n'),
-    )
+    const realReleaseRun = String(realRelease.run)
+    // The version is asserted against the committed manifest rather than bumped
+    // here, because the tag below must point at the dispatch revision.
+    expect(realReleaseRun).toContain('pkg.version !== process.env.VERSION')
+    expect(realReleaseRun).not.toMatch(/pnpm release .*--skipGit/)
+    expect(
+      realReleaseRun.match(/test -z "\$\(git status --porcelain\)"/g),
+    ).toHaveLength(2)
     expect(String(tagRelease.run).trim()).toBe(
       [
         'release_sha="$(git rev-parse HEAD)"',
@@ -454,11 +458,7 @@ describe('release script contract', () => {
     expect(getRunCommands(release)).toEqual([
       'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
       'pnpm install --frozen-lockfile',
-      [
-        'test -z "$(git status --porcelain)"',
-        'pnpm release "$VERSION" --tag "$TAG" --skipGit',
-        'test -z "$(git status --porcelain)"',
-      ].join('\n'),
+      String(realRelease.run).trim(),
       String(tagRelease.run).trim(),
     ])
     expect(getRunCommands(dispatchPublish)).toEqual([

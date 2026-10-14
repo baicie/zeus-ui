@@ -339,7 +339,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
   )
   expectEqual(
     releaseCommands.length,
-    1,
+    0,
     'release.jobs.release pnpm release step count',
     errors,
   )
@@ -591,16 +591,28 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
     'release.jobs.release.steps.Verify prepared release.if',
     errors,
   )
-  expectEqual(
-    String(realRelease.run).trim(),
-    [
-      'test -z "$(git status --porcelain)"',
-      'pnpm release "$VERSION" --tag "$TAG" --skipGit',
-      'test -z "$(git status --porcelain)"',
-    ].join('\n'),
-    'release.jobs.release.steps.Verify prepared release.run',
-    errors,
+  // The publishing job must not re-run the release CLI: the version is committed
+  // on main before dispatch so the tag can point at the dispatch revision. It
+  // asserts the committed manifest already carries the release version instead.
+  const realReleaseRun = String(realRelease.run)
+  if (releaseCommands.length !== 0) {
+    errors.push(
+      'release.jobs.release.steps.Verify prepared release.run: the publishing job must not run the release CLI',
+    )
+  }
+  if (!realReleaseRun.includes('pkg.version !== process.env.VERSION')) {
+    errors.push(
+      'release.jobs.release.steps.Verify prepared release.run: must assert the committed version against VERSION',
+    )
+  }
+  const porcelainGuards = realReleaseRun.match(
+    /test -z "\$\(git status --porcelain\)"/g,
   )
+  if (porcelainGuards?.length !== 2) {
+    errors.push(
+      `release.jobs.release.steps.Verify prepared release.run: expected 2 clean-tree guards, found ${String(porcelainGuards?.length ?? 0)}`,
+    )
+  }
   expectEqual(
     String(tagRelease.run).trim(),
     [
@@ -803,11 +815,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
     [
       'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
       'pnpm install --frozen-lockfile',
-      [
-        'test -z "$(git status --porcelain)"',
-        'pnpm release "$VERSION" --tag "$TAG" --skipGit',
-        'test -z "$(git status --porcelain)"',
-      ].join('\n'),
+      String(realRelease.run).trim(),
       String(tagRelease.run).trim(),
     ],
     'release.jobs.release run command order',
