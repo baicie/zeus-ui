@@ -1,7 +1,10 @@
-import { existsSync, readFileSync } from 'node:fs'
+import type { ComponentQualityManifest } from '../../../packages/registry/src/quality'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+
 import { resolve } from 'node:path'
 
 import pc from 'picocolors'
+import { validateComponentQualityManifest } from '../../../packages/registry/src/quality'
 
 type RegistryFramework = 'react' | 'vue' | 'native' | 'shared'
 type RegistryItemType = 'component' | 'utility' | 'style'
@@ -38,6 +41,7 @@ const requiredFiles = [
   'src/index.ts',
   'src/schema.ts',
   'registry.json',
+  'quality.json',
   'templates/react/button.tsx',
   'templates/react/input.tsx',
   'templates/vue/button.vue',
@@ -46,6 +50,7 @@ const requiredFiles = [
   'templates/lib/cn.ts',
   'scripts/copy-registry-assets.mjs',
   '__tests__/registry-package.spec.ts',
+  'src/quality.ts',
 ]
 
 const requiredItemNames = ['cn', 'globals', 'button', 'input']
@@ -129,6 +134,8 @@ function checkPackageJson(errors: string[]): void {
     '.',
     './schema',
     './registry.json',
+    './quality',
+    './quality.json',
     './templates/react/button.tsx',
     './templates/react/input.tsx',
     './templates/vue/button.vue',
@@ -156,6 +163,46 @@ function checkPackageJson(errors: string[]): void {
   for (const script of ['build', 'check', 'test']) {
     if (!packageJson.scripts?.[script]) {
       errors.push(`packages/registry/package.json missing script ${script}`)
+    }
+  }
+}
+
+function checkQualityManifest(errors: string[]): void {
+  const manifest = readJson<ComponentQualityManifest>('quality.json')
+  const componentNames = readdirSync(resolve(root, 'packages/primitives'), {
+    withFileTypes: true,
+  })
+    .filter(
+      entry =>
+        entry.isDirectory() &&
+        existsSync(
+          resolve(root, 'packages/primitives', entry.name, 'package.json'),
+        ),
+    )
+    .map(entry => entry.name)
+  const validation = validateComponentQualityManifest(manifest, componentNames)
+
+  for (const error of validation.errors) {
+    errors.push(`quality.json: ${error}`)
+  }
+
+  for (const component of manifest.components) {
+    if (!component.evidence || typeof component.evidence !== 'object') {
+      continue
+    }
+
+    for (const category of ['behavior', 'accessibility', 'endToEnd'] as const) {
+      const evidencePaths = component.evidence[category]
+
+      if (!Array.isArray(evidencePaths)) continue
+
+      for (const evidencePath of evidencePaths) {
+        if (!existsSync(resolve(root, evidencePath))) {
+          errors.push(
+            `${component.name}: missing ${category} evidence ${evidencePath}`,
+          )
+        }
+      }
     }
   }
 }
@@ -420,6 +467,7 @@ function main(): void {
       checkComponentItems(manifest, errors)
       checkTemplateContents(errors)
       checkForbiddenDependencies(manifest, errors)
+      checkQualityManifest(errors)
     }
   }
 

@@ -24,6 +24,11 @@
       "import": "./dist/schema.js"
     },
     "./registry.json": "./dist/registry.json",
+    "./quality": {
+      "types": "./dist/quality.d.ts",
+      "import": "./dist/quality.js"
+    },
+    "./quality.json": "./dist/quality.json",
     "./templates/react/button.tsx": "./dist/templates/react/button.tsx",
     "./templates/react/input.tsx": "./dist/templates/react/input.tsx",
     "./templates/vue/button.vue": "./dist/templates/vue/button.vue",
@@ -36,7 +41,7 @@
   ],
   "scripts": {
     "dev": "tsup src/index.ts src/schema.ts --format esm --dts --clean --watch",
-    "build": "tsup src/index.ts src/schema.ts --format esm --dts --clean && node scripts/copy-registry-assets.mjs",
+    "build": "tsup src/index.ts src/schema.ts src/quality.ts --format esm --dts --clean && node scripts/copy-registry-assets.mjs",
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "vitest --root ../.. --project unit packages/registry/__tests__/registry-package.spec.ts"
   },

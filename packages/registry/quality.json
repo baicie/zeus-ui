@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "components": [
+    {
+      "name": "accordion",
+      "level": "experimental",
+      "evidence": { "behavior": [], "accessibility": [], "endToEnd": [] }
+    },
+    {
+      "name": "alert",
+      "level": "experimental",
+      "evidence": { "behavior": [], "accessibility": [], "endToEnd": [] }
+    },
+    {
+      "name": "avatar",
+      "level": "experimental",
+      "evidence": { "behavior": [], "accessibility": [], "endToEnd": [] }
+    },
+    {
+      "name": "badge",
+      "level": "experimental",
+      "evidence": { "behavior": [], "accessibility": [], "endToEnd": [] }
+    },
+    {
+      "name": "button",
+      "level": "beta",
+      "evidence": {
+        "behavior": ["packages/primitives/button/__tests__/button.spec.ts"],
+        "accessibility": [
+          "packages/primitives/__tests__/a11y-contract.spec.ts"
+        ],
+        "endToEnd": []
+      }
+    },
+    {
+      "name": "card",
+      "level": "experimental",
+      "evidence": { "behavior": [], "accessibility": [], "endToEnd": [] }
+    },
+    {
+      "name": "checkbox",
+      "level": "beta",
+      "evidence": {
+        "behavior": ["packages/primitives/checkbox/__tests__/checkbox.spec.ts"],
+        "accessibility": [
+          "packages/primitives/__tests__/a11y-contract.spec.ts"
+        ],
+        "endToEnd": []
+      }
+    },
+    {
+      "name": "collapsible",
+      "level": "experimental",
+      "evidence": { "behavior": [], "accessibility": [], "endToEnd": [] }
+    },
+    {
+      "name": "dialog",
+      "level": "beta",
+      "evidence": {
+        "behavior": ["packages/primitives/dialog/__tests__/dialog.spec.ts"],
+        "accessibility": [
+          "packages/primitives/__tests__/a11y-contract.spec.ts"
+        ],
+        "endToEnd": []
+      }
+    },
+    {
+      "name": "input",
+      "level": "beta",
+      "evidence": {
+        "behavior": [
+          "packages/primitives/input/__tests__/input.spec.ts",
+          "packages/primitives/input/__tests__/input-runtime.spec.ts"
+        ],
+        "accessibility": [
+          "packages/primitives/__tests__/a11y-contract.spec.ts"
+        ],
+        "endToEnd": []
+      }
+    },
+    {
+      "name": "label",
+      "level": "experimental",
+      "evidence": { "behavior": [], "accessibility": [], "endToEnd": [] }
+    },
+    {
+      "name": "progress",
+      "level": "experimental",
+      "evidence": { "behavior": [], "accessibility": [], "endToEnd": [] }
+    },
+    {
+      "name": "radio-group",
+      "level": "experimental",
+      "evidence": {
+        "behavior": [
+          "packages/primitives/radio-group/__tests__/radio-group.test.ts"
+        ],
+        "accessibility": [],
+        "endToEnd": []
+      }
+    },
+    {
+      "name": "select",
+      "level": "experimental",
+      "evidence": {
+        "behavior": ["packages/primitives/select/__tests__/select.spec.ts"],
+        "accessibility": [],
+        "endToEnd": []
+      }
+    },
+    {
+      "name": "separator",
+      "level": "experimental",
+      "evidence": { "behavior": [], "accessibility": [], "endToEnd": [] }
+    },
+    {
+      "name": "skeleton",
+      "level": "experimental",
+      "evidence": { "behavior": [], "accessibility": [], "endToEnd": [] }
+    },
+    {
+      "name": "switch",
+      "level": "beta",
+      "evidence": {
+        "behavior": ["packages/primitives/switch/__tests__/switch.spec.ts"],
+        "accessibility": [
+          "packages/primitives/__tests__/a11y-contract.spec.ts"
+        ],
+        "endToEnd": []
+      }
+    },
+    {
+      "name": "tabs",
+      "level": "beta",
+      "evidence": {
+        "behavior": ["packages/primitives/tabs/__tests__/tabs.spec.ts"],
+        "accessibility": [
+          "packages/primitives/__tests__/a11y-contract.spec.ts"
+        ],
+        "endToEnd": []
+      }
+    },
+    {
+      "name": "textarea",
+      "level": "experimental",
+      "evidence": { "behavior": [], "accessibility": [], "endToEnd": [] }
+    },
+    {
+      "name": "tooltip",
+      "level": "experimental",
+      "evidence": { "behavior": [], "accessibility": [], "endToEnd": [] }
+    }
+  ]
+}

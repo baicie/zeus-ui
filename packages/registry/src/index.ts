@@ -1,4 +1,17 @@
 export type {
+  ComponentQuality,
+  ComponentQualityEvidence,
+  ComponentQualityLevel,
+  ComponentQualityManifest,
+  ComponentQualityValidationResult,
+} from './quality'
+
+export {
+  getComponentQuality,
+  validateComponentQualityManifest,
+} from './quality'
+
+export type {
   RegistryFile,
   RegistryFile as RegistryItemFile,
   RegistryFramework,

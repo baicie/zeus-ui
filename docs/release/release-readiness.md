@@ -114,7 +114,9 @@ The registry package must export:
 
 ```
 .
+./quality
 ./registry.json
+./quality.json
 ./templates/react/button.tsx
 ./templates/react/input.tsx
 ./templates/vue/button.vue
