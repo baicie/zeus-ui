@@ -52,29 +52,40 @@ describe('data-grid behavior contract', () => {
     expect(source).toContain('void rowRenderVersion()')
   })
 
-  it('batches model-to-prop synchronization', () => {
+  it('keeps controlled state owned by the caller', () => {
     expect(source).toContain('batch(() => {')
-    expect(source).toContain('syncSelectionPropsFromModel')
-    expect(source).toContain('syncSortPropsFromModel')
-    expect(source).toContain('syncActiveCellPropsFromModel')
+    expect(source).toContain('isSelectionControlled')
+    expect(source).toContain('isSortControlled')
+    expect(source).toContain('isActiveCellControlled')
+    expect(source).not.toContain(
+      'props.selectedKeys = selection.getState().keys',
+    )
+    expect(source).not.toContain(
+      'props.sortColumn = sort ? sort.columnId : undefined',
+    )
+    expect(source).not.toContain(
+      'props.activeRowKey = activeCell ? activeCell.rowKey : undefined',
+    )
   })
 
-  it('syncs controlled selectedKeys into selection model and clears undefined', () => {
+  it('syncs controlled selectedKeys without clearing the internal value on removal', () => {
     expect(source).toContain('DataGridControlledStateChange.SelectedKeys')
-    expect(source).toContain('selection.setKeys(props.selectedKeys ?? [])')
+    expect(source).toContain('if (props.selectedKeys !== undefined)')
     expect(source).not.toContain('Array.isArray(props.selectedKeys)')
   })
 
-  it('syncs controlled sort props into internal sort state', () => {
+  it('syncs provided sort props into the internal sort state', () => {
     expect(source).toContain('DataGridControlledStateChange.Sort')
     expect(source).toContain(
-      'sort = createDataGridControlledSortState(\n        props.sortColumn,\n        props.sortDirection,\n      )',
+      'sort = createDataGridControlledSortState(\n          props.sortColumn,\n          props.sortDirection,\n        )',
     )
   })
 
   it('syncs controlled active cell props into internal active cell state', () => {
     expect(source).toContain('DataGridControlledStateChange.ActiveCell')
-    expect(source).toContain('shouldSyncActiveCellFromProps = true')
+    expect(source).toContain(
+      'shouldSyncActiveCellFromProps = isActiveCellControlled',
+    )
     expect(source).toContain('rowKey: shouldSyncActiveCellFromProps')
     expect(source).toContain('columnId: shouldSyncActiveCellFromProps')
   })
@@ -89,9 +100,10 @@ describe('data-grid behavior contract', () => {
     )
   })
 
-  it('clears controlled sort props when clearSort is called', () => {
+  it('does not clear controlled sort props when clearSort is called', () => {
     expect(source).toContain('sort = undefined')
-    expect(source).toContain('syncSortPropsFromModel()')
+    expect(source).toContain('if (isSortControlled())')
+    expect(source).not.toContain('syncSortPropsFromModel()')
   })
 
   it('does not emit intermediate active cell during keyboard navigation', () => {

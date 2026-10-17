@@ -311,7 +311,7 @@ describe('zw-data-grid runtime', () => {
     expect(document.activeElement).toBe(getCell(grid, 'u1', 'name'))
   })
 
-  it('syncs selectedKeys and clears selection when selectedKeys becomes undefined', async () => {
+  it('preserves selection when a controlled selectedKeys prop is removed', async () => {
     const grid = await mountDataGrid({
       selectedKeys: ['u1'],
       selectionMode: 'multiple',
@@ -324,6 +324,14 @@ describe('zw-data-grid runtime', () => {
 
     grid.selectedKeys = undefined
 
+    await nextFrame()
+
+    expect(grid.getSelection()).toEqual({
+      mode: 'multiple',
+      keys: ['u1'],
+    })
+
+    grid.selectedKeys = []
     await nextFrame()
 
     expect(grid.getSelection()).toEqual({
@@ -352,7 +360,7 @@ describe('zw-data-grid runtime', () => {
     expect(grid.getSelection().keys).toEqual(['u1', 'u2'])
   })
 
-  it('emits selection-change and syncs selectedKeys when selection is changed by methods', async () => {
+  it('keeps uncontrolled selection internal and reports controlled selection proposals', async () => {
     const grid = await mountDataGrid({
       selectionMode: 'multiple',
     })
@@ -365,7 +373,7 @@ describe('zw-data-grid runtime', () => {
 
     await nextFrame()
 
-    expect(grid.selectedKeys).toEqual(['u2'])
+    expect(grid.selectedKeys).toBeUndefined()
     expect(grid.getSelection().keys).toEqual(['u2'])
     expect(collector.events).toHaveLength(1)
     expect(collector.events[0].detail.selection.keys).toEqual(['u2'])
@@ -374,14 +382,68 @@ describe('zw-data-grid runtime', () => {
 
     await nextFrame()
 
-    expect(grid.selectedKeys).toEqual([])
+    expect(grid.selectedKeys).toBeUndefined()
     expect(grid.getSelection().keys).toEqual([])
     expect(collector.events).toHaveLength(2)
+
+    grid.selectedKeys = ['u1']
+    await nextFrame()
+    grid.addEventListener('selection-change', event => {
+      const detail = (event as CustomEvent<DataGridSelectionChangeDetail>)
+        .detail
+      grid.selectedKeys = detail.selection.keys
+    })
+    grid.toggleRowSelection('u2')
+    await nextFrame()
+
+    expect(grid.selectedKeys).toEqual(['u1', 'u2'])
+    expect(grid.getSelection().keys).toEqual(['u1', 'u2'])
+    expect(collector.events[2].detail.selection.keys).toEqual(['u1', 'u2'])
 
     collector.dispose()
   })
 
-  it('syncs controlled sort props and emits sort-change', async () => {
+  it('keeps controlled selection and sorting unchanged after UI interactions', async () => {
+    const grid = await mountDataGrid({
+      selectedKeys: ['u1'],
+      sortColumn: 'age',
+      sortDirection: 'asc',
+      selectionMode: 'multiple',
+    })
+    const selection = collectEvents<DataGridSelectionChangeDetail>(
+      grid,
+      'selection-change',
+    )
+    const sorting = collectEvents<DataGridSortChangeDetail>(grid, 'sort-change')
+
+    click(getCell(grid, 'u2', 'name'))
+    click(getHeaderCell(grid, 'age'))
+    await nextFrame()
+
+    expect(grid.selectedKeys).toEqual(['u1'])
+    expect(grid.getSelection().keys).toEqual(['u1'])
+    expect(
+      getCell(grid, 'u2', 'name').closest('[data-slot="data-grid-row"]'),
+    ).not.toHaveAttribute('data-selected')
+    expect(selection.events[0].detail.selection.keys).toEqual(['u1', 'u2'])
+
+    expect(grid.sortDirection).toBe('asc')
+    expect(grid.getSort()).toEqual({ columnId: 'age', direction: 'asc' })
+    expect(grid.getVisibleRows().map(row => row.key)).toEqual([
+      'u2',
+      'u1',
+      'u3',
+    ])
+    expect(sorting.events[0].detail.sort).toEqual({
+      columnId: 'age',
+      direction: 'desc',
+    })
+
+    selection.dispose()
+    sorting.dispose()
+  })
+
+  it('keeps uncontrolled sort internal and reports controlled sort proposals', async () => {
     const grid = await mountDataGrid()
     const collector = collectEvents<DataGridSortChangeDetail>(
       grid,
@@ -392,8 +454,8 @@ describe('zw-data-grid runtime', () => {
 
     await nextFrame()
 
-    expect(grid.sortColumn).toBe('age')
-    expect(grid.sortDirection).toBe('asc')
+    expect(grid.sortColumn).toBeUndefined()
+    expect(grid.sortDirection).toBeUndefined()
     expect(grid.getSort()).toEqual({
       columnId: 'age',
       direction: 'asc',
@@ -405,6 +467,7 @@ describe('zw-data-grid runtime', () => {
     ])
     expect(collector.events).toHaveLength(1)
 
+    grid.sortColumn = 'age'
     grid.sortDirection = 'desc'
 
     await nextFrame()
@@ -423,9 +486,81 @@ describe('zw-data-grid runtime', () => {
 
     await nextFrame()
 
+    expect(grid.sortColumn).toBe('age')
+    expect(grid.sortDirection).toBe('desc')
+    expect(grid.getSort()).toEqual({
+      columnId: 'age',
+      direction: 'desc',
+    })
+    expect(
+      collector.events[collector.events.length - 1].detail.sort,
+    ).toBeUndefined()
+
+    const acceptSortChange = (event: Event): void => {
+      const detail = (event as CustomEvent<DataGridSortChangeDetail>).detail
+      grid.sortColumn = detail.sort?.columnId
+      grid.sortDirection = detail.sort?.direction
+    }
+    grid.addEventListener('sort-change', acceptSortChange)
+
+    grid.clearSort()
+    await nextFrame()
+
     expect(grid.sortColumn).toBeUndefined()
     expect(grid.sortDirection).toBeUndefined()
     expect(grid.getSort()).toBeUndefined()
+
+    grid.removeEventListener('sort-change', acceptSortChange)
+    grid.setSort('age', 'asc')
+    await nextFrame()
+
+    expect(grid.sortColumn).toBeUndefined()
+    expect(grid.sortDirection).toBeUndefined()
+    expect(grid.getSort()).toEqual({
+      columnId: 'age',
+      direction: 'asc',
+    })
+    expect(collector.events[collector.events.length - 1].detail.sort).toEqual({
+      columnId: 'age',
+      direction: 'asc',
+    })
+
+    collector.dispose()
+  })
+
+  it('keeps sorting controlled when the parent uses the empty column sentinel', async () => {
+    const grid = await mountDataGrid({
+      sortColumn: 'age',
+      sortDirection: 'desc',
+    })
+    const collector = collectEvents<DataGridSortChangeDetail>(
+      grid,
+      'sort-change',
+    )
+    const acceptSortChange = (event: Event): void => {
+      const detail = (event as CustomEvent<DataGridSortChangeDetail>).detail
+      grid.sortColumn = detail.sort?.columnId ?? ''
+      grid.sortDirection = detail.sort?.direction
+    }
+    grid.addEventListener('sort-change', acceptSortChange)
+
+    grid.clearSort()
+    await nextFrame()
+
+    expect(grid.sortColumn).toBe('')
+    expect(grid.sortDirection).toBeUndefined()
+    expect(grid.getSort()).toBeUndefined()
+
+    grid.removeEventListener('sort-change', acceptSortChange)
+    grid.setSort('age', 'asc')
+    await nextFrame()
+
+    expect(grid.sortColumn).toBe('')
+    expect(grid.getSort()).toBeUndefined()
+    expect(collector.events[collector.events.length - 1].detail.sort).toEqual({
+      columnId: 'age',
+      direction: 'asc',
+    })
 
     collector.dispose()
   })
@@ -523,32 +658,25 @@ describe('zw-data-grid runtime', () => {
   })
 
   it('preserves active row identity and updates its visible index after sort', async () => {
-    const grid = await mountDataGrid({
-      activeRowKey: 'u3',
-      activeColumnId: 'age',
-      keyboardNavigation: true,
-    })
+    const grid = await mountDataGrid({ keyboardNavigation: true })
 
     expect(grid.getActiveCell()).toMatchObject({
-      rowKey: 'u3',
-      rowIndex: 2,
+      rowKey: 'u1',
+      rowIndex: 0,
     })
 
     grid.setSort('age', 'desc')
     await nextFrame()
 
-    expect(grid.getActiveCell()).toMatchObject({
-      rowKey: 'u3',
-      rowIndex: 0,
-    })
+    expect(grid.getActiveCell()).toMatchObject({ rowKey: 'u1', rowIndex: 1 })
     expect(grid.getVisibleRows().map(row => row.index)).toEqual([2, 0, 1])
 
     grid.moveActiveCell('ArrowDown')
     await nextFrame()
 
     expect(grid.getActiveCell()).toMatchObject({
-      rowKey: 'u1',
-      rowIndex: 1,
+      rowKey: 'u2',
+      rowIndex: 2,
     })
   })
 
@@ -709,17 +837,34 @@ describe('zw-data-grid runtime', () => {
 
     await nextFrame()
 
-    expect(grid.activeRowKey).toBe('u3')
-    expect(grid.activeColumnId).toBe('role')
+    expect(grid.activeRowKey).toBe('u2')
+    expect(grid.activeColumnId).toBe('age')
     expect(grid.getActiveCell()).toMatchObject({
-      rowKey: 'u3',
-      columnId: 'role',
+      rowKey: 'u2',
+      columnId: 'age',
     })
     expect(
       collector.events[collector.events.length - 1]?.detail.activeCell,
     ).toMatchObject({
       rowKey: 'u3',
       columnId: 'role',
+    })
+
+    grid.addEventListener('active-cell-change', event => {
+      const detail = (event as CustomEvent<DataGridActiveCellChangeDetail>)
+        .detail
+      if (!detail.activeCell) return
+      grid.activeRowKey = detail.activeCell.rowKey
+      grid.activeColumnId = detail.activeCell.columnId
+    })
+    grid.setActiveCell('u1', 'age')
+    await nextFrame()
+
+    expect(grid.activeRowKey).toBe('u1')
+    expect(grid.activeColumnId).toBe('age')
+    expect(grid.getActiveCell()).toMatchObject({
+      rowKey: 'u1',
+      columnId: 'age',
     })
 
     collector.dispose()
@@ -743,7 +888,7 @@ describe('zw-data-grid runtime', () => {
 
     expect(grid.getActiveCell()).toMatchObject({
       rowKey: 'u1',
-      columnId: 'age',
+      columnId: 'name',
     })
 
     expect(collector.events).toHaveLength(1)
@@ -757,8 +902,8 @@ describe('zw-data-grid runtime', () => {
     await nextFrame()
 
     expect(grid.getActiveCell()).toMatchObject({
-      rowKey: 'u2',
-      columnId: 'age',
+      rowKey: 'u1',
+      columnId: 'name',
     })
 
     expect(collector.events).toHaveLength(2)

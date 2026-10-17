@@ -303,22 +303,18 @@ describe('data-grid component protocol', () => {
     expect(source).toContain('DataGridControlledStateChange.ActiveCell')
   })
 
-  it('syncs internal model mutations back to host props', () => {
-    expect(source).toContain('syncSelectionPropsFromModel')
-    expect(source).toContain('syncSortPropsFromModel')
-    expect(source).toContain('syncActiveCellPropsFromModel')
-    expect(source).toContain('props.selectedKeys = selection.getState().keys')
-    expect(source).toContain(
+  it('keeps controlled model mutations as event proposals', () => {
+    expect(source).toContain('isSelectionControlled')
+    expect(source).toContain('isSortControlled')
+    expect(source).toContain('isActiveCellControlled')
+    expect(source).not.toContain(
+      'props.selectedKeys = selection.getState().keys',
+    )
+    expect(source).not.toContain(
       'props.sortColumn = sort ? sort.columnId : undefined',
     )
-    expect(source).toContain(
-      'props.sortDirection = sort ? sort.direction : undefined',
-    )
-    expect(source).toContain(
+    expect(source).not.toContain(
       'props.activeRowKey = activeCell ? activeCell.rowKey : undefined',
-    )
-    expect(source).toContain(
-      'props.activeColumnId = activeCell ? activeCell.columnId : undefined',
     )
   })
 

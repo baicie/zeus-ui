@@ -64,6 +64,16 @@ function setup(
   ctx: DefineElementContext<InputElement, InputEmits>,
 ) {
   let control!: HTMLInputElement
+  let internalValue = resolveInputValue(props)
+
+  const resolveRenderedValue = (): string => {
+    if (props.value !== undefined) {
+      internalValue = props.value
+      return props.value
+    }
+
+    return internalValue
+  }
 
   const formatValue = (value: string) =>
     typeof props.formatter === 'function' ? props.formatter(value) : value
@@ -71,9 +81,10 @@ function setup(
   const handleInput = (nativeEvent: Event) => {
     const value = formatValue(control.value)
 
+    if (props.value === undefined) internalValue = value
     control.value = value
-    ctx.host.value = value
     ctx.emit.valueChange({ value, nativeEvent })
+    control.value = resolveRenderedValue()
   }
 
   ctx.expose({
@@ -108,7 +119,7 @@ function setup(
           part="control"
           data-slot="input"
           prop:type={() => props.type || 'text'}
-          prop:value={() => resolveInputValue(props)}
+          prop:value={() => resolveRenderedValue()}
           placeholder={() => props.placeholder}
           disabled={() => Boolean(props.disabled)}
           readOnly={() => Boolean(props.readonly)}

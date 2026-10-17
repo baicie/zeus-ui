@@ -40,6 +40,7 @@ describe('controlled state model', () => {
 
     expect(createDataGridControlledSortState(undefined, 'asc')).toBeUndefined()
     expect(createDataGridControlledSortState('name', undefined)).toBeUndefined()
+    expect(createDataGridControlledSortState('', undefined)).toBeUndefined()
   })
 
   it('returns no changes for same references and values', () => {

@@ -162,6 +162,10 @@ pnpm add @zeus-web/data-grid
 - `focusActiveCell`
 - `refreshViewport`
 
+## 受控排序
+
+需要同时提供 `sortColumn` 和 `sortDirection`。处理 `sort-change` 时，把 `detail.sort?.columnId ?? ''` 与 `detail.sort?.direction` 回写；空字符串表示保持受控但清除排序。若两个字段都回写为 `undefined`，组件会接受清空提案并返回非受控模式，之后的排序由组件内部管理。
+
 ## 示例
 
 ### React 软件包用法

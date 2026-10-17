@@ -585,6 +585,22 @@ function renderAdvancedExamples(
   ].join('\n')
 }
 
+function renderAdvancedBehaviorNotes(
+  notes: Array<{ title: string; description: string }> | undefined,
+): string {
+  if (!notes || notes.length === 0) return ''
+
+  return notes
+    .flatMap(note => [
+      `## ${note.title}`,
+      '',
+      renderMarkdownText(note.description),
+      '',
+    ])
+    .join('\n')
+    .trimEnd()
+}
+
 export function renderAdvancedComponentDoc(
   component: ComponentCatalogItem,
   metadata?: ZeusWebAiAdvancedComponent,
@@ -644,7 +660,9 @@ export function renderAdvancedComponentDoc(
       metadata ? metadata.methods : undefined,
       locale,
     ),
-    '',
+    ...(translated.behaviorNotes
+      ? [renderAdvancedBehaviorNotes(translated.behaviorNotes), '']
+      : []),
     renderAdvancedExamples(
       metadata ? metadata.examples : [],
       component.name,
