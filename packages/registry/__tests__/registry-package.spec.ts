@@ -1,5 +1,5 @@
-import type { RegistryManifest } from '../src'
-import { existsSync, readFileSync } from 'node:fs'
+import type { ComponentQualityManifest, RegistryManifest } from '../src'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
 import { fileURLToPath } from 'node:url'
@@ -7,9 +7,11 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import {
   findRegistryItem,
+  getComponentQuality,
   getRegistryDependencies,
   getRegistryFilesForFramework,
   getRegistryItemNames,
+  validateComponentQualityManifest,
   validateRegistry,
 } from '../src'
 
@@ -27,6 +29,8 @@ const publicRegistryExports = [
   '.',
   './schema',
   './registry.json',
+  './quality',
+  './quality.json',
   './templates/react/button.tsx',
   './templates/react/input.tsx',
   './templates/vue/button.vue',
@@ -43,6 +47,10 @@ function readManifest(): RegistryManifest {
   return JSON.parse(read('registry.json')) as RegistryManifest
 }
 
+function readQualityManifest(): ComponentQualityManifest {
+  return JSON.parse(read('quality.json')) as ComponentQualityManifest
+}
+
 describe('@zeus-web/registry package contract', () => {
   it('exports exactly the beta.0 registry surface', () => {
     const packageJson = JSON.parse(read('package.json')) as RegistryPackageJson
@@ -56,6 +64,44 @@ describe('@zeus-web/registry package contract', () => {
 
     expect(manifest.schemaVersion).toBe(1)
     expect(getRegistryItemNames(manifest)).toEqual(publicRegistryItemNames)
+  })
+
+  it('ships a machine-readable component quality catalog', () => {
+    const quality = readQualityManifest()
+    const componentNames = readdirSync(resolve(packageRoot, '../primitives'), {
+      withFileTypes: true,
+    })
+      .filter(
+        entry =>
+          entry.isDirectory() &&
+          existsSync(
+            resolve(packageRoot, '../primitives', entry.name, 'package.json'),
+          ),
+      )
+      .map(entry => entry.name)
+
+    expect(validateComponentQualityManifest(quality, componentNames)).toEqual({
+      valid: true,
+      errors: [],
+    })
+    expect(getComponentQuality(quality, 'button')).toMatchObject({
+      level: 'beta',
+    })
+  })
+
+  it('enforces evidence thresholds for quality levels', () => {
+    const quality = readQualityManifest()
+    const button = getComponentQuality(quality, 'button')
+
+    if (!button) throw new Error('button quality entry is required')
+
+    button.level = 'stable'
+
+    expect(
+      validateComponentQualityManifest(quality, ['button']).errors,
+    ).toEqual(
+      expect.arrayContaining(['button: stable requires end-to-end evidence']),
+    )
   })
 
   it('resolves item dependencies', () => {

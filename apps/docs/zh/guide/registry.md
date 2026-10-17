@@ -18,6 +18,16 @@ packages/registry/registry.json
 packages/registry/templates
 ```
 
+基础组件质量等级存放在：
+
+```txt
+packages/registry/quality.json
+```
+
+该清单是机器可读的质量契约。`experimental` 表示尚未满足完整行为与
+a11y 证据门槛，`beta` 需要行为和可访问性合同测试，`stable` 还需要端到端
+证据。质量等级必须由清单中的证据路径支持，不能只按组件数量推断。
+
 当前 Phase 22 的 Registry 条目：
 
 ```txt

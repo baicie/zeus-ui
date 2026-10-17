@@ -404,6 +404,8 @@ function checkRegistryPackage(pkg: WorkspacePackage, errors: string[]): void {
   for (const key of [
     '.',
     './registry.json',
+    './quality',
+    './quality.json',
     './templates/react/button.tsx',
     './templates/react/input.tsx',
     './templates/vue/button.vue',
@@ -420,6 +422,9 @@ function checkRegistryPackage(pkg: WorkspacePackage, errors: string[]): void {
     './dist/index.js',
     './dist/index.d.ts',
     './dist/registry.json',
+    './dist/quality.js',
+    './dist/quality.d.ts',
+    './dist/quality.json',
     './dist/templates/react/button.tsx',
     './dist/templates/react/input.tsx',
     './dist/templates/vue/button.vue',
