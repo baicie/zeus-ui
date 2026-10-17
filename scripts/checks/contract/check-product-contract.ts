@@ -1,7 +1,9 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import type { ComponentQualityManifest } from '../../../packages/registry/src/quality'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 
+import { resolve } from 'node:path'
 import pc from 'picocolors'
+import { validateComponentQualityManifest } from '../../../packages/registry/src/quality'
 
 import { checkReleaseWorkflowContract } from '../release/check-release-workflows'
 
@@ -117,6 +119,8 @@ function checkRegistry(errors: string[]): void {
     '.',
     './schema',
     './registry.json',
+    './quality',
+    './quality.json',
     './templates/react/button.tsx',
     './templates/react/input.tsx',
     './templates/vue/button.vue',
@@ -306,6 +310,44 @@ function checkRegistry(errors: string[]): void {
     for (const dep of item.dependencies) {
       if (forbiddenDeps.includes(dep))
         errors.push(`${item.name}: ${dep} not used by Phase 17 templates`)
+    }
+  }
+
+  const quality = JSON.parse(
+    readFile('packages/registry/quality.json'),
+  ) as ComponentQualityManifest
+  const primitiveRoot = resolve(root, 'packages/primitives')
+  const primitiveNames = readdirSync(primitiveRoot, { withFileTypes: true })
+    .filter(
+      entry =>
+        entry.isDirectory() &&
+        existsSync(resolve(primitiveRoot, entry.name, 'package.json')),
+    )
+    .map(entry => entry.name)
+  const qualityResult = validateComponentQualityManifest(
+    quality,
+    primitiveNames,
+  )
+
+  for (const error of qualityResult.errors) {
+    errors.push(`quality.json: ${error}`)
+  }
+
+  for (const component of quality.components) {
+    if (!component.evidence || typeof component.evidence !== 'object') continue
+
+    for (const category of ['behavior', 'accessibility', 'endToEnd'] as const) {
+      const evidencePaths = component.evidence[category]
+
+      if (!Array.isArray(evidencePaths)) continue
+
+      for (const evidencePath of evidencePaths) {
+        if (!existsSync(resolve(root, evidencePath))) {
+          errors.push(
+            `${component.name}: missing ${category} evidence ${evidencePath}`,
+          )
+        }
+      }
     }
   }
 }
