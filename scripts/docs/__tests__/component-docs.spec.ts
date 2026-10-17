@@ -210,6 +210,10 @@ describe('component docs generator', () => {
     expect(english).toContain('pnpm add @zeus-web/data-grid')
     expect(english).toContain('## Methods')
     expect(english).toContain('scrollToColumn')
+    expect(english).toContain('## Controlled sorting')
+    expect(english).toContain(
+      'empty string clears sorting while keeping the grid controlled',
+    )
     expect(english).toContain('## Examples')
     expect(english).toContain('## AI usage hints')
     expect(english).not.toMatch(HAN_PATTERN)
@@ -219,6 +223,8 @@ describe('component docs generator', () => {
     expect(chinese).toContain('## 何时使用')
     expect(chinese).toContain('## 何时不应使用')
     expect(chinese).toContain('## 方法')
+    expect(chinese).toContain('## 受控排序')
+    expect(chinese).toContain('空字符串表示保持受控但清除排序')
     expect(chinese).toContain('## 示例')
     expect(chinese).toContain('## AI 使用提示')
     expect(chinese).toMatch(HAN_PATTERN)

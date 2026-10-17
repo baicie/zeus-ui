@@ -74,6 +74,7 @@ export interface AdvancedDocsTranslation {
   whenToUse: string[]
   doNotUseFor: string[]
   examples: AdvancedDocsExampleTranslation[]
+  behaviorNotes?: Array<{ title: string; description: string }>
   promptHints: string[]
 }
 
@@ -600,6 +601,13 @@ const englishAdvancedDocs: Record<string, AdvancedDocsTranslation> = {
       'Keep business request logic in the application layer.',
       'Do not generate provider, authentication, remote request or server-side data-source logic inside data-grid.',
     ],
+    behaviorNotes: [
+      {
+        title: 'Controlled sorting',
+        description:
+          "Provide `sortColumn` and `sortDirection` together. In the `sort-change` handler, write back `detail.sort?.columnId ?? ''` and `detail.sort?.direction`; an empty string clears sorting while keeping the grid controlled. Writing back `undefined` for both fields accepts the clear proposal and returns the grid to uncontrolled mode, where later sorting is managed internally.",
+      },
+    ],
   },
   'revogrid-adapter': {
     summary:
@@ -771,6 +779,13 @@ const chineseAdvancedDocs: Record<string, AdvancedDocsTranslation> = {
       '需要排序时在列上设置 sortable: true。',
       '业务请求逻辑应保留在应用层。',
       '不要在 data-grid 中生成服务提供方、鉴权、远程请求或服务端数据源逻辑。',
+    ],
+    behaviorNotes: [
+      {
+        title: '受控排序',
+        description:
+          "需要同时提供 `sortColumn` 和 `sortDirection`。处理 `sort-change` 时，把 `detail.sort?.columnId ?? ''` 与 `detail.sort?.direction` 回写；空字符串表示保持受控但清除排序。若两个字段都回写为 `undefined`，组件会接受清空提案并返回非受控模式，之后的排序由组件内部管理。",
+      },
     ],
   },
   'revogrid-adapter': {

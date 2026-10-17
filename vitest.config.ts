@@ -161,6 +161,8 @@ export default defineConfig({
             'packages/primitives/radio-group/__tests__/**',
             // select WC runtime tests require jsdom, run in unit-jsdom instead.
             'packages/primitives/select/__tests__/**',
+            // input WC runtime tests require jsdom, run in unit-jsdom instead.
+            'packages/primitives/input/__tests__/input-runtime.spec.ts',
           ],
         },
       },

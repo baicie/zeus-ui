@@ -162,6 +162,10 @@ pnpm add @zeus-web/data-grid
 - `focusActiveCell`
 - `refreshViewport`
 
+## Controlled sorting
+
+Provide `sortColumn` and `sortDirection` together. In the `sort-change` handler, write back `detail.sort?.columnId ?? ''` and `detail.sort?.direction`; an empty string clears sorting while keeping the grid controlled. Writing back `undefined` for both fields accepts the clear proposal and returns the grid to uncontrolled mode, where later sorting is managed internally.
+
 ## Examples
 
 ### React package usage

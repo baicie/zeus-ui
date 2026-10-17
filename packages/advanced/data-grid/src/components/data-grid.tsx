@@ -515,6 +515,7 @@ function setup(
   const [activeCellRenderVersion, setActiveCellRenderVersion] = createSignal(0)
   let shouldSyncActiveCellFromProps = false
   let modelVersion = 0
+  let pendingControlledSortClear = false
   let rowsSourceDirty = false
   let columnsSourceDirty = false
   let rowVirtualizerDirty = false
@@ -855,8 +856,10 @@ function setup(
     }
 
     if (changes & DataGridControlledStateChange.SelectedKeys) {
-      selection.setKeys(props.selectedKeys ?? [])
-      setSelectionRenderVersion(value => value + 1)
+      if (props.selectedKeys !== undefined) {
+        selection.setKeys(props.selectedKeys)
+        setSelectionRenderVersion(value => value + 1)
+      }
     }
 
     if (changes & DataGridControlledStateChange.SelectionMode) {
@@ -865,12 +868,20 @@ function setup(
     }
 
     if (changes & DataGridControlledStateChange.Sort) {
-      sort = createDataGridControlledSortState(
-        props.sortColumn,
-        props.sortDirection,
-      )
-      rowVirtualizerDirty = true
-      activeCellDirty = true
+      if (props.sortColumn !== undefined || props.sortDirection !== undefined) {
+        sort = createDataGridControlledSortState(
+          props.sortColumn,
+          props.sortDirection,
+        )
+        pendingControlledSortClear = false
+        rowVirtualizerDirty = true
+        activeCellDirty = true
+      } else if (pendingControlledSortClear) {
+        sort = undefined
+        pendingControlledSortClear = false
+        rowVirtualizerDirty = true
+        activeCellDirty = true
+      }
     }
 
     if (changes & DataGridControlledStateChange.Columns && sort !== undefined) {
@@ -878,7 +889,10 @@ function setup(
     }
 
     if (changes & DataGridControlledStateChange.ActiveCell) {
-      shouldSyncActiveCellFromProps = true
+      const isActiveCellControlled =
+        props.activeRowKey !== undefined || props.activeColumnId !== undefined
+
+      shouldSyncActiveCellFromProps = isActiveCellControlled
       activeCellDirty = true
     }
 
@@ -1720,44 +1734,49 @@ function setup(
   const emitSelection = (
     key: DataGridRowKey | undefined,
     nativeEvent?: Event,
+    state: DataGridSelectionState = selection.getState(),
   ): void => {
     const row = key ? getDataGridRowByKey(rows, key) : undefined
 
     ctx.emit.selectionChange({
-      selection: selection.getState(),
+      selection: state,
       row,
       nativeEvent,
     })
   }
 
-  const syncSelectionPropsFromModel = (): void => {
-    batch(() => {
-      props.selectedKeys = selection.getState().keys
-      commitControlledState({ selectedKeys: props.selectedKeys })
-      setSelectionRenderVersion(value => value + 1)
-    })
+  const isSelectionControlled = (): boolean => props.selectedKeys !== undefined
+
+  const isSortControlled = (): boolean =>
+    props.sortColumn !== undefined || props.sortDirection !== undefined
+
+  const isActiveCellControlled = (): boolean =>
+    props.activeRowKey !== undefined || props.activeColumnId !== undefined
+
+  const previewSelection = (
+    update: (model: ReturnType<typeof createDataGridSelectionModel>) => void,
+  ): DataGridSelectionState => {
+    const preview = createDataGridSelectionModel(
+      resolveSelectionMode(props.selectionMode),
+      props.selectedKeys ?? selection.getState().keys,
+    )
+    update(preview)
+    return preview.getState()
   }
 
-  const syncSortPropsFromModel = (): void => {
-    batch(() => {
-      props.sortColumn = sort ? sort.columnId : undefined
-      props.sortDirection = sort ? sort.direction : undefined
-      commitControlledState({
-        sortColumn: props.sortColumn,
-        sortDirection: props.sortDirection,
-      })
-    })
-  }
+  const applySelection = (
+    update: (model: ReturnType<typeof createDataGridSelectionModel>) => void,
+    key: DataGridRowKey | undefined,
+    nativeEvent?: Event,
+  ): void => {
+    if (isSelectionControlled()) {
+      emitSelection(key, nativeEvent, previewSelection(update))
+      return
+    }
 
-  const syncActiveCellPropsFromModel = (): void => {
-    batch(() => {
-      props.activeRowKey = activeCell ? activeCell.rowKey : undefined
-      props.activeColumnId = activeCell ? activeCell.columnId : undefined
-      commitControlledState({
-        activeRowKey: props.activeRowKey,
-        activeColumnId: props.activeColumnId,
-      })
-    })
+    update(selection)
+    setSelectionRenderVersion(value => value + 1)
+    emitSelection(key, nativeEvent)
   }
 
   const emitActiveCell = (
@@ -1767,9 +1786,17 @@ function setup(
     if (areDataGridActiveCellsEqual(activeCell, nextActiveCell)) return
 
     const previousActiveCell = activeCell
+    if (isActiveCellControlled()) {
+      ctx.emit.activeCellChange({
+        activeCell: nextActiveCell,
+        previousActiveCell,
+        nativeEvent,
+      })
+      return
+    }
+
     activeCell = nextActiveCell
     setActiveCellRenderVersion(value => value + 1)
-    syncActiveCellPropsFromModel()
 
     ctx.emit.activeCellChange({
       activeCell,
@@ -1985,8 +2012,25 @@ function setup(
     const column = getDataGridColumnById(columns, columnId)
     if (!column || !column.sortable) return
 
-    sort = createNextDataGridSortState(sort, columnId, direction)
-    syncSortPropsFromModel()
+    const currentSort = isSortControlled()
+      ? createDataGridControlledSortState(props.sortColumn, props.sortDirection)
+      : sort
+    const nextSort = createNextDataGridSortState(
+      currentSort,
+      columnId,
+      direction,
+    )
+    if (isSortControlled()) {
+      pendingControlledSortClear = false
+      ctx.emit.sortChange({
+        sort: nextSort,
+        column,
+        nativeEvent,
+      })
+      return
+    }
+
+    sort = nextSort
     modelVersion += 1
     rowVirtualizerDirty = true
     activeCellDirty = true
@@ -2083,21 +2127,15 @@ function setup(
     },
 
     setSelection(keys: DataGridRowKey[]): void {
-      selection.setKeys(keys)
-      syncSelectionPropsFromModel()
-      emitSelection(undefined)
+      applySelection(model => model.setKeys(keys), undefined)
     },
 
     clearSelection(): void {
-      selection.clear()
-      syncSelectionPropsFromModel()
-      emitSelection(undefined)
+      applySelection(model => model.clear(), undefined)
     },
 
     toggleRowSelection(key: DataGridRowKey): void {
-      selection.toggle(key)
-      syncSelectionPropsFromModel()
-      emitSelection(key)
+      applySelection(model => model.toggle(key), key)
     },
 
     setSort(
@@ -2109,8 +2147,13 @@ function setup(
     },
 
     clearSort(): void {
+      if (isSortControlled()) {
+        pendingControlledSortClear = true
+        ctx.emit.sortChange({ sort: undefined })
+        return
+      }
+
       sort = undefined
-      syncSortPropsFromModel()
       modelVersion += 1
       rowVirtualizerDirty = true
       activeCellDirty = true
@@ -2265,7 +2308,11 @@ function setup(
       }
 
       setActiveCellByKey(rowKey, columnId)
-      scheduleFocusActiveCellElement()
+      if (isActiveCellControlled()) {
+        focusCellElement(rowKey, columnId)
+      } else {
+        scheduleFocusActiveCellElement()
+      }
     },
 
     focusActiveCell(): void {
@@ -2746,9 +2793,11 @@ function setup(
                 })}
                 onClick={(nativeEvent: Event) => {
                   if (resolveSelectionMode(props.selectionMode) !== 'none') {
-                    selection.toggle(rowItem.data.key)
-                    syncSelectionPropsFromModel()
-                    emitSelection(rowItem.data.key, nativeEvent)
+                    applySelection(
+                      model => model.toggle(rowItem.data.key),
+                      rowItem.data.key,
+                      nativeEvent,
+                    )
                   }
 
                   emitRowAction('click', rowItem.data, nativeEvent)

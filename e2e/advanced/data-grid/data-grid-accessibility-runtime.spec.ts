@@ -39,13 +39,17 @@ describe('zw-data-grid accessibility runtime', () => {
     )
   })
 
-  it('updates active descendant and roving tabindex with the active cell', async () => {
+  it('keeps controlled active state and reports a navigation proposal', async () => {
     const grid = await mountDataGrid({
       activeRowKey: 'u1',
       activeColumnId: 'name',
     })
     const viewport = getViewport(grid)
     const previousCell = getCell(grid, 'u1', 'name')
+    const collector = collectEvents<DataGridActiveCellChangeDetail>(
+      grid,
+      'active-cell-change',
+    )
 
     grid.setActiveCell('u2', 'age')
 
@@ -54,12 +58,18 @@ describe('zw-data-grid accessibility runtime', () => {
     const activeCell = getCell(grid, 'u2', 'age')
     const activeDescendant = viewport.getAttribute('aria-activedescendant')
 
-    expect(activeDescendant).toBe('zg-cell-u2-age')
-    expect(grid.querySelector(`[id="${activeDescendant}"]`)).toBe(activeCell)
-    expect(previousCell.hasAttribute('data-active')).toBe(false)
-    expect(previousCell.getAttribute('tabindex')).toBe('-1')
-    expect(activeCell.hasAttribute('data-active')).toBe(true)
-    expect(activeCell.getAttribute('tabindex')).toBe('0')
+    expect(activeDescendant).toBe('zg-cell-u1-name')
+    expect(grid.querySelector(`[id="${activeDescendant}"]`)).toBe(previousCell)
+    expect(previousCell.hasAttribute('data-active')).toBe(true)
+    expect(previousCell.getAttribute('tabindex')).toBe('0')
+    expect(activeCell.hasAttribute('data-active')).toBe(false)
+    expect(activeCell.getAttribute('tabindex')).toBe('-1')
+    expect(collector.events[0].detail.activeCell).toMatchObject({
+      rowKey: 'u2',
+      columnId: 'age',
+    })
+
+    collector.dispose()
   })
 
   it('renders header aria-sort and aria-colindex', async () => {
@@ -130,8 +140,8 @@ describe('zw-data-grid accessibility runtime', () => {
     const cell = getCell(grid, 'u2', 'age')
 
     expect(active).toMatchObject({
-      rowKey: 'u2',
-      columnId: 'age',
+      rowKey: 'u1',
+      columnId: 'name',
     })
     expect(document.activeElement).toBe(cell)
     expect(
