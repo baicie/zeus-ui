@@ -252,6 +252,10 @@ pnpm add @zeus-web/virtual
 - `scrollToOffset`
 - `measure`
 
+## Renderer and Slot semantics
+
+`createDomVirtualListRenderer` owns only the nodes it creates. It reuses stable keys, updates reused nodes, rejects duplicate keys, and invokes `disposeNode` when a row leaves the range or the renderer is disposed. A `<Slot />` in `zw-virtual-list` projects caller children; it does not inspect the virtual range or virtualize projected children. Keep renderer-owned nodes in a dedicated container so projected children remain untouched.
+
 ## Examples
 
 ### Core virtualizer usage

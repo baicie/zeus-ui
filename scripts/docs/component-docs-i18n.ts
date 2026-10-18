@@ -569,6 +569,13 @@ const englishAdvancedDocs: Record<string, AdvancedDocsTranslation> = {
       'Use createVirtualizer directly when implementing a higher-level Zeus Web component.',
       'Keep business request logic in the application layer.',
     ],
+    behaviorNotes: [
+      {
+        title: 'Renderer and Slot semantics',
+        description:
+          '`createDomVirtualListRenderer` owns only the nodes it creates. It reuses stable keys, updates reused nodes, rejects duplicate keys, and invokes `disposeNode` when a row leaves the range or the renderer is disposed. A `<Slot />` in `zw-virtual-list` projects caller children; it does not inspect the virtual range or virtualize projected children. Keep renderer-owned nodes in a dedicated container so projected children remain untouched.',
+      },
+    ],
   },
   'data-grid': {
     summary:
@@ -754,6 +761,13 @@ const chineseAdvancedDocs: Record<string, AdvancedDocsTranslation> = {
       '命令式导航使用 scrollToIndex，并选择 start、center 或 end 对齐。',
       '实现更高层 Zeus Web 组件时可直接使用 createVirtualizer。',
       '业务请求逻辑应保留在应用层。',
+    ],
+    behaviorNotes: [
+      {
+        title: 'Renderer 与 Slot 语义',
+        description:
+          '`createDomVirtualListRenderer` 只管理自己创建的节点，会复用稳定 key、更新复用节点、拒绝重复 key，并在项目离开范围或 renderer 销毁时调用 `disposeNode`。`zw-virtual-list` 中的 `<Slot />` 只负责投影调用方 children，不会读取虚拟范围，也不会虚拟化投影内容。请使用独立容器存放 renderer 管理的节点，避免影响投影 children。',
+      },
     ],
   },
   'data-grid': {
