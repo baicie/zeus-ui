@@ -224,7 +224,7 @@
 
 .zeus-playground__eyebrow {
   margin: 0 0 4px;
-  color: var(--playground-muted-foreground);
+  color: var(--playground-foreground);
   font-size: 13px;
   font-weight: 600;
 }
@@ -437,7 +437,7 @@
   border-radius: 8px;
   padding: 0 12px;
   background: transparent;
-  color: var(--playground-muted-foreground);
+  color: var(--playground-foreground);
   font: inherit;
   cursor: pointer;
 }
@@ -488,7 +488,7 @@
 .zeus-playground zw-dialog-description {
   display: block;
   margin-bottom: 16px;
-  color: var(--playground-muted-foreground);
+  color: var(--playground-foreground);
   line-height: 1.6;
 }
 
