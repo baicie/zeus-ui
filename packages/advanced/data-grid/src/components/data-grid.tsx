@@ -1,7 +1,11 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 import type { VirtualScrollAlign } from '@zeus-web/virtual'
 
-import type { DataGridRowCollection, DataGridRowModel } from '../core'
+import type {
+  DataGridRangeUpdateScheduler,
+  DataGridRowCollection,
+  DataGridRowModel,
+} from '../core'
 import type {
   DataGridActiveCell,
   DataGridActiveCellChangeDetail,
@@ -55,6 +59,7 @@ import {
   createDataGridColumnVirtualizer,
   createDataGridColumnWidthState,
   createDataGridControlledSortState,
+  createDataGridRangeUpdateScheduler,
   createDataGridRowModel,
   createDataGridRowVirtualizer,
   createDataGridSelectionModel,
@@ -198,16 +203,6 @@ type DataGridSnapshotCache<T> = [
   layout?: string,
 ]
 
-interface PendingDataGridRangeUpdate {
-  event?: Event
-  source: DataGridCommitSource
-  inputTime?: number | null
-  handlerStartTime?: number
-  handlerEndTime?: number
-  measure: boolean
-  preserve: boolean
-}
-
 interface FocusedDataGridHeaderTarget {
   columnId: string
   kind: 'header-cell' | 'resize-handle'
@@ -301,17 +296,6 @@ function shouldMeasureDiagnosticsNodeChurn(
 
 function getDiagnosticInputTime(event: Event | undefined): number | undefined {
   return event && event.timeStamp
-}
-
-function getEarliestDiagnosticTime(
-  left: number | null | undefined,
-  right: number | null | undefined,
-): number | null | undefined {
-  if (left === undefined) return right
-  if (right === undefined) return left
-  if (left === null) return right
-  if (right === null) return left
-  return Math.min(left, right)
 }
 
 function collectDiagnosticNodeTree(node: Node, nodes: Set<Node>): void {
@@ -412,7 +396,6 @@ function setup(
   let modelBuildSequence = 0
   let commitTransactionId = 0
   let controlledPropsReady = false
-  let pendingRangeUpdate: PendingDataGridRangeUpdate | undefined
   let hasRowMeasurementOverrides = false
   let poolRowsForCurrentReconciliation = false
   let poolHeaderColumnsForCurrentReconciliation = false
@@ -530,7 +513,6 @@ function setup(
   let shouldRefreshRowLayoutForRender = false
   let shouldRefreshColumnsForRender = false
   let builtModelVersion = modelVersion
-  const scheduler = createRafScheduler()
   const focusScheduler = createRafScheduler()
   const headerFocusScheduler = createRafScheduler()
 
@@ -1550,6 +1532,23 @@ function setup(
     finalizeDiagnosticsCommit(diagnosticsCommit)
   }
 
+  // The host supplies the DOM commit; coalescing and frame scheduling live in
+  // the DOM-free core scheduler.
+  const scheduler: DataGridRangeUpdateScheduler<Event> =
+    createDataGridRangeUpdateScheduler<Event>({
+      commit: update =>
+        updateRange(
+          update.event,
+          update.source,
+          update.handlerStartTime,
+          update.handlerEndTime,
+          update.measure,
+          update.preserve,
+          false,
+          update.inputTime,
+        ),
+    })
+
   const scheduleUpdateRange = (
     inputEvent?: Event,
     source: DataGridCommitSource = inputEvent ? 'scroll' : 'api',
@@ -1568,8 +1567,8 @@ function setup(
         : (getDiagnosticInputTime(inputEvent) ?? null)
 
     // Native scroll events are already synchronous. When no deferred update is
-    // pending, avoid allocating a queue record and probing the RAF scheduler.
-    if (source === 'scroll' && !pendingRangeUpdate) {
+    // pending, keep the hot path allocation-free and skip scheduler probing.
+    if (source === 'scroll' && !scheduler.hasPending()) {
       updateRange(
         inputEvent,
         source,
@@ -1583,7 +1582,7 @@ function setup(
       return
     }
 
-    const nextUpdate: PendingDataGridRangeUpdate = {
+    const nextUpdate = {
       event: source === 'scroll' ? inputEvent : undefined,
       source,
       inputTime,
@@ -1592,56 +1591,8 @@ function setup(
       measure: source === 'mount' || source === 'resize',
       preserve: preservePendingNodeChurn,
     }
-    if (!pendingRangeUpdate) {
-      pendingRangeUpdate = nextUpdate
-    } else {
-      const previousUpdate = pendingRangeUpdate
-      // `measure` stays true once a mount/resize update is merged in.
-      const shouldReplaceTiming = +nextUpdate.measure >= +previousUpdate.measure
-
-      if (nextUpdate.event) {
-        previousUpdate.event = nextUpdate.event
-      }
-      if (shouldReplaceTiming) {
-        previousUpdate.inputTime =
-          previousUpdate.source === nextUpdate.source
-            ? getEarliestDiagnosticTime(
-                previousUpdate.inputTime,
-                nextUpdate.inputTime,
-              )
-            : nextUpdate.inputTime
-        previousUpdate.source = nextUpdate.source
-        previousUpdate.handlerStartTime = nextUpdate.handlerStartTime
-        previousUpdate.handlerEndTime = nextUpdate.handlerEndTime
-      }
-      previousUpdate.measure = previousUpdate.measure || nextUpdate.measure
-      previousUpdate.preserve = previousUpdate.preserve || nextUpdate.preserve
-    }
-
-    const commit = () => {
-      const update = pendingRangeUpdate
-      pendingRangeUpdate = undefined
-
-      if (!update) return
-
-      updateRange(
-        update.event,
-        update.source,
-        update.handlerStartTime,
-        update.handlerEndTime,
-        update.measure,
-        update.preserve,
-        false,
-        update.inputTime,
-      )
-    }
-
-    if (source === 'scroll') {
-      scheduler.flush()
-      return commit()
-    }
-
-    scheduler.schedule(commit)
+    scheduler.schedule(nextUpdate)
+    if (source === 'scroll') scheduler.flush()
   }
 
   const beginDiagnosticsNodeChurn = (): boolean => {
@@ -1674,11 +1625,7 @@ function setup(
 
     observedDiagnostics = diagnostics
     pendingDiagnosticsCommit = undefined
-    if (pendingRangeUpdate) {
-      pendingRangeUpdate.inputTime = null
-      pendingRangeUpdate.handlerStartTime = undefined
-      pendingRangeUpdate.handlerEndTime = undefined
-    }
+    scheduler.clearDiagnosticTiming()
     if (pendingCreatedNodes) pendingCreatedNodes.clear()
     if (pendingRemovedNodes) pendingRemovedNodes.clear()
     ensureDiagnosticsMutationObserver()
@@ -2586,7 +2533,6 @@ function setup(
           pendingRemovedNodes = undefined
           pendingDiagnosticsCommit = undefined
           scheduler.cancel()
-          pendingRangeUpdate = undefined
           focusScheduler.cancel()
           headerFocusScheduler.cancel()
           preserveScheduledHeaderFocusForDataRebuild = false
