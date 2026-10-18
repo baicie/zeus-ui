@@ -3,6 +3,8 @@ import { resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { DATA_GRID_BENCHMARK_SCENARIOS } from '../benchmarks/benchmark-data'
+
 const workspaceRoot = existsSync(resolve(process.cwd(), 'pnpm-workspace.yaml'))
   ? process.cwd()
   : resolve(process.cwd(), '../../..')
@@ -17,6 +19,22 @@ interface BenchmarkTsconfig {
 
 interface DataGridPackageJson {
   scripts?: Record<string, string>
+}
+
+interface BenchmarkBaselineManifest {
+  schemaVersion: number
+  baselineId: string
+  packageVersion: string
+  dataMode: string
+  budgetPolicy: {
+    maxRenderedCells: number
+  }
+  scenarios: Array<{
+    name: string
+    rowCount: number
+    columnCount: number
+    observed: Record<string, number>
+  }>
 }
 
 function readWorkspaceFile(path: string): string {
@@ -95,6 +113,34 @@ describe('data-grid benchmark contract', () => {
     expect(workflow).toContain('data-grid-benchmark:')
     expect(workflow).toContain('pnpm --filter @zeus-web/data-grid check:bench')
     expect(workflow).toContain('pnpm data-grid:bench')
+  })
+
+  it('keeps a versioned baseline manifest and CI report artifact', () => {
+    const manifest = readWorkspaceJson<BenchmarkBaselineManifest>(
+      'packages/advanced/data-grid/benchmarks/baseline-manifest.json',
+    )
+    const pkg = readWorkspaceJson<DataGridPackageJson>('package.json')
+    const workflow = readWorkspaceFile('.github/workflows/test.yml')
+
+    expect(manifest.schemaVersion).toBe(1)
+    expect(manifest.baselineId).toMatch(/^u005-data-grid-\d{4}-\d{2}-\d{2}$/)
+    expect(manifest.packageVersion).toBe('0.1.0-beta.32')
+    expect(manifest.dataMode).toBe('sparse')
+    expect(manifest.budgetPolicy.maxRenderedCells).toBe(600)
+    expect(manifest.scenarios).toHaveLength(
+      DATA_GRID_BENCHMARK_SCENARIOS.length,
+    )
+    expect(pkg.scripts?.['check:data-grid-benchmark-baseline']).toBe(
+      'tsx scripts/checks/data-grid/check-benchmark-baseline.ts',
+    )
+    expect(pkg.scripts?.['report:data-grid-benchmark']).toBe(
+      'tsx scripts/checks/data-grid/report-benchmark.ts',
+    )
+    expect(workflow).toContain(
+      ['data-grid-benchmark-', '$', '{{ github.run_id }}'].join(''),
+    )
+    expect(workflow).toContain('.artifacts/data-grid-benchmark/report.json')
+    expect(workflow).toContain('set -o pipefail')
   })
 
   it('measures the real element and rendered DOM', () => {

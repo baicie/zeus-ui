@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "baselineId": "u005-data-grid-2026-10-18",
+  "recordedAt": "2026-10-18",
+  "commit": "b2cab9e10139f849228a1e564bab5c37080e2587",
+  "packageVersion": "0.1.0-beta.32",
+  "dataMode": "sparse",
+  "command": "node_modules/.bin/vitest --root . --project data-grid-benchmark --run --reporter=verbose",
+  "environment": {
+    "os": "Darwin 24.6.0",
+    "architecture": "arm64",
+    "node": "v26.9.0",
+    "viewport": "640x480"
+  },
+  "budgetPolicy": {
+    "maxRenderedCells": 600,
+    "timing": "informational trend; compare repeated runs on the same device",
+    "memory": "informational trend; compare repeated runs on the same device"
+  },
+  "scenarios": [
+    {
+      "name": "10k rows x 20 columns",
+      "rowCount": 10000,
+      "columnCount": 20,
+      "observed": {
+        "firstRenderMs": 552.700875,
+        "averageFrameLatencyMs": 27.6611198,
+        "framesPerSecond": 36.15182636,
+        "rowsUpdateMs": 29.149792,
+        "columnsUpdateMs": 56.381791
+      }
+    },
+    {
+      "name": "100k rows x 20 columns",
+      "rowCount": 100000,
+      "columnCount": 20,
+      "observed": {
+        "firstRenderMs": 198.792792,
+        "averageFrameLatencyMs": 36.99394303,
+        "framesPerSecond": 27.03145212,
+        "rowsUpdateMs": 102.786208,
+        "columnsUpdateMs": 55.60871
+      }
+    },
+    {
+      "name": "100k rows x 100 columns",
+      "rowCount": 100000,
+      "columnCount": 100,
+      "observed": {
+        "firstRenderMs": 201.0295,
+        "averageFrameLatencyMs": 24.72120378,
+        "framesPerSecond": 40.4511046,
+        "rowsUpdateMs": 54.556458,
+        "columnsUpdateMs": 42.514125
+      }
+    },
+    {
+      "name": "100k rows x 1k columns",
+      "rowCount": 100000,
+      "columnCount": 1000,
+      "observed": {
+        "firstRenderMs": 114.146458,
+        "averageFrameLatencyMs": 25.15300236,
+        "framesPerSecond": 39.75668534,
+        "rowsUpdateMs": 103.87475,
+        "columnsUpdateMs": 36.349624
+      }
+    }
+  ]
+}
