@@ -2484,7 +2484,11 @@ function setup(
         aria-rowcount={() =>
           String(resolveSource(props.rows, fallbackRows).length + 1)
         }
-        aria-colcount={() => String(visibleColumns.length)}
+        aria-colcount={() => {
+          void columnRangeRenderVersion()
+          void columnRenderVersion()
+          return String(visibleColumns.length)
+        }}
         aria-activedescendant={() => getActiveDescendantForRender()}
         aria-multiselectable={() =>
           getDataGridAriaMultiSelectable(

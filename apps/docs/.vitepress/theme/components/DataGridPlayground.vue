@@ -389,8 +389,6 @@ function applySelectedDataset(): Promise<void> {
       grid.rows = rows
       grid.columns = columns
       grid.selectedKeys = ['row-2']
-      grid.activeRowKey = 'row-1'
-      grid.activeColumnId = 'record'
       grid.setAttribute('aria-label', messages.value.gridAriaLabel)
 
       appliedPresetKey.value = preset.key
