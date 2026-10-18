@@ -142,6 +142,84 @@ describe('data grid cell renderer adapter PoC', () => {
     expect(second.mounted).toHaveLength(2)
   })
 
+  it('disposes an old key before mounting a new key into the reused host', () => {
+    const adapter = createDataGridCellRendererAdapter<TestRow, string>()
+    const container = globalThis.document.createElement('div')
+    const events: string[] = []
+    const renderer: DataGridCellRenderer<TestRow, string, TestHandle> = {
+      mount(container, input) {
+        events.push(`mount:${input.rowKey}`)
+        return { id: events.length, container, input }
+      },
+      update: vi.fn(),
+      dispose(handle) {
+        events.push(`dispose:${handle.input.rowKey}`)
+      },
+    }
+
+    adapter.reconcile([createSlot(renderer, container, 'row-1', 'name', 'Ada')])
+    adapter.reconcile([
+      createSlot(renderer, container, 'row-2', 'name', 'Grace'),
+    ])
+
+    expect(events).toEqual(['mount:row-1', 'dispose:row-1', 'mount:row-2'])
+    expect(adapter.getMountedKeys()).toEqual([
+      getDataGridCellRendererKey('row-2', 'name'),
+    ])
+  })
+
+  it('rejects a host reused by two visible keys before changing ownership', () => {
+    const adapter = createDataGridCellRendererAdapter<TestRow, string>()
+    const { renderer, mounted, disposed } = createRenderer()
+    const container = globalThis.document.createElement('div')
+
+    adapter.reconcile([createSlot(renderer, container, 'row-1', 'name', 'Ada')])
+    expect(() =>
+      adapter.reconcile([
+        createSlot(renderer, container, 'row-1', 'name', 'Grace'),
+        createSlot(renderer, container, 'row-2', 'name', 'Owner'),
+      ]),
+    ).toThrow('duplicate container')
+
+    expect(mounted).toHaveLength(1)
+    expect(disposed).toHaveLength(0)
+  })
+
+  it('disposes both owners before mounting when visible hosts are exchanged', () => {
+    const adapter = createDataGridCellRendererAdapter<TestRow, string>()
+    const firstHost = globalThis.document.createElement('div')
+    const secondHost = globalThis.document.createElement('div')
+    const events: string[] = []
+    const renderer: DataGridCellRenderer<TestRow, string, TestHandle> = {
+      mount(container, input) {
+        events.push(`mount:${input.rowKey}`)
+        return { id: events.length, container, input }
+      },
+      update: vi.fn(),
+      dispose(handle) {
+        events.push(`dispose:${handle.input.rowKey}`)
+      },
+    }
+
+    adapter.reconcile([
+      createSlot(renderer, firstHost, 'row-1', 'name', 'Ada'),
+      createSlot(renderer, secondHost, 'row-2', 'name', 'Grace'),
+    ])
+    events.length = 0
+
+    adapter.reconcile([
+      createSlot(renderer, secondHost, 'row-1', 'name', 'Ada'),
+      createSlot(renderer, firstHost, 'row-2', 'name', 'Grace'),
+    ])
+
+    expect(events).toEqual([
+      'dispose:row-1',
+      'dispose:row-2',
+      'mount:row-1',
+      'mount:row-2',
+    ])
+  })
+
   it('cleans newly mounted handles when a later mount fails', () => {
     const adapter = createDataGridCellRendererAdapter<TestRow, string>()
     const first = createRenderer()

@@ -107,6 +107,22 @@ export function createDataGridCellRendererAdapter<
     assertActive()
 
     const nextKeys = new Set<string>()
+    const nextContainers = new Set<Element>()
+    const plansByKey = new Map<
+      string,
+      {
+        key: string
+        slot: DataGridCellRendererSlot<TRow, TValue>
+        previous: MountedCellRenderer<TRow, TValue> | undefined
+        canUpdate: boolean
+      }
+    >()
+    const plans: Array<{
+      key: string
+      slot: DataGridCellRendererSlot<TRow, TValue>
+      previous: MountedCellRenderer<TRow, TValue> | undefined
+      canUpdate: boolean
+    }> = []
     for (const slot of slots) {
       const key = getDataGridCellRendererKey(
         slot.input.rowKey,
@@ -117,45 +133,63 @@ export function createDataGridCellRendererAdapter<
           `Data grid cell renderer received duplicate key "${key}".`,
         )
       }
+      if (nextContainers.has(slot.container)) {
+        throw new Error(
+          `Data grid cell renderer received duplicate container for key "${key}".`,
+        )
+      }
       nextKeys.add(key)
+      nextContainers.add(slot.container)
+      const previous = records.get(key)
+      const plan = {
+        key,
+        slot,
+        previous,
+        canUpdate:
+          previous !== undefined &&
+          previous.renderer === slot.renderer &&
+          previous.container === slot.container,
+      }
+      plans.push(plan)
+      plansByKey.set(key, plan)
     }
+
+    // Release owners of reused hosts before mounting new handles. Unrelated
+    // stale handles stay available until the new visible range mounts cleanly.
+    let staleDisposalError: unknown
+    for (const [key, record] of records) {
+      const plan = plansByKey.get(key)
+      const mustReleaseBeforeMount =
+        (plan !== undefined && !plan.canUpdate) ||
+        (plan === undefined && nextContainers.has(record.container))
+      if (!mustReleaseBeforeMount) continue
+      const error = disposeRecord(record)
+      if (error === undefined) records.delete(key)
+      staleDisposalError = firstError(staleDisposalError, error)
+    }
+    throwIfError(staleDisposalError)
 
     const mountedDuringReconcile: string[] = []
 
     try {
-      for (const slot of slots) {
-        const key = getDataGridCellRendererKey(
-          slot.input.rowKey,
-          slot.input.columnId,
-        )
-        const previous = records.get(key)
-
-        if (
-          previous &&
-          previous.renderer === slot.renderer &&
-          previous.container === slot.container
-        ) {
-          slot.renderer.update(previous.handle, slot.input)
-          previous.input = slot.input
+      for (const plan of plans) {
+        if (plan.canUpdate) {
+          plan.slot.renderer.update(plan.previous!.handle, plan.slot.input)
+          plan.previous!.input = plan.slot.input
           continue
         }
 
-        // A renderer handle owns its host container. Release that ownership
-        // before mounting a replacement, including when the identity changes.
-        if (previous) {
-          const disposeError = disposeRecord(previous)
-          throwIfError(disposeError)
-          records.delete(key)
-        }
-
-        const handle = slot.renderer.mount(slot.container, slot.input)
-        records.set(key, {
-          container: slot.container,
-          input: slot.input,
-          renderer: slot.renderer,
+        const handle = plan.slot.renderer.mount(
+          plan.slot.container,
+          plan.slot.input,
+        )
+        records.set(plan.key, {
+          container: plan.slot.container,
+          input: plan.slot.input,
+          renderer: plan.slot.renderer,
           handle,
         })
-        mountedDuringReconcile.push(key)
+        mountedDuringReconcile.push(plan.key)
       }
     } catch (error) {
       // Do not leave newly mounted framework roots behind when a later cell
