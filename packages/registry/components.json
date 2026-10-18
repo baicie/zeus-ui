@@ -1,0 +1,313 @@
+{
+  "schemaVersion": 1,
+  "components": [
+    {
+      "name": "button",
+      "primitive": "@zeus-web/button",
+      "description": "Styled button component built on top of the button primitive.",
+      "variants": {
+        "variant": {
+          "type": "ButtonVariant",
+          "values": [
+            "default",
+            "primary",
+            "secondary",
+            "outline",
+            "ghost",
+            "danger"
+          ],
+          "default": "default",
+          "description": "Visual style variant."
+        },
+        "size": {
+          "type": "ButtonSize",
+          "values": ["sm", "md", "lg", "icon"],
+          "default": "md",
+          "description": "Control size."
+        },
+        "type": {
+          "type": "ButtonType",
+          "values": ["button", "submit", "reset"],
+          "default": "button",
+          "description": "Native button type."
+        }
+      },
+      "props": [
+        {
+          "name": "variant",
+          "variant": "variant",
+          "description": "Visual style variant."
+        },
+        {
+          "name": "size",
+          "variant": "size",
+          "description": "Control size."
+        },
+        {
+          "name": "type",
+          "variant": "type",
+          "description": "Native button type."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "frameworks": ["react"],
+          "description": "Additional React class name."
+        },
+        {
+          "name": "class",
+          "type": "string",
+          "frameworks": ["vue"],
+          "description": "Additional Vue class name."
+        },
+        {
+          "name": "ariaLabel",
+          "type": "string",
+          "description": "Accessible label for the button."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the button is disabled."
+        },
+        {
+          "name": "loading",
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the button is loading."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "description": "Native button name."
+        },
+        {
+          "name": "pressed",
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the button is pressed."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "description": "Native button value."
+        }
+      ],
+      "events": [
+        {
+          "name": "press",
+          "reactName": "onPress",
+          "vueName": "press",
+          "type": "CustomEvent<{ nativeEvent: MouseEvent }>",
+          "description": "Emitted when the button is pressed."
+        }
+      ],
+      "slots": [
+        {
+          "name": "prefix",
+          "types": {
+            "react": "ReactNode",
+            "vue": "() => unknown"
+          },
+          "description": "Content before the button label."
+        },
+        {
+          "name": "default",
+          "types": {
+            "react": "ReactNode",
+            "vue": "() => unknown"
+          },
+          "description": "Button content."
+        },
+        {
+          "name": "suffix",
+          "types": {
+            "react": "ReactNode",
+            "vue": "() => unknown"
+          },
+          "description": "Content after the button label."
+        }
+      ]
+    },
+    {
+      "name": "input",
+      "primitive": "@zeus-web/input",
+      "description": "Styled input component built on top of the input primitive.",
+      "variants": {
+        "size": {
+          "type": "InputSize",
+          "values": ["sm", "md", "lg"],
+          "default": "md",
+          "description": "Control size."
+        },
+        "type": {
+          "type": "InputType",
+          "values": [
+            "text",
+            "email",
+            "password",
+            "search",
+            "tel",
+            "url",
+            "number"
+          ],
+          "default": "text",
+          "description": "Native input type."
+        }
+      },
+      "props": [
+        {
+          "name": "size",
+          "variant": "size",
+          "description": "Control size."
+        },
+        {
+          "name": "type",
+          "variant": "type",
+          "description": "Native input type."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "frameworks": ["react"],
+          "description": "Additional React class name."
+        },
+        {
+          "name": "class",
+          "type": "string",
+          "frameworks": ["vue"],
+          "description": "Additional Vue class name."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "description": "Native input id."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "description": "Controlled input value."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "description": "Initial uncontrolled input value."
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "description": "Placeholder text."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the input is disabled."
+        },
+        {
+          "name": "invalid",
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the input has an invalid value."
+        },
+        {
+          "name": "readonly",
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the input is read-only."
+        },
+        {
+          "name": "required",
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the input is required."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "description": "Native input name."
+        },
+        {
+          "name": "autocomplete",
+          "type": "string",
+          "description": "Native autocomplete hint."
+        },
+        {
+          "name": "ariaLabel",
+          "type": "string",
+          "description": "Accessible label for the input."
+        },
+        {
+          "name": "ariaDescribedby",
+          "type": "string",
+          "description": "Accessible description reference."
+        },
+        {
+          "name": "ariaErrormessage",
+          "type": "string",
+          "description": "Accessible error message reference."
+        },
+        {
+          "name": "formatter",
+          "type": "(value: string) => string",
+          "description": "Optional input value formatter."
+        },
+        {
+          "name": "modelValue",
+          "type": "string",
+          "frameworks": ["vue"],
+          "description": "Controlled input value."
+        }
+      ],
+      "events": [
+        {
+          "name": "value-change",
+          "reactName": "onValueChange",
+          "vueName": "value-change",
+          "type": "CustomEvent<{ value: string; nativeEvent: Event }>",
+          "description": "Emitted when the input value changes."
+        },
+        {
+          "name": "focus-change",
+          "reactName": "onFocusChange",
+          "vueName": "focus-change",
+          "type": "CustomEvent<{ focused: boolean; nativeEvent: FocusEvent }>",
+          "description": "Emitted when the input focus changes."
+        },
+        {
+          "name": "update:modelValue",
+          "vueName": "update:modelValue",
+          "type": "string",
+          "description": "Vue model update event."
+        }
+      ],
+      "slots": [
+        {
+          "name": "prefix",
+          "types": {
+            "react": "ReactNode",
+            "vue": "() => unknown"
+          },
+          "description": "Content before the input control."
+        },
+        {
+          "name": "suffix",
+          "types": {
+            "react": "ReactNode",
+            "vue": "() => unknown"
+          },
+          "description": "Content after the input control."
+        },
+        {
+          "name": "message",
+          "types": {
+            "react": "ReactNode",
+            "vue": "() => unknown"
+          },
+          "description": "Validation or help message content."
+        }
+      ]
+    }
+  ]
+}

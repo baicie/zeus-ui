@@ -1,10 +1,12 @@
 import type { ComponentQualityManifest } from '../../../packages/registry/src/quality'
+import type { RegistryComponentSchemaManifest } from '../../../packages/registry/src/component-schema'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 
 import { resolve } from 'node:path'
 
 import pc from 'picocolors'
 import { validateComponentQualityManifest } from '../../../packages/registry/src/quality'
+import { validateRegistryComponentSchema } from '../../../packages/registry/src/component-schema'
 
 type RegistryFramework = 'react' | 'vue' | 'native' | 'shared'
 type RegistryItemType = 'component' | 'utility' | 'style'
@@ -42,6 +44,8 @@ const requiredFiles = [
   'src/schema.ts',
   'registry.json',
   'quality.json',
+  'components.json',
+  'components.md',
   'templates/react/button.tsx',
   'templates/react/input.tsx',
   'templates/vue/button.vue',
@@ -49,8 +53,10 @@ const requiredFiles = [
   'templates/css/globals.css',
   'templates/lib/cn.ts',
   'scripts/copy-registry-assets.mjs',
+  'scripts/generate-component-contracts.mjs',
   '__tests__/registry-package.spec.ts',
   'src/quality.ts',
+  'src/component-schema.ts',
 ]
 
 const requiredItemNames = ['cn', 'globals', 'button', 'input']
@@ -136,6 +142,7 @@ function checkPackageJson(errors: string[]): void {
     './registry.json',
     './quality',
     './quality.json',
+    './components.json',
     './templates/react/button.tsx',
     './templates/react/input.tsx',
     './templates/vue/button.vue',
@@ -203,6 +210,38 @@ function checkQualityManifest(errors: string[]): void {
           )
         }
       }
+    }
+  }
+}
+
+function checkComponentSchema(errors: string[]): void {
+  const componentSchema =
+    readJson<RegistryComponentSchemaManifest>('components.json')
+  const result = validateRegistryComponentSchema(componentSchema)
+  for (const error of result.errors) {
+    errors.push(`components.json: ${error}`)
+  }
+
+  if (!Array.isArray(componentSchema.components)) {
+    return
+  }
+
+  const registry = readJson<RegistryManifest>('registry.json')
+  const registryNames = new Set(
+    registry.items
+      .filter(item => item.type === 'component')
+      .map(item => item.name),
+  )
+  const schemaNames = new Set(componentSchema.components.map(item => item.name))
+
+  for (const name of registryNames) {
+    if (!schemaNames.has(name)) {
+      errors.push(`components.json missing registry component ${name}`)
+    }
+  }
+  for (const name of schemaNames) {
+    if (!registryNames.has(name)) {
+      errors.push(`components.json includes unregistered component ${name}`)
     }
   }
 }
@@ -468,6 +507,7 @@ function main(): void {
       checkTemplateContents(errors)
       checkForbiddenDependencies(manifest, errors)
       checkQualityManifest(errors)
+      checkComponentSchema(errors)
     }
   }
 

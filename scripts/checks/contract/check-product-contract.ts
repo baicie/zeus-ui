@@ -121,6 +121,7 @@ function checkRegistry(errors: string[]): void {
     './registry.json',
     './quality',
     './quality.json',
+    './components.json',
     './templates/react/button.tsx',
     './templates/react/input.tsx',
     './templates/vue/button.vue',

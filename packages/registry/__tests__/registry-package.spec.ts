@@ -1,5 +1,10 @@
-import type { ComponentQualityManifest, RegistryManifest } from '../src'
+import type {
+  ComponentQualityManifest,
+  RegistryComponentSchemaManifest,
+  RegistryManifest,
+} from '../src'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { dirname, resolve } from 'node:path'
 
 import { fileURLToPath } from 'node:url'
@@ -8,10 +13,12 @@ import { describe, expect, it } from 'vitest'
 import {
   findRegistryItem,
   getComponentQuality,
+  getRegistryComponentSchema,
   getRegistryDependencies,
   getRegistryFilesForFramework,
   getRegistryItemNames,
   validateComponentQualityManifest,
+  validateRegistryComponentSchema,
   validateRegistry,
 } from '../src'
 
@@ -31,6 +38,7 @@ const publicRegistryExports = [
   './registry.json',
   './quality',
   './quality.json',
+  './components.json',
   './templates/react/button.tsx',
   './templates/react/input.tsx',
   './templates/vue/button.vue',
@@ -49,6 +57,10 @@ function readManifest(): RegistryManifest {
 
 function readQualityManifest(): ComponentQualityManifest {
   return JSON.parse(read('quality.json')) as ComponentQualityManifest
+}
+
+function readComponentSchema(): RegistryComponentSchemaManifest {
+  return JSON.parse(read('components.json')) as RegistryComponentSchemaManifest
 }
 
 describe('@zeus-web/registry package contract', () => {
@@ -101,6 +113,48 @@ describe('@zeus-web/registry package contract', () => {
       validateComponentQualityManifest(quality, ['button']).errors,
     ).toEqual(
       expect.arrayContaining(['button: stable requires end-to-end evidence']),
+    )
+  })
+
+  it('uses one component schema for framework contracts and API metadata', () => {
+    const manifest = readComponentSchema()
+
+    expect(validateRegistryComponentSchema(manifest)).toEqual({
+      valid: true,
+      errors: [],
+    })
+    expect(manifest.components.map(component => component.name)).toEqual([
+      'button',
+      'input',
+    ])
+    expect(getRegistryComponentSchema(manifest, 'button')).toMatchObject({
+      variants: {
+        variant: {
+          values: [
+            'default',
+            'primary',
+            'secondary',
+            'outline',
+            'ghost',
+            'danger',
+          ],
+          default: 'default',
+        },
+      },
+      events: [{ reactName: 'onPress', vueName: 'press' }],
+      slots: [{ name: 'prefix' }, { name: 'default' }, { name: 'suffix' }],
+    })
+    expect(read('components.md')).toContain('| Prop  | `variant`')
+  })
+
+  it('keeps generated framework contracts and API tables in sync with the schema', () => {
+    execFileSync(
+      process.execPath,
+      [
+        resolve(packageRoot, 'scripts/generate-component-contracts.mjs'),
+        '--check',
+      ],
+      { cwd: packageRoot },
     )
   })
 
