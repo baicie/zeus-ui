@@ -26,14 +26,8 @@ interface ButtonRegistryProps {
   pressed?: boolean
   value?: string
 }
-type ButtonRegistryEmits = {
-  press: [payload: CustomEvent<{ nativeEvent: MouseEvent }>]
-}
-type ButtonRegistryEventName = 'press'
-interface ButtonRegistrySlots {
-  prefix: () => unknown
-  default: () => unknown
-  suffix: () => unknown
+interface ButtonRegistryEmits {
+  (event: 'press', payload: CustomEvent<{ nativeEvent: MouseEvent }>): void
 }
 const props = withDefaults(defineProps<ButtonRegistryProps>(), {
   variant: 'default',

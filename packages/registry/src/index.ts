@@ -1,4 +1,20 @@
 export type {
+  ComponentEventSchema,
+  ComponentPropSchema,
+  ComponentSchemaFramework,
+  ComponentSchemaValidationResult,
+  ComponentSlotSchema,
+  ComponentVariantSchema,
+  RegistryComponentSchema,
+  RegistryComponentSchemaManifest,
+} from './component-schema'
+
+export {
+  getRegistryComponentSchema,
+  validateRegistryComponentSchema,
+} from './component-schema'
+
+export type {
   ComponentQuality,
   ComponentQualityEvidence,
   ComponentQualityLevel,
@@ -29,19 +45,3 @@ export {
   getRegistryItemNames,
   validateRegistry,
 } from './schema'
-
-export type {
-  ComponentEventSchema,
-  ComponentPropSchema,
-  ComponentSchemaFramework,
-  ComponentSchemaValidationResult,
-  ComponentSlotSchema,
-  ComponentVariantSchema,
-  RegistryComponentSchema,
-  RegistryComponentSchemaManifest,
-} from './component-schema'
-
-export {
-  getRegistryComponentSchema,
-  validateRegistryComponentSchema,
-} from './component-schema'

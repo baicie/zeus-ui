@@ -1,12 +1,12 @@
-import type { ComponentQualityManifest } from '../../../packages/registry/src/quality'
 import type { RegistryComponentSchemaManifest } from '../../../packages/registry/src/component-schema'
+import type { ComponentQualityManifest } from '../../../packages/registry/src/quality'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 
 import { resolve } from 'node:path'
 
 import pc from 'picocolors'
-import { validateComponentQualityManifest } from '../../../packages/registry/src/quality'
 import { validateRegistryComponentSchema } from '../../../packages/registry/src/component-schema'
+import { validateComponentQualityManifest } from '../../../packages/registry/src/quality'
 
 type RegistryFramework = 'react' | 'vue' | 'native' | 'shared'
 type RegistryItemType = 'component' | 'utility' | 'style'

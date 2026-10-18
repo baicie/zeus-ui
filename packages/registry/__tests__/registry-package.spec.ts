@@ -3,8 +3,8 @@ import type {
   RegistryComponentSchemaManifest,
   RegistryManifest,
 } from '../src'
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
 import { fileURLToPath } from 'node:url'
@@ -18,8 +18,8 @@ import {
   getRegistryFilesForFramework,
   getRegistryItemNames,
   validateComponentQualityManifest,
-  validateRegistryComponentSchema,
   validateRegistry,
+  validateRegistryComponentSchema,
 } from '../src'
 
 interface RegistryPackageJson {
