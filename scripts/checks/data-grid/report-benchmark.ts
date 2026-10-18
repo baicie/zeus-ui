@@ -1,37 +1,63 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { basename, resolve } from 'node:path'
 
-const [inputArg, outputArg] = process.argv.slice(2)
-if (!inputArg || !outputArg) {
-  throw new Error('Usage: report-benchmark.ts <benchmark-log> <report-json>')
+main().catch(error => {
+  console.error(error)
+  process.exitCode = 1
+})
+
+async function main(): Promise<void> {
+  const [inputArg, outputArg] = process.argv.slice(2)
+  if (!inputArg || !outputArg) {
+    throw new Error('Usage: report-benchmark.ts <benchmark-log> <report-json>')
+  }
+
+  const inputPath = resolve(process.cwd(), inputArg)
+  const outputPath = resolve(process.cwd(), outputArg)
+  const lines = (await readFile(inputPath, 'utf8')).split(/\r?\n/)
+  const prefix = '[data-grid:benchmark] '
+  const runs = lines.map(stripAnsi).flatMap(line => {
+    const start = line.indexOf(prefix)
+    if (start === -1) return []
+    return [JSON.parse(line.slice(start + prefix.length)) as BenchmarkRun]
+  })
+
+  if (runs.length === 0) {
+    throw new Error(`No benchmark JSON lines found in ${inputPath}`)
+  }
+
+  const report = {
+    schemaVersion: 1,
+    source: basename(inputPath),
+    generatedAt: new Date().toISOString(),
+    runCount: runs.length,
+    runs: runs.map(run => ({
+      kind: run.kind,
+      scenario: run.result.name,
+      metrics: selectMetrics(run),
+    })),
+  }
+
+  await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`)
+  console.info(`Data Grid benchmark report written: ${outputPath}`)
 }
 
-const inputPath = resolve(process.cwd(), inputArg)
-const outputPath = resolve(process.cwd(), outputArg)
-const lines = (await readFile(inputPath, 'utf8')).split(/\r?\n/)
-const prefix = '[data-grid:benchmark] '
-const runs = lines
-  .filter(line => line.startsWith(prefix))
-  .map(line => JSON.parse(line.slice(prefix.length)) as BenchmarkRun)
-
-if (runs.length === 0) {
-  throw new Error(`No benchmark JSON lines found in ${inputPath}`)
+function stripAnsi(value: string): string {
+  let result = ''
+  let escaping = false
+  for (const character of value) {
+    if (character === '\u001B') {
+      escaping = true
+      continue
+    }
+    if (escaping) {
+      if (/[a-z]/i.test(character)) escaping = false
+      continue
+    }
+    result += character
+  }
+  return result
 }
-
-const report = {
-  schemaVersion: 1,
-  source: basename(inputPath),
-  generatedAt: new Date().toISOString(),
-  runCount: runs.length,
-  runs: runs.map(run => ({
-    kind: run.kind,
-    scenario: run.result.name,
-    metrics: selectMetrics(run),
-  })),
-}
-
-await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`)
-console.info(`Data Grid benchmark report written: ${outputPath}`)
 
 interface BenchmarkRun {
   kind: 'render' | 'scroll' | 'update'
