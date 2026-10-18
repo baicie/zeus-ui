@@ -10,4 +10,5 @@ export type {
 export * from './range'
 export * from './scheduler'
 export * from './size-cache'
+export * from './virtual-list-renderer'
 export * from './virtualizer'

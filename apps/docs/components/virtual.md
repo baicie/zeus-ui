@@ -252,6 +252,10 @@ pnpm add @zeus-web/virtual
 - `scrollToOffset`
 - `measure`
 
+## Renderer and Slot semantics
+
+`createDomVirtualListRenderer` owns only the nodes it creates. It reuses stable keys, updates reused nodes, rejects duplicate keys, and invokes `disposeNode` when a row leaves the range or the renderer is disposed. A `<Slot />` in `zw-virtual-list` projects caller children; it does not inspect the virtual range or virtualize projected children. Keep renderer-owned nodes in a dedicated container so projected children remain untouched.
+
 ## Examples
 
 ### Core virtualizer usage
@@ -273,6 +277,33 @@ const middleOffset = virtualizer.getOffsetForIndex(5_000, {
   align: 'center',
   viewportSize: 320,
 })
+```
+
+### Independent DOM renderer
+
+Use the keyed renderer to mount only the current range and reuse DOM nodes that remain visible.
+
+```ts
+import { createDomVirtualListRenderer } from '@zeus-web/virtual'
+
+const list = document.querySelector('zw-virtual-list')!
+const renderer = createDomVirtualListRenderer({
+  container: document.querySelector('#virtual-items')!,
+  createNode: () => document.createElement('div'),
+  updateNode(node, item) {
+    const element = node as HTMLElement
+    element.textContent = `Activity ${item.index + 1}`
+    element.style.position = 'absolute'
+    element.style.transform = `translateY(${item.start}px)`
+    element.style.height = `${item.size}px`
+  },
+})
+
+list.addEventListener('range-change', event => {
+  renderer.render(event.detail.items)
+})
+
+renderer.dispose()
 ```
 
 ### Native Web Component usage

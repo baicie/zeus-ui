@@ -56,7 +56,7 @@
     "dev": "rolldown -c ../../../rolldown.config.ts --watch",
     "build": "rimraf dist && rolldown -c ../../../rolldown.config.ts",
     "check": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest --root ../../.. --project unit packages/advanced/virtual/__tests__/scheduler.spec.ts packages/advanced/virtual/__tests__/size-cache.spec.ts packages/advanced/virtual/__tests__/virtualizer.spec.ts packages/advanced/virtual/__tests__/virtual-list.spec.ts"
+    "test": "vitest --root ../../.. --project unit packages/advanced/virtual/__tests__/scheduler.spec.ts packages/advanced/virtual/__tests__/size-cache.spec.ts packages/advanced/virtual/__tests__/virtualizer.spec.ts packages/advanced/virtual/__tests__/virtual-list.spec.ts packages/advanced/virtual/__tests__/virtual-list-renderer.spec.ts"
   },
   "peerDependencies": {
     "@zeus-js/zeus": "0.1.1-beta.13",

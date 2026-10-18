@@ -252,6 +252,10 @@ pnpm add @zeus-web/virtual
 - `scrollToOffset`
 - `measure`
 
+## Renderer 与 Slot 语义
+
+`createDomVirtualListRenderer` 只管理自己创建的节点，会复用稳定 key、更新复用节点、拒绝重复 key，并在项目离开范围或 renderer 销毁时调用 `disposeNode`。`zw-virtual-list` 中的 `<Slot />` 只负责投影调用方 children，不会读取虚拟范围，也不会虚拟化投影内容。请使用独立容器存放 renderer 管理的节点，避免影响投影 children。
+
 ## 示例
 
 ### 核心虚拟化器用法
@@ -273,6 +277,33 @@ const middleOffset = virtualizer.getOffsetForIndex(5_000, {
   align: 'center',
   viewportSize: 320,
 })
+```
+
+### 独立 DOM renderer
+
+使用 keyed renderer 只挂载当前范围，并复用仍处于可见范围内的 DOM 节点。
+
+```ts
+import { createDomVirtualListRenderer } from '@zeus-web/virtual'
+
+const list = document.querySelector('zw-virtual-list')!
+const renderer = createDomVirtualListRenderer({
+  container: document.querySelector('#virtual-items')!,
+  createNode: () => document.createElement('div'),
+  updateNode(node, item) {
+    const element = node as HTMLElement
+    element.textContent = `Activity ${item.index + 1}`
+    element.style.position = 'absolute'
+    element.style.transform = `translateY(${item.start}px)`
+    element.style.height = `${item.size}px`
+  },
+})
+
+list.addEventListener('range-change', event => {
+  renderer.render(event.detail.items)
+})
+
+renderer.dispose()
 ```
 
 ### 原生 Web Component 用法
