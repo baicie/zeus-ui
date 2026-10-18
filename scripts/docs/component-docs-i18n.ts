@@ -546,6 +546,11 @@ const englishAdvancedDocs: Record<string, AdvancedDocsTranslation> = {
           'Use the framework-independent engine when building a higher-level component.',
       },
       {
+        title: 'Independent DOM renderer',
+        description:
+          'Use the keyed renderer to mount only the current range and reuse DOM nodes that remain visible.',
+      },
+      {
         title: 'Native Web Component usage',
         description:
           'Listen for range changes and render only the items supplied by the headless list.',
@@ -727,6 +732,11 @@ const chineseAdvancedDocs: Record<string, AdvancedDocsTranslation> = {
       {
         title: '核心虚拟化器用法',
         description: '构建更高层组件时使用与框架无关的核心引擎。',
+      },
+      {
+        title: '独立 DOM renderer',
+        description:
+          '使用 keyed renderer 只挂载当前范围，并复用仍处于可见范围内的 DOM 节点。',
       },
       {
         title: '原生 Web Component 用法',

@@ -2029,6 +2029,33 @@ const rawAiMetadata: ZeusWebAiMetadata = {
           ].join('\n'),
         },
         {
+          title: 'Independent DOM renderer',
+          description:
+            'Use the keyed renderer to mount only the current range and reuse DOM nodes that remain visible.',
+          code: [
+            "import { createDomVirtualListRenderer } from '@zeus-web/virtual'",
+            '',
+            "const list = document.querySelector('zw-virtual-list')!",
+            'const renderer = createDomVirtualListRenderer({',
+            "  container: document.querySelector('#virtual-items')!,",
+            '  createNode: () => document.createElement(\'div\'),',
+            '  updateNode(node, item) {',
+            '    const element = node as HTMLElement',
+            '    element.textContent = `Activity ${item.index + 1}`',
+            '    element.style.position = \'absolute\'',
+            '    element.style.transform = `translateY(${item.start}px)`',
+            '    element.style.height = `${item.size}px`',
+            '  },',
+            '})',
+            '',
+            "list.addEventListener('range-change', event => {",
+            '  renderer.render(event.detail.items)',
+            '})',
+            '',
+            'renderer.dispose()',
+          ].join('\n'),
+        },
+        {
           title: 'Native Web Component usage',
           description:
             'Listen for range changes and render only the items supplied by the headless list.',
