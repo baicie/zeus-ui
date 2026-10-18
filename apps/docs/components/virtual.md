@@ -301,6 +301,49 @@ list.addEventListener('range-change', event => {
 list.scrollToIndex(5_000, 'center')
 ```
 
+### Independent DOM renderer
+
+`createVirtualizer` calculates a range and `createDomVirtualListRenderer` owns the
+DOM lifecycle for that range. The renderer reuses nodes whose keys remain visible
+and removes nodes that leave the range:
+
+```ts
+import {
+  createDomVirtualListRenderer,
+  type VirtualItem,
+} from '@zeus-web/virtual'
+
+const renderer = createDomVirtualListRenderer({
+  container: document.querySelector('#virtual-items')!,
+  createNode(item: VirtualItem) {
+    return document.createElement('div')
+  },
+  updateNode(node, item) {
+    const element = node as HTMLElement
+    element.textContent = `Activity ${item.index + 1}`
+    element.style.position = 'absolute'
+    element.style.transform = `translateY(${item.start}px)`
+    element.style.height = `${item.size}px`
+  },
+})
+
+list.addEventListener('range-change', event => {
+  renderer.render(event.detail.items)
+})
+
+renderer.dispose()
+```
+
+The renderer only mounts the items passed to `render()`. A `<Slot />` in the
+`zw-virtual-list` component is projection: it does not inspect the range or
+virtualize projected children. Keep renderer-owned nodes in a dedicated container;
+other children are left untouched.
+
+`updateNode` runs for both new and reused nodes, including after measurements
+change item offsets or sizes. Stable keys preserve DOM identity; duplicate keys
+are rejected. Use `disposeNode` to release row-level listeners or other resources
+when an item leaves the range or the renderer is disposed.
+
 ### React wrapper usage
 
 Use the generated wrapper and keep visible items in application state.

@@ -301,6 +301,44 @@ list.addEventListener('range-change', event => {
 list.scrollToIndex(5_000, 'center')
 ```
 
+### 独立 DOM renderer
+
+`createVirtualizer` 计算可见范围，`createDomVirtualListRenderer` 管理该范围对应的
+DOM 节点。稳定 key 对应的节点会复用，离开范围的节点会被移除：
+
+```ts
+import {
+  createDomVirtualListRenderer,
+  type VirtualItem,
+} from '@zeus-web/virtual'
+
+const renderer = createDomVirtualListRenderer({
+  container: document.querySelector('#virtual-items')!,
+  createNode(item: VirtualItem) {
+    return document.createElement('div')
+  },
+  updateNode(node, item) {
+    const element = node as HTMLElement
+    element.textContent = `Activity ${item.index + 1}`
+    element.style.position = 'absolute'
+    element.style.transform = `translateY(${item.start}px)`
+    element.style.height = `${item.size}px`
+  },
+})
+
+list.addEventListener('range-change', event => {
+  renderer.render(event.detail.items)
+})
+
+renderer.dispose()
+```
+
+renderer 只挂载传给 `render()` 的项目。`zw-virtual-list` 中的 `<Slot />` 只负责投影，
+不会读取 range，也不会自动虚拟化投影的 children。请使用独立容器存放 renderer 管理的
+节点，其他子节点不会被清空或移除。`updateNode` 会在创建和复用节点时执行，以便在尺寸
+测量或偏移变化后更新内容与位置。`disposeNode` 可用于释放每行的监听器和资源。稳定 key
+会保留 DOM identity，重复 key 会被拒绝。
+
 ### React 包装器用法
 
 使用生成的包装器，并在应用状态中保存可见项目。
