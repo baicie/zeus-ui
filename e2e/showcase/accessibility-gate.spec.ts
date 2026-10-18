@@ -1,7 +1,12 @@
+import { expect as expectPage } from '@playwright/test'
 import { describe, it } from 'vitest'
 
-import { docsShowcaseTarget, withShowcasePage } from './utils/browser'
 import { expectNoAccessibilityViolations } from './utils/accessibility'
+import {
+  docsShowcaseTarget,
+  waitForZeusElements,
+  withShowcasePage,
+} from './utils/browser'
 import { collectPageErrors } from './utils/page-errors'
 
 const accessibilityRoutes = [
@@ -34,10 +39,15 @@ describe.each(accessibilityRoutes)('accessibility gate: $route', fixture => {
       const errors = collectPageErrors(page)
 
       await page.goto(fixture.route)
-      await page.locator(fixture.scope).waitFor({ state: 'visible' })
+      const scope = page.locator(fixture.scope)
+      await scope.waitFor({ state: 'visible' })
+      if (!('ready' in fixture)) {
+        await expectPage(scope).toHaveAttribute('data-ready', 'true')
+      }
       if ('ready' in fixture) {
         await page.locator(fixture.ready).first().waitFor({ state: 'visible' })
       }
+      await waitForZeusElements(scope)
       await expectNoAccessibilityViolations(page, { include: fixture.scope })
       errors.assertClean()
     })

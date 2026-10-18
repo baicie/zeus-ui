@@ -437,7 +437,7 @@
   border-radius: 8px;
   padding: 0 12px;
   background: transparent;
-  color: var(--playground-muted-foreground);
+  color: var(--playground-foreground);
   font: inherit;
   cursor: pointer;
 }
