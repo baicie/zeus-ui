@@ -86,7 +86,7 @@
     "check:showcase-implementation": "tsx scripts/checks/examples/check-showcase-implementation.ts",
     "check:product-layers": "tsx scripts/checks/contract/check-product-layers.ts",
     "check:ui-package": "tsx scripts/checks/contract/check-ui-package.ts",
-    "check:product-contract": "tsx scripts/checks/contract/check-product-contract.ts && pnpm check:advanced-contract && pnpm check:advanced-final-contract",
+    "check:product-contract": "pnpm --filter @zeus-web/registry check:components && tsx scripts/checks/contract/check-product-contract.ts && pnpm check:advanced-contract && pnpm check:advanced-final-contract",
     "check:advanced-contract": "tsx scripts/checks/contract/check-advanced-contract.ts",
     "check:advanced-final-contract": "tsx scripts/checks/contract/check-advanced-final-contract.ts",
     "showcase:ci:metadata": "pnpm check:component-coverage && pnpm check:showcase-metadata && pnpm check:showcase-implementation && pnpm check:product-contract",

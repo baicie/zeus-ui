@@ -9,6 +9,8 @@ const packageTemplatesDir = resolve(packageRoot, 'templates')
 const distTemplatesDir = resolve(distDir, 'templates')
 const registryPath = resolve(packageRoot, 'registry.json')
 const qualityPath = resolve(packageRoot, 'quality.json')
+const componentSchemaPath = resolve(packageRoot, 'components.json')
+const componentApiPath = resolve(packageRoot, 'components.md')
 
 function isPathInside(rootPath, targetPath) {
   const relativePath = relative(rootPath, targetPath)
@@ -66,6 +68,8 @@ rm(distTemplatesDir, {
     const copies = [
       copyFile(registryPath, resolve(distDir, 'registry.json')),
       copyFile(qualityPath, resolve(distDir, 'quality.json')),
+      copyFile(componentSchemaPath, resolve(distDir, 'components.json')),
+      copyFile(componentApiPath, resolve(distDir, 'components.md')),
     ]
 
     for (const relativePath of readRegistrySources(source)) {
