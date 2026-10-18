@@ -24,7 +24,39 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @zeus-web/data-grid check:bench
-      - run: pnpm data-grid:bench
+      - name: Run Data Grid benchmark
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p .artifacts/data-grid-benchmark
+          pnpm data-grid:bench 2>&1 | tee .artifacts/data-grid-benchmark/results.log
+      - run: pnpm check:data-grid-benchmark-baseline
+      - name: Write Data Grid benchmark report
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p .artifacts/data-grid-benchmark
+          if [[ -f .artifacts/data-grid-benchmark/results.log ]]; then
+            pnpm report:data-grid-benchmark .artifacts/data-grid-benchmark/results.log .artifacts/data-grid-benchmark/report.json
+          else
+            printf '{"schemaVersion":1,"runCount":0,"error":"benchmark did not produce a log"}\n' > .artifacts/data-grid-benchmark/report.json
+          fi
+      - name: Capture Data Grid benchmark environment
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p .artifacts/data-grid-benchmark
+          {
+            node --version
+            uname -a
+            git rev-parse HEAD
+          } > .artifacts/data-grid-benchmark/environment.txt
+      - name: Upload Data Grid benchmark artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-grid-benchmark-${{ github.run_id }}
+          path: .artifacts/data-grid-benchmark
 
   unit-test:
     runs-on: ubuntu-latest
