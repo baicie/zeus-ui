@@ -98,7 +98,9 @@ function setupTabs(
     getTriggerId: value => `${baseId}-trigger-${value}`,
     getContentId: value => `${baseId}-content-${value}`,
     registerTrigger: record => {
-      const index = triggers.findIndex(item => item.control === record.control)
+      const index = triggers.findIndex(
+        item => item.value === record.value || item.control === record.control,
+      )
 
       if (index >= 0) {
         triggers[index] = record
