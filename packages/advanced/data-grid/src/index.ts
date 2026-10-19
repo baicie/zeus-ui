@@ -3,6 +3,8 @@ export {
   type DataGridElement,
   type DataGridProps,
 } from './components/data-grid'
+export * from './components/host-adapter'
+export * from './components/viewport-controller'
 export * from './core'
 
 export * from './types'

@@ -15,8 +15,12 @@ Data Grid 的纯状态模型与 DOM 宿主逐步分离。当前基础模型已�
 
 本次 U-003 续接切片新增 `createDataGridViewportController`。它只拥有 viewport 的 DOM 连接边界：`connect(element)` 建立尺寸读取和可选 `ResizeObserver`，`getClientSize()` 返回当前布局尺寸，`disconnect()` 解除 observer、清除元素引用并使旧连接的回调失效。行高、行数和 fallback 规则仍由 `viewport-measure-model` 负责；范围计算和 DOM commit 仍由 Host 调度。这样 WC Host 的 viewport ref 可以把连接与断开作为显式生命周期操作，observer 不再是 Host 内部的隐式状态。
 
-Renderer 目前保持 `createDataGridCellRendererAdapter` 的框架中立协议：`reconcile` 只接收可见 cell slot，稳定的 row/column key 复用同一 handle，renderer 或容器变化先执行旧 handle 的 `dispose`，Host 断连通过 adapter `dispose` 释放全部可见 handle。Data Grid 还没有公开 `cellRenderer` 字段，因此本切片不把该 PoC 接入生产 JSX；正式 renderer 消费协议另行验收。
+Renderer 目前保持 `createDataGridCellRendererAdapter` 的框架中立协议：`reconcile` 只接收可见 cell slot，稳定的 row/column key 复用同一 handle，renderer 或容器变化先执行旧 handle 的 `dispose`。容器是泛型值，core 不读取 DOM，也不解析 VNode；浏览器 `Element` 只由上层 Host adapter 传入。`clear()` 释放当前可见 handle 但保留 adapter 可重连，`dispose()` 才会永久关闭 adapter。
+
+WC Host 的连接边界由 `createDataGridHostAdapter` 显式拥有。它只协调三个生命周期操作：连接/断开 viewport、取消 `DataGridRangeUpdateScheduler` 的待处理 commit、以及在断开时调用 renderer `clear()`。它不会计算 range、读取布局或解析框架节点；这些职责分别属于 viewport controller、headless model/scheduler 和 renderer adapter。Data Grid 的生产 ref 现在通过该 adapter 连接 Host，因此 Host 的 DOM 回调不再直接持有调度器取消细节。
+
+`createDataGridHostAdapter` 的 `disconnect()` 会尝试执行全部清理，即使其中一个 collaborator 抛错也会继续清理，最后重新抛出首个错误。断开后重新 `connect()` 是合法的；这对应 custom element 在 DOM 中移除后再次插入的生命周期。
 
 ## 后续边界
 
-此切片不表示完整的五层拆分已经完成。renderer 的正式消费协议，以及 WC Host 与模型实例的完整生命周期绑定仍需单独迁移；在迁移前，`data-grid.tsx` 保持当前唯一生产渲染入口。
+此切片不表示完整的五层拆分已经完成。Data Grid 仍由 `data-grid.tsx` 提供唯一生产渲染入口，公开的 `cellRenderer` 字段和 React/Vue Portal 适配仍属于后续 U-006；本切片先锁定 DOM-free renderer 生命周期与 WC Host 连接协议。

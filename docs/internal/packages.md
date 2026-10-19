@@ -574,6 +574,40 @@ sample，避免后一次调用的 timing 覆盖前一次 DOM churn。若多次�
 DOM 尚未提交，则它们会合并为一个 sample，并保留全部 layout read 区间、最新二维 range 和累计 DOM
 churn。
 
+### Renderer / WC Host 边界
+
+Renderer 生命周期协议与 DOM 分离。`DataGridCellRendererAdapter` 的容器类型是泛型值，因此 core
+只比较容器 identity，不读取、创建或移除 DOM，也不解析 React/Vue VNode。框架适配器负责把自己的
+handle 绑定到容器：
+
+```ts
+interface DataGridCellRenderer<TRow, TValue, THandle, TContainer> {
+  mount(
+    container: TContainer,
+    input: DataGridCellRendererInput<TRow, TValue>,
+  ): THandle
+  update(handle: THandle, input: DataGridCellRendererInput<TRow, TValue>): void
+  dispose(handle: THandle): void
+}
+
+interface DataGridCellRendererAdapter<TRow, TValue, TContainer> {
+  reconcile(
+    slots: readonly DataGridCellRendererSlot<TRow, TValue, TContainer>[],
+  ): void
+  clear(): void
+  dispose(): void
+}
+```
+
+`reconcile()` 按 row/column key 复用 handle；renderer 或容器变化先释放旧 owner；`clear()` 释放当前
+可见 handle 但允许 custom element 再次连接，`dispose()` 永久关闭 adapter。重复 key 或重复容器会在
+挂载前抛错，挂载中途失败会清理本次新建 handle。
+
+`createDataGridHostAdapter` 是 Web Component 的最小连接层。它只负责 viewport
+`connect`/`disconnect`、取消 `DataGridRangeUpdateScheduler` 待处理帧，以及断开时调用 renderer
+`clear()`；range 计算、布局读取、DOM reconciliation 仍由各自的 model/controller/renderer 负责。
+`disconnect()` 会尝试完成全部清理并重新抛出首个错误，断开后可再次 `connect()`。
+
 ### 组件方法
 
 行窗口方法：

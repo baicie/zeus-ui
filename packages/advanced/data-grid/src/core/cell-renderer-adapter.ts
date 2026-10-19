@@ -17,10 +17,11 @@ export interface DataGridCellRenderer<
   TRow = unknown,
   TValue = unknown,
   THandle = unknown,
+  TContainer = unknown,
 > {
   /* eslint-disable ts/method-signature-style -- bivariant handles keep framework-specific adapters assignable. */
   mount(
-    container: Element,
+    container: TContainer,
     input: DataGridCellRendererInput<TRow, TValue>,
   ): THandle
   update(handle: THandle, input: DataGridCellRendererInput<TRow, TValue>): void
@@ -28,23 +29,36 @@ export interface DataGridCellRenderer<
   /* eslint-enable ts/method-signature-style */
 }
 
-export interface DataGridCellRendererSlot<TRow = unknown, TValue = unknown> {
-  container: Element
+export interface DataGridCellRendererSlot<
+  TRow = unknown,
+  TValue = unknown,
+  TContainer = unknown,
+> {
+  container: TContainer
   input: DataGridCellRendererInput<TRow, TValue>
-  renderer: DataGridCellRenderer<TRow, TValue>
+  renderer: DataGridCellRenderer<TRow, TValue, unknown, TContainer>
 }
 
-export interface DataGridCellRendererAdapter<TRow = unknown, TValue = unknown> {
-  reconcile: (slots: readonly DataGridCellRendererSlot<TRow, TValue>[]) => void
+export interface DataGridCellRendererAdapter<
+  TRow = unknown,
+  TValue = unknown,
+  TContainer = unknown,
+> {
+  reconcile: (
+    slots: readonly DataGridCellRendererSlot<TRow, TValue, TContainer>[],
+  ) => void
   getMountedKeys: () => readonly string[]
   getMountedCount: () => number
+  /** Release all mounted handles while keeping the adapter reusable. */
+  clear: () => void
+  /** Permanently dispose the adapter and reject future reconciliations. */
   dispose: () => void
 }
 
-interface MountedCellRenderer<TRow, TValue> {
-  container: Element
+interface MountedCellRenderer<TRow, TValue, TContainer> {
+  container: TContainer
   input: DataGridCellRendererInput<TRow, TValue>
-  renderer: DataGridCellRenderer<TRow, TValue>
+  renderer: DataGridCellRenderer<TRow, TValue, unknown, TContainer>
   handle: unknown
 }
 
@@ -82,8 +96,12 @@ function throwIfError(error: unknown): void {
 export function createDataGridCellRendererAdapter<
   TRow = unknown,
   TValue = unknown,
->(): DataGridCellRendererAdapter<TRow, TValue> {
-  const records = new Map<string, MountedCellRenderer<TRow, TValue>>()
+  TContainer = unknown,
+>(): DataGridCellRendererAdapter<TRow, TValue, TContainer> {
+  const records = new Map<
+    string,
+    MountedCellRenderer<TRow, TValue, TContainer>
+  >()
   let disposed = false
 
   function assertActive(): void {
@@ -92,7 +110,9 @@ export function createDataGridCellRendererAdapter<
     }
   }
 
-  function disposeRecord(record: MountedCellRenderer<TRow, TValue>): unknown {
+  function disposeRecord(
+    record: MountedCellRenderer<TRow, TValue, TContainer>,
+  ): unknown {
     try {
       record.renderer.dispose(record.handle)
       return undefined
@@ -102,25 +122,25 @@ export function createDataGridCellRendererAdapter<
   }
 
   function reconcile(
-    slots: readonly DataGridCellRendererSlot<TRow, TValue>[],
+    slots: readonly DataGridCellRendererSlot<TRow, TValue, TContainer>[],
   ): void {
     assertActive()
 
     const nextKeys = new Set<string>()
-    const nextContainers = new Set<Element>()
+    const nextContainers = new Set<TContainer>()
     const plansByKey = new Map<
       string,
       {
         key: string
-        slot: DataGridCellRendererSlot<TRow, TValue>
-        previous: MountedCellRenderer<TRow, TValue> | undefined
+        slot: DataGridCellRendererSlot<TRow, TValue, TContainer>
+        previous: MountedCellRenderer<TRow, TValue, TContainer> | undefined
         canUpdate: boolean
       }
     >()
     const plans: Array<{
       key: string
-      slot: DataGridCellRendererSlot<TRow, TValue>
-      previous: MountedCellRenderer<TRow, TValue> | undefined
+      slot: DataGridCellRendererSlot<TRow, TValue, TContainer>
+      previous: MountedCellRenderer<TRow, TValue, TContainer> | undefined
       canUpdate: boolean
     }> = []
     for (const slot of slots) {
@@ -224,10 +244,7 @@ export function createDataGridCellRendererAdapter<
     throwIfError(disposalError)
   }
 
-  function dispose(): void {
-    if (disposed && records.size === 0) return
-
-    disposed = true
+  function clear(): void {
     let disposalError: unknown
     for (const [key, record] of records) {
       const error = disposeRecord(record)
@@ -237,10 +254,18 @@ export function createDataGridCellRendererAdapter<
     throwIfError(disposalError)
   }
 
+  function dispose(): void {
+    if (disposed && records.size === 0) return
+
+    disposed = true
+    clear()
+  }
+
   return {
     reconcile,
     getMountedKeys: () => Array.from(records.keys()),
     getMountedCount: () => records.size,
+    clear,
     dispose,
   }
 }
