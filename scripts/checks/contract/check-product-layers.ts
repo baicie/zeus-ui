@@ -268,8 +268,32 @@ function checkPhaseOrder(source: string): string[] {
   return errors
 }
 
+function checkRootCommands(errors: string[]): void {
+  const packageJson = JSON.parse(
+    readFileSync(filePath('package.json'), 'utf-8'),
+  ) as {
+    scripts?: Record<string, string>
+  }
+  const scripts = packageJson.scripts || {}
+
+  if (
+    scripts['check:registry'] !==
+    'tsx scripts/checks/registry/check-registry.ts'
+  ) {
+    errors.push(
+      'package.json must expose check:registry via scripts/checks/registry/check-registry.ts',
+    )
+  }
+
+  if (!scripts['site:check']?.includes('pnpm check:registry')) {
+    errors.push('package.json site:check must run pnpm check:registry')
+  }
+}
+
 function main(): void {
   const errors: string[] = []
+
+  checkRootCommands(errors)
 
   for (const doc of docs) {
     const source = readRequiredFile(doc.path, errors)
