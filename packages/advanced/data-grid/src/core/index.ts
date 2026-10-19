@@ -1,4 +1,5 @@
 export * from './accessibility-model'
+export * from './cell-renderer-adapter'
 export * from './column-model'
 export * from './column-resize-model'
 export * from './column-virtualizer'
