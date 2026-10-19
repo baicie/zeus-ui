@@ -56,10 +56,10 @@ importers:
         version: 0.1.1-beta.13
       '@zeus-js/output-icons':
         specifier: 0.1.1-beta.13
-        version: 0.1.1-beta.13(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+        version: 0.1.1-beta.13(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@zeus-js/output-react-wrapper':
         specifier: 0.1.1-beta.13
-        version: 0.1.1-beta.13(@types/react@19.2.17)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+        version: 0.1.1-beta.13(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       '@zeus-js/output-vue-wrapper':
         specifier: 0.1.1-beta.13
         version: 0.1.1-beta.13(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
@@ -861,12 +861,19 @@ importers:
       '@zeus-web/zeus-compat':
         specifier: workspace:*
         version: link:../../zeus-compat
-      react:
-        specifier: '>=18 || >=19'
-        version: 19.2.7
       vue:
         specifier: 3.5.38
         version: 3.5.38(typescript@6.0.3)
+    devDependencies:
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.17)
+      react:
+        specifier: ^19.2.7
+        version: 19.2.7
+      react-dom:
+        specifier: ^19.2.7
+        version: 19.2.7(react@19.2.7)
 
   packages/advanced/revogrid-adapter:
     dependencies:
@@ -8103,16 +8110,6 @@ snapshots:
       - rollup
       - vite
 
-  '@zeus-js/output-icons@0.1.1-beta.13(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))':
-    dependencies:
-      '@zeus-js/bundler-plugin': 0.1.1-beta.13(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
-    optionalDependencies:
-      vue: 3.5.38(typescript@6.0.3)
-    transitivePeerDependencies:
-      - rolldown
-      - rollup
-      - vite
-
   '@zeus-js/output-react-wrapper@0.1.1-beta.13(@types/react@19.2.17)(react@19.2.7)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))':
     dependencies:
       '@lit/react': 1.0.8(@types/react@19.2.17)
@@ -8122,19 +8119,6 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.17
       react: 19.2.7
-    transitivePeerDependencies:
-      - rolldown
-      - rollup
-      - vite
-
-  '@zeus-js/output-react-wrapper@0.1.1-beta.13(@types/react@19.2.17)(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))':
-    dependencies:
-      '@lit/react': 1.0.8(@types/react@19.2.17)
-      '@zeus-js/bundler-plugin': 0.1.1-beta.13(rolldown@1.1.2)(rollup@4.62.2)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
-      '@zeus-js/component-analyzer': 0.1.1-beta.13
-      '@zeus-js/component-dts': 0.1.1-beta.13
-    optionalDependencies:
-      '@types/react': 19.2.17
     transitivePeerDependencies:
       - rolldown
       - rollup
