@@ -1,20 +1,21 @@
 // @vitest-environment jsdom
-// @ts-nocheck
 
-import type { Root } from 'react-dom/client'
-import type { App, Ref } from 'vue'
 import type {
   DataGridCellRenderer,
   DataGridCellRendererInput,
   DataGridCellRendererSlot,
 } from '../src/core/cell-renderer-adapter'
 
-import * as React from 'react'
-import { flushSync } from 'react-dom'
-import { createRoot } from 'react-dom/client'
+import { createRequire } from 'node:module'
+
 import { afterEach, describe, expect, it } from 'vitest'
-import { createApp, defineComponent, h, nextTick, ref } from 'vue'
 import { createDataGridCellRendererAdapter } from '../src/core/cell-renderer-adapter'
+
+const require = createRequire(import.meta.url)
+const React = require('react') as any
+const { flushSync } = require('react-dom') as any
+const { createRoot } = require('react-dom/client') as any
+const { createApp, defineComponent, h, nextTick, ref } = require('vue') as any
 
 interface TestRow {
   id: string
@@ -25,14 +26,14 @@ type CellInput = DataGridCellRendererInput<TestRow, string>
 interface ReactHandle {
   container: HTMLElement
   input: CellInput
-  root: Root
+  root: any
 }
 
 interface VueHandle {
-  app: App
+  app: any
   container: HTMLElement
   input: CellInput
-  state: Ref<CellInput>
+  state: any
 }
 
 function createSlot<THandle>(
