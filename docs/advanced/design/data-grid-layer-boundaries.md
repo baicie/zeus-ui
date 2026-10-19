@@ -21,6 +21,17 @@ WC Host 的连接边界由 `createDataGridHostAdapter` 显式拥有。它只协�
 
 `createDataGridHostAdapter` 的 `disconnect()` 会尝试执行全部清理，即使其中一个 collaborator 抛错也会继续清理，最后重新抛出首个错误。断开后重新 `connect()` 是合法的；这对应 custom element 在 DOM 中移除后再次插入的生命周期。
 
+## Framework consumer 验证
+
+框架 renderer 的生命周期证据位于 `packages/advanced/data-grid/__tests__/framework-cell-renderer-consumer.spec.ts`：
+
+- React 19 与 Vue 3 覆盖 mount、稳定 key update、DOM/focus identity、clear、dispose 和 reconnect。
+- React Portal 与 Vue Teleport 由各自 renderer adapter 管理 target；宿主断开时先卸载 framework root，再清理 adapter 自己创建的 target。
+- 外部 target 及其非 framework 子节点在 adapter cleanup 后继续保留。
+- `examples/data-grid-react18-consumer` 使用真实 React 18.3.1 / React DOM 18.3.1，独立覆盖 keyed update、root disposal 和 reconnect。
+
+浏览器 fixture `e2e/advanced/data-grid/framework-renderer-browser.spec.ts` 在 Chromium、Firefox 和 WebKit 验证 mount/update、断开清理、外部 Portal/Teleport target 保留及重连；CI 通过 `pnpm data-grid:framework-e2e` 运行三引擎矩阵。
+
 ## 后续边界
 
-此切片不表示完整的五层拆分已经完成。Data Grid 仍由 `data-grid.tsx` 提供唯一生产渲染入口，公开的 `cellRenderer` 字段和 React/Vue Portal 适配仍属于后续 U-006；本切片先锁定 DOM-free renderer 生命周期与 WC Host 连接协议。
+此切片不表示完整的五层拆分已经完成。Data Grid 仍由 `data-grid.tsx` 提供唯一生产渲染入口，公开的 `cellRenderer` 字段尚未冻结为稳定 ABI；React/Vue 节点仍必须通过显式 adapter 管理，不能写入 WC property、Manifest 或普通 Slot。

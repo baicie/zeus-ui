@@ -72,10 +72,46 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @zeus-web/data-grid test:e2e
+      - name: Verify DataGrid React 18 consumer fixture
+        run: |
+          pnpm --filter @zeus-web/example-data-grid-react18-consumer check
+          pnpm --filter @zeus-web/example-data-grid-react18-consumer test
       - run: pnpm build:examples
       - run: pnpm test-unit:node
       - run: pnpm test-unit:jsdom
       - run: pnpm test-unit:react-showcase
+
+  data-grid-framework-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Set Playwright browser cache path and version
+        run: |
+          echo "PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/playwright-bin" >> "$GITHUB_ENV"
+          PLAYWRIGHT_VERSION="$(node -p "require('./node_modules/@playwright/test/package.json').version")"
+          echo "PLAYWRIGHT_VERSION=$PLAYWRIGHT_VERSION" >> "$GITHUB_ENV"
+      - name: Cache DataGrid framework renderer browsers
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-playwright-framework-renderer-v1-${{ env.PLAYWRIGHT_VERSION }}
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-framework-renderer-v1-
+      - name: Install DataGrid framework renderer browsers
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - name: Run DataGrid framework renderer browser E2E
+        run: |
+          pnpm exec tsc -p e2e/advanced/data-grid/framework-renderer/tsconfig.json
+          pnpm data-grid:framework-e2e
 
   unit-test-windows:
     runs-on: windows-latest

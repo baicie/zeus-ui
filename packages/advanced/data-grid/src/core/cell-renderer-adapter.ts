@@ -1,4 +1,4 @@
-import type { DataGridRowKey } from '../types'
+import type { DataGridRowKey } from './data-grid-row-key'
 
 /**
  * The framework-neutral payload handed to a cell renderer.
