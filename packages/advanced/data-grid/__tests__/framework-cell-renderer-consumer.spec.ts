@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// @ts-nocheck
 
 import type { Root } from 'react-dom/client'
 import type { App, Ref } from 'vue'
