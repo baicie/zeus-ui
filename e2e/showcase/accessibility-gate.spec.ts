@@ -15,6 +15,22 @@ const accessibilityRoutes = [
     scope: '.component-playground',
   },
   {
+    route: 'components/checkbox',
+    scope: '.component-playground',
+  },
+  {
+    route: 'components/switch',
+    scope: '.component-playground',
+  },
+  {
+    route: 'components/textarea',
+    scope: '.component-playground',
+  },
+  {
+    route: 'components/radio-group',
+    scope: '.component-playground',
+  },
+  {
     route: 'components/dialog',
     scope: '.component-playground',
   },
