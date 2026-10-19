@@ -384,10 +384,11 @@ describe('data-grid component protocol', () => {
 
   it('uses viewport measurement model and exposes refreshViewport', () => {
     expect(source).toContain('createDataGridViewportMeasureController')
+    expect(source).toContain('createDataGridViewportController')
     expect(source).toContain('shouldEmitDataGridViewportResize')
     expect(source).toContain('viewportResize')
     expect(source).toContain('refreshViewport')
-    expect(source).toContain('ResizeObserver')
+    expect(source).toContain('viewportController.getClientSize()')
     expect(source).toContain('viewportMeasurement.size')
   })
 
@@ -408,8 +409,7 @@ describe('data-grid component protocol', () => {
   })
 
   it('disconnects viewport observer when viewport ref is cleared', () => {
-    expect(source).toContain('viewportResizeObserver?.disconnect()')
-    expect(source).toContain('viewportResizeObserver = undefined')
+    expect(source).toContain('viewportController.disconnect()')
     expect(source).toContain('viewport = undefined')
   })
 

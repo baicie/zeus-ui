@@ -40,6 +40,7 @@ import type {
   DataGridVirtualSnapshot,
   NormalizedDataGridColumn,
 } from '../types'
+import type { DataGridViewportController } from './viewport-controller'
 import {
   batch,
   createEffect,
@@ -95,6 +96,7 @@ import {
   createDataGridControlledStateTracker,
   DataGridControlledStateChange,
 } from '../core/controlled-state-tracker'
+import { createDataGridViewportController } from './viewport-controller'
 
 export interface DataGridProps {
   rows?: DataGridRowData[]
@@ -372,7 +374,7 @@ function setup(
   ctx: DefineElementContext<DataGridElement, DataGridEmits>,
 ) {
   let viewport: HTMLElement | undefined
-  let viewportResizeObserver: ResizeObserver | undefined
+  let viewportController: DataGridViewportController
   // The scroll hot path needs the focused viewport state on every commit, and
   // deriving it walks the active element with closest(). Caching that derived
   // state keeps the walk off the hot path, but the cache must never outlive the
@@ -589,18 +591,32 @@ function setup(
   }
 
   const measureViewport = (
-    clientHeight: number = viewport ? viewport.clientHeight : 0,
-    clientWidth: number = viewport ? viewport.clientWidth : 0,
+    clientHeight?: number,
+    clientWidth?: number,
   ): DataGridViewportMeasurement => {
+    let resolvedClientHeight: number
+    let resolvedClientWidth: number
+
+    if (clientHeight === undefined || clientWidth === undefined) {
+      const clientSize = viewportController.getClientSize()
+      resolvedClientHeight =
+        clientHeight === undefined ? clientSize.height : clientHeight
+      resolvedClientWidth =
+        clientWidth === undefined ? clientSize.width : clientWidth
+    } else {
+      resolvedClientHeight = clientHeight
+      resolvedClientWidth = clientWidth
+    }
+
     const previousClientHeight = viewportClientHeight
     const previousClientWidth = viewportClientWidth
     const previousViewportSize = viewportMeasurement.size
 
-    viewportClientHeight = clientHeight
-    viewportClientWidth = clientWidth
+    viewportClientHeight = resolvedClientHeight
+    viewportClientWidth = resolvedClientWidth
 
     const nextMeasurement = viewportMeasure.measure(
-      clientHeight,
+      resolvedClientHeight,
       resolveRowHeight(props),
       visibleRows.length,
     )
@@ -620,13 +636,13 @@ function setup(
     }
 
     if (
-      previousClientHeight !== clientHeight ||
+      previousClientHeight !== resolvedClientHeight ||
       previousViewportSize !== nextMeasurement.size
     ) {
       invalidateRowSnapshotCache()
     }
 
-    if (previousClientWidth !== clientWidth) {
+    if (previousClientWidth !== resolvedClientWidth) {
       invalidateColumnSnapshotCache()
     }
 
@@ -1449,16 +1465,13 @@ function setup(
 
     const layoutReadStartTime = commitObserver ? getDiagnosticTime() : 0
     const scrollOffset = getScrollOffset(viewport)
-    const clientHeight = measureViewportMetrics
-      ? viewport
-        ? viewport.clientHeight
-        : 0
-      : viewportClientHeight
-    const clientWidth = measureViewportMetrics
-      ? viewport
-        ? viewport.clientWidth
-        : 0
-      : viewportClientWidth
+    let clientHeight = viewportClientHeight
+    let clientWidth = viewportClientWidth
+    if (measureViewportMetrics) {
+      const clientSize = viewportController.getClientSize()
+      clientHeight = clientSize.height
+      clientWidth = clientSize.width
+    }
     const layoutReadEndTime = commitObserver ? getDiagnosticTime() : 0
     const viewportSize = measureViewportMetrics
       ? measureViewport(clientHeight, clientWidth).size
@@ -1595,6 +1608,13 @@ function setup(
     if (source === 'scroll') scheduler.flush()
   }
 
+  viewportController = createDataGridViewportController({
+    onResize: () => {
+      const handlerStartTime = startDiagnosticsHandler()
+      scheduleUpdateRange(undefined, 'resize', handlerStartTime)
+    },
+  })
+
   const beginDiagnosticsNodeChurn = (): boolean => {
     finalizeCompletedPendingDiagnosticsCommit()
     if (!shouldMeasureDiagnosticsNodeChurn(props.diagnostics)) return false
@@ -1653,18 +1673,6 @@ function setup(
 
     setColumnScrollOffset(viewport, offset)
     updateRange()
-  }
-
-  const connectViewportObserver = (element: HTMLElement): void => {
-    viewportResizeObserver?.disconnect()
-
-    if (typeof ResizeObserver === 'undefined') return
-
-    viewportResizeObserver = new ResizeObserver(() => {
-      const handlerStartTime = startDiagnosticsHandler()
-      scheduleUpdateRange(undefined, 'resize', handlerStartTime)
-    })
-    viewportResizeObserver.observe(element)
   }
 
   const commitControlledState = (
@@ -2506,7 +2514,7 @@ function setup(
             element.addEventListener('scroll', scheduleUpdateRange, {
               passive: true,
             })
-            connectViewportObserver(element)
+            viewportController.connect(element)
             ensureDiagnosticsMutationObserver()
             scheduleUpdateRange(undefined, 'mount')
             return
@@ -2527,8 +2535,7 @@ function setup(
           }
           focusedViewportStateListenerAttached = false
           invalidateFocusedViewportState()
-          viewportResizeObserver?.disconnect()
-          viewportResizeObserver = undefined
+          viewportController.disconnect()
           if (diagnosticsMutationObserver) {
             diagnosticsMutationObserver.disconnect()
             diagnosticsMutationObserver = undefined
