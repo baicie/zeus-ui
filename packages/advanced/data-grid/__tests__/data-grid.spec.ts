@@ -409,7 +409,7 @@ describe('data-grid component protocol', () => {
   })
 
   it('disconnects viewport observer when viewport ref is cleared', () => {
-    expect(source).toContain('viewportController.disconnect()')
+    expect(source).toContain('hostAdapter.disconnect()')
     expect(source).toContain('viewport = undefined')
   })
 
