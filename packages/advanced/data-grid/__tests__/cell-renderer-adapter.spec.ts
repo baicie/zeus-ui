@@ -27,7 +27,7 @@ function createRenderer() {
   let nextId = 0
   const mounted: TestHandle[] = []
   const disposed: TestHandle[] = []
-  const renderer: DataGridCellRenderer<TestRow, string, TestHandle> = {
+  const renderer: DataGridCellRenderer<TestRow, string, TestHandle, Element> = {
     mount(container, input) {
       const handle = { id: nextId++, container, input }
       mounted.push(handle)
@@ -45,7 +45,7 @@ function createRenderer() {
 }
 
 function createSlot(
-  renderer: DataGridCellRenderer<TestRow, string, TestHandle>,
+  renderer: DataGridCellRenderer<TestRow, string, TestHandle, Element>,
   container: Element,
   rowKey: string,
   columnId: string,
@@ -146,16 +146,17 @@ describe('data grid cell renderer adapter PoC', () => {
     const adapter = createDataGridCellRendererAdapter<TestRow, string>()
     const container = globalThis.document.createElement('div')
     const events: string[] = []
-    const renderer: DataGridCellRenderer<TestRow, string, TestHandle> = {
-      mount(container, input) {
-        events.push(`mount:${input.rowKey}`)
-        return { id: events.length, container, input }
-      },
-      update: vi.fn(),
-      dispose(handle) {
-        events.push(`dispose:${handle.input.rowKey}`)
-      },
-    }
+    const renderer: DataGridCellRenderer<TestRow, string, TestHandle, Element> =
+      {
+        mount(container, input) {
+          events.push(`mount:${input.rowKey}`)
+          return { id: events.length, container, input }
+        },
+        update: vi.fn(),
+        dispose(handle) {
+          events.push(`dispose:${handle.input.rowKey}`)
+        },
+      }
 
     adapter.reconcile([createSlot(renderer, container, 'row-1', 'name', 'Ada')])
     adapter.reconcile([
@@ -190,16 +191,17 @@ describe('data grid cell renderer adapter PoC', () => {
     const firstHost = globalThis.document.createElement('div')
     const secondHost = globalThis.document.createElement('div')
     const events: string[] = []
-    const renderer: DataGridCellRenderer<TestRow, string, TestHandle> = {
-      mount(container, input) {
-        events.push(`mount:${input.rowKey}`)
-        return { id: events.length, container, input }
-      },
-      update: vi.fn(),
-      dispose(handle) {
-        events.push(`dispose:${handle.input.rowKey}`)
-      },
-    }
+    const renderer: DataGridCellRenderer<TestRow, string, TestHandle, Element> =
+      {
+        mount(container, input) {
+          events.push(`mount:${input.rowKey}`)
+          return { id: events.length, container, input }
+        },
+        update: vi.fn(),
+        dispose(handle) {
+          events.push(`dispose:${handle.input.rowKey}`)
+        },
+      }
 
     adapter.reconcile([
       createSlot(renderer, firstHost, 'row-1', 'name', 'Ada'),
@@ -348,6 +350,39 @@ describe('data grid cell renderer adapter PoC', () => {
     expect(disposed).toEqual(mounted)
     expect(adapter.getMountedCount()).toBe(0)
     expect(() => adapter.reconcile([])).toThrow('disposed')
+  })
+
+  it('clears visible handles without closing the adapter for reconnect', () => {
+    const adapter = createDataGridCellRendererAdapter<TestRow, string>()
+    const renderer = createRenderer()
+
+    adapter.reconcile([
+      createSlot(
+        renderer.renderer,
+        globalThis.document.createElement('div'),
+        'row-1',
+        'name',
+        'Ada',
+      ),
+    ])
+    const firstHandle = renderer.mounted[0]
+
+    adapter.clear()
+
+    expect(renderer.disposed).toEqual([firstHandle])
+    expect(adapter.getMountedCount()).toBe(0)
+    expect(() =>
+      adapter.reconcile([
+        createSlot(
+          renderer.renderer,
+          globalThis.document.createElement('div'),
+          'row-2',
+          'name',
+          'Grace',
+        ),
+      ]),
+    ).not.toThrow()
+    expect(adapter.getMountedCount()).toBe(1)
   })
 
   it('retains a handle when dispose fails so disconnect cleanup can retry', () => {

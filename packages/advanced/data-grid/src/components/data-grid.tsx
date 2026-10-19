@@ -96,6 +96,7 @@ import {
   createDataGridControlledStateTracker,
   DataGridControlledStateChange,
 } from '../core/controlled-state-tracker'
+import { createDataGridHostAdapter } from './host-adapter'
 import { createDataGridViewportController } from './viewport-controller'
 
 export interface DataGridProps {
@@ -1615,6 +1616,11 @@ function setup(
     },
   })
 
+  const hostAdapter = createDataGridHostAdapter({
+    viewportController,
+    scheduler,
+  })
+
   const beginDiagnosticsNodeChurn = (): boolean => {
     finalizeCompletedPendingDiagnosticsCommit()
     if (!shouldMeasureDiagnosticsNodeChurn(props.diagnostics)) return false
@@ -2514,7 +2520,7 @@ function setup(
             element.addEventListener('scroll', scheduleUpdateRange, {
               passive: true,
             })
-            viewportController.connect(element)
+            hostAdapter.connect(element)
             ensureDiagnosticsMutationObserver()
             scheduleUpdateRange(undefined, 'mount')
             return
@@ -2535,7 +2541,7 @@ function setup(
           }
           focusedViewportStateListenerAttached = false
           invalidateFocusedViewportState()
-          viewportController.disconnect()
+          hostAdapter.disconnect()
           if (diagnosticsMutationObserver) {
             diagnosticsMutationObserver.disconnect()
             diagnosticsMutationObserver = undefined
@@ -2543,7 +2549,6 @@ function setup(
           pendingCreatedNodes = undefined
           pendingRemovedNodes = undefined
           pendingDiagnosticsCommit = undefined
-          scheduler.cancel()
           focusScheduler.cancel()
           headerFocusScheduler.cancel()
           preserveScheduledHeaderFocusForDataRebuild = false
