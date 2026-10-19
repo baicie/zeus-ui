@@ -108,7 +108,7 @@ The showcase has seventeen layers of checks:
 3. Route smoke tests validate that every implemented component route renders in React and Vue.
 4. Foundation page tests validate icons, themes and playground interaction behavior.
 5. Shared unit tests validate metadata helpers, icon snippets, theme helpers and playground fixtures.
-6. Vitest-powered Playwright E2E tests validate React and Vue showcase routes and critical browser interactions.
+6. Vitest-powered Playwright E2E tests validate React and Vue showcase routes and critical browser interactions. The accessibility gate runs axe against the input, checkbox, switch, textarea, radio-group, dialog, tabs, select and data-grid playgrounds.
 7. CI gates run showcase metadata, unit tests, builds and browser E2E as separate jobs.
 8. Product layer checks validate Zeus-UI package boundaries and usage entry decisions.
 9. Native styled Web-C checks validate @zeus-web/ui package exports, CSS entrypoints and primitive composition.
