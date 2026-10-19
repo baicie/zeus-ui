@@ -80,6 +80,7 @@
     "showcase:registry:sync": "tsx scripts/examples/sync-showcase-registry.ts",
     "showcase:registry:check": "tsx scripts/examples/sync-showcase-registry.ts --check",
     "data-grid:bench": "pnpm --filter @zeus-web/data-grid test:bench",
+    "data-grid:framework-e2e": "vitest --project data-grid-framework-browser-e2e --run --reporter=verbose",
     "check:data-grid-benchmark-baseline": "tsx scripts/checks/data-grid/check-benchmark-baseline.ts",
     "report:data-grid-benchmark": "tsx scripts/checks/data-grid/report-benchmark.ts",
     "web-c:bench": "pnpm --filter @zeus-web/benchmark-web-c-instances bench",
