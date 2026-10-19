@@ -1,6 +1,5 @@
 import type { VirtualItem, VirtualRange } from '@zeus-web/virtual'
-
-export type DataGridRowKey = string
+import type { DataGridRowKey } from './core/data-grid-row-key'
 
 export type DataGridCellValue =
   | string
@@ -242,5 +241,6 @@ export interface DataGridCellActionDetail {
 }
 
 export type { DataGridProps, DataGridElement } from './components/data-grid'
+export type { DataGridRowKey } from './core/data-grid-row-key'
 
 export type { VirtualScrollAlign } from '@zeus-web/virtual'

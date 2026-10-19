@@ -1,0 +1,24 @@
+{
+  "name": "@zeus-web/example-data-grid-react18-consumer",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "description": "React 18 consumer fixture for the DataGrid framework renderer adapter.",
+  "scripts": {
+    "build": "pnpm check",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest --run"
+  },
+  "dependencies": {
+    "@zeus-web/data-grid": "workspace:*",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.7",
+    "jsdom": "^29.1.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  }
+}

@@ -509,7 +509,11 @@ export default defineConfig({
           name: 'e2e',
           environment: 'jsdom',
           include: ['e2e/**/*.spec.ts'],
-          exclude: ['e2e/showcase/**', 'packages/zeus-compat/**'],
+          exclude: [
+            'e2e/showcase/**',
+            'e2e/advanced/data-grid/framework-renderer-browser.spec.ts',
+            'packages/zeus-compat/**',
+          ],
         },
         resolve: {
           conditions: ['import', 'module', 'browser', 'default'],
@@ -540,6 +544,22 @@ export default defineConfig({
           deps: {
             inline: ['@zeus-js/zeus', '@zeus-js/runtime-dom'],
           },
+        },
+      },
+
+      {
+        extends: true,
+        test: {
+          name: 'data-grid-framework-browser-e2e',
+          environment: 'node',
+          include: [
+            'e2e/advanced/data-grid/framework-renderer-browser.spec.ts',
+          ],
+          globalSetup: ['e2e/advanced/data-grid/framework-renderer/setup.ts'],
+          testTimeout: 120_000,
+          hookTimeout: 120_000,
+          pool: 'forks',
+          fileParallelism: false,
         },
       },
 
