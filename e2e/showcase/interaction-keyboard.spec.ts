@@ -50,6 +50,12 @@ describe('showcase keyboard interactions', () => {
       await expectPage(dialog).toBeHidden()
       await expectPage(trigger).toHaveAttribute('aria-expanded', 'false')
       await expectPage(trigger).toBeFocused()
+
+      await trigger.press('Enter')
+      await expectPage(dialog).toBeVisible()
+      await page.locator('body').click({ position: { x: 4, y: 4 } })
+      await expectPage(dialog).toBeHidden()
+      await expectPage(trigger).toBeFocused()
       errors.assertClean()
     })
   })

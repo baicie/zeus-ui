@@ -5,6 +5,7 @@ import {
   defineElement,
   event,
   Host,
+  onCleanup,
   prop,
   Slot,
 } from '@zeus-js/zeus'
@@ -161,6 +162,20 @@ function setupDialog(
       triggerElement?.focus()
     },
   }
+
+  const handleOutsidePointerDown = (event: PointerEvent) => {
+    if (!resolveOpen(props) || props.modal === false) return
+    const content = contentElement
+    if (!content) return
+    const path = event.composedPath?.() ?? []
+    if (path.includes(content)) return
+    context.setOpen(false, event)
+  }
+
+  document.addEventListener('pointerdown', handleOutsidePointerDown, true)
+  onCleanup(() => {
+    document.removeEventListener('pointerdown', handleOutsidePointerDown, true)
+  })
 
   provideDOMContext(ctx.host, DialogContext, context)
 
