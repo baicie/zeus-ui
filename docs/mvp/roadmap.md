@@ -2,9 +2,9 @@
 
 > `zeus-web` 不再自己手写 `wc/react/vue wrapper`，只写组件源、主题、registry、CLI、AI metadata、docs/examples；Web Component 产物、React wrapper、Vue wrapper、manifest、dts 继续交给 `@zeus-js/web-c` 生态生成。
 
-当前代码已经进入比较完整的 MVP 后半段：`CLI` 已经有 `init / add / ai` 命令，入口已接入 `ai`。
-`@zeus-web/ai` 包也已经存在，并具备 build/check/test 脚本。
-CLI 也已经依赖 `@zeus-web/ai / registry / themes`。
+当前仓库已实现 MVP、Phase 10、Phase 12、Phase 14 的主要交付。CLI 包含
+`init / add / list / remove / diff / update / doctor / theme / icon / ai`；Phase 11、
+Phase 13 和 Phase 15 仍有明确欠项，状态以本文件各阶段记录为准。
 
 ---
 
@@ -613,7 +613,11 @@ toast
 复杂度高，需要 Phase 10 的 a11y 基础支撑。
 ```
 
-状态：**未开始**
+状态：**进行中**。当前已有 `label`、`textarea`、`radio-group`、`select`、`card`、
+`badge`、`separator`、`avatar`、`skeleton`、`alert`、`tooltip`、`accordion`、
+`collapsible` 等 13 个本阶段组件，并已进入 Registry、AI metadata 和双语组件文档。
+仍缺 `form-field`、`popover`、`dropdown-menu`、`toast`；其依赖、交互/a11y 验收与
+Registry/文档接入未完成。
 
 ---
 
@@ -674,7 +678,10 @@ registry 文件是否存在
 支持 registry lock
 ```
 
-状态：**未开始**
+状态：**已完成**。CLI 已实现 `add --all/--path/--registry/--yes/--skip-deps/--force`、
+`diff`、`update`、`doctor`，并通过版本化 `zeus-ui.lock.json` 记录 registry source
+快照与文件 hash。Registry source 支持内置、文件和 HTTP(S)；CLI maintenance 124 项、
+CLI consumer、add/init/update-diff、Registry、组件覆盖及 UI package contract 检查通过。
 
 ---
 
@@ -703,7 +710,9 @@ zweb theme set slate
 zweb theme tokens --json
 ```
 
-状态：**未开始**
+状态：**进行中**。已提供 `zweb theme list/tokens/set`、JSON token 输出、radius、accent、
+motion 与 dark-mode 策略；主题 presets、token 表和 CSS 输出也已纳入测试。尚未实现
+路线图中的主题生成器与自定义主题新增流程（`theme add`）。
 
 ---
 
@@ -733,8 +742,9 @@ packages/icons
 6. AI metadata icon rules
 ```
 
-优先级：**P2**
-原因：组件 MVP 和 CLI 生产化更重要。
+状态：**已完成**。`@zeus-web/icons` 通过 `@zeus-js/output-icons` 生成 React、Vue、WC、
+raw SVG 与 Manifest 入口；Registry 提供 icon 模板，AI metadata 描述多端导入规则，
+CLI 支持 list/search/show。相关 package build、exports 与 consumer smoke 仍属于每次发布验证。
 
 ---
 
@@ -781,7 +791,9 @@ pnpm check:build-output
 10. CI 全绿。
 ```
 
-状态：**未开始**
+状态：**进行中**。测试矩阵、发布前 readiness/strict/tarball gate、CI、registry
+provenance verifier 与 `release:final` 已实现；当前仓库版本为 `0.1.0-beta.32`，尚未
+完成路线图要求的 `0.1.0` 稳定版发布及发布后 registry/消费者复核。
 
 ---
 
@@ -817,13 +829,12 @@ pnpm check:build-output
 
 # 当前最推荐的下一步
 
-不要马上进入新组件扩展。建议顺序是：
+当前剩余工作的依赖顺序是：
 
 ```txt
-1. Phase 10：开始补 Dialog/Tabs a11y。
-2. Phase 11：再扩 label/textarea/radio/select。
-3. Phase 12：CLI update/doctor/remote registry。
-4. Phase 13：Theming 进阶。
+1. Phase 11：实现 form-field、popover、dropdown-menu、toast，并接入 Registry、AI、双语文档和 E2E。
+2. Phase 13：补自定义主题生成与 `theme add` 工作流。
+3. Phase 15：完成 0.1.0 发布和独立 registry consumer/provenance 验证。
 ```
 
 ```txt
