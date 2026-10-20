@@ -1,29 +1,67 @@
 {
-  "version": 1,
+  "version": 2,
+  "registries": {
+    "@zeus-web/registry": {
+      "id": "@zeus-web/registry",
+      "kind": "bundled",
+      "location": "@zeus-web/registry",
+      "name": "@zeus-web/registry",
+      "version": "0.1.0-beta.32",
+      "integrity": "873e2e7133f478950eff2dd5175ead953b5413cc02ee040f6eeb713b6dfc3ec1"
+    }
+  },
   "components": {
     "cn": {
+      "registry": "@zeus-web/registry",
       "files": ["src/lib/cn.ts"],
       "dependencies": [],
       "registryDependencies": [],
-      "updatedAt": "showcase-registry-sync"
+      "updatedAt": "showcase-registry-sync",
+      "fileHashes": {
+        "src/lib/cn.ts": "122794ec16b90e148bc7c339f9aac2450c37ad22d2b54b26456ca4a113c423ac"
+      },
+      "registryHashes": {
+        "src/lib/cn.ts": "122794ec16b90e148bc7c339f9aac2450c37ad22d2b54b26456ca4a113c423ac"
+      }
     },
     "globals": {
+      "registry": "@zeus-web/registry",
       "files": ["src/styles/zeus.css"],
       "dependencies": [],
       "registryDependencies": [],
-      "updatedAt": "showcase-registry-sync"
+      "updatedAt": "showcase-registry-sync",
+      "fileHashes": {
+        "src/styles/zeus.css": "abd41168b1122cb051a85c9ae32ed49c51dd289ed4dbfabe36ae69921faf438b"
+      },
+      "registryHashes": {
+        "src/styles/zeus.css": "abd41168b1122cb051a85c9ae32ed49c51dd289ed4dbfabe36ae69921faf438b"
+      }
     },
     "button": {
+      "registry": "@zeus-web/registry",
       "files": ["src/components/ui/button.tsx"],
       "dependencies": ["@zeus-web/button"],
       "registryDependencies": ["cn", "globals"],
-      "updatedAt": "showcase-registry-sync"
+      "updatedAt": "showcase-registry-sync",
+      "fileHashes": {
+        "src/components/ui/button.tsx": "18e65f331c496d6d16bfe27077bc69deec2457aa7d9528046ba4d56bdb45c5a7"
+      },
+      "registryHashes": {
+        "src/components/ui/button.tsx": "18e65f331c496d6d16bfe27077bc69deec2457aa7d9528046ba4d56bdb45c5a7"
+      }
     },
     "input": {
+      "registry": "@zeus-web/registry",
       "files": ["src/components/ui/input.tsx"],
       "dependencies": ["@zeus-web/input"],
       "registryDependencies": ["cn", "globals"],
-      "updatedAt": "showcase-registry-sync"
+      "updatedAt": "showcase-registry-sync",
+      "fileHashes": {
+        "src/components/ui/input.tsx": "afa313f4dd80d3187b13225b3890e316c0ccc796655942153aaba23ff84511fb"
+      },
+      "registryHashes": {
+        "src/components/ui/input.tsx": "afa313f4dd80d3187b13225b3890e316c0ccc796655942153aaba23ff84511fb"
+      }
     }
   }
 }

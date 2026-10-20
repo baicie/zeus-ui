@@ -2,7 +2,8 @@ import type { AddPlan } from './add'
 
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { isAbsolute, relative, resolve } from 'node:path'
+import { isAbsolute, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import pc from 'picocolors'
 
@@ -10,14 +11,15 @@ import { readComponentsConfig } from '../config'
 import {
   getLockedFileHash,
   getLockedRegistryHash,
+  hashFile,
   hashString,
-  readEffectiveComponentsLock,
+  readComponentsLock,
+  resolveLockedTarget,
 } from '../lock'
-import { readRegistryAsset } from '../registry-assets'
+import { loadRegistrySource } from '../registry-source'
 import {
   createAddPlan,
   listAvailableComponents,
-  loadRegistry,
   rewriteRegistrySource,
 } from './add'
 
@@ -48,6 +50,7 @@ interface DiffOptions {
   cwd: string
   all: boolean
   json: boolean
+  registry?: string
 }
 
 interface ParsedDiffArgs {
@@ -57,21 +60,6 @@ interface ParsedDiffArgs {
 
 function resolveCwdValue(base: string, value: string): string {
   return isAbsolute(value) ? value : resolve(base, value)
-}
-
-function assertSafeTarget(cwd: string, target: string): string {
-  const absoluteTarget = resolve(cwd, target)
-  const relativeTarget = relative(cwd, absoluteTarget).replace(/\\/g, '/')
-
-  if (
-    relativeTarget === '..' ||
-    relativeTarget.startsWith('../') ||
-    isAbsolute(relativeTarget)
-  ) {
-    throw new Error(`Refusing to access outside cwd: ${target}`)
-  }
-
-  return absoluteTarget
 }
 
 export function parseDiffArgs(
@@ -95,6 +83,21 @@ export function parseDiffArgs(
 
     if (arg === '--json') {
       options.json = true
+      continue
+    }
+
+    if (arg === '--registry') {
+      const value = args[index + 1]
+      if (!value) throw new Error('--registry requires a URL or file path')
+      options.registry = value
+      index += 1
+      continue
+    }
+
+    if (arg.startsWith('--registry=')) {
+      const value = arg.slice('--registry='.length)
+      if (!value) throw new Error('--registry requires a URL or file path')
+      options.registry = value
       continue
     }
 
@@ -138,11 +141,12 @@ function dedupeAddPlanFiles(plans: AddPlan[]): AddPlan['files'] {
   return Array.from(byTarget.values())
 }
 
-function readRegistrySource(params: {
+async function readRegistryFileSource(params: {
+  plan: AddPlan
   source: string
   config: ReturnType<typeof readComponentsConfig>
-}): string {
-  const raw = readRegistryAsset(params.source)
+}): Promise<string> {
+  const raw = await params.plan.readSource(params.source)
   return rewriteRegistrySource(raw, params.config)
 }
 
@@ -179,17 +183,15 @@ export async function createDiffEntries(params: {
   plans: AddPlan[]
 }): Promise<DiffEntry[]> {
   const config = readComponentsConfig(params.cwd)
-  const lock = readEffectiveComponentsLock({
-    cwd: params.cwd,
-    plans: params.plans,
-  })
+  const lock = readComponentsLock(params.cwd)
 
   const entries: DiffEntry[] = []
 
   for (const plan of params.plans) {
     for (const file of dedupeAddPlanFiles([plan])) {
-      const resolvedTarget = assertSafeTarget(params.cwd, file.target)
-      const registrySource = readRegistrySource({
+      const resolvedTarget = resolveLockedTarget(params.cwd, file.target)
+      const registrySource = await readRegistryFileSource({
+        plan,
         source: file.source,
         config,
       })
@@ -225,7 +227,7 @@ export async function createDiffEntries(params: {
       }
 
       const currentSource = await readFile(resolvedTarget, 'utf-8')
-      const currentHash = hashString(currentSource)
+      const currentHash = hashFile(resolvedTarget)
 
       entries.push({
         component: plan.component,
@@ -250,6 +252,83 @@ export async function createDiffEntries(params: {
   }
 
   return entries
+}
+
+function getLockedRegistryReference(
+  lock: ReturnType<typeof readComponentsLock>,
+  component: string,
+): string | undefined {
+  const locked = lock.components[component]
+  if (!locked) return undefined
+  const source = lock.registries[locked.registry]
+  if (!source) {
+    throw new Error(`Registry lock is missing source ${locked.registry}`)
+  }
+  if (source.kind === 'bundled') return source.location
+  if (source.kind === 'file') return fileURLToPath(source.location)
+  return source.location
+}
+
+export async function createInstalledAddPlans(params: {
+  components: string[]
+  cwd: string
+  config: ReturnType<typeof readComponentsConfig>
+  all: boolean
+  overwrite?: boolean
+  registry?: string
+}): Promise<AddPlan[]> {
+  const lock = readComponentsLock(params.cwd)
+  const explicitRegistry = params.registry?.trim()
+  const fallback = await loadRegistrySource({
+    reference: explicitRegistry,
+    cwd: params.cwd,
+  })
+  const names = params.all
+    ? explicitRegistry
+      ? listAvailableComponents(fallback.registry)
+      : Array.from(
+          new Set([
+            ...Object.keys(lock.components),
+            ...listAvailableComponents(fallback.registry),
+          ]),
+        )
+    : params.components
+
+  if (names.length === 0) {
+    throw new Error('Please provide components or use --all.')
+  }
+
+  const byReference = new Map<string, string[]>()
+  const componentPathByComponent: Record<string, string> = {}
+  for (const name of names) {
+    const lockedPath = lock.components[name]?.componentPath
+    if (lockedPath) componentPathByComponent[name] = lockedPath
+    const reference = explicitRegistry
+      ? fallback.source.location
+      : (getLockedRegistryReference(lock, name) ?? fallback.source.location)
+    const group = byReference.get(reference) ?? []
+    group.push(name)
+    byReference.set(reference, group)
+  }
+
+  const plans: AddPlan[] = []
+  for (const [reference, groupedNames] of byReference) {
+    const source =
+      reference === fallback.source.location
+        ? fallback
+        : await loadRegistrySource({ reference, cwd: params.cwd })
+    plans.push(
+      ...createAddPlan({
+        components: groupedNames,
+        registrySource: source,
+        cwd: params.cwd,
+        config: params.config,
+        overwrite: params.overwrite,
+        componentPathByComponent,
+      }),
+    )
+  }
+  return plans
 }
 
 function printDiff(entries: DiffEntry[]): void {
@@ -282,21 +361,13 @@ function printDiff(entries: DiffEntry[]): void {
 export async function diff(args: string[]): Promise<void> {
   try {
     const { components, options } = parseDiffArgs(args)
-    const registry = loadRegistry()
     const config = readComponentsConfig(options.cwd)
-    const finalComponents = options.all
-      ? listAvailableComponents(registry)
-      : components
-
-    if (finalComponents.length === 0) {
-      throw new Error('Please provide components or use --all.')
-    }
-
-    const plans = createAddPlan({
-      components: finalComponents,
-      registry,
+    const plans = await createInstalledAddPlans({
+      components,
       cwd: options.cwd,
       config,
+      all: options.all,
+      registry: options.registry,
     })
 
     const entries = await createDiffEntries({

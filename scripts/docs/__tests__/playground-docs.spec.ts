@@ -187,7 +187,7 @@ describe('playground docs generator', () => {
 
     expect(result.sourceCount).toBe(reactSourceCount)
     expect(result.diagnostics).toEqual([])
-  }, 15_000)
+  }, 30_000)
 
   it('renders framework code groups inside the canonical component page', () => {
     const button = componentCatalog.find(

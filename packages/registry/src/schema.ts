@@ -100,8 +100,11 @@ export function validateRegistry(registry: Registry): RegistryValidationResult {
     errors.push('registry.schemaVersion must be 1')
   }
 
-  if (registry.name !== '@zeus-web/registry') {
-    errors.push('registry.name must be @zeus-web/registry')
+  if (
+    typeof registry.name !== 'string' ||
+    !/^(?:@\w[\w.-]*\/)?\w[\w.-]*$/.test(registry.name)
+  ) {
+    errors.push('registry.name must be a valid package-like name')
   }
 
   if (!Array.isArray(registry.items)) {

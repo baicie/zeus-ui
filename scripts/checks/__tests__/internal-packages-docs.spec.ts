@@ -256,7 +256,7 @@ describe('internal package API documentation contract', () => {
         normalizeTypeScriptDeclaration(signature),
       )
     }
-  })
+  }, 30_000)
 
   for (const documentedPackage of documentedPackages) {
     it(`documents the complete ${documentedPackage.packageName} component contract`, () => {

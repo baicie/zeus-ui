@@ -9,6 +9,7 @@ const requiredFiles = [
   'packages/cli/src/commands/diff.ts',
   'packages/cli/src/commands/update.ts',
   'packages/cli/src/lock.ts',
+  'packages/cli/src/registry-source.ts',
   'packages/cli/__tests__/diff.spec.ts',
   'packages/cli/__tests__/update.spec.ts',
 ]
@@ -61,7 +62,7 @@ function main(): void {
   if (errors.length === 0) {
     checkSourceContains(
       'packages/cli/src/commands/diff.ts',
-      ['untracked-missing', 'readEffectiveComponentsLock'],
+      ['untracked-missing', 'readComponentsLock', 'createInstalledAddPlans'],
       errors,
     )
 
@@ -82,6 +83,7 @@ function main(): void {
         'writtenTargets',
         'untracked-missing',
         'component is not installed; run zweb add first',
+        'createInstalledAddPlans',
       ],
       errors,
     )
@@ -97,11 +99,12 @@ function main(): void {
       [
         'fileHashes',
         'registryHashes',
+        'registries',
+        'registry',
         'getLockedFileHash',
         'getLockedRegistryHash',
-        'migrateLegacyLockIfNeeded',
-        'readEffectiveComponentsLock',
-        'createComponentsLockFromLegacy',
+        'readComponentsLock',
+        'resolveLockedTarget',
       ],
       errors,
     )

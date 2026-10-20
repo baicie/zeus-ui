@@ -43,6 +43,8 @@ jobs:
       - run: pnpm check:zeus-imports
       - run: pnpm check
       - run: pnpm build
+      - name: Verify built CLI maintenance consumers
+        run: pnpm check:cli-consumer
       - run: pnpm check:exports
       - run: pnpm check:build-output
       - run: pnpm site:check

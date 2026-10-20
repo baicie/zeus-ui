@@ -24,6 +24,7 @@ import {
 
 interface RegistryPackageJson {
   name: string
+  version: string
   exports: Record<string, unknown>
 }
 
@@ -73,8 +74,10 @@ describe('@zeus-web/registry package contract', () => {
 
   it('contains exactly the beta.0 registry items', () => {
     const manifest = readManifest()
+    const packageJson = JSON.parse(read('package.json')) as RegistryPackageJson
 
     expect(manifest.schemaVersion).toBe(1)
+    expect(manifest.version).toBe(packageJson.version)
     expect(getRegistryItemNames(manifest)).toEqual(publicRegistryItemNames)
   })
 
@@ -220,6 +223,21 @@ describe('@zeus-web/registry package contract', () => {
         ).toBe(true)
       }
     }
+  })
+
+  it('accepts package-like names for external registries', () => {
+    const manifest = readManifest()
+    manifest.name = '@example/registry'
+
+    expect(validateRegistry(manifest)).toEqual({ valid: true, errors: [] })
+
+    manifest.name = '../invalid'
+    expect(validateRegistry(manifest)).toMatchObject({
+      valid: false,
+      errors: expect.arrayContaining([
+        'registry.name must be a valid package-like name',
+      ]),
+    })
   })
 
   it('rejects registry sources that escape the templates directory', () => {

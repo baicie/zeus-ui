@@ -5,7 +5,7 @@ import { dirname, join, resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { createAddPlan } from '../src/commands/add'
+import { add, createAddPlan } from '../src/commands/add'
 import { parseUpdateArgs, update } from '../src/commands/update'
 import {
   createDefaultComponentsConfig,
@@ -250,6 +250,62 @@ describe('@zeus-web/cli update', () => {
       )
     } finally {
       await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('updates a component from the registry source recorded in the lock', async () => {
+    const root = await createTempDir()
+    const registryRoot = await createTempDir()
+
+    try {
+      writeConfig(root)
+      mkdirSync(resolve(registryRoot, 'templates/react'), { recursive: true })
+      writeFileSync(
+        resolve(registryRoot, 'registry.json'),
+        JSON.stringify({
+          schemaVersion: 1,
+          name: '@example/registry',
+          version: '1.0.0',
+          items: [
+            {
+              name: 'badge',
+              type: 'component',
+              description: 'Badge component',
+              frameworks: ['react'],
+              dependencies: [],
+              registryDependencies: [],
+              files: [
+                {
+                  framework: 'react',
+                  source: 'templates/react/badge.tsx',
+                  target: 'components/ui/badge.tsx',
+                },
+              ],
+            },
+          ],
+        }),
+      )
+      const template = resolve(registryRoot, 'templates/react/badge.tsx')
+      writeFileSync(template, 'export const Badge = () => "v1"\n')
+
+      await add([
+        'badge',
+        '--registry',
+        resolve(registryRoot, 'registry.json'),
+        '--skip-deps',
+        '--cwd',
+        root,
+      ])
+      writeFileSync(template, 'export const Badge = () => "v2"\n')
+
+      await update(['badge', '--cwd', root])
+
+      expect(
+        readFileSync(resolve(root, 'components/ui/badge.tsx'), 'utf-8'),
+      ).toContain('"v2"')
+    } finally {
+      await rm(root, { recursive: true, force: true })
+      await rm(registryRoot, { recursive: true, force: true })
     }
   })
 })

@@ -232,28 +232,14 @@ describe('@zeus-web/cli init', () => {
     }
   })
 
-  it('keeps legacy components.json readable', async () => {
+  it('requires zeus-ui.json even when a historical config filename exists', async () => {
     const root = await createTempDir()
-
     try {
-      const config = createDefaultComponentsConfig({
-        framework: 'react',
-        style: 'default',
-        typescript: true,
-        srcDir: 'src',
-        theme: {},
-      })
-
       writeFileSync(
         resolve(root, 'components.json'),
-        `${JSON.stringify(config, null, 2)}\n`,
-        'utf-8',
+        JSON.stringify(createDefaultComponentsConfig({ srcDir: 'src' })),
       )
-
-      const next = readComponentsConfig(root)
-
-      expect(next.framework).toBe('react')
-      expect(next.style).toBe('default')
+      expect(() => readComponentsConfig(root)).toThrow('zeus-ui.json not found')
     } finally {
       await rm(root, { recursive: true, force: true })
     }

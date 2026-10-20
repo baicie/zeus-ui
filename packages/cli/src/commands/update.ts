@@ -8,14 +8,14 @@ import pc from 'picocolors'
 
 import { readComponentsConfig } from '../config'
 import { updateComponentsLockFromPlans } from '../lock'
-import { createAddPlan, listAvailableComponents, loadRegistry } from './add'
-import { createDiffEntries } from './diff'
+import { createDiffEntries, createInstalledAddPlans } from './diff'
 
 interface UpdateOptions {
   cwd: string
   all: boolean
   dryRun: boolean
   overwrite: boolean
+  registry?: string
 }
 
 interface ParsedUpdateArgs {
@@ -60,6 +60,21 @@ export function parseUpdateArgs(
 
     if (arg === '--overwrite' || arg === '--force') {
       options.overwrite = true
+      continue
+    }
+
+    if (arg === '--registry') {
+      const value = args[index + 1]
+      if (!value) throw new Error('--registry requires a URL or file path')
+      options.registry = value
+      index += 1
+      continue
+    }
+
+    if (arg.startsWith('--registry=')) {
+      const value = arg.slice('--registry='.length)
+      if (!value) throw new Error('--registry requires a URL or file path')
+      options.registry = value
       continue
     }
 
@@ -211,22 +226,14 @@ async function writeUpdatePlans(plans: UpdatePlan[]): Promise<string[]> {
 export async function update(args: string[]): Promise<void> {
   try {
     const { components, options } = parseUpdateArgs(args)
-    const registry = loadRegistry()
     const config = readComponentsConfig(options.cwd)
-    const finalComponents = options.all
-      ? listAvailableComponents(registry)
-      : components
-
-    if (finalComponents.length === 0) {
-      throw new Error('Please provide components or use --all.')
-    }
-
-    const plans: AddPlan[] = createAddPlan({
-      components: finalComponents,
-      registry,
+    const plans: AddPlan[] = await createInstalledAddPlans({
+      components,
       cwd: options.cwd,
       config,
+      all: options.all,
       overwrite: options.overwrite,
+      registry: options.registry,
     })
 
     const entries = await createDiffEntries({

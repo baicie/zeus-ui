@@ -375,7 +375,6 @@ function checkCliInit(errors: string[]): void {
     'packages/cli/src/config.ts',
     [
       "export const zeusUiConfigFileName = 'zeus-ui.json'",
-      "export const legacyComponentsConfigFileName = 'components.json'",
       "export type ComponentsFramework = 'react' | 'vue'",
       'ensureCnUtil',
       'ensureThemeCss',
@@ -414,9 +413,13 @@ function checkCliInit(errors: string[]): void {
       'detects react projects',
       'detects vue projects',
       'writes zeus-ui.json and reads it back',
-      'keeps legacy components.json readable',
       'creates cn utility from registry template',
     ],
+    errors,
+  )
+  mustNotContain(
+    'packages/cli/src/config.ts',
+    ['legacyComponentsConfigFileName', 'resolvedComponentsConfigFileName'],
     errors,
   )
 }
@@ -429,6 +432,7 @@ function checkCliAdd(errors: string[]): void {
   const required = [
     'packages/cli/src/commands/add.ts',
     'packages/cli/src/lock.ts',
+    'packages/cli/src/registry-source.ts',
     'packages/cli/__tests__/add.spec.ts',
   ]
   let allExist = true
@@ -447,7 +451,14 @@ function checkCliAdd(errors: string[]): void {
       'resolveRegistryTarget',
       'readComponentsConfig',
       'updateComponentsLockFromPlans',
-      'readRegistryAsset(params.file.source)',
+      'loadRegistrySource',
+      'registrySource',
+      'readSource',
+      '--all',
+      '--path',
+      '--registry',
+      '--yes',
+      '--skip-deps',
       '--dry-run',
       '--overwrite',
       '--install',
@@ -479,6 +490,7 @@ function checkCliAdd(errors: string[]): void {
       'marks existing files as skipped by default',
       'marks existing files as overwrite when requested',
       'writes registry files and updates lock when running add command',
+      'adds all components from a file registry with a custom path and source lock',
     ],
     errors,
   )
@@ -504,7 +516,7 @@ function checkCliUpdateDiff(errors: string[]): void {
 
   mustContain(
     'packages/cli/src/commands/diff.ts',
-    ['untracked-missing', 'readEffectiveComponentsLock'],
+    ['untracked-missing', 'readComponentsLock'],
     errors,
   )
   mustNotContain(
@@ -536,11 +548,22 @@ function checkCliUpdateDiff(errors: string[]): void {
     [
       'fileHashes',
       'registryHashes',
+      'registries',
+      'registry',
       'getLockedFileHash',
       'getLockedRegistryHash',
+      'readComponentsLock',
+      'resolveLockedTarget',
+    ],
+    errors,
+  )
+  mustNotContain(
+    'packages/cli/src/lock.ts',
+    [
       'migrateLegacyLockIfNeeded',
       'readEffectiveComponentsLock',
       'createComponentsLockFromLegacy',
+      'legacyLockFileName',
     ],
     errors,
   )
