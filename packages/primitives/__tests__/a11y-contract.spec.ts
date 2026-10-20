@@ -25,6 +25,10 @@ describe('primitive accessibility contract', () => {
     expect(source).toContain('trapFocus')
     expect(source).toContain('returnFocus')
     expect(source).toContain("event.key === 'Escape'")
+    expect(source).toContain("document.addEventListener('pointerdown'")
+    expect(source).toContain(
+      "document.addEventListener('pointerdown', handleOutsidePointerDown, true)",
+    )
   })
 
   it('hardens tabs roving focus and aria relationships', () => {
