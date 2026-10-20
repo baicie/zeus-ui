@@ -11,7 +11,7 @@ Styled card component family built on zw-card primitives.
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/card</span>
   <span class="zw-badge">Data Display</span>
-  <span class="zw-badge">primitive-only</span>
+  <span class="zw-badge">zweb add card</span>
   <span class="zw-badge">Generated</span>
 </div>
 
@@ -92,21 +92,26 @@ import {
 
 :::
 
-## Install
-
-This component does not have a registry template yet.
-
-Install the primitive package instead:
+## Add
 
 ```bash
-pnpm add @zeus-web/card
+zweb add card
 ```
 
 ## Imports
 
 Styled registry component:
 
-Not available yet.
+```tsx
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/card'
+```
 
 Primitive React wrapper:
 
@@ -160,11 +165,25 @@ Internal selectors:
 
 ## Registry
 
-Registry source: not available yet.
+Registry source: available.
 
-The `card` primitive is available through `@zeus-web/card`, but it is not currently installable through the CLI registry.
+Add command: `zweb add card`
 
-Use the primitive package directly until a registry template is added.
+Type: `component`
+
+Dependencies:
+
+- `@zeus-web/card`
+
+Registry dependencies:
+
+- `cn`
+- `globals`
+
+Files:
+
+- `templates/react/card.tsx` → `components/ui/card.tsx`
+- `templates/vue/card.ts` → `components/ui/card.ts`
 
 ## AI usage rules
 
@@ -191,7 +210,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@zeus-web/card/react'
+} from '@/components/ui/card'
 
 export function Example() {
   return (

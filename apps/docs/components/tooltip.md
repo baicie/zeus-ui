@@ -11,7 +11,7 @@ Styled tooltip component family built on zw-tooltip primitives.
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/tooltip</span>
   <span class="zw-badge">Data Display</span>
-  <span class="zw-badge">primitive-only</span>
+  <span class="zw-badge">zweb add tooltip</span>
   <span class="zw-badge">Generated</span>
 </div>
 
@@ -70,21 +70,23 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@zeus-web/tooltip/vue'
 
 :::
 
-## Install
-
-This component does not have a registry template yet.
-
-Install the primitive package instead:
+## Add
 
 ```bash
-pnpm add @zeus-web/tooltip
+zweb add tooltip
 ```
 
 ## Imports
 
 Styled registry component:
 
-Not available yet.
+```tsx
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+```
 
 Primitive React wrapper:
 
@@ -138,11 +140,25 @@ Internal selectors:
 
 ## Registry
 
-Registry source: not available yet.
+Registry source: available.
 
-The `tooltip` primitive is available through `@zeus-web/tooltip`, but it is not currently installable through the CLI registry.
+Add command: `zweb add tooltip`
 
-Use the primitive package directly until a registry template is added.
+Type: `component`
+
+Dependencies:
+
+- `@zeus-web/tooltip`
+
+Registry dependencies:
+
+- `cn`
+- `globals`
+
+Files:
+
+- `templates/react/tooltip.tsx` → `components/ui/tooltip.tsx`
+- `templates/vue/tooltip.ts` → `components/ui/tooltip.ts`
 
 ## AI usage rules
 
@@ -165,7 +181,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@zeus-web/tooltip/react'
+} from '@/components/ui/tooltip'
 
 export function Example() {
   return (

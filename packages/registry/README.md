@@ -8,6 +8,13 @@ This package contains the source templates used by `@zeus-web/cli` to scaffold a
 
 The registry is consumed by the CLI and is not typically imported directly.
 
+## Public components
+
+The bundled registry ships React and Vue source for accordion, alert, avatar,
+badge, button, card, checkbox, collapsible, dialog, input, label, progress,
+radio group, select, separator, skeleton, switch, tabs, textarea and tooltip.
+Run `zweb list --json` for the current machine-readable inventory.
+
 ## Component quality
 
 `quality.json` is the machine-readable quality catalog for primitive

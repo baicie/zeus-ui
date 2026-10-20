@@ -30,10 +30,8 @@
     },
     "./quality.json": "./dist/quality.json",
     "./components.json": "./dist/components.json",
-    "./templates/react/button.tsx": "./dist/templates/react/button.tsx",
-    "./templates/react/input.tsx": "./dist/templates/react/input.tsx",
-    "./templates/vue/button.vue": "./dist/templates/vue/button.vue",
-    "./templates/vue/input.vue": "./dist/templates/vue/input.vue",
+    "./templates/react/*": "./dist/templates/react/*",
+    "./templates/vue/*": "./dist/templates/vue/*",
     "./templates/css/globals.css": "./dist/templates/css/globals.css",
     "./templates/lib/cn.ts": "./dist/templates/lib/cn.ts"
   },

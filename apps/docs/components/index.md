@@ -9,7 +9,7 @@ Browse all 25 public component packages by capability. Each component has one ca
 ## Recommended workflow
 
 - Run `zweb init` before adding registry-backed styled components.
-- Run `zweb add button input` to copy currently available registry source into the user project.
+- Run `zweb add <component>` to copy the selected registry source into the user project.
 - Import styled components from the copied local path, usually `@/components/ui/<component>`.
 - Use `@zeus-web/ui` for package-owned styled native Web Components.
 - Use per-component packages such as `@zeus-web/button/react` when building advanced primitive-based design systems.
@@ -18,5 +18,23 @@ Browse all 25 public component packages by capability. Each component has one ca
 
 - `button`
 - `input`
+- `checkbox`
+- `switch`
+- `tabs`
+- `dialog`
+- `label`
+- `textarea`
+- `radio-group`
+- `select`
+- `card`
+- `badge`
+- `separator`
+- `skeleton`
+- `alert`
+- `collapsible`
+- `accordion`
+- `tooltip`
+- `progress`
+- `avatar`
 
 Registry availability applies to copyable primitive source. Advanced components are installed from their package.

@@ -11,7 +11,7 @@ Styled avatar component family built on zw-avatar primitives.
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/avatar</span>
   <span class="zw-badge">Data Display</span>
-  <span class="zw-badge">primitive-only</span>
+  <span class="zw-badge">zweb add avatar</span>
   <span class="zw-badge">Generated</span>
 </div>
 
@@ -66,21 +66,19 @@ import { Avatar, AvatarFallback, AvatarImage } from '@zeus-web/avatar/vue'
 
 :::
 
-## Install
-
-This component does not have a registry template yet.
-
-Install the primitive package instead:
+## Add
 
 ```bash
-pnpm add @zeus-web/avatar
+zweb add avatar
 ```
 
 ## Imports
 
 Styled registry component:
 
-Not available yet.
+```tsx
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+```
 
 Primitive React wrapper:
 
@@ -130,11 +128,25 @@ Internal selectors:
 
 ## Registry
 
-Registry source: not available yet.
+Registry source: available.
 
-The `avatar` primitive is available through `@zeus-web/avatar`, but it is not currently installable through the CLI registry.
+Add command: `zweb add avatar`
 
-Use the primitive package directly until a registry template is added.
+Type: `component`
+
+Dependencies:
+
+- `@zeus-web/avatar`
+
+Registry dependencies:
+
+- `cn`
+- `globals`
+
+Files:
+
+- `templates/react/avatar.tsx` → `components/ui/avatar.tsx`
+- `templates/vue/avatar.ts` → `components/ui/avatar.ts`
 
 ## AI usage rules
 
@@ -153,7 +165,7 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Avatar, AvatarFallback, AvatarImage } from '@zeus-web/avatar/react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 export function Example() {
   return (

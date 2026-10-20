@@ -31,7 +31,31 @@ interface RegistryPackageJson {
 const testDir = dirname(fileURLToPath(import.meta.url))
 const packageRoot = resolve(testDir, '..')
 
-const publicRegistryItemNames = ['cn', 'globals', 'button', 'input']
+const publicRegistryItemNames = [
+  'cn',
+  'globals',
+  'button',
+  'input',
+  'accordion',
+  'alert',
+  'avatar',
+  'badge',
+  'card',
+  'checkbox',
+  'collapsible',
+  'dialog',
+  'label',
+  'progress',
+  'radio-group',
+  'select',
+  'separator',
+  'skeleton',
+  'switch',
+  'tabs',
+  'textarea',
+  'tooltip',
+  'icon',
+]
 
 const publicRegistryExports = [
   '.',
@@ -40,10 +64,8 @@ const publicRegistryExports = [
   './quality',
   './quality.json',
   './components.json',
-  './templates/react/button.tsx',
-  './templates/react/input.tsx',
-  './templates/vue/button.vue',
-  './templates/vue/input.vue',
+  './templates/react/*',
+  './templates/vue/*',
   './templates/css/globals.css',
   './templates/lib/cn.ts',
 ]
@@ -374,7 +396,7 @@ describe('@zeus-web/registry package contract', () => {
     expect(source).not.toContain('<template #diagnostics>')
   })
 
-  it('styles the select draft as a custom popup control', () => {
+  it('ships the select registry component with custom popup styling', () => {
     const source = read('default/select.tsx')
 
     expect(source).toContain('[&_[data-slot=select-native]]:sr-only')
@@ -392,6 +414,6 @@ describe('@zeus-web/registry package contract', () => {
     )
     expect(source).toContain('data-[disabled]:cursor-not-allowed')
 
-    expect(getRegistryItemNames(readManifest())).not.toContain('select')
+    expect(getRegistryItemNames(readManifest())).toContain('select')
   })
 })

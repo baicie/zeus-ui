@@ -11,7 +11,7 @@ pageClass: component-docs-page
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/alert</span>
   <span class="zw-badge">反馈</span>
-  <span class="zw-badge">仅基础组件</span>
+  <span class="zw-badge">zweb add alert</span>
   <span class="zw-badge">自动生成</span>
 </div>
 
@@ -68,21 +68,19 @@ import { Alert, AlertDescription, AlertTitle } from '@zeus-web/alert/vue'
 
 :::
 
-## 安装
-
-此组件暂时没有 Registry 模板。
-
-请改为安装基础组件包：
+## 添加
 
 ```bash
-pnpm add @zeus-web/alert
+zweb add alert
 ```
 
 ## 导入
 
 样式化 Registry 组件：
 
-暂不可用。
+```tsx
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
+```
 
 基础组件 React 包装器：
 
@@ -131,11 +129,26 @@ import '@zeus-web/alert/wc/auto'
 
 ## Registry
 
-Registry 源码：暂不可用。
+Registry 源码：可用。
 
-`alert` 基础组件可通过 `@zeus-web/alert` 使用，但目前还不能通过 CLI Registry 安装。
+添加命令: `zweb add alert`
 
-在 Registry 模板加入之前，请直接使用基础组件包。
+类型: `component`
+
+依赖：
+
+- `@zeus-web/alert`
+- `class-variance-authority`
+
+Registry 依赖：
+
+- `cn`
+- `globals`
+
+文件：
+
+- `templates/react/alert.tsx` → `components/ui/alert.tsx`
+- `templates/vue/alert.ts` → `components/ui/alert.ts`
 
 ## AI 使用规则
 
@@ -154,7 +167,7 @@ Registry 源码：暂不可用。
 ### React 样式化用法
 
 ```tsx
-import { Alert, AlertTitle, AlertDescription } from '@zeus-web/alert/react'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 
 export function Example() {
   return (

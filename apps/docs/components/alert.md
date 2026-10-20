@@ -11,7 +11,7 @@ Styled alert component family built on zw-alert primitives.
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/alert</span>
   <span class="zw-badge">Feedback</span>
-  <span class="zw-badge">primitive-only</span>
+  <span class="zw-badge">zweb add alert</span>
   <span class="zw-badge">Generated</span>
 </div>
 
@@ -68,21 +68,19 @@ import { Alert, AlertDescription, AlertTitle } from '@zeus-web/alert/vue'
 
 :::
 
-## Install
-
-This component does not have a registry template yet.
-
-Install the primitive package instead:
+## Add
 
 ```bash
-pnpm add @zeus-web/alert
+zweb add alert
 ```
 
 ## Imports
 
 Styled registry component:
 
-Not available yet.
+```tsx
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
+```
 
 Primitive React wrapper:
 
@@ -131,11 +129,26 @@ Internal selectors:
 
 ## Registry
 
-Registry source: not available yet.
+Registry source: available.
 
-The `alert` primitive is available through `@zeus-web/alert`, but it is not currently installable through the CLI registry.
+Add command: `zweb add alert`
 
-Use the primitive package directly until a registry template is added.
+Type: `component`
+
+Dependencies:
+
+- `@zeus-web/alert`
+- `class-variance-authority`
+
+Registry dependencies:
+
+- `cn`
+- `globals`
+
+Files:
+
+- `templates/react/alert.tsx` → `components/ui/alert.tsx`
+- `templates/vue/alert.ts` → `components/ui/alert.ts`
 
 ## AI usage rules
 
@@ -154,7 +167,7 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Alert, AlertTitle, AlertDescription } from '@zeus-web/alert/react'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 
 export function Example() {
   return (

@@ -11,7 +11,7 @@ Styled checkbox component built on the zw-checkbox primitive.
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/checkbox</span>
   <span class="zw-badge">Data Entry</span>
-  <span class="zw-badge">primitive-only</span>
+  <span class="zw-badge">zweb add checkbox</span>
   <span class="zw-badge">Generated</span>
 </div>
 
@@ -55,21 +55,19 @@ import { Checkbox } from '@zeus-web/checkbox/vue'
 
 :::
 
-## Install
-
-This component does not have a registry template yet.
-
-Install the primitive package instead:
+## Add
 
 ```bash
-pnpm add @zeus-web/checkbox
+zweb add checkbox
 ```
 
 ## Imports
 
 Styled registry component:
 
-Not available yet.
+```tsx
+import { Checkbox } from '@/components/ui/checkbox'
+```
 
 Primitive React wrapper:
 
@@ -126,11 +124,26 @@ Internal selectors:
 
 ## Registry
 
-Registry source: not available yet.
+Registry source: available.
 
-The `checkbox` primitive is available through `@zeus-web/checkbox`, but it is not currently installable through the CLI registry.
+Add command: `zweb add checkbox`
 
-Use the primitive package directly until a registry template is added.
+Type: `component`
+
+Dependencies:
+
+- `@zeus-web/checkbox`
+- `class-variance-authority`
+
+Registry dependencies:
+
+- `cn`
+- `globals`
+
+Files:
+
+- `templates/react/checkbox.tsx` → `components/ui/checkbox.tsx`
+- `templates/vue/checkbox.ts` → `components/ui/checkbox.ts`
 
 ## AI usage rules
 
@@ -149,7 +162,7 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Checkbox } from '@zeus-web/checkbox/react'
+import { Checkbox } from '@/components/ui/checkbox'
 
 export function Example() {
   return <Checkbox>Accept terms</Checkbox>

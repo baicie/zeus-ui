@@ -878,8 +878,12 @@ const chineseAdvancedDocs: Record<string, AdvancedDocsTranslation> = {
 const chineseRecommendedWorkflow: Record<string, string> = {
   'Run `zweb init` before adding registry-backed styled components.':
     '添加由 Registry 支持的样式化组件之前，先运行 `zweb init`。',
-  'Run `zweb add button input` to copy currently available registry source into the user project.':
-    '运行 `zweb add button input`，将当前可用的 Registry 源码复制到项目中。',
+  'Run `zweb list` to inspect the registry and `zweb add <component>` or `zweb add --all` to copy source into the user project.':
+    '运行 `zweb list` 查看完整清单，再使用 `zweb add <component>` 或 `zweb add --all` 复制源码。',
+  'Run `zweb add <component>` to copy the selected registry source into the user project.':
+    '运行 `zweb add <component>`，将所选 Registry 源码复制到用户项目中。',
+  'Use `zweb add <component>` for registry-backed components.':
+    'Registry 支持的组件使用 `zweb add <component>` 安装。',
   'Import styled components from the copied local path, usually `@/components/ui/<component>`.':
     '从复制后的本地路径导入样式化组件，通常是 `@/components/ui/<component>`。',
   'Use `@zeus-web/ui` for package-owned styled native Web Components.':
