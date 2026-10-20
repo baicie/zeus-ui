@@ -24,6 +24,7 @@ import {
 
 interface RegistryPackageJson {
   name: string
+  version: string
   exports: Record<string, unknown>
 }
 
@@ -73,8 +74,10 @@ describe('@zeus-web/registry package contract', () => {
 
   it('contains exactly the beta.0 registry items', () => {
     const manifest = readManifest()
+    const packageJson = JSON.parse(read('package.json')) as RegistryPackageJson
 
     expect(manifest.schemaVersion).toBe(1)
+    expect(manifest.version).toBe(packageJson.version)
     expect(getRegistryItemNames(manifest)).toEqual(publicRegistryItemNames)
   })
 
@@ -222,6 +225,21 @@ describe('@zeus-web/registry package contract', () => {
     }
   })
 
+  it('accepts package-like names for external registries', () => {
+    const manifest = readManifest()
+    manifest.name = '@example/registry'
+
+    expect(validateRegistry(manifest)).toEqual({ valid: true, errors: [] })
+
+    manifest.name = '../invalid'
+    expect(validateRegistry(manifest)).toMatchObject({
+      valid: false,
+      errors: expect.arrayContaining([
+        'registry.name must be a valid package-like name',
+      ]),
+    })
+  })
+
   it('rejects registry sources that escape the templates directory', () => {
     const unsafeSources = [
       'templates/../../../package.json',
@@ -283,6 +301,42 @@ describe('@zeus-web/registry package contract', () => {
         ]),
       })
     }
+  })
+
+  it('rejects unsafe package dependencies and option injection', () => {
+    for (const dependency of ['--global', 'pkg name', 'pkg\n--registry=evil']) {
+      const manifest = readManifest()
+      const item = manifest.items[0]
+      if (!item) throw new Error('registry manifest must contain an item')
+      item.dependencies = [dependency]
+
+      expect(validateRegistry(manifest)).toMatchObject({
+        valid: false,
+        errors: expect.arrayContaining([
+          expect.stringContaining('unsafe dependency'),
+        ]),
+      })
+    }
+  })
+
+  it('rejects malformed and prototype-sensitive registry entries', () => {
+    const manifest = readManifest()
+    const item = manifest.items[0]
+    if (!item) throw new Error('registry manifest must contain an item')
+
+    item.name = '__proto__'
+    item.registryDependencies = [{ toString: 'bad' }] as unknown as string[]
+    item.files[0]!.source = 'templates/../secret'
+
+    expect(() => validateRegistry(manifest)).not.toThrow()
+    expect(validateRegistry(manifest)).toMatchObject({
+      valid: false,
+      errors: expect.arrayContaining([
+        expect.stringContaining('safe identifier'),
+        expect.stringContaining('unsafe registry dependency'),
+        expect.stringContaining('unsafe file source'),
+      ]),
+    })
   })
 
   it('uses primitives and local utility imports in public templates', () => {

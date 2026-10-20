@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, relative, resolve } from 'node:path'
@@ -28,6 +29,15 @@ interface RegistryManifest {
   name: string
   version: string
   items: RegistryItem[]
+}
+
+interface RegistrySourceSnapshot {
+  id: string
+  kind: 'bundled'
+  location: string
+  name: string
+  version: string
+  integrity: string
 }
 
 interface ShowcaseTarget {
@@ -72,6 +82,10 @@ function toProjectPath(path: string): string {
 
 function readText(path: string): string {
   return readFileSync(path, 'utf-8')
+}
+
+function hash(source: string): string {
+  return createHash('sha256').update(source).digest('hex')
 }
 
 function readRegistry(): RegistryManifest {
@@ -176,14 +190,18 @@ function createShowcaseConfig(target: ShowcaseTarget): string {
 function createShowcaseLock(
   target: ShowcaseTarget,
   items: RegistryItem[],
+  registrySource: RegistrySourceSnapshot,
 ): string {
   const components: Record<
     string,
     {
+      registry: string
       files: string[]
       dependencies: string[]
       registryDependencies: string[]
       updatedAt: string
+      fileHashes: Record<string, string>
+      registryHashes: Record<string, string>
     }
   > = {}
 
@@ -194,17 +212,27 @@ function createShowcaseLock(
 
     if (files.length === 0) continue
 
+    const fileHashes: Record<string, string> = {}
+    for (const file of item.files) {
+      if (!shouldIncludeFile(target, file)) continue
+      const source = readText(resolve(registryTemplatesRoot, file.source))
+      fileHashes[`src/${file.target}`] = hash(source)
+    }
     components[item.name] = {
+      registry: registrySource.id,
       files,
       dependencies: item.dependencies,
       registryDependencies: item.registryDependencies,
       updatedAt: 'showcase-registry-sync',
+      fileHashes,
+      registryHashes: { ...fileHashes },
     }
   }
 
   return `${JSON.stringify(
     {
-      version: 1,
+      version: 2,
+      registries: { [registrySource.id]: registrySource },
       components,
     },
     null,
@@ -214,6 +242,7 @@ function createShowcaseLock(
 
 function createPlannedFilesForTarget(
   registry: RegistryManifest,
+  registrySource: RegistrySourceSnapshot,
   target: ShowcaseTarget,
 ): PlannedFile[] {
   const items = getSyncedRegistryItems(registry)
@@ -227,7 +256,7 @@ function createPlannedFilesForTarget(
     {
       source: 'generated:zeus-ui.lock.json',
       target: resolve(targetRoot, 'zeus-ui.lock.json'),
-      content: createShowcaseLock(target, items),
+      content: createShowcaseLock(target, items, registrySource),
     },
   ]
 
@@ -250,8 +279,16 @@ function createPlannedFilesForTarget(
 }
 
 function createPlannedFiles(registry: RegistryManifest): PlannedFile[] {
+  const registrySource: RegistrySourceSnapshot = {
+    id: '@zeus-web/registry',
+    kind: 'bundled',
+    location: '@zeus-web/registry',
+    name: registry.name,
+    version: registry.version,
+    integrity: hash(readText(registryPath)),
+  }
   return showcaseTargets.flatMap(target =>
-    createPlannedFilesForTarget(registry, target),
+    createPlannedFilesForTarget(registry, registrySource, target),
   )
 }
 

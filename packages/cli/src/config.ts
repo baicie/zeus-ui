@@ -57,7 +57,6 @@ export interface CreateConfigOptions {
 }
 
 export const zeusUiConfigFileName = 'zeus-ui.json'
-export const legacyComponentsConfigFileName = 'components.json'
 
 export const themeOverrideStart = '/* zeus-web theme overrides:start */'
 export const themeOverrideEnd = '/* zeus-web theme overrides:end */'
@@ -106,14 +105,8 @@ export function getComponentsConfigPath(cwd: string): string {
   return resolve(cwd, zeusUiConfigFileName)
 }
 
-export function getLegacyComponentsConfigPath(cwd: string): string {
-  return resolve(cwd, legacyComponentsConfigFileName)
-}
-
 export function readComponentsConfig(cwd: string): ComponentsConfig {
-  const file = existsSync(getComponentsConfigPath(cwd))
-    ? getComponentsConfigPath(cwd)
-    : getLegacyComponentsConfigPath(cwd)
+  const file = getComponentsConfigPath(cwd)
 
   if (!existsSync(file)) {
     throw new Error('zeus-ui.json not found. Run `zweb init` first.')

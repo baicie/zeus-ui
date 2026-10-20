@@ -47,14 +47,46 @@ const allowedTypes = new Set<RegistryItemType>([
   'style',
 ])
 
+const reservedItemNames = new Set(['__proto__', 'constructor', 'prototype'])
+
+function isRegistryItemName(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    /^[a-z0-9][\w.-]*$/i.test(value) &&
+    !reservedItemNames.has(value)
+  )
+}
+
+function isSafeDependencySpec(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.length > 0 &&
+    value.length <= 512 &&
+    !value.startsWith('-') &&
+    !/[\s\0]/.test(value)
+  )
+}
+
+function formatRegistryValue(value: unknown): string {
+  if (typeof value === 'string') return JSON.stringify(value)
+  try {
+    return JSON.stringify(value) ?? typeof value
+  } catch {
+    return '[unserializable value]'
+  }
+}
+
 function isUnsafeRegistryPath(path: string): boolean {
   const segments = path.split(/[\\/]/)
 
   if (
     !path ||
+    path.includes('\0') ||
     path.startsWith('/') ||
     path.startsWith('\\') ||
     segments.includes('') ||
+    segments.includes('.') ||
+    segments.some(segment => segment.endsWith('.') || segment.endsWith(' ')) ||
     segments.some(segment => /^[A-Z]:/i.test(segment))
   ) {
     return true
@@ -100,8 +132,11 @@ export function validateRegistry(registry: Registry): RegistryValidationResult {
     errors.push('registry.schemaVersion must be 1')
   }
 
-  if (registry.name !== '@zeus-web/registry') {
-    errors.push('registry.name must be @zeus-web/registry')
+  if (
+    typeof registry.name !== 'string' ||
+    !/^(?:@\w[\w.-]*\/)?\w[\w.-]*$/.test(registry.name)
+  ) {
+    errors.push('registry.name must be a valid package-like name')
   }
 
   if (!Array.isArray(registry.items)) {
@@ -110,79 +145,119 @@ export function validateRegistry(registry: Registry): RegistryValidationResult {
   }
 
   for (const item of registry.items) {
-    if (!item.name) {
-      errors.push('registry item name is required')
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      errors.push('registry items must be objects')
       continue
     }
 
-    if (itemNames.has(item.name)) {
-      errors.push(`duplicated registry item: ${item.name}`)
+    if (!isRegistryItemName(item.name)) {
+      errors.push(
+        `registry item name must be a safe identifier: ${formatRegistryValue(item.name)}`,
+      )
+    } else {
+      if (itemNames.has(item.name)) {
+        errors.push(`duplicated registry item: ${item.name}`)
+      }
+      itemNames.add(item.name)
     }
-
-    itemNames.add(item.name)
+    const itemLabel = formatRegistryValue(item.name)
 
     if (!allowedTypes.has(item.type)) {
-      errors.push(`registry item "${item.name}" has invalid type: ${item.type}`)
+      errors.push(
+        `registry item ${itemLabel} has invalid type: ${formatRegistryValue(item.type)}`,
+      )
     }
 
-    if (!item.description) {
-      errors.push(`registry item "${item.name}" description is required`)
+    if (typeof item.description !== 'string' || !item.description) {
+      errors.push(`registry item ${itemLabel} description is required`)
     }
 
     if (!Array.isArray(item.frameworks) || item.frameworks.length === 0) {
-      errors.push(`registry item "${item.name}" frameworks must be non-empty`)
+      errors.push(`registry item ${itemLabel} frameworks must be non-empty`)
     } else {
       for (const framework of item.frameworks) {
         if (!allowedFrameworks.has(framework)) {
           errors.push(
-            `registry item "${item.name}" has invalid framework: ${framework}`,
+            `registry item ${itemLabel} has invalid framework: ${formatRegistryValue(framework)}`,
           )
         }
       }
     }
 
     if (!Array.isArray(item.dependencies)) {
-      errors.push(`registry item "${item.name}" dependencies must be an array`)
+      errors.push(`registry item ${itemLabel} dependencies must be an array`)
+    } else {
+      for (const dependency of item.dependencies) {
+        if (!isSafeDependencySpec(dependency)) {
+          errors.push(
+            `registry item ${itemLabel} has unsafe dependency: ${formatRegistryValue(dependency)}`,
+          )
+        }
+      }
     }
 
     if (!Array.isArray(item.registryDependencies)) {
       errors.push(
-        `registry item "${item.name}" registryDependencies must be an array`,
+        `registry item ${itemLabel} registryDependencies must be an array`,
       )
+    } else {
+      for (const dependency of item.registryDependencies) {
+        if (!isRegistryItemName(dependency)) {
+          errors.push(
+            `registry item ${itemLabel} has unsafe registry dependency: ${formatRegistryValue(dependency)}`,
+          )
+        }
+      }
     }
 
     if (!Array.isArray(item.files) || item.files.length === 0) {
-      errors.push(`registry item "${item.name}" must include files`)
+      errors.push(`registry item ${itemLabel} must include files`)
       continue
     }
 
     for (const file of item.files) {
+      if (!file || typeof file !== 'object' || Array.isArray(file)) {
+        errors.push(`registry item ${itemLabel} has invalid file entry`)
+        continue
+      }
+
       if (!allowedFrameworks.has(file.framework)) {
         errors.push(
-          `registry item "${item.name}" has invalid file framework: ${file.framework}`,
+          `registry item ${itemLabel} has invalid file framework: ${formatRegistryValue(file.framework)}`,
         )
       }
 
       if (
+        typeof file.source !== 'string' ||
         !file.source.startsWith('templates/') ||
         isUnsafeRegistryPath(file.source)
       ) {
         errors.push(
-          `registry item "${item.name}" has unsafe file source: ${file.source}`,
+          `registry item ${itemLabel} has unsafe file source: ${formatRegistryValue(file.source)}`,
         )
       }
 
-      if (isUnsafeRegistryPath(file.target)) {
+      if (
+        typeof file.target !== 'string' ||
+        isUnsafeRegistryPath(file.target)
+      ) {
         errors.push(
-          `registry item "${item.name}" has unsafe file target: ${file.target}`,
+          `registry item ${itemLabel} has unsafe file target: ${formatRegistryValue(file.target)}`,
         )
       }
     }
   }
 
   for (const item of registry.items) {
+    if (
+      !item ||
+      typeof item !== 'object' ||
+      !Array.isArray(item.registryDependencies)
+    ) {
+      continue
+    }
     for (const dependency of item.registryDependencies) {
-      if (!itemNames.has(dependency)) {
+      if (isRegistryItemName(dependency) && !itemNames.has(dependency)) {
         errors.push(
           `registry item "${item.name}" references missing registry dependency: ${dependency}`,
         )

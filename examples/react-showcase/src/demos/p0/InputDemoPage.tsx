@@ -77,13 +77,16 @@ export function InputDemoPage() {
 
       <DemoSection title="With icons">
         <DemoGrid columns={2}>
-          <Input placeholder="Search docs">
-            <SearchIcon slot="prefix" width="16" height="16" />
-          </Input>
+          <Input
+            placeholder="Search docs"
+            prefix={<SearchIcon width="16" height="16" />}
+          />
 
-          <Input type="password" placeholder="Password">
-            <EyeIcon slot="suffix" width="16" height="16" />
-          </Input>
+          <Input
+            type="password"
+            placeholder="Password"
+            suffix={<EyeIcon width="16" height="16" />}
+          />
         </DemoGrid>
       </DemoSection>
 
@@ -132,9 +135,10 @@ export function InputDemoPage() {
           </label>
           <label className="showcase-field">
             <span>Search members</span>
-            <Input placeholder="Search by email">
-              <SearchIcon slot="prefix" width="16" height="16" />
-            </Input>
+            <Input
+              placeholder="Search by email"
+              prefix={<SearchIcon width="16" height="16" />}
+            />
           </label>
         </div>
       </DemoSection>

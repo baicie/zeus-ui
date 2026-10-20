@@ -8,6 +8,7 @@ const root = process.cwd()
 const requiredFiles = [
   'packages/cli/src/commands/add.ts',
   'packages/cli/src/lock.ts',
+  'packages/cli/src/registry-source.ts',
   'packages/cli/__tests__/add.spec.ts',
 ]
 
@@ -67,7 +68,14 @@ function main(): void {
         'resolveRegistryTarget',
         'readComponentsConfig',
         'updateComponentsLockFromPlans',
-        'readRegistryAsset(params.file.source)',
+        'loadRegistrySource',
+        'registrySource',
+        'readSource',
+        '--all',
+        '--path',
+        '--registry',
+        '--yes',
+        '--skip-deps',
         '--dry-run',
         '--overwrite',
         '--install',
@@ -102,6 +110,7 @@ function main(): void {
         'marks existing files as skipped by default',
         'marks existing files as overwrite when requested',
         'writes registry files and updates lock when running add command',
+        'adds all components from a file registry with a custom path and source lock',
       ],
       errors,
     )

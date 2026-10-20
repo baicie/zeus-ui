@@ -49,7 +49,6 @@ function main(): void {
       'packages/cli/src/config.ts',
       [
         "export const zeusUiConfigFileName = 'zeus-ui.json'",
-        "export const legacyComponentsConfigFileName = 'components.json'",
         "export type ComponentsFramework = 'react' | 'vue'",
         'ensureCnUtil',
         'ensureThemeCss',
@@ -91,7 +90,6 @@ function main(): void {
         'detects react projects',
         'detects vue projects',
         'writes zeus-ui.json and reads it back',
-        'keeps legacy components.json readable',
         'creates cn utility from registry template',
       ],
       errors,

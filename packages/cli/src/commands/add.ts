@@ -6,10 +6,14 @@ import type {
 } from '@zeus-web/registry'
 import type { ComponentsConfig } from '../config'
 import type { PackageManager } from '../package-manager'
+import type {
+  LoadedRegistrySource,
+  RegistrySourceSnapshot,
+} from '../registry-source'
 
 import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
-import { dirname, isAbsolute, resolve } from 'node:path'
+import { dirname, isAbsolute, relative, resolve } from 'node:path'
 
 import { findRegistryItem, validateRegistry } from '@zeus-web/registry'
 import pc from 'picocolors'
@@ -19,19 +23,33 @@ import {
   resolveRegistryTarget,
   toRelativeProjectPath,
 } from '../config'
-import { hashString, updateComponentsLockFromPlans } from '../lock'
+import {
+  hashString,
+  readComponentsLock,
+  resolveLockedTarget,
+  updateComponentsLockFromPlans,
+} from '../lock'
 import {
   createInstallCommands,
   formatInstallCommands,
   installDependencies,
 } from '../package-manager'
 import { readRegistryAsset } from '../registry-assets'
+import {
+  createBundledRegistrySource,
+  loadRegistrySource,
+} from '../registry-source'
 
 interface AddOptions {
   cwd: string
+  all: boolean
   dryRun: boolean
   overwrite: boolean
   install: boolean
+  skipDeps: boolean
+  yes: boolean
+  componentPath?: string
+  registry?: string
   packageManager?: PackageManager
 }
 
@@ -51,6 +69,9 @@ interface RegistryFilePlan {
 
 export interface AddPlan {
   component: string
+  registry: RegistrySourceSnapshot
+  readSource: LoadedRegistrySource['readSource']
+  componentPath?: string
   dependencies: string[]
   registryDependencies: string[]
   files: RegistryFilePlan[]
@@ -79,11 +100,15 @@ export function parseAddArgs(
   cwd = process.cwd(),
 ): ParsedAddArgs {
   const components: string[] = []
+  let installExplicit = false
   const options: AddOptions = {
     cwd,
+    all: false,
     dryRun: false,
     overwrite: false,
     install: false,
+    skipDeps: false,
+    yes: false,
   }
 
   for (let index = 0; index < args.length; index += 1) {
@@ -95,6 +120,21 @@ export function parseAddArgs(
       continue
     }
 
+    if (arg === '--all') {
+      options.all = true
+      continue
+    }
+
+    if (arg === '--yes' || arg === '-y') {
+      options.yes = true
+      continue
+    }
+
+    if (arg === '--skip-deps') {
+      options.skipDeps = true
+      continue
+    }
+
     if (arg === '--overwrite' || arg === '--force') {
       options.overwrite = true
       continue
@@ -102,11 +142,13 @@ export function parseAddArgs(
 
     if (arg === '--install') {
       options.install = true
+      installExplicit = true
       continue
     }
 
     if (arg === '--no-install') {
       options.install = false
+      installExplicit = true
       continue
     }
 
@@ -140,12 +182,51 @@ export function parseAddArgs(
       continue
     }
 
+    if (arg === '--path') {
+      const value = args[index + 1]
+      if (!value) throw new Error('--path requires a directory path')
+      options.componentPath = value
+      index += 1
+      continue
+    }
+
+    if (arg.startsWith('--path=')) {
+      const value = arg.slice('--path='.length)
+      if (!value) throw new Error('--path requires a directory path')
+      options.componentPath = value
+      continue
+    }
+
+    if (arg === '--registry') {
+      const value = args[index + 1]
+      if (!value) throw new Error('--registry requires a URL or file path')
+      options.registry = value
+      index += 1
+      continue
+    }
+
+    if (arg.startsWith('--registry=')) {
+      const value = arg.slice('--registry='.length)
+      if (!value) throw new Error('--registry requires a URL or file path')
+      options.registry = value
+      continue
+    }
+
     if (arg.startsWith('-')) {
       throw new Error(`Unknown option: ${arg}`)
     }
 
     components.push(arg)
   }
+
+  if (options.componentPath) {
+    options.componentPath = normalizeComponentPath(
+      options.cwd,
+      options.componentPath,
+    )
+  }
+  if (options.dryRun || options.skipDeps) options.install = false
+  else if (options.yes && !installExplicit) options.install = true
 
   return {
     components,
@@ -154,8 +235,23 @@ export function parseAddArgs(
 }
 
 export function loadRegistry(): Registry {
-  const source = readRegistryAsset('registry.json')
-  return JSON.parse(source) as Registry
+  return createBundledRegistrySource().registry
+}
+
+function normalizeComponentPath(cwd: string, value: string): string {
+  if (isAbsolute(value) || value.includes('\\') || value.includes('\0')) {
+    throw new Error('--path must be a project-relative directory')
+  }
+  const normalized = relative(cwd, resolve(cwd, value)).replace(/\\/g, '/')
+  if (
+    !normalized ||
+    normalized === '.' ||
+    normalized === '..' ||
+    normalized.startsWith('../')
+  ) {
+    throw new Error('--path must resolve inside the project directory')
+  }
+  return normalized
 }
 
 function assertValidRegistry(registry: Registry): void {
@@ -265,16 +361,30 @@ export function rewriteRegistrySource(
 function createFilePlan(params: {
   cwd: string
   config: ComponentsConfig
+  componentPath?: string
   item: RegistryItem
   file: RegistryFile
   overwrite: boolean
 }): RegistryFilePlan {
+  const targetConfig = params.componentPath
+    ? {
+        ...params.config,
+        aliases: {
+          ...params.config.aliases,
+          ui: params.componentPath,
+        },
+      }
+    : params.config
   const absoluteTarget = resolveRegistryTarget(
     params.cwd,
-    params.config,
+    targetConfig,
     params.file.target,
   )
 
+  resolveLockedTarget(
+    params.cwd,
+    toRelativeProjectPath(params.cwd, absoluteTarget),
+  )
   const exists = existsSync(absoluteTarget)
 
   return {
@@ -290,11 +400,17 @@ function createFilePlan(params: {
 function toAddPlan(params: {
   cwd: string
   config: ComponentsConfig
+  componentPath?: string
   item: RegistryItem
   overwrite: boolean
+  registry: RegistrySourceSnapshot
+  readSource: LoadedRegistrySource['readSource']
 }): AddPlan {
   return {
     component: params.item.name,
+    registry: params.registry,
+    readSource: params.readSource,
+    componentPath: params.componentPath,
     dependencies: [...params.item.dependencies],
     registryDependencies: [...params.item.registryDependencies],
     files: params.item.files
@@ -305,6 +421,7 @@ function toAddPlan(params: {
         createFilePlan({
           cwd: params.cwd,
           config: params.config,
+          componentPath: params.componentPath,
           item: params.item,
           file,
           overwrite: params.overwrite,
@@ -335,6 +452,9 @@ function dedupePlans(plans: AddPlan[]): AddPlan[] {
           ...plan.registryDependencies,
         ]),
       ),
+      registry: plan.registry,
+      readSource: plan.readSource,
+      componentPath: plan.componentPath,
       files: dedupeFilePlans([...existing.files, ...plan.files]),
     })
   }
@@ -352,32 +472,33 @@ function dedupeFilePlans(files: RegistryFilePlan[]): RegistryFilePlan[] {
   return Array.from(byTarget.values())
 }
 
-export function resolveAddPlanTargets(params: {
-  plans: AddPlan[]
-  cwd: string
-  config: ComponentsConfig
-}): AddPlan[] {
-  return params.plans.map(plan => ({
-    ...plan,
-    files: plan.files.map(file => ({
-      ...file,
-      absoluteTarget: resolveRegistryTarget(
-        params.cwd,
-        params.config,
-        file.target,
-      ),
-    })),
-  }))
-}
-
 export function createAddPlan(params: {
   components: string[]
   registry?: Registry
+  registrySource?: LoadedRegistrySource
   cwd?: string
   config?: ComponentsConfig
   overwrite?: boolean
+  componentPath?: string
+  componentPathByComponent?: Record<string, string>
 }): AddPlan[] {
-  const registry = params.registry ?? loadRegistry()
+  const loadedSource =
+    params.registrySource ??
+    (params.registry
+      ? {
+          registry: params.registry,
+          source: {
+            id: '@zeus-web/registry',
+            kind: 'bundled' as const,
+            location: '@zeus-web/registry',
+            name: params.registry.name,
+            version: params.registry.version,
+            integrity: hashString(JSON.stringify(params.registry)),
+          },
+          readSource: async (source: string) => readRegistryAsset(source),
+        }
+      : createBundledRegistrySource())
+  const registry = params.registry ?? loadedSource.registry
   assertValidRegistry(registry)
 
   if (params.components.length === 0) {
@@ -412,8 +533,12 @@ export function createAddPlan(params: {
       toAddPlan({
         cwd,
         config,
+        componentPath:
+          params.componentPathByComponent?.[item.name] ?? params.componentPath,
         item,
         overwrite,
+        registry: loadedSource.source,
+        readSource: loadedSource.readSource,
       }),
     ),
   )
@@ -431,8 +556,29 @@ function flattenDependencies(plans: AddPlan[]): string[] {
   return Array.from(dependencies)
 }
 
-function flattenFiles(plans: AddPlan[]): RegistryFilePlan[] {
-  return dedupeFilePlans(plans.flatMap(plan => plan.files))
+function flattenPlannedFiles(plans: AddPlan[]): Array<{
+  plan: AddPlan
+  file: RegistryFilePlan
+}> {
+  const byTarget = new Map<string, { plan: AddPlan; file: RegistryFilePlan }>()
+
+  for (const plan of plans) {
+    for (const file of plan.files) {
+      const existing = byTarget.get(file.target)
+      if (
+        existing &&
+        (existing.plan.registry.id !== plan.registry.id ||
+          existing.file.source !== file.source)
+      ) {
+        throw new Error(
+          `Registry target conflict for ${file.target}: ${existing.plan.registry.id}:${existing.file.source} and ${plan.registry.id}:${file.source}`,
+        )
+      }
+      if (!existing) byTarget.set(file.target, { plan, file })
+    }
+  }
+
+  return Array.from(byTarget.values())
 }
 
 function printAddPlan(params: {
@@ -442,7 +588,7 @@ function printAddPlan(params: {
 }): void {
   console.log(pc.bold('Add plan:'))
 
-  for (const file of flattenFiles(params.plans)) {
+  for (const { file } of flattenPlannedFiles(params.plans)) {
     const action =
       file.action === 'create'
         ? pc.green('CREATE')
@@ -453,7 +599,7 @@ function printAddPlan(params: {
     console.log(`  ${action} ${file.target}`)
   }
 
-  if (params.dependencies.length > 0) {
+  if (params.dependencies.length > 0 && !params.options.skipDeps) {
     console.log(pc.bold('Dependencies:'))
     for (const dependency of params.dependencies) {
       console.log(`  ${dependency}`)
@@ -475,13 +621,14 @@ function printAddPlan(params: {
 async function writeFilePlan(params: {
   config: ComponentsConfig
   file: RegistryFilePlan
+  readSource: LoadedRegistrySource['readSource']
   overwrite: boolean
 }): Promise<'written' | 'skipped'> {
   if (existsSync(params.file.absoluteTarget) && !params.overwrite) {
     return 'skipped'
   }
 
-  const raw = readRegistryAsset(params.file.source)
+  const raw = await params.readSource(params.file.source)
   const source = rewriteRegistrySource(raw, params.config)
 
   await mkdir(dirname(params.file.absoluteTarget), {
@@ -501,10 +648,11 @@ async function writePlans(params: {
   const written: string[] = []
   const skipped: string[] = []
 
-  for (const file of flattenFiles(params.plans)) {
+  for (const { plan, file } of flattenPlannedFiles(params.plans)) {
     const result = await writeFilePlan({
       config: params.config,
       file,
+      readSource: plan.readSource,
       overwrite: params.overwrite,
     })
 
@@ -518,14 +666,14 @@ async function writePlans(params: {
   }
 }
 
-function createRegistryHashes(params: {
+async function createRegistryHashes(params: {
   config: ComponentsConfig
   plans: AddPlan[]
-}): Record<string, string> {
+}): Promise<Record<string, string>> {
   const hashes: Record<string, string> = {}
 
-  for (const file of flattenFiles(params.plans)) {
-    const raw = readRegistryAsset(file.source)
+  for (const { plan, file } of flattenPlannedFiles(params.plans)) {
+    const raw = await plan.readSource(file.source)
     const source = rewriteRegistrySource(raw, params.config)
     hashes[file.target] = hashString(source)
   }
@@ -543,7 +691,7 @@ async function updateLock(params: {
     cwd: params.cwd,
     plans: params.plans,
     writtenTargets: params.writtenTargets,
-    registryHashes: createRegistryHashes({
+    registryHashes: await createRegistryHashes({
       config: params.config,
       plans: params.plans,
     }),
@@ -566,14 +714,22 @@ export async function add(args: string[]) {
   try {
     const parsed = parseAddArgs(args)
     const config = readComponentsConfig(parsed.options.cwd)
-    const registry = loadRegistry()
+    const loadedRegistry = await loadRegistrySource({
+      reference: parsed.options.registry,
+      cwd: parsed.options.cwd,
+    })
+    readComponentsLock(parsed.options.cwd)
+    const finalComponents = parsed.options.all
+      ? listAvailableComponents(loadedRegistry.registry)
+      : parsed.components
 
     const plans = createAddPlan({
-      components: parsed.components,
-      registry,
+      components: finalComponents,
+      registrySource: loadedRegistry,
       cwd: parsed.options.cwd,
       config,
       overwrite: parsed.options.overwrite,
+      componentPath: parsed.options.componentPath,
     })
 
     const dependencies = flattenDependencies(plans)
@@ -602,7 +758,7 @@ export async function add(args: string[]) {
       config,
     })
 
-    if (dependencies.length > 0) {
+    if (dependencies.length > 0 && !parsed.options.skipDeps) {
       if (parsed.options.install) {
         await installDependencies({
           cwd: parsed.options.cwd,

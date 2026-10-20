@@ -1,13 +1,16 @@
 import type { AddPlan } from './commands/add'
+import type { RegistrySourceSnapshot } from './registry-source'
 
 import { createHash } from 'node:crypto'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, lstatSync, readFileSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 
 import { toRelativeProjectPath } from './config'
 
 export interface ComponentsLockComponent {
+  registry: string
+  componentPath?: string
   files: string[]
   dependencies: string[]
   registryDependencies: string[]
@@ -31,7 +34,8 @@ export interface ComponentsLockComponent {
 }
 
 export interface ComponentsLockFile {
-  version: 1
+  version: 2
+  registries: Record<string, RegistrySourceSnapshot>
   components: Record<string, ComponentsLockComponent>
 }
 
@@ -41,39 +45,214 @@ export function getComponentsLockPath(cwd: string): string {
   return resolve(cwd, componentsLockFileName)
 }
 
+/** Lock targets are project-relative files, never directories or symlink paths. */
+function resolveProjectTarget(cwd: string, target: string): string {
+  const segments = target.split('/')
+  if (
+    !target ||
+    target.includes('\\') ||
+    target.includes('\0') ||
+    segments.some(
+      segment =>
+        !segment ||
+        segment === '.' ||
+        segment === '..' ||
+        segment.endsWith('.') ||
+        segment.endsWith(' ') ||
+        segment.includes(':'),
+    )
+  ) {
+    throw new Error(`Unsafe lock target: ${target}`)
+  }
+
+  let path = resolve(cwd)
+  for (const segment of segments) {
+    path = resolve(path, segment)
+    try {
+      const stat = lstatSync(path)
+      if (stat.isSymbolicLink()) {
+        throw new Error(`Unsafe lock target uses a symbolic link: ${target}`)
+      }
+      if (path === resolve(cwd, target) && !stat.isFile()) {
+        throw new Error(`Lock target is not a regular file: ${target}`)
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    }
+  }
+  return path
+}
+
+const protectedProjectFiles = new Set([
+  componentsLockFileName,
+  'zeus-ui.json',
+  'package.json',
+  'pnpm-lock.yaml',
+  'package-lock.json',
+  'yarn.lock',
+  'bun.lock',
+  'bun.lockb',
+])
+
+function isPackageLikeName(value: string): boolean {
+  return /^(?:@\w[\w.-]*\/)?\w[\w.-]*$/.test(value)
+}
+
+function isValidRegistryLocation(kind: string, location: string): boolean {
+  if (kind === 'bundled') return location === '@zeus-web/registry'
+  try {
+    const url = new URL(location)
+    return kind === 'file'
+      ? url.protocol === 'file:'
+      : kind === 'url' &&
+          (url.protocol === 'http:' || url.protocol === 'https:')
+  } catch {
+    return false
+  }
+}
+
+/** Resolve a tracked source path while protecting project and VCS control files. */
+export function resolveLockedTarget(cwd: string, target: string): string {
+  const segments = target
+    .split('/')
+    .map(segment => segment.replace(/[. ]+$/g, '').toLowerCase())
+  if (
+    protectedProjectFiles.has(segments[0]) ||
+    segments.some(segment => ['.git', '.hg', '.svn'].includes(segment))
+  ) {
+    throw new Error(
+      `Invalid ${componentsLockFileName}: protected project file ${target}`,
+    )
+  }
+  return resolveProjectTarget(cwd, target)
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === 'string')
+}
+
+function validateComponentsLock(
+  cwd: string,
+  value: unknown,
+): asserts value is ComponentsLockFile {
+  if (
+    !isRecord(value) ||
+    value.version !== 2 ||
+    !isRecord(value.registries) ||
+    !isRecord(value.components)
+  ) {
+    throw new Error(
+      `Invalid ${componentsLockFileName}: expected version 2, registries object and components object`,
+    )
+  }
+  const hashesByTarget = new Map<
+    string,
+    { fileHash?: string; registryHash?: string }
+  >()
+  for (const [id, source] of Object.entries(value.registries)) {
+    if (
+      !isRecord(source) ||
+      source.id !== id ||
+      typeof source.kind !== 'string' ||
+      !['bundled', 'file', 'url'].includes(source.kind) ||
+      typeof source.location !== 'string' ||
+      typeof source.name !== 'string' ||
+      !isPackageLikeName(source.name) ||
+      typeof source.version !== 'string' ||
+      !source.version ||
+      !isValidRegistryLocation(source.kind, source.location) ||
+      typeof source.integrity !== 'string' ||
+      !/^[a-f0-9]{64}$/i.test(source.integrity)
+    ) {
+      throw new Error(`Invalid ${componentsLockFileName} registry: ${id}`)
+    }
+  }
+  for (const [name, component] of Object.entries(value.components)) {
+    if (
+      !name ||
+      !isRecord(component) ||
+      typeof component.registry !== 'string' ||
+      !(component.registry in value.registries) ||
+      (component.componentPath !== undefined &&
+        (typeof component.componentPath !== 'string' ||
+          !component.componentPath ||
+          component.componentPath.includes('\\') ||
+          component.componentPath.startsWith('/') ||
+          component.componentPath.split('/').includes('..'))) ||
+      !isStringArray(component.files) ||
+      !isStringArray(component.dependencies) ||
+      !isStringArray(component.registryDependencies) ||
+      typeof component.updatedAt !== 'string'
+    ) {
+      throw new Error(`Invalid ${componentsLockFileName} component: ${name}`)
+    }
+    const files = component.files
+    if (new Set(files).size !== files.length) {
+      throw new Error(`Invalid ${componentsLockFileName} files: ${name}`)
+    }
+    for (const target of files) resolveLockedTarget(cwd, target)
+    for (const key of ['fileHashes', 'registryHashes']) {
+      const hashes = component[key]
+      if (hashes === undefined) continue
+      if (
+        !isRecord(hashes) ||
+        Object.entries(hashes).some(
+          ([target, hash]) =>
+            !files.includes(target) ||
+            typeof hash !== 'string' ||
+            !/^[a-f0-9]{64}$/i.test(hash),
+        )
+      ) {
+        throw new Error(`Invalid ${componentsLockFileName} ${key}: ${name}`)
+      }
+      if (hashes !== undefined) {
+        for (const [target, hash] of Object.entries(hashes)) {
+          const tracked = hashesByTarget.get(target) ?? {}
+          const valueKey = key === 'fileHashes' ? 'fileHash' : 'registryHash'
+          const existing = tracked[valueKey]
+          if (existing && existing !== hash) {
+            throw new Error(
+              `Invalid ${componentsLockFileName}: conflicting ${key} for ${target}`,
+            )
+          }
+          tracked[valueKey] = hash as string
+          hashesByTarget.set(target, tracked)
+        }
+      }
+    }
+  }
+}
+
 export function createEmptyComponentsLock(): ComponentsLockFile {
   return {
-    version: 1,
+    version: 2,
+    registries: {},
     components: {},
   }
 }
 
 export function readComponentsLock(cwd: string): ComponentsLockFile {
-  const file = getComponentsLockPath(cwd)
+  const file = resolveProjectTarget(cwd, componentsLockFileName)
 
   if (!existsSync(file)) {
     return createEmptyComponentsLock()
   }
 
-  const lock = JSON.parse(readFileSync(file, 'utf-8')) as ComponentsLockFile
-
-  if (lock.version !== 1) {
-    throw new Error(
-      `Unsupported ${componentsLockFileName} version: ${lock.version}`,
-    )
-  }
-
-  return {
-    version: 1,
-    components: lock.components ?? {},
-  }
+  const lock: unknown = JSON.parse(readFileSync(file, 'utf-8'))
+  validateComponentsLock(cwd, lock)
+  return lock
 }
 
 export async function writeComponentsLock(
   cwd: string,
   lock: ComponentsLockFile,
 ): Promise<void> {
-  const file = getComponentsLockPath(cwd)
+  validateComponentsLock(cwd, lock)
+  const file = resolveProjectTarget(cwd, componentsLockFileName)
 
   await mkdir(dirname(file), {
     recursive: true,
@@ -87,7 +266,7 @@ export function hashString(source: string): string {
 }
 
 export function hashFile(file: string): string {
-  return hashString(readFileSync(file, 'utf-8'))
+  return createHash('sha256').update(readFileSync(file)).digest('hex')
 }
 
 export function getLockedComponent(
@@ -119,6 +298,15 @@ export function getLockedRegistryHash(params: {
   }
 
   return undefined
+}
+
+export function pruneUnusedRegistries(lock: ComponentsLockFile): void {
+  const used = new Set(
+    Object.values(lock.components).map(component => component.registry),
+  )
+  for (const id of Object.keys(lock.registries)) {
+    if (!used.has(id)) delete lock.registries[id]
+  }
 }
 
 export async function updateComponentsLockFromPlans(params: {
@@ -153,7 +341,11 @@ export async function updateComponentsLockFromPlans(params: {
 
     const existing = lock.components[plan.component]
 
+    lock.registries[plan.registry.id] = plan.registry
+
     lock.components[plan.component] = {
+      registry: plan.registry.id,
+      componentPath: plan.componentPath,
       files: Array.from(new Set([...(existing?.files ?? []), ...files])),
       dependencies: plan.dependencies,
       registryDependencies: plan.registryDependencies,
@@ -169,148 +361,8 @@ export async function updateComponentsLockFromPlans(params: {
     }
   }
 
+  pruneUnusedRegistries(lock)
   await writeComponentsLock(params.cwd, lock)
-}
-
-/**
- * Legacy lock format remains readable for old projects, but Phase 23 update/diff
- * no longer writes components.lock.json.
- */
-export const legacyLockFileName = 'components.lock.json'
-
-export interface LegacyComponentsLockFile {
-  $schema: string
-  components: Record<string, LegacyComponentsLockComponent>
-}
-
-export interface LegacyComponentsLockComponent {
-  registry: 'builtin'
-  version: string
-  files: LegacyLockedFile[]
-}
-
-export interface LegacyLockedFile {
-  target: string
-  source: string
-  type?: string
-  hash: string
-}
-
-export function getLegacyLockPath(cwd: string): string {
-  return resolve(cwd, legacyLockFileName)
-}
-
-export function createEmptyLegacyLock(): LegacyComponentsLockFile {
-  return {
-    $schema: 'https://zeus-web.dev/schema/components.lock.json',
-    components: {},
-  }
-}
-
-export function readLegacyLock(cwd: string): LegacyComponentsLockFile {
-  const file = getLegacyLockPath(cwd)
-  if (!existsSync(file)) return createEmptyLegacyLock()
-  return JSON.parse(readFileSync(file, 'utf-8')) as LegacyComponentsLockFile
-}
-
-export function getLegacyLockedFile(
-  lock: LegacyComponentsLockFile,
-  target: string,
-): LegacyLockedFile | undefined {
-  for (const component of Object.values(lock.components)) {
-    const file = component.files.find(candidate => candidate.target === target)
-    if (file) return file
-  }
-
-  return undefined
-}
-
-export async function migrateLegacyLockIfNeeded(params: {
-  cwd: string
-  plans: AddPlan[]
-}): Promise<void> {
-  const newLockPath = getComponentsLockPath(params.cwd)
-  const legacyLockPath = getLegacyLockPath(params.cwd)
-
-  if (existsSync(newLockPath) || !existsSync(legacyLockPath)) return
-
-  const legacy = readLegacyLock(params.cwd)
-  const next = createEmptyComponentsLock()
-
-  for (const plan of params.plans) {
-    const files: string[] = []
-    const fileHashes: Record<string, string> = {}
-
-    for (const file of plan.files) {
-      const legacyFile = getLegacyLockedFile(legacy, file.target)
-      if (!legacyFile) continue
-
-      files.push(file.target)
-      fileHashes[file.target] = legacyFile.hash
-    }
-
-    if (files.length === 0) continue
-
-    next.components[plan.component] = {
-      files,
-      dependencies: plan.dependencies,
-      registryDependencies: plan.registryDependencies,
-      updatedAt: new Date().toISOString(),
-      fileHashes,
-      registryHashes: {},
-    }
-  }
-
-  await writeComponentsLock(params.cwd, next)
-}
-
-export function createComponentsLockFromLegacy(params: {
-  cwd: string
-  plans: AddPlan[]
-}): ComponentsLockFile {
-  const legacy = readLegacyLock(params.cwd)
-  const next = createEmptyComponentsLock()
-
-  for (const plan of params.plans) {
-    const files: string[] = []
-    const fileHashes: Record<string, string> = {}
-
-    for (const file of plan.files) {
-      const legacyFile = getLegacyLockedFile(legacy, file.target)
-      if (!legacyFile) continue
-
-      files.push(file.target)
-      fileHashes[file.target] = legacyFile.hash
-    }
-
-    if (files.length === 0) continue
-
-    next.components[plan.component] = {
-      files,
-      dependencies: plan.dependencies,
-      registryDependencies: plan.registryDependencies,
-      updatedAt: new Date(0).toISOString(),
-      fileHashes,
-      registryHashes: {},
-    }
-  }
-
-  return next
-}
-
-export function readEffectiveComponentsLock(params: {
-  cwd: string
-  plans: AddPlan[]
-}): ComponentsLockFile {
-  if (existsSync(getComponentsLockPath(params.cwd))) {
-    return readComponentsLock(params.cwd)
-  }
-
-  if (existsSync(getLegacyLockPath(params.cwd))) {
-    return createComponentsLockFromLegacy(params)
-  }
-
-  return createEmptyComponentsLock()
 }
 
 export function toLockTarget(cwd: string, file: string): string {

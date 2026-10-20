@@ -1,15 +1,33 @@
+import type { ComponentsConfig } from '../config'
+import type {
+  LoadedRegistrySource,
+  RegistrySourceSnapshot,
+} from '../registry-source'
+
 import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { basename, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import pc from 'picocolors'
 
 import {
   getComponentsConfigPath,
   readComponentsConfig,
+  registryGlobalsEnd,
+  registryGlobalsStart,
   resolveAliasToPath,
+  resolveRegistryTarget,
+  themeOverrideEnd,
+  themeOverrideStart,
+  toRelativeProjectPath,
 } from '../config'
-import { legacyLockFileName, readLegacyLock } from '../lock'
-import { loadRegistry } from './add'
+import {
+  componentsLockFileName,
+  hashFile,
+  readComponentsLock,
+  resolveLockedTarget,
+} from '../lock'
+import { loadRegistrySource } from '../registry-source'
 
 type DoctorLevel = 'pass' | 'warn' | 'fail'
 interface DoctorCheck {
@@ -31,24 +49,30 @@ function parseDoctorArgs(args: string[], cwd = process.cwd()): DoctorOptions {
     }
     if (arg === '--cwd') {
       const v = args[++i]
-      if (!v) throw new Error('--cwd requires a directory path')
+      if (!v || v.startsWith('--'))
+        throw new Error('--cwd requires a directory path')
       options.cwd = resolve(cwd, v)
       continue
     }
     if (arg.startsWith('--cwd=')) {
-      options.cwd = resolve(cwd, arg.slice('--cwd='.length))
+      const value = arg.slice('--cwd='.length)
+      if (!value) throw new Error('--cwd requires a directory path')
+      options.cwd = resolve(cwd, value)
       continue
     }
-    if (arg.startsWith('-')) throw new Error(`Unknown option: ${arg}`)
+    throw new Error(`Unknown argument: ${arg}`)
   }
   return options
 }
 
 function readPackageJson(cwd: string): Record<string, unknown> | undefined {
   const file = resolve(cwd, 'package.json')
-  return existsSync(file)
-    ? (JSON.parse(readFileSync(file, 'utf-8')) as Record<string, unknown>)
-    : undefined
+  if (!existsSync(file)) return undefined
+  const value: unknown = JSON.parse(readFileSync(file, 'utf-8'))
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error('package.json must contain an object')
+  }
+  return value as Record<string, unknown>
 }
 
 function hasDependency(
@@ -57,7 +81,39 @@ function hasDependency(
 ): boolean {
   const deps = (pkg?.dependencies as Record<string, string> | undefined) ?? {}
   const dev = (pkg?.devDependencies as Record<string, string> | undefined) ?? {}
-  return dep in deps || dep in dev
+  return Object.keys(deps).includes(dep) || Object.keys(dev).includes(dep)
+}
+
+function hasRegistryDependencyFiles(
+  cwd: string,
+  config: ComponentsConfig,
+  source: LoadedRegistrySource,
+  name: string,
+): boolean {
+  const item = source.registry.items.find(entry => entry.name === name)
+  if (!item) return false
+  const files = item.files.filter(
+    file => file.framework === 'shared' || file.framework === config.framework,
+  )
+  return (
+    files.length > 0 &&
+    files.every(file => {
+      const target = toRelativeProjectPath(
+        cwd,
+        resolveRegistryTarget(cwd, config, file.target),
+      )
+      return existsSync(resolveLockedTarget(cwd, target))
+    }) &&
+    item.registryDependencies.every(dependency =>
+      hasRegistryDependencyFiles(cwd, config, source, dependency),
+    )
+  )
+}
+
+function getRegistryReference(source: RegistrySourceSnapshot): string {
+  if (source.kind === 'bundled') return source.location
+  if (source.kind === 'file') return fileURLToPath(source.location)
+  return source.location
 }
 
 function printChecks(checks: DoctorCheck[]): void {
@@ -74,11 +130,16 @@ export async function doctor(args: string[]): Promise<void> {
   try {
     const options = parseDoctorArgs(args)
     const checks: DoctorCheck[] = []
+    let registry: LoadedRegistrySource | undefined
+    let config: ComponentsConfig | undefined
+    const loadedRegistrySources = new Map<string, LoadedRegistrySource>()
 
     try {
-      loadRegistry()
+      registry = await loadRegistrySource()
       checks.push({ level: 'pass', message: '@zeus-web/registry is valid.' })
+      loadedRegistrySources.set(registry.source.id, registry)
     } catch (e) {
+      registry = undefined
       checks.push({ level: 'fail', message: (e as Error).message })
     }
 
@@ -86,16 +147,15 @@ export async function doctor(args: string[]): Promise<void> {
     if (!existsSync(configPath)) {
       checks.push({
         level: 'fail',
-        message: 'components.json not found. Run `zweb init` first.',
+        message: 'zeus-ui.json not found. Run `zweb init` first.',
       })
     } else {
-      checks.push({ level: 'pass', message: 'components.json exists.' })
+      const configName = basename(configPath)
+      checks.push({ level: 'pass', message: `${configName} exists.` })
       try {
-        const config = readComponentsConfig(options.cwd)
+        config = readComponentsConfig(options.cwd)
         const cssPath = resolve(options.cwd, config.tailwind.css)
-        const themeImport = `@import '@zeus-web/themes/${config.style}.css';`
-        const componentsImport = "@import '@zeus-web/themes/components.css';"
-        checks.push({ level: 'pass', message: 'components.json is valid.' })
+        checks.push({ level: 'pass', message: `${configName} is valid.` })
         for (const [name, alias] of Object.entries(config.aliases)) {
           const aliasPath = resolveAliasToPath(options.cwd, alias)
           if (existsSync(aliasPath)) {
@@ -117,64 +177,124 @@ export async function doctor(args: string[]): Promise<void> {
           })
         } else {
           const css = readFileSync(cssPath, 'utf-8')
-          checks.push({
-            level: css.includes(themeImport) ? 'pass' : 'warn',
-            message: css.includes(themeImport)
-              ? 'Theme css import is configured.'
-              : `Theme css import is missing: ${themeImport}`,
-          })
-          checks.push({
-            level: css.includes(componentsImport) ? 'pass' : 'warn',
-            message: css.includes(componentsImport)
-              ? 'Component css import is configured.'
-              : `Component css import is missing: ${componentsImport}`,
-          })
+          for (const [name, start, end] of [
+            ['Registry globals', registryGlobalsStart, registryGlobalsEnd],
+            ['Theme overrides', themeOverrideStart, themeOverrideEnd],
+          ]) {
+            const configured =
+              css.includes(start) && css.indexOf(end) > css.indexOf(start)
+            checks.push({
+              level: configured ? 'pass' : 'warn',
+              message: `${name} managed css block is ${configured ? 'configured' : 'missing'}.`,
+            })
+          }
         }
       } catch (e) {
         checks.push({ level: 'fail', message: (e as Error).message })
       }
     }
 
-    const pkg = readPackageJson(options.cwd)
-    if (!pkg) {
-      checks.push({ level: 'warn', message: 'package.json not found.' })
-    } else {
+    let pkg: Record<string, unknown> | undefined
+    try {
+      pkg = readPackageJson(options.cwd)
+      if (!pkg) {
+        checks.push({ level: 'warn', message: 'package.json not found.' })
+      } else {
+        checks.push({
+          level: hasDependency(pkg, '@zeus-web/themes') ? 'pass' : 'warn',
+          message: hasDependency(pkg, '@zeus-web/themes')
+            ? '@zeus-web/themes is installed.'
+            : '@zeus-web/themes is not installed.',
+        })
+      }
+    } catch (error) {
       checks.push({
-        level: hasDependency(pkg, '@zeus-web/themes') ? 'pass' : 'warn',
-        message: hasDependency(pkg, '@zeus-web/themes')
-          ? '@zeus-web/themes is installed.'
-          : '@zeus-web/themes is not installed.',
+        level: 'fail',
+        message: `Invalid package.json: ${(error as Error).message}`,
       })
     }
 
-    const lock = readLegacyLock(options.cwd)
-    const lockedComponents = Object.keys(lock.components)
-    if (lockedComponents.length === 0) {
+    try {
+      const lock = readComponentsLock(options.cwd)
+      const lockedComponents = Object.keys(lock.components)
       checks.push({
-        level: 'warn',
-        message: `${legacyLockFileName} has no tracked components.`,
+        level: lockedComponents.length > 0 ? 'pass' : 'warn',
+        message: `${componentsLockFileName} tracks ${lockedComponents.length} component(s).`,
       })
-    } else {
-      checks.push({
-        level: 'pass',
-        message: `${legacyLockFileName} tracks ${lockedComponents.length} component(s).`,
-      })
+      for (const [id, lockedSource] of Object.entries(lock.registries)) {
+        try {
+          const source = await loadRegistrySource({
+            reference: getRegistryReference(lockedSource),
+            cwd: options.cwd,
+          })
+          loadedRegistrySources.set(id, source)
+          const changed =
+            source.source.name !== lockedSource.name ||
+            source.source.version !== lockedSource.version ||
+            source.source.integrity !== lockedSource.integrity
+          checks.push({
+            level: changed ? 'warn' : 'pass',
+            message: changed
+              ? `Registry source ${id} changed since the last add.`
+              : `Registry source ${id} matches the lock.`,
+          })
+        } catch (error) {
+          checks.push({
+            level: 'fail',
+            message: `Registry source ${id} is unavailable: ${(error as Error).message}`,
+          })
+        }
+      }
+      const dependencies = new Set<string>()
       for (const [component, item] of Object.entries(lock.components)) {
-        for (const file of item.files) {
-          const target = resolve(options.cwd, file.target)
-          if (existsSync(target)) {
+        for (const dependency of item.dependencies) dependencies.add(dependency)
+        for (const dependency of item.registryDependencies) {
+          if (!Object.keys(lock.components).includes(dependency)) {
+            const source = loadedRegistrySources.get(item.registry)
+            const filesExist = Boolean(
+              config &&
+              source &&
+              hasRegistryDependencyFiles(
+                options.cwd,
+                config,
+                source,
+                dependency,
+              ),
+            )
             checks.push({
-              level: 'pass',
-              message: `${component}: ${file.target} exists.`,
+              level: filesExist ? 'warn' : 'fail',
+              message: filesExist
+                ? `${component}: registry dependency ${dependency} files exist but are not tracked.`
+                : `${component}: registry dependency ${dependency} is not tracked.`,
             })
-          } else {
+          }
+        }
+        for (const file of item.files) {
+          const target = resolveLockedTarget(options.cwd, file)
+          const exists = existsSync(target)
+          checks.push({
+            level: exists ? 'pass' : 'fail',
+            message: `${component}: ${file} ${exists ? 'exists' : 'is missing'}.`,
+          })
+          const expected = item.fileHashes?.[file]
+          if (exists && expected && hashFile(target) !== expected) {
             checks.push({
-              level: 'fail',
-              message: `${component}: ${file.target} is missing.`,
+              level: 'warn',
+              message: `${component}: ${file} has local changes.`,
             })
           }
         }
       }
+      for (const dependency of dependencies) {
+        const name = dependency.replace(/@[^@/]+$/, '')
+        const installed = hasDependency(pkg, name)
+        checks.push({
+          level: installed ? 'pass' : 'warn',
+          message: `${name} is ${installed ? '' : 'not '}installed.`,
+        })
+      }
+    } catch (error) {
+      checks.push({ level: 'fail', message: (error as Error).message })
     }
 
     if (options.json) console.log(JSON.stringify({ checks }, null, 2))

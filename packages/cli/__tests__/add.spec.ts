@@ -139,9 +139,12 @@ describe('@zeus-web/cli add', () => {
       components: ['button', 'input'],
       options: {
         cwd: resolve('/repo', 'demo'),
+        all: false,
         dryRun: true,
         overwrite: true,
         install: false,
+        skipDeps: false,
+        yes: false,
         packageManager: 'npm',
       },
     })
@@ -149,6 +152,47 @@ describe('@zeus-web/cli add', () => {
 
   it('rejects unknown options', () => {
     expect(() => parseAddArgs(['button', '--bad'])).toThrow('Unknown option')
+  })
+
+  it('parses all, yes, path, registry and dependency controls', () => {
+    const parsed = parseAddArgs(
+      [
+        '--all',
+        '--yes',
+        '--path',
+        'src/custom/ui',
+        '--registry',
+        'https://registry.example.test/registry.json',
+      ],
+      '/repo',
+    )
+
+    expect(parsed).toMatchObject({
+      components: [],
+      options: {
+        all: true,
+        yes: true,
+        install: true,
+        skipDeps: false,
+        componentPath: 'src/custom/ui',
+        registry: 'https://registry.example.test/registry.json',
+      },
+    })
+
+    expect(
+      parseAddArgs(['button', '--yes', '--skip-deps']).options.install,
+    ).toBe(false)
+    expect(parseAddArgs(['button', '--yes', '--dry-run']).options.install).toBe(
+      false,
+    )
+  })
+
+  it('rejects unsafe path values', () => {
+    for (const value of ['../outside', '/tmp/outside', 'src\\outside']) {
+      expect(() => parseAddArgs(['button', '--path', value], '/repo')).toThrow(
+        '--path must',
+      )
+    }
   })
 
   it('requires components', async () => {
@@ -222,6 +266,27 @@ describe('@zeus-web/cli add', () => {
 
       expect(files).toContain('src/components/ui/button.tsx')
       expect(files).not.toContain('src/components/ui/button.vue')
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('routes component files through a custom project path', async () => {
+    const root = await createTempDir()
+    try {
+      const config = writeConfig(root)
+      const plans = createAddPlan({
+        components: ['button'],
+        registry,
+        cwd: root,
+        config,
+        componentPath: 'src/custom/ui',
+      })
+      const targets = plans.flatMap(plan => plan.files.map(file => file.target))
+
+      expect(targets).toContain('src/custom/ui/button.tsx')
+      expect(targets).toContain('src/lib/cn.ts')
+      expect(targets).toContain('src/styles/zeus.css')
     } finally {
       await rm(root, { recursive: true, force: true })
     }
@@ -371,7 +436,8 @@ describe('@zeus-web/cli add', () => {
 
     try {
       expect(readComponentsLock(root)).toEqual({
-        version: 1,
+        version: 2,
+        registries: {},
         components: {},
       })
     } finally {
@@ -416,6 +482,73 @@ describe('@zeus-web/cli add', () => {
       ])
     } finally {
       await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('adds all components from a file registry with a custom path and source lock', async () => {
+    const root = await createTempDir()
+    const registryRoot = await createTempDir()
+
+    try {
+      writeConfig(root)
+      mkdirSync(resolve(registryRoot, 'templates/react'), { recursive: true })
+      writeFileSync(
+        resolve(registryRoot, 'registry.json'),
+        JSON.stringify({
+          schemaVersion: 1,
+          name: '@example/registry',
+          version: '2.0.0',
+          items: [
+            {
+              name: 'badge',
+              type: 'component',
+              description: 'Badge component',
+              frameworks: ['react'],
+              dependencies: [],
+              registryDependencies: [],
+              files: [
+                {
+                  framework: 'react',
+                  source: 'templates/react/badge.tsx',
+                  target: 'components/ui/badge.tsx',
+                },
+              ],
+            },
+          ],
+        }),
+      )
+      writeFileSync(
+        resolve(registryRoot, 'templates/react/badge.tsx'),
+        'export const Badge = () => null\n',
+      )
+
+      await add([
+        '--all',
+        '--registry',
+        resolve(registryRoot, 'registry.json'),
+        '--path',
+        'src/custom/ui',
+        '--skip-deps',
+        '--cwd',
+        root,
+      ])
+
+      const target = resolve(root, 'src/custom/ui/badge.tsx')
+      expect(existsSync(target)).toBe(true)
+      expect(readFileSync(target, 'utf-8')).toContain('Badge')
+
+      const lock = readComponentsLock(root)
+      expect(lock.components.badge.registry).toMatch(
+        /^file:\/\/.*\/registry\.json$/,
+      )
+      expect(lock.registries[lock.components.badge.registry]).toMatchObject({
+        kind: 'file',
+        name: '@example/registry',
+        version: '2.0.0',
+      })
+    } finally {
+      await rm(root, { recursive: true, force: true })
+      await rm(registryRoot, { recursive: true, force: true })
     }
   })
 })
