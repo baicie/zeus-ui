@@ -92,6 +92,21 @@ describe('dialog runtime accessibility', () => {
     expect(changes).not.toHaveBeenCalled()
   })
 
+  it('honors close-on-outside-click=false', async () => {
+    const dialog = await createDialog()
+    const changes = vi.fn()
+    dialog.closeOnOutsideClick = false
+    dialog.addEventListener('open-change', changes)
+
+    document.body.dispatchEvent(
+      new PointerEvent('pointerdown', { bubbles: true }),
+    )
+    await nextRender()
+
+    expect(dialog.open).toBe(true)
+    expect(changes).not.toHaveBeenCalled()
+  })
+
   it('exposes an overlay element for backdrop styling', async () => {
     const dialog = await createDialog()
     const overlay = dialog.querySelector('zw-dialog-overlay')

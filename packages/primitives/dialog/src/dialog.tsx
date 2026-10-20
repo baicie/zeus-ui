@@ -5,7 +5,6 @@ import {
   defineElement,
   event,
   Host,
-  onCleanup,
   prop,
   Slot,
 } from '@zeus-js/zeus'
@@ -25,6 +24,9 @@ export interface DialogOpenChangeDetail {
 
 export interface DialogElement extends HTMLElement {
   open?: boolean
+  defaultOpen?: boolean
+  modal?: boolean
+  closeOnOutsideClick?: boolean
   show: () => void
   close: () => void
 }
@@ -167,7 +169,13 @@ function setupDialog(
   }
 
   const handleOutsidePointerDown = (event: PointerEvent) => {
-    if (!resolveOpen(props) || props.modal === false) return
+    if (
+      !resolveOpen(props) ||
+      props.modal === false ||
+      context.closeOnOutsideClick() === false
+    ) {
+      return
+    }
     const content = contentElement
     if (!content) return
     const path = event.composedPath?.() ?? []
@@ -175,10 +183,19 @@ function setupDialog(
     context.setOpen(false, event)
   }
 
-  document.addEventListener('pointerdown', handleOutsidePointerDown, true)
-  onCleanup(() => {
+  let pointerListenerAttached = false
+
+  const attachPointerListener = () => {
+    if (pointerListenerAttached) return
+    document.addEventListener('pointerdown', handleOutsidePointerDown, true)
+    pointerListenerAttached = true
+  }
+
+  const detachPointerListener = () => {
+    if (!pointerListenerAttached) return
     document.removeEventListener('pointerdown', handleOutsidePointerDown, true)
-  })
+    pointerListenerAttached = false
+  }
 
   provideDOMContext(ctx.host, DialogContext, context)
 
@@ -193,6 +210,13 @@ function setupDialog(
 
   return (
     <Host
+      ref={(element: HTMLElement | null) => {
+        if (element) {
+          attachPointerListener()
+        } else {
+          detachPointerListener()
+        }
+      }}
       data-slot="dialog-root"
       data-state={() => (context.getOpen() ? 'open' : 'closed')}
       data-modal={() => (context.isModal() ? '' : undefined)}
@@ -321,8 +345,6 @@ function setupDialogContent(
   const dialog = result.found ? result.value : undefined
 
   let panel!: HTMLDivElement
-  let pointerListenerAttached = false
-
   const isOpen = () => Boolean(dialog?.getOpen())
 
   const handleKeyDown = (event: KeyboardEvent) => {
@@ -335,28 +357,6 @@ function setupDialogContent(
     if (dialog?.isModal()) {
       trapFocus(panel, event)
     }
-  }
-
-  const handleOutsidePointerDown = (event: PointerEvent) => {
-    if (!isOpen() || !dialog?.closeOnOutsideClick()) {
-      return
-    }
-
-    const target = event.target
-    if (target instanceof Node && panel.contains(target)) return
-    dialog.setOpen(false, event)
-  }
-
-  const attachPointerListener = () => {
-    if (pointerListenerAttached) return
-    document.addEventListener('pointerdown', handleOutsidePointerDown, true)
-    pointerListenerAttached = true
-  }
-
-  const detachPointerListener = () => {
-    if (!pointerListenerAttached) return
-    document.removeEventListener('pointerdown', handleOutsidePointerDown, true)
-    pointerListenerAttached = false
   }
 
   ctx.expose({
@@ -376,9 +376,6 @@ function setupDialogContent(
           if (element) {
             panel = element
             dialog?.registerContent(element)
-            attachPointerListener()
-          } else {
-            detachPointerListener()
           }
         }}
         id={() => dialog?.getContentId()}

@@ -10,11 +10,11 @@ import { entries } from './scripts/config/aliases'
 const canaryCapabilitiesTest =
   'packages/zeus-compat/__tests__/canary-capabilities.spec.ts'
 
-// Zeus package default node entry is CJS-like but published as ESM.
-// Use the browser ESM bundle in jsdom so runtime-dom stays inlined.
+// Zeus package default node entry is CJS-like but published as ESM. Use the
+// bundler ESM entry so zeus and compiled templates share one runtime-dom graph.
 const zeusEsmPath = resolve(
   process.cwd(),
-  'node_modules/@zeus-js/zeus/dist/zeus.esm-browser.js',
+  'node_modules/@zeus-js/zeus/dist/zeus.esm-bundler.js',
 )
 
 const zeusBundlerEsmPath = resolve(
