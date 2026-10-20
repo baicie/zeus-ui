@@ -163,6 +163,8 @@ export default defineConfig({
             'packages/primitives/select/__tests__/**',
             // input WC runtime tests require jsdom, run in unit-jsdom instead.
             'packages/primitives/input/__tests__/input-runtime.spec.ts',
+            // dialog focus/outside-click tests require a DOM environment.
+            'packages/primitives/dialog/__tests__/dialog-runtime.spec.ts',
           ],
         },
       },
