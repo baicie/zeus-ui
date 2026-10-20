@@ -44,14 +44,16 @@ describe('component docs generator', () => {
     expect(english).toContain('# Components')
     expect(english).toContain('<ComponentDirectory />')
     expect(english).toContain('25 public component packages')
-    expect(english).toContain('zweb add button')
+    expect(english).toContain('zweb add <component>')
+    expect(english).toContain('`select`')
     expect(english).toContain('`@/components/ui/<component>`')
     expect(english).not.toMatch(HAN_PATTERN)
 
     expect(chinese).toContain('# 组件')
     expect(chinese).toContain('<ComponentDirectory />')
     expect(chinese).toContain('全部 25 个公开组件包')
-    expect(chinese).toContain('zweb add button')
+    expect(chinese).toContain('zweb add <component>')
+    expect(chinese).toContain('`select`')
     expect(chinese).toContain('`@/components/ui/<component>`')
     expect(chinese).toMatch(HAN_PATTERN)
   })
@@ -105,19 +107,23 @@ describe('component docs generator', () => {
     expect(extractCodeBlocks(chinese)).toEqual(extractCodeBlocks(english))
   })
 
-  it('documents the package-only Select API without unpublished registry imports', () => {
+  it('documents the registry Select API with styled source imports', () => {
     const context = createComponentDocsContext()
     const component = context.metadata.components.find(
       item => item.name === 'select',
     )
+    const registryItem = context.registry.items.find(
+      item => item.name === 'select',
+    )
 
     expect(component).toBeDefined()
+    expect(registryItem).toBeDefined()
 
-    const english = renderComponentDoc(component!)
+    const english = renderComponentDoc(component!, registryItem)
 
-    expect(english).toContain('Registry source: not available yet.')
+    expect(english).toContain('Registry source: available.')
     expect(english).toContain('@zeus-web/select/react')
-    expect(english).not.toContain('@/components/ui/select')
+    expect(english).toContain('@/components/ui/select')
 
     for (const publicMember of [
       'name',
