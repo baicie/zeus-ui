@@ -5,7 +5,6 @@ import {
   defineElement,
   event,
   Host,
-  onCleanup,
   prop,
   Slot,
 } from '@zeus-js/zeus'
@@ -15,6 +14,7 @@ export interface DialogProps {
   open?: boolean
   defaultOpen?: boolean
   modal?: boolean
+  closeOnOutsideClick?: boolean
 }
 
 export interface DialogOpenChangeDetail {
@@ -24,6 +24,9 @@ export interface DialogOpenChangeDetail {
 
 export interface DialogElement extends HTMLElement {
   open?: boolean
+  defaultOpen?: boolean
+  modal?: boolean
+  closeOnOutsideClick?: boolean
   show: () => void
   close: () => void
 }
@@ -43,6 +46,7 @@ interface DialogContextValue {
   registerContent: (element: HTMLElement) => void
   focusContent: () => void
   returnFocus: () => void
+  closeOnOutsideClick: () => boolean
 }
 
 const DialogContext =
@@ -161,10 +165,17 @@ function setupDialog(
     returnFocus: () => {
       triggerElement?.focus()
     },
+    closeOnOutsideClick: () => props.closeOnOutsideClick !== false,
   }
 
   const handleOutsidePointerDown = (event: PointerEvent) => {
-    if (!resolveOpen(props) || props.modal === false) return
+    if (
+      !resolveOpen(props) ||
+      props.modal === false ||
+      context.closeOnOutsideClick() === false
+    ) {
+      return
+    }
     const content = contentElement
     if (!content) return
     const path = event.composedPath?.() ?? []
@@ -172,10 +183,19 @@ function setupDialog(
     context.setOpen(false, event)
   }
 
-  document.addEventListener('pointerdown', handleOutsidePointerDown, true)
-  onCleanup(() => {
+  let pointerListenerAttached = false
+
+  const attachPointerListener = () => {
+    if (pointerListenerAttached) return
+    document.addEventListener('pointerdown', handleOutsidePointerDown, true)
+    pointerListenerAttached = true
+  }
+
+  const detachPointerListener = () => {
+    if (!pointerListenerAttached) return
     document.removeEventListener('pointerdown', handleOutsidePointerDown, true)
-  })
+    pointerListenerAttached = false
+  }
 
   provideDOMContext(ctx.host, DialogContext, context)
 
@@ -190,6 +210,13 @@ function setupDialog(
 
   return (
     <Host
+      ref={(element: HTMLElement | null) => {
+        if (element) {
+          attachPointerListener()
+        } else {
+          detachPointerListener()
+        }
+      }}
       data-slot="dialog-root"
       data-state={() => (context.getOpen() ? 'open' : 'closed')}
       data-modal={() => (context.isModal() ? '' : undefined)}
@@ -213,6 +240,10 @@ export const Dialog = defineElement<DialogProps, DialogElement, DialogEmits>(
       modal: prop(Boolean, {
         default: true,
         reflect: true,
+      }),
+      closeOnOutsideClick: prop(Boolean, {
+        attr: 'close-on-outside-click',
+        default: true,
       }),
     },
     emits: {
@@ -314,7 +345,6 @@ function setupDialogContent(
   const dialog = result.found ? result.value : undefined
 
   let panel!: HTMLDivElement
-
   const isOpen = () => Boolean(dialog?.getOpen())
 
   const handleKeyDown = (event: KeyboardEvent) => {
@@ -380,6 +410,43 @@ export const DialogContent = defineElement<
     },
   },
   setupDialogContent,
+)
+
+export interface DialogOverlayElement extends HTMLElement {}
+
+function setupDialogOverlay(
+  props: { forceMount?: boolean },
+  ctx: DefineElementContext<DialogOverlayElement>,
+) {
+  const result = resolveDOMContext(ctx.host, DialogContext)
+  const dialog = result.found ? result.value : undefined
+  const isOpen = () => Boolean(dialog?.getOpen())
+
+  return (
+    <Host
+      part="overlay"
+      data-slot="dialog-overlay"
+      data-state={() => (isOpen() ? 'open' : 'closed')}
+      hidden={() => (props.forceMount ? false : !isOpen())}
+    >
+      <Slot />
+    </Host>
+  )
+}
+
+export const DialogOverlay = defineElement<
+  { forceMount?: boolean },
+  DialogOverlayElement
+>(
+  'zw-dialog-overlay',
+  {
+    shadow: false,
+    props: {
+      forceMount: prop(Boolean, { attr: 'force-mount' }),
+    },
+    meta: { description: 'Dialog backdrop primitive.' },
+  },
+  setupDialogOverlay,
 )
 
 export interface DialogCloseProps {

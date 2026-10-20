@@ -11,7 +11,7 @@ Styled badge component built on the zw-badge primitive.
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/badge</span>
   <span class="zw-badge">Data Display</span>
-  <span class="zw-badge">primitive-only</span>
+  <span class="zw-badge">zweb add badge</span>
   <span class="zw-badge">Generated</span>
 </div>
 
@@ -55,21 +55,19 @@ import { Badge } from '@zeus-web/badge/vue'
 
 :::
 
-## Install
-
-This component does not have a registry template yet.
-
-Install the primitive package instead:
+## Add
 
 ```bash
-pnpm add @zeus-web/badge
+zweb add badge
 ```
 
 ## Imports
 
 Styled registry component:
 
-Not available yet.
+```tsx
+import { Badge } from '@/components/ui/badge'
+```
 
 Primitive React wrapper:
 
@@ -116,11 +114,26 @@ Internal selectors:
 
 ## Registry
 
-Registry source: not available yet.
+Registry source: available.
 
-The `badge` primitive is available through `@zeus-web/badge`, but it is not currently installable through the CLI registry.
+Add command: `zweb add badge`
 
-Use the primitive package directly until a registry template is added.
+Type: `component`
+
+Dependencies:
+
+- `@zeus-web/badge`
+- `class-variance-authority`
+
+Registry dependencies:
+
+- `cn`
+- `globals`
+
+Files:
+
+- `templates/react/badge.tsx` → `components/ui/badge.tsx`
+- `templates/vue/badge.ts` → `components/ui/badge.ts`
 
 ## AI usage rules
 
@@ -137,7 +150,7 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Badge } from '@zeus-web/badge/react'
+import { Badge } from '@/components/ui/badge'
 
 export function Example() {
   return <Badge>New</Badge>

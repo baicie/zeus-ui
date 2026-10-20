@@ -11,7 +11,7 @@ pageClass: component-docs-page
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/accordion</span>
   <span class="zw-badge">数据展示</span>
-  <span class="zw-badge">仅基础组件</span>
+  <span class="zw-badge">zweb add accordion</span>
   <span class="zw-badge">自动生成</span>
 </div>
 
@@ -82,21 +82,24 @@ import {
 
 :::
 
-## 安装
-
-此组件暂时没有 Registry 模板。
-
-请改为安装基础组件包：
+## 添加
 
 ```bash
-pnpm add @zeus-web/accordion
+zweb add accordion
 ```
 
 ## 导入
 
 样式化 Registry 组件：
 
-暂不可用。
+```tsx
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+```
 
 基础组件 React 包装器：
 
@@ -153,11 +156,25 @@ import '@zeus-web/accordion/wc/auto'
 
 ## Registry
 
-Registry 源码：暂不可用。
+Registry 源码：可用。
 
-`accordion` 基础组件可通过 `@zeus-web/accordion` 使用，但目前还不能通过 CLI Registry 安装。
+添加命令: `zweb add accordion`
 
-在 Registry 模板加入之前，请直接使用基础组件包。
+类型: `component`
+
+依赖：
+
+- `@zeus-web/accordion`
+
+Registry 依赖：
+
+- `cn`
+- `globals`
+
+文件：
+
+- `templates/react/accordion.tsx` → `components/ui/accordion.tsx`
+- `templates/vue/accordion.ts` → `components/ui/accordion.ts`
 
 ## AI 使用规则
 
@@ -181,7 +198,7 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@zeus-web/accordion/react'
+} from '@/components/ui/accordion'
 
 export function Example() {
   return (

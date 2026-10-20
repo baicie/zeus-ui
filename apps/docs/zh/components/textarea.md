@@ -11,7 +11,7 @@ pageClass: component-docs-page
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/textarea</span>
   <span class="zw-badge">数据录入</span>
-  <span class="zw-badge">仅基础组件</span>
+  <span class="zw-badge">zweb add textarea</span>
   <span class="zw-badge">自动生成</span>
 </div>
 
@@ -55,21 +55,19 @@ import { Textarea } from '@zeus-web/textarea/vue'
 
 :::
 
-## 安装
-
-此组件暂时没有 Registry 模板。
-
-请改为安装基础组件包：
+## 添加
 
 ```bash
-pnpm add @zeus-web/textarea
+zweb add textarea
 ```
 
 ## 导入
 
 样式化 Registry 组件：
 
-暂不可用。
+```tsx
+import { Textarea } from '@/components/ui/textarea'
+```
 
 基础组件 React 包装器：
 
@@ -126,11 +124,25 @@ import '@zeus-web/textarea/wc/auto'
 
 ## Registry
 
-Registry 源码：暂不可用。
+Registry 源码：可用。
 
-`textarea` 基础组件可通过 `@zeus-web/textarea` 使用，但目前还不能通过 CLI Registry 安装。
+添加命令: `zweb add textarea`
 
-在 Registry 模板加入之前，请直接使用基础组件包。
+类型: `component`
+
+依赖：
+
+- `@zeus-web/textarea`
+
+Registry 依赖：
+
+- `cn`
+- `globals`
+
+文件：
+
+- `templates/react/textarea.tsx` → `components/ui/textarea.tsx`
+- `templates/vue/textarea.ts` → `components/ui/textarea.ts`
 
 ## AI 使用规则
 
@@ -147,7 +159,7 @@ Registry 源码：暂不可用。
 ### React 样式化用法
 
 ```tsx
-import { Textarea } from '@zeus-web/textarea/react'
+import { Textarea } from '@/components/ui/textarea'
 
 export function Example() {
   return <Textarea placeholder="Message" />

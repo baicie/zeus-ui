@@ -48,8 +48,46 @@ const requiredFiles = [
   'components.md',
   'templates/react/button.tsx',
   'templates/react/input.tsx',
+  'templates/react/accordion.tsx',
+  'templates/react/alert.tsx',
+  'templates/react/avatar.tsx',
+  'templates/react/badge.tsx',
+  'templates/react/card.tsx',
+  'templates/react/checkbox.tsx',
+  'templates/react/collapsible.tsx',
+  'templates/react/dialog.tsx',
+  'templates/react/label.tsx',
+  'templates/react/progress.tsx',
+  'templates/react/radio-group.tsx',
+  'templates/react/select.tsx',
+  'templates/react/separator.tsx',
+  'templates/react/skeleton.tsx',
+  'templates/react/switch.tsx',
+  'templates/react/tabs.tsx',
+  'templates/react/textarea.tsx',
+  'templates/react/tooltip.tsx',
+  'templates/react/icon.tsx',
   'templates/vue/button.vue',
   'templates/vue/input.vue',
+  'templates/vue/accordion.ts',
+  'templates/vue/alert.ts',
+  'templates/vue/avatar.ts',
+  'templates/vue/badge.ts',
+  'templates/vue/card.ts',
+  'templates/vue/checkbox.ts',
+  'templates/vue/collapsible.ts',
+  'templates/vue/dialog.ts',
+  'templates/vue/label.ts',
+  'templates/vue/progress.ts',
+  'templates/vue/radio-group.ts',
+  'templates/vue/select.ts',
+  'templates/vue/separator.ts',
+  'templates/vue/skeleton.ts',
+  'templates/vue/switch.ts',
+  'templates/vue/tabs.ts',
+  'templates/vue/textarea.ts',
+  'templates/vue/tooltip.ts',
+  'templates/vue/icon.ts',
   'templates/css/globals.css',
   'templates/lib/cn.ts',
   'scripts/copy-registry-assets.mjs',
@@ -59,7 +97,32 @@ const requiredFiles = [
   'src/component-schema.ts',
 ]
 
-const requiredItemNames = ['cn', 'globals', 'button', 'input']
+const requiredItemNames = [
+  'cn',
+  'globals',
+  'button',
+  'input',
+  'accordion',
+  'alert',
+  'avatar',
+  'badge',
+  'card',
+  'checkbox',
+  'collapsible',
+  'dialog',
+  'label',
+  'progress',
+  'radio-group',
+  'select',
+  'separator',
+  'skeleton',
+  'switch',
+  'tabs',
+  'textarea',
+  'tooltip',
+  'icon',
+]
+const contractEnabledItemNames = ['button', 'input']
 
 const allowedFrameworks = new Set<RegistryFramework>([
   'react',
@@ -74,11 +137,7 @@ const allowedTypes = new Set<RegistryItemType>([
   'style',
 ])
 
-const forbiddenDependencies = [
-  'class-variance-authority',
-  'clsx',
-  'tailwind-merge',
-]
+const forbiddenDependencies = ['clsx', 'tailwind-merge']
 
 function isUnsafeRegistryPath(path: string): boolean {
   const segments = path.split(/[\\/]/)
@@ -143,10 +202,8 @@ function checkPackageJson(errors: string[]): void {
     './quality',
     './quality.json',
     './components.json',
-    './templates/react/button.tsx',
-    './templates/react/input.tsx',
-    './templates/vue/button.vue',
-    './templates/vue/input.vue',
+    './templates/react/*',
+    './templates/vue/*',
     './templates/css/globals.css',
     './templates/lib/cn.ts',
   ]
@@ -234,9 +291,9 @@ function checkComponentSchema(errors: string[]): void {
   )
   const schemaNames = new Set(componentSchema.components.map(item => item.name))
 
-  for (const name of registryNames) {
-    if (!schemaNames.has(name)) {
-      errors.push(`components.json missing registry component ${name}`)
+  for (const name of contractEnabledItemNames) {
+    if (registryNames.has(name) && !schemaNames.has(name)) {
+      errors.push(`components.json missing contract-enabled component ${name}`)
     }
   }
   for (const name of schemaNames) {
@@ -427,6 +484,30 @@ function checkTemplateContents(errors: string[]): void {
       ],
     },
     {
+      file: 'templates/react/dialog.tsx',
+      source: read('templates/react/dialog.tsx'),
+      contains: [
+        'import {\n  DialogClose as DialogClosePrimitive',
+        'DialogContent',
+        'bg-background',
+      ],
+    },
+    {
+      file: 'templates/react/tabs.tsx',
+      source: read('templates/react/tabs.tsx'),
+      contains: ['TabsList', 'TabsTrigger', 'TabsContent'],
+    },
+    {
+      file: 'templates/react/checkbox.tsx',
+      source: read('templates/react/checkbox.tsx'),
+      contains: ['data-slot=checkbox-control', 'indeterminate'],
+    },
+    {
+      file: 'templates/react/switch.tsx',
+      source: read('templates/react/switch.tsx'),
+      contains: ['data-slot=switch-track', 'data-slot=switch-thumb'],
+    },
+    {
       file: 'templates/vue/button.vue',
       source: vueButton,
       contains: [
@@ -445,6 +526,30 @@ function checkTemplateContents(errors: string[]): void {
         '<InputPrimitive',
         '--zeus-input',
       ],
+    },
+    {
+      file: 'templates/vue/dialog.ts',
+      source: read('templates/vue/dialog.ts'),
+      contains: [
+        "from '@zeus-web/dialog/vue'",
+        'export const DialogContent',
+        'export const DialogClose',
+      ],
+    },
+    {
+      file: 'templates/vue/tabs.ts',
+      source: read('templates/vue/tabs.ts'),
+      contains: ['export const TabsList', 'export const TabsTrigger'],
+    },
+    {
+      file: 'templates/vue/checkbox.ts',
+      source: read('templates/vue/checkbox.ts'),
+      contains: ["from '@zeus-web/checkbox/vue'", 'data-slot=checkbox-control'],
+    },
+    {
+      file: 'templates/vue/switch.ts',
+      source: read('templates/vue/switch.ts'),
+      contains: ["from '@zeus-web/switch/vue'", 'data-slot=switch-track'],
     },
     {
       file: 'templates/lib/cn.ts',

@@ -35,8 +35,31 @@ export interface CoverageResult {
 }
 
 const deferredOverlayComponents = ['popover', 'dropdown', 'toast'] as const
+const specialRegistryItems = new Set(['icon'])
 
-const registryPhase17RequiredItems = ['button', 'input'] as const
+const registryPhase17RequiredItems = [
+  'button',
+  'input',
+  'accordion',
+  'alert',
+  'avatar',
+  'badge',
+  'card',
+  'checkbox',
+  'collapsible',
+  'dialog',
+  'label',
+  'progress',
+  'radio-group',
+  'select',
+  'separator',
+  'skeleton',
+  'switch',
+  'tabs',
+  'textarea',
+  'tooltip',
+  'icon',
+] as const
 
 function readJson<T>(file: string): T {
   return JSON.parse(readFileSync(file, 'utf-8')) as T
@@ -158,7 +181,8 @@ function includesUiTarget(item: RegistryItem): boolean {
       const target = file.target
       return (
         target === `components/ui/${item.name}.tsx` ||
-        target === `components/ui/${item.name}.vue`
+        target === `components/ui/${item.name}.vue` ||
+        target === `components/ui/${item.name}.ts`
       )
     }) ?? false
   )
@@ -276,19 +300,24 @@ export function checkComponentCoverage(root = process.cwd()): CoverageResult {
   }
 
   for (const item of registryItems) {
-    if (!primitiveNameSet.has(item.name)) {
+    const special = specialRegistryItems.has(item.name)
+    if (!special && !primitiveNameSet.has(item.name)) {
       errors.push(
         `registry item "${item.name}" has no matching primitive package`,
       )
     }
 
-    if (!aiNameSet.has(item.name)) {
+    if (!special && !aiNameSet.has(item.name)) {
       errors.push(`registry item "${item.name}" has no matching AI metadata`)
     }
 
-    if (!includesPackageDependency(item)) {
+    if (
+      !(special
+        ? item.dependencies?.includes('@zeus-web/icons')
+        : includesPackageDependency(item))
+    ) {
       errors.push(
-        `registry item "${item.name}" must depend on @zeus-web/${item.name}`,
+        `registry item "${item.name}" must depend on ${special ? '@zeus-web/icons' : `@zeus-web/${item.name}`}`,
       )
     }
 

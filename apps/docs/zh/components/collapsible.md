@@ -11,7 +11,7 @@ pageClass: component-docs-page
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/collapsible</span>
   <span class="zw-badge">数据展示</span>
-  <span class="zw-badge">仅基础组件</span>
+  <span class="zw-badge">zweb add collapsible</span>
   <span class="zw-badge">自动生成</span>
 </div>
 
@@ -76,21 +76,23 @@ import {
 
 :::
 
-## 安装
-
-此组件暂时没有 Registry 模板。
-
-请改为安装基础组件包：
+## 添加
 
 ```bash
-pnpm add @zeus-web/collapsible
+zweb add collapsible
 ```
 
 ## 导入
 
 样式化 Registry 组件：
 
-暂不可用。
+```tsx
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+```
 
 基础组件 React 包装器：
 
@@ -143,11 +145,25 @@ import '@zeus-web/collapsible/wc/auto'
 
 ## Registry
 
-Registry 源码：暂不可用。
+Registry 源码：可用。
 
-`collapsible` 基础组件可通过 `@zeus-web/collapsible` 使用，但目前还不能通过 CLI Registry 安装。
+添加命令: `zweb add collapsible`
 
-在 Registry 模板加入之前，请直接使用基础组件包。
+类型: `component`
+
+依赖：
+
+- `@zeus-web/collapsible`
+
+Registry 依赖：
+
+- `cn`
+- `globals`
+
+文件：
+
+- `templates/react/collapsible.tsx` → `components/ui/collapsible.tsx`
+- `templates/vue/collapsible.ts` → `components/ui/collapsible.ts`
 
 ## AI 使用规则
 
@@ -169,7 +185,7 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from '@zeus-web/collapsible/react'
+} from '@/components/ui/collapsible'
 
 export function Example() {
   return (

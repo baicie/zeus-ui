@@ -43,7 +43,7 @@ features:
 
   <div class="zw-card">
     <h3>Add source</h3>
-    <p>Run <code>zweb add button input</code> to copy editable registry components into <code>src/components/ui</code>.</p>
+    <p>Run <code>zweb list</code> and <code>zweb add &lt;component&gt;</code> (or <code>zweb add --all</code>) to copy editable registry components into <code>src/components/ui</code>.</p>
   </div>
 
   <div class="zw-card">

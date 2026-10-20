@@ -11,7 +11,7 @@ pageClass: component-docs-page
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/radio-group</span>
   <span class="zw-badge">数据录入</span>
-  <span class="zw-badge">仅基础组件</span>
+  <span class="zw-badge">zweb add radio-group</span>
   <span class="zw-badge">自动生成</span>
 </div>
 
@@ -66,21 +66,19 @@ import { RadioGroup, RadioGroupItem } from '@zeus-web/radio-group/vue'
 
 :::
 
-## 安装
-
-此组件暂时没有 Registry 模板。
-
-请改为安装基础组件包：
+## 添加
 
 ```bash
-pnpm add @zeus-web/radio-group
+zweb add radio-group
 ```
 
 ## 导入
 
 样式化 Registry 组件：
 
-暂不可用。
+```tsx
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+```
 
 基础组件 React 包装器：
 
@@ -132,11 +130,25 @@ import '@zeus-web/radio-group/wc/auto'
 
 ## Registry
 
-Registry 源码：暂不可用。
+Registry 源码：可用。
 
-`radio-group` 基础组件可通过 `@zeus-web/radio-group` 使用，但目前还不能通过 CLI Registry 安装。
+添加命令: `zweb add radio-group`
 
-在 Registry 模板加入之前，请直接使用基础组件包。
+类型: `component`
+
+依赖：
+
+- `@zeus-web/radio-group`
+
+Registry 依赖：
+
+- `cn`
+- `globals`
+
+文件：
+
+- `templates/react/radio-group.tsx` → `components/ui/radio-group.tsx`
+- `templates/vue/radio-group.ts` → `components/ui/radio-group.ts`
 
 ## AI 使用规则
 
@@ -154,7 +166,7 @@ Registry 源码：暂不可用。
 ### React 样式化用法
 
 ```tsx
-import { RadioGroup, RadioGroupItem } from '@zeus-web/radio-group/react'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
 export function Example() {
   return (

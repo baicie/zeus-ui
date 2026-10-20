@@ -122,10 +122,8 @@ function checkRegistry(errors: string[]): void {
     './quality',
     './quality.json',
     './components.json',
-    './templates/react/button.tsx',
-    './templates/react/input.tsx',
-    './templates/vue/button.vue',
-    './templates/vue/input.vue',
+    './templates/react/*',
+    './templates/vue/*',
     './templates/css/globals.css',
     './templates/lib/cn.ts',
   ]
@@ -197,12 +195,39 @@ function checkRegistry(errors: string[]): void {
     }
   }
 
-  for (const required of ['button', 'input', 'cn', 'globals']) {
+  const requiredRegistryItems = [
+    'accordion',
+    'alert',
+    'avatar',
+    'badge',
+    'button',
+    'card',
+    'checkbox',
+    'cn',
+    'collapsible',
+    'dialog',
+    'globals',
+    'icon',
+    'input',
+    'label',
+    'progress',
+    'radio-group',
+    'select',
+    'separator',
+    'skeleton',
+    'switch',
+    'tabs',
+    'textarea',
+    'tooltip',
+  ]
+  const requiredRegistryItemNames = new Set(requiredRegistryItems)
+
+  for (const required of requiredRegistryItems) {
     if (!names.has(required)) errors.push(`registry.json missing ${required}`)
   }
 
   for (const name of names) {
-    if (!['button', 'input', 'cn', 'globals'].includes(name)) {
+    if (!requiredRegistryItemNames.has(name)) {
       errors.push(`unexpected beta.0 registry item ${name}`)
     }
   }
@@ -214,23 +239,17 @@ function checkRegistry(errors: string[]): void {
     }
   }
 
-  const button = manifest.items.find(i => i.name === 'button')
-  const input = manifest.items.find(i => i.name === 'input')
-  if (button) {
-    if (!button.dependencies.includes('@zeus-web/button'))
-      errors.push('button must depend on @zeus-web/button')
-    if (!button.registryDependencies.includes('cn'))
-      errors.push('button must registry-dep cn')
-    if (!button.registryDependencies.includes('globals'))
-      errors.push('button must registry-dep globals')
-  }
-  if (input) {
-    if (!input.dependencies.includes('@zeus-web/input'))
-      errors.push('input must depend on @zeus-web/input')
-    if (!input.registryDependencies.includes('cn'))
-      errors.push('input must registry-dep cn')
-    if (!input.registryDependencies.includes('globals'))
-      errors.push('input must registry-dep globals')
+  for (const item of manifest.items) {
+    if (item.type !== 'component') continue
+    if (!item.dependencies.includes(`@zeus-web/${item.name}`)) {
+      errors.push(`${item.name} must depend on @zeus-web/${item.name}`)
+    }
+    if (!item.registryDependencies.includes('cn')) {
+      errors.push(`${item.name} must registry-dep cn`)
+    }
+    if (!item.registryDependencies.includes('globals')) {
+      errors.push(`${item.name} must registry-dep globals`)
+    }
   }
 
   const reactButton = readFile('packages/registry/templates/react/button.tsx')

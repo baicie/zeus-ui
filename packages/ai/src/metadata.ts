@@ -8,6 +8,24 @@ import type {
 const registryComponentNames = new Set<ZeusWebAiComponentName>([
   'button',
   'input',
+  'checkbox',
+  'switch',
+  'tabs',
+  'dialog',
+  'label',
+  'textarea',
+  'radio-group',
+  'select',
+  'card',
+  'badge',
+  'separator',
+  'skeleton',
+  'alert',
+  'collapsible',
+  'accordion',
+  'tooltip',
+  'progress',
+  'avatar',
 ])
 
 export function isRegistryBackedAiComponent(
@@ -59,7 +77,7 @@ const rawAiMetadata: ZeusWebAiMetadata = {
   themes: ['default', 'slate', 'zinc', 'neutral', 'stone'],
   recommendedWorkflow: [
     'Run `zweb init` before adding registry-backed styled components.',
-    'Run `zweb add button input` to copy currently available registry source into the user project.',
+    'Run `zweb add <component>` to copy the selected registry source into the user project.',
     'Import styled components from the copied local path, usually `@/components/ui/<component>`.',
     'Use `@zeus-web/ui` for package-owned styled native Web Components.',
     'Use per-component packages such as `@zeus-web/button/react` when building advanced primitive-based design systems.',
@@ -119,7 +137,7 @@ const rawAiMetadata: ZeusWebAiMetadata = {
       'Use Zeus Web registry components for app-level React and Vue code when a registry template exists.',
       'Use --zeus-* semantic variables inside registry-installed source components.',
       'Respect zeus-ui.json aliases when generating local imports.',
-      'Use `zweb add button input` for currently available registry components.',
+      'Use `zweb add <component>` for registry-backed components.',
       'Use `zweb init --style <theme>` to set up registry CSS variables.',
     ],
     dont: [

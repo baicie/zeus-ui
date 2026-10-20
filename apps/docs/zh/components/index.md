@@ -9,7 +9,7 @@
 ## 推荐工作流
 
 - 添加由 Registry 支持的样式化组件之前，先运行 `zweb init`。
-- 运行 `zweb add button input`，将当前可用的 Registry 源码复制到项目中。
+- 运行 `zweb add <component>`，将所选 Registry 源码复制到用户项目中。
 - 从复制后的本地路径导入样式化组件，通常是 `@/components/ui/<component>`。
 - 需要软件包提供的样式化原生 Web Components 时，使用 `@zeus-web/ui`。
 - 构建基于基础组件的高级设计系统时，使用 `@zeus-web/button/react` 等单组件软件包。
@@ -18,5 +18,23 @@
 
 - `button`
 - `input`
+- `checkbox`
+- `switch`
+- `tabs`
+- `dialog`
+- `label`
+- `textarea`
+- `radio-group`
+- `select`
+- `card`
+- `badge`
+- `separator`
+- `skeleton`
+- `alert`
+- `collapsible`
+- `accordion`
+- `tooltip`
+- `progress`
+- `avatar`
 
 Registry 可用性仅表示可复制的基础组件源码；高级组件通过各自的软件包安装。

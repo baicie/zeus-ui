@@ -11,7 +11,7 @@ Styled separator component built on the zw-separator primitive.
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/separator</span>
   <span class="zw-badge">Layout</span>
-  <span class="zw-badge">primitive-only</span>
+  <span class="zw-badge">zweb add separator</span>
   <span class="zw-badge">Generated</span>
 </div>
 
@@ -55,21 +55,19 @@ import { Separator } from '@zeus-web/separator/vue'
 
 :::
 
-## Install
-
-This component does not have a registry template yet.
-
-Install the primitive package instead:
+## Add
 
 ```bash
-pnpm add @zeus-web/separator
+zweb add separator
 ```
 
 ## Imports
 
 Styled registry component:
 
-Not available yet.
+```tsx
+import { Separator } from '@/components/ui/separator'
+```
 
 Primitive React wrapper:
 
@@ -111,11 +109,25 @@ Internal selectors:
 
 ## Registry
 
-Registry source: not available yet.
+Registry source: available.
 
-The `separator` primitive is available through `@zeus-web/separator`, but it is not currently installable through the CLI registry.
+Add command: `zweb add separator`
 
-Use the primitive package directly until a registry template is added.
+Type: `component`
+
+Dependencies:
+
+- `@zeus-web/separator`
+
+Registry dependencies:
+
+- `cn`
+- `globals`
+
+Files:
+
+- `templates/react/separator.tsx` → `components/ui/separator.tsx`
+- `templates/vue/separator.ts` → `components/ui/separator.ts`
 
 ## AI usage rules
 
@@ -132,7 +144,7 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Separator } from '@zeus-web/separator/react'
+import { Separator } from '@/components/ui/separator'
 
 export function Example() {
   return <Separator />

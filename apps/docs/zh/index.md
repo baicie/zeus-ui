@@ -43,7 +43,7 @@ features:
 
   <div class="zw-card">
     <h3>添加源码</h3>
-    <p>运行 <code>zweb add button input</code>，将可编辑的 Registry 组件复制到 <code>src/components/ui</code>。</p>
+    <p>运行 <code>zweb list</code> 与 <code>zweb add &lt;component&gt;</code>（或 <code>zweb add --all</code>），将可编辑的 Registry 组件复制到 <code>src/components/ui</code>。</p>
   </div>
 
   <div class="zw-card">

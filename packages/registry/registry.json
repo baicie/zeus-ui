@@ -72,6 +72,386 @@
           "target": "components/ui/input.vue"
         }
       ]
+    },
+    {
+      "name": "accordion",
+      "type": "component",
+      "description": "Styled accordion built on @zeus-web/accordion primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/accordion"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/accordion.tsx",
+          "target": "components/ui/accordion.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/accordion.ts",
+          "target": "components/ui/accordion.ts"
+        }
+      ]
+    },
+    {
+      "name": "alert",
+      "type": "component",
+      "description": "Styled alert built on @zeus-web/alert primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/alert", "class-variance-authority"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/alert.tsx",
+          "target": "components/ui/alert.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/alert.ts",
+          "target": "components/ui/alert.ts"
+        }
+      ]
+    },
+    {
+      "name": "avatar",
+      "type": "component",
+      "description": "Styled avatar built on @zeus-web/avatar primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/avatar"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/avatar.tsx",
+          "target": "components/ui/avatar.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/avatar.ts",
+          "target": "components/ui/avatar.ts"
+        }
+      ]
+    },
+    {
+      "name": "badge",
+      "type": "component",
+      "description": "Styled badge built on @zeus-web/badge primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/badge", "class-variance-authority"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/badge.tsx",
+          "target": "components/ui/badge.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/badge.ts",
+          "target": "components/ui/badge.ts"
+        }
+      ]
+    },
+    {
+      "name": "card",
+      "type": "component",
+      "description": "Styled card family built on @zeus-web/card primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/card"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/card.tsx",
+          "target": "components/ui/card.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/card.ts",
+          "target": "components/ui/card.ts"
+        }
+      ]
+    },
+    {
+      "name": "checkbox",
+      "type": "component",
+      "description": "Styled checkbox built on @zeus-web/checkbox primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/checkbox", "class-variance-authority"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/checkbox.tsx",
+          "target": "components/ui/checkbox.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/checkbox.ts",
+          "target": "components/ui/checkbox.ts"
+        }
+      ]
+    },
+    {
+      "name": "collapsible",
+      "type": "component",
+      "description": "Styled collapsible built on @zeus-web/collapsible primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/collapsible"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/collapsible.tsx",
+          "target": "components/ui/collapsible.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/collapsible.ts",
+          "target": "components/ui/collapsible.ts"
+        }
+      ]
+    },
+    {
+      "name": "dialog",
+      "type": "component",
+      "description": "Styled modal dialog built on @zeus-web/dialog primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/dialog"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/dialog.tsx",
+          "target": "components/ui/dialog.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/dialog.ts",
+          "target": "components/ui/dialog.ts"
+        }
+      ]
+    },
+    {
+      "name": "label",
+      "type": "component",
+      "description": "Styled label built on @zeus-web/label primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/label"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/label.tsx",
+          "target": "components/ui/label.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/label.ts",
+          "target": "components/ui/label.ts"
+        }
+      ]
+    },
+    {
+      "name": "progress",
+      "type": "component",
+      "description": "Styled progress bar built on @zeus-web/progress primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/progress"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/progress.tsx",
+          "target": "components/ui/progress.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/progress.ts",
+          "target": "components/ui/progress.ts"
+        }
+      ]
+    },
+    {
+      "name": "radio-group",
+      "type": "component",
+      "description": "Styled radio group built on @zeus-web/radio-group primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/radio-group"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/radio-group.tsx",
+          "target": "components/ui/radio-group.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/radio-group.ts",
+          "target": "components/ui/radio-group.ts"
+        }
+      ]
+    },
+    {
+      "name": "select",
+      "type": "component",
+      "description": "Styled select built on @zeus-web/select primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/select"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/select.tsx",
+          "target": "components/ui/select.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/select.ts",
+          "target": "components/ui/select.ts"
+        }
+      ]
+    },
+    {
+      "name": "separator",
+      "type": "component",
+      "description": "Styled separator built on @zeus-web/separator primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/separator"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/separator.tsx",
+          "target": "components/ui/separator.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/separator.ts",
+          "target": "components/ui/separator.ts"
+        }
+      ]
+    },
+    {
+      "name": "skeleton",
+      "type": "component",
+      "description": "Styled loading skeleton built on @zeus-web/skeleton primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/skeleton"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/skeleton.tsx",
+          "target": "components/ui/skeleton.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/skeleton.ts",
+          "target": "components/ui/skeleton.ts"
+        }
+      ]
+    },
+    {
+      "name": "switch",
+      "type": "component",
+      "description": "Styled switch built on @zeus-web/switch primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/switch", "class-variance-authority"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/switch.tsx",
+          "target": "components/ui/switch.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/switch.ts",
+          "target": "components/ui/switch.ts"
+        }
+      ]
+    },
+    {
+      "name": "tabs",
+      "type": "component",
+      "description": "Styled tabs family built on @zeus-web/tabs primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/tabs"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/tabs.tsx",
+          "target": "components/ui/tabs.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/tabs.ts",
+          "target": "components/ui/tabs.ts"
+        }
+      ]
+    },
+    {
+      "name": "textarea",
+      "type": "component",
+      "description": "Styled textarea built on @zeus-web/textarea primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/textarea"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/textarea.tsx",
+          "target": "components/ui/textarea.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/textarea.ts",
+          "target": "components/ui/textarea.ts"
+        }
+      ]
+    },
+    {
+      "name": "tooltip",
+      "type": "component",
+      "description": "Styled tooltip family built on @zeus-web/tooltip primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/tooltip"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/tooltip.tsx",
+          "target": "components/ui/tooltip.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/tooltip.ts",
+          "target": "components/ui/tooltip.ts"
+        }
+      ]
+    },
+    {
+      "name": "icon",
+      "type": "utility",
+      "description": "Tree-shakeable React and Vue icon entrypoints backed by @zeus-web/icons.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/icons"],
+      "registryDependencies": [],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/icon.tsx",
+          "target": "components/ui/icon.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/icon.ts",
+          "target": "components/ui/icon.ts"
+        }
+      ]
     }
   ]
 }

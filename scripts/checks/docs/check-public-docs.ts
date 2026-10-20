@@ -88,7 +88,7 @@ const requiredContent: Record<string, string[]> = {
   ],
   'packages/ai/src/metadata.ts': [
     'Respect zeus-ui.json aliases',
-    'zweb add button input',
+    'zweb add <component>',
     '@zeus-web/ui',
   ],
   'apps/docs/components/index.md': [
@@ -97,7 +97,10 @@ const requiredContent: Record<string, string[]> = {
     '<ComponentDirectory />',
     'Current registry components',
   ],
-  'apps/docs/components/checkbox.md': ['Registry source: not available yet.'],
+  'apps/docs/components/checkbox.md': [
+    'Registry source: available.',
+    'zweb add checkbox',
+  ],
 }
 
 const forbiddenContent: Record<string, string[]> = {
@@ -126,20 +129,10 @@ const forbiddenContent: Record<string, string[]> = {
     "@import '@zeus-web/themes/slate.css'",
     'components.css provides the default',
   ],
-  'packages/ai/src/metadata.ts': [
-    'components.json',
-    'class-variance-authority',
-    'tailwind-merge',
-  ],
-  'apps/docs/components/index.md': [
-    'zweb add checkbox',
-    'zweb add switch',
-    'zweb add dialog',
-  ],
+  'packages/ai/src/metadata.ts': ['components.json', 'tailwind-merge'],
   'apps/docs/components/checkbox.md': [
     'registry:ui',
     'default/lib/utils.ts',
-    'class-variance-authority',
     'tailwind-merge',
   ],
 }

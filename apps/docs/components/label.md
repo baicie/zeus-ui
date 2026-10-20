@@ -11,7 +11,7 @@ Styled label component built on the zw-label primitive.
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/label</span>
   <span class="zw-badge">Data Entry</span>
-  <span class="zw-badge">primitive-only</span>
+  <span class="zw-badge">zweb add label</span>
   <span class="zw-badge">Generated</span>
 </div>
 
@@ -64,21 +64,19 @@ import { Label } from '@zeus-web/label/vue'
 
 :::
 
-## Install
-
-This component does not have a registry template yet.
-
-Install the primitive package instead:
+## Add
 
 ```bash
-pnpm add @zeus-web/label
+zweb add label
 ```
 
 ## Imports
 
 Styled registry component:
 
-Not available yet.
+```tsx
+import { Label } from '@/components/ui/label'
+```
 
 Primitive React wrapper:
 
@@ -127,11 +125,25 @@ Internal selectors:
 
 ## Registry
 
-Registry source: not available yet.
+Registry source: available.
 
-The `label` primitive is available through `@zeus-web/label`, but it is not currently installable through the CLI registry.
+Add command: `zweb add label`
 
-Use the primitive package directly until a registry template is added.
+Type: `component`
+
+Dependencies:
+
+- `@zeus-web/label`
+
+Registry dependencies:
+
+- `cn`
+- `globals`
+
+Files:
+
+- `templates/react/label.tsx` → `components/ui/label.tsx`
+- `templates/vue/label.ts` → `components/ui/label.ts`
 
 ## AI usage rules
 
@@ -149,7 +161,7 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Label } from '@zeus-web/label/react'
+import { Label } from '@/components/ui/label'
 
 export function Example() {
   return <Label for="email">Email</Label>

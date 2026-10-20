@@ -11,7 +11,7 @@ Styled textarea component built on the zw-textarea primitive.
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/textarea</span>
   <span class="zw-badge">Data Entry</span>
-  <span class="zw-badge">primitive-only</span>
+  <span class="zw-badge">zweb add textarea</span>
   <span class="zw-badge">Generated</span>
 </div>
 
@@ -55,21 +55,19 @@ import { Textarea } from '@zeus-web/textarea/vue'
 
 :::
 
-## Install
-
-This component does not have a registry template yet.
-
-Install the primitive package instead:
+## Add
 
 ```bash
-pnpm add @zeus-web/textarea
+zweb add textarea
 ```
 
 ## Imports
 
 Styled registry component:
 
-Not available yet.
+```tsx
+import { Textarea } from '@/components/ui/textarea'
+```
 
 Primitive React wrapper:
 
@@ -126,11 +124,25 @@ Internal selectors:
 
 ## Registry
 
-Registry source: not available yet.
+Registry source: available.
 
-The `textarea` primitive is available through `@zeus-web/textarea`, but it is not currently installable through the CLI registry.
+Add command: `zweb add textarea`
 
-Use the primitive package directly until a registry template is added.
+Type: `component`
+
+Dependencies:
+
+- `@zeus-web/textarea`
+
+Registry dependencies:
+
+- `cn`
+- `globals`
+
+Files:
+
+- `templates/react/textarea.tsx` → `components/ui/textarea.tsx`
+- `templates/vue/textarea.ts` → `components/ui/textarea.ts`
 
 ## AI usage rules
 
@@ -147,7 +159,7 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Textarea } from '@zeus-web/textarea/react'
+import { Textarea } from '@/components/ui/textarea'
 
 export function Example() {
   return <Textarea placeholder="Message" />

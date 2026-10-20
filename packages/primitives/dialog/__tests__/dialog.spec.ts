@@ -25,6 +25,7 @@ describe('dialog primitive protocol', () => {
       'zw-dialog',
       'zw-dialog-trigger',
       'zw-dialog-content',
+      'zw-dialog-overlay',
       'zw-dialog-close',
       'zw-dialog-title',
       'zw-dialog-description',
@@ -101,7 +102,12 @@ describe('dialog primitive protocol', () => {
       cssParts: ['content'],
     })
 
-    expect(result.components[4]).toMatchObject({
+    expect(result.components[3]).toMatchObject({
+      tag: 'zw-dialog-overlay',
+      cssParts: ['overlay'],
+    })
+
+    expect(result.components[5]).toMatchObject({
       tag: 'zw-dialog-title',
       slots: {
         default: {

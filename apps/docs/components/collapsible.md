@@ -11,7 +11,7 @@ Styled collapsible component family built on zw-collapsible primitives.
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/collapsible</span>
   <span class="zw-badge">Data Display</span>
-  <span class="zw-badge">primitive-only</span>
+  <span class="zw-badge">zweb add collapsible</span>
   <span class="zw-badge">Generated</span>
 </div>
 
@@ -76,21 +76,23 @@ import {
 
 :::
 
-## Install
-
-This component does not have a registry template yet.
-
-Install the primitive package instead:
+## Add
 
 ```bash
-pnpm add @zeus-web/collapsible
+zweb add collapsible
 ```
 
 ## Imports
 
 Styled registry component:
 
-Not available yet.
+```tsx
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+```
 
 Primitive React wrapper:
 
@@ -143,11 +145,25 @@ Internal selectors:
 
 ## Registry
 
-Registry source: not available yet.
+Registry source: available.
 
-The `collapsible` primitive is available through `@zeus-web/collapsible`, but it is not currently installable through the CLI registry.
+Add command: `zweb add collapsible`
 
-Use the primitive package directly until a registry template is added.
+Type: `component`
+
+Dependencies:
+
+- `@zeus-web/collapsible`
+
+Registry dependencies:
+
+- `cn`
+- `globals`
+
+Files:
+
+- `templates/react/collapsible.tsx` → `components/ui/collapsible.tsx`
+- `templates/vue/collapsible.ts` → `components/ui/collapsible.ts`
 
 ## AI usage rules
 
@@ -169,7 +185,7 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from '@zeus-web/collapsible/react'
+} from '@/components/ui/collapsible'
 
 export function Example() {
   return (

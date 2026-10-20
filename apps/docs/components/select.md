@@ -11,7 +11,7 @@ Accessible custom select with a combobox trigger and listbox popup.
 <div class="zw-badge-row">
   <span class="zw-badge">@zeus-web/select</span>
   <span class="zw-badge">Data Entry</span>
-  <span class="zw-badge">primitive-only</span>
+  <span class="zw-badge">zweb add select</span>
   <span class="zw-badge">Generated</span>
 </div>
 
@@ -66,21 +66,19 @@ import { Select } from '@zeus-web/select/vue'
 
 :::
 
-## Install
-
-This component does not have a registry template yet.
-
-Install the primitive package instead:
+## Add
 
 ```bash
-pnpm add @zeus-web/select
+zweb add select
 ```
 
 ## Imports
 
 Styled registry component:
 
-Not available yet.
+```tsx
+import { Select } from '@/components/ui/select'
+```
 
 Primitive React wrapper:
 
@@ -150,11 +148,25 @@ Internal selectors:
 
 ## Registry
 
-Registry source: not available yet.
+Registry source: available.
 
-The `select` primitive is available through `@zeus-web/select`, but it is not currently installable through the CLI registry.
+Add command: `zweb add select`
 
-Use the primitive package directly until a registry template is added.
+Type: `component`
+
+Dependencies:
+
+- `@zeus-web/select`
+
+Registry dependencies:
+
+- `cn`
+- `globals`
+
+Files:
+
+- `templates/react/select.tsx` → `components/ui/select.tsx`
+- `templates/vue/select.ts` → `components/ui/select.ts`
 
 ## AI usage rules
 
@@ -173,7 +185,7 @@ Do not:
 ### React styled usage
 
 ```tsx
-import { Select } from '@zeus-web/select/react'
+import { Select } from '@/components/ui/select'
 
 export function Example() {
   return (
