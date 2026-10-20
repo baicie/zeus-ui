@@ -78,6 +78,15 @@ function assertPathInside(base: string, file: string, source: string): void {
   }
 }
 
+function isUrlWithinRegistryRoot(candidate: URL, base: URL): boolean {
+  const basePath = base.pathname.endsWith('/')
+    ? base.pathname
+    : `${base.pathname}/`
+  return (
+    candidate.origin === base.origin && candidate.pathname.startsWith(basePath)
+  )
+}
+
 async function readLimitedFile(label: string, file: string): Promise<string> {
   if (statSync(file).size > maximumRegistryAssetBytes) {
     throw new Error(`${label} exceeds the 5 MiB registry asset limit`)
@@ -219,19 +228,21 @@ export async function loadRegistrySource(
       readSource: async source => {
         assertSafeRegistrySourcePath(source)
         const assetUrl = new URL(source, baseUrl)
-        const basePath = baseUrl.pathname.endsWith('/')
-          ? baseUrl.pathname
-          : `${baseUrl.pathname}/`
-        if (
-          assetUrl.origin !== baseUrl.origin ||
-          !assetUrl.pathname.startsWith(basePath)
-        ) {
+        if (!isUrlWithinRegistryRoot(assetUrl, baseUrl)) {
           throw new Error(
             `Registry source escapes its registry root: ${source}`,
           )
         }
-        return (await readLimitedUrl(`Registry asset ${source}`, assetUrl))
-          .source
+        const response = await readLimitedUrl(
+          `Registry asset ${source}`,
+          assetUrl,
+        )
+        if (!isUrlWithinRegistryRoot(response.url, baseUrl)) {
+          throw new Error(
+            `Registry source redirect escapes its registry root: ${source}`,
+          )
+        }
+        return response.source
       },
     }
   }

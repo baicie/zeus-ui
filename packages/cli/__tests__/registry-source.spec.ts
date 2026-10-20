@@ -193,4 +193,46 @@ describe('@zeus-web/cli registry sources', () => {
       })
     }
   })
+
+  it('rejects redirects before registry assets can leave the validated root', async () => {
+    const manifest = JSON.stringify(createManifest())
+    const server = createServer((request, response) => {
+      if (request.url === '/registry/registry.json') {
+        response.end(manifest)
+        return
+      }
+      if (request.url === '/registry/templates/button.tsx') {
+        response.writeHead(302, { location: '/outside/button.tsx' })
+        response.end()
+        return
+      }
+      if (request.url === '/outside/button.tsx') {
+        response.end('secret from another root')
+        return
+      }
+      response.statusCode = 404
+      response.end('missing')
+    })
+    await new Promise<void>(resolveListen => {
+      server.listen(0, '127.0.0.1', resolveListen)
+    })
+    const address = server.address()
+    if (!address || typeof address === 'string') {
+      throw new Error('Expected a TCP server address')
+    }
+
+    try {
+      const loaded = await loadRegistrySource({
+        reference: `http://127.0.0.1:${address.port}/registry/`,
+      })
+      await expect(loaded.readSource('templates/button.tsx')).rejects.toThrow()
+    } finally {
+      await new Promise<void>((resolveClose, rejectClose) => {
+        server.close(error => {
+          if (error) rejectClose(error)
+          else resolveClose()
+        })
+      })
+    }
+  })
 })
