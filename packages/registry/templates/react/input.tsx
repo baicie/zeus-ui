@@ -77,6 +77,9 @@ const inputSizeClasses: Record<InputSize, string> = {
 export function Input({
   className,
   size = inputRegistryDefaults.size,
+  prefix,
+  suffix,
+  message,
   ...props
 }: InputProps) {
   return (
@@ -93,6 +96,10 @@ export function Input({
         className,
       )}
       {...props}
-    />
+    >
+      {prefix ? <span slot="prefix">{prefix}</span> : null}
+      {suffix ? <span slot="suffix">{suffix}</span> : null}
+      {message ? <span slot="message">{message}</span> : null}
+    </InputPrimitive>
   )
 }

@@ -57,10 +57,10 @@
       "registryDependencies": ["cn", "globals"],
       "updatedAt": "showcase-registry-sync",
       "fileHashes": {
-        "src/components/ui/input.tsx": "afa313f4dd80d3187b13225b3890e316c0ccc796655942153aaba23ff84511fb"
+        "src/components/ui/input.tsx": "9470eae4dbd3921538e337e0ea4e59dfbd211eca25ecda067c9f74bca9ee3c5b"
       },
       "registryHashes": {
-        "src/components/ui/input.tsx": "afa313f4dd80d3187b13225b3890e316c0ccc796655942153aaba23ff84511fb"
+        "src/components/ui/input.tsx": "9470eae4dbd3921538e337e0ea4e59dfbd211eca25ecda067c9f74bca9ee3c5b"
       }
     }
   }
