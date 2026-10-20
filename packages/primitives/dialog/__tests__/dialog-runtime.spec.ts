@@ -36,15 +36,30 @@ async function createDialog(): Promise<RuntimeDialog> {
   ].join('')
   dialog.open = true
   document.body.append(dialog)
-  await dialog.componentOnReady()
+  const content = dialog.querySelector('zw-dialog-content') as
+    | (HTMLElement & { componentOnReady?: () => Promise<unknown> })
+    | null
+  const overlay = dialog.querySelector('zw-dialog-overlay') as
+    | (HTMLElement & { componentOnReady?: () => Promise<unknown> })
+    | null
+  const title = dialog.querySelector('zw-dialog-title') as
+    | (HTMLElement & { componentOnReady?: () => Promise<unknown> })
+    | null
+  await Promise.all([
+    dialog.componentOnReady(),
+    content?.componentOnReady?.(),
+    overlay?.componentOnReady?.(),
+    title?.componentOnReady?.(),
+  ])
   await nextRender()
   return dialog
 }
 
 beforeAll(() => import(distPath))
 
-afterEach(() => {
+afterEach(async () => {
   document.body.replaceChildren()
+  await nextRender()
 })
 
 describe('dialog runtime accessibility', () => {
