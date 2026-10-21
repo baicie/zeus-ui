@@ -97,6 +97,15 @@ function setupControl(
   ctx: DefineElementContext<FormFieldControlElement>,
 ) {
   const field = useFormFieldContext(ctx.host)
+  interface ManagedControlState {
+    originalAriaInvalid: string | null
+    originalAriaRequired: string | null
+    originalDisabled: boolean
+    lastAriaInvalid: string | null | undefined
+    lastAriaRequired: string | null | undefined
+    lastDisabled: boolean | undefined
+  }
+  const managedControls = new WeakMap<HTMLElement, ManagedControlState>()
   const controls = () =>
     Array.from(
       ctx.host.querySelectorAll<HTMLElement>(
@@ -104,10 +113,56 @@ function setupControl(
       ),
     )
 
+  const getManagedState = (control: HTMLElement): ManagedControlState => {
+    const existing = managedControls.get(control)
+    if (existing) return existing
+    const state: ManagedControlState = {
+      originalAriaInvalid: control.getAttribute('aria-invalid'),
+      originalAriaRequired: control.getAttribute('aria-required'),
+      originalDisabled: control.hasAttribute('disabled'),
+      lastAriaInvalid: undefined,
+      lastAriaRequired: undefined,
+      lastDisabled: undefined,
+    }
+    managedControls.set(control, state)
+    return state
+  }
+
+  const syncManagedAttribute = (
+    control: HTMLElement,
+    state: ManagedControlState,
+    name: 'aria-invalid' | 'aria-required',
+    enabled: boolean,
+    value: 'true',
+  ) => {
+    const original =
+      name === 'aria-invalid'
+        ? state.originalAriaInvalid
+        : state.originalAriaRequired
+    const last =
+      name === 'aria-invalid' ? state.lastAriaInvalid : state.lastAriaRequired
+    const current = control.getAttribute(name)
+
+    if (enabled) {
+      control.setAttribute(name, value)
+      if (name === 'aria-invalid') state.lastAriaInvalid = value
+      else state.lastAriaRequired = value
+      return
+    }
+
+    if (last !== undefined && current === last) {
+      if (original === null) control.removeAttribute(name)
+      else control.setAttribute(name, original)
+    }
+    if (name === 'aria-invalid') state.lastAriaInvalid = undefined
+    else state.lastAriaRequired = undefined
+  }
+
   const syncControls = () => {
     const value = field()
     for (const [index, control] of controls().entries()) {
       if (value) {
+        const state = getManagedState(control)
         if (control.id) {
           if (index === 0) value.setControlId(control.id)
         } else {
@@ -118,10 +173,35 @@ function setupControl(
           control.id = controlId
           if (index === 0) value.setControlId(controlId)
         }
-        control.setAttribute('aria-invalid', String(value.isInvalid()))
-        control.setAttribute('aria-required', String(value.isRequired()))
-        if (value.isDisabled()) control.setAttribute('disabled', '')
-        else control.removeAttribute('disabled')
+        syncManagedAttribute(
+          control,
+          state,
+          'aria-invalid',
+          value.isInvalid(),
+          'true',
+        )
+        syncManagedAttribute(
+          control,
+          state,
+          'aria-required',
+          value.isRequired(),
+          'true',
+        )
+        const disabled = value.isDisabled()
+        const currentDisabled = control.hasAttribute('disabled')
+        if (disabled) {
+          control.setAttribute('disabled', '')
+          state.lastDisabled = true
+        } else if (
+          state.lastDisabled !== undefined &&
+          currentDisabled === state.lastDisabled
+        ) {
+          if (state.originalDisabled) control.setAttribute('disabled', '')
+          else control.removeAttribute('disabled')
+          state.lastDisabled = undefined
+        } else {
+          state.lastDisabled = undefined
+        }
         const managedIds = [value.getDescriptionId(), value.getMessageId()]
         const current = (control.getAttribute('aria-describedby') || '')
           .split(/\s+/)

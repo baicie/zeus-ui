@@ -130,6 +130,28 @@ describe('dropdown menu keyboard behavior', () => {
     expect(document.activeElement).toBe(first)
   })
 
+  it('opens from trigger arrow keys and focuses the matching edge item', async () => {
+    const menu = await createMenu()
+    const trigger = getTrigger(menu)
+    const first = getItem(menu, 'first')
+    const second = getItem(menu, 'second')
+
+    trigger.focus()
+    const down = dispatchKey(trigger, 'ArrowDown')
+    await nextRender()
+    expect(down.defaultPrevented).toBe(true)
+    expect(menu.open).toBe(true)
+    expect(document.activeElement).toBe(first)
+
+    dispatchKey(first, 'Escape')
+    await nextRender()
+    trigger.focus()
+    dispatchKey(trigger, 'ArrowUp')
+    await nextRender()
+    expect(menu.open).toBe(true)
+    expect(document.activeElement).toBe(second)
+  })
+
   it('returns focus to the trigger after selecting an item', async () => {
     const menu = await createMenu()
     const trigger = getTrigger(menu)

@@ -29,7 +29,10 @@ function nextRender(): Promise<void> {
     .then(() => new Promise(resolve => setTimeout(resolve, 0)))
 }
 
-async function createField(nativeId?: string): Promise<RuntimeFormField> {
+async function createField(
+  nativeId?: string,
+  nativeAttributes = '',
+): Promise<RuntimeFormField> {
   await Promise.all(
     [
       'zw-form-field',
@@ -43,7 +46,7 @@ async function createField(nativeId?: string): Promise<RuntimeFormField> {
   field.id = 'profile'
   field.innerHTML = [
     '<zw-form-field-label>Name</zw-form-field-label>',
-    `<zw-form-field-control><input${nativeId ? ` id="${nativeId}"` : ''} aria-describedby="external" /></zw-form-field-control>`,
+    `<zw-form-field-control><input${nativeId ? ` id="${nativeId}"` : ''} aria-describedby="external"${nativeAttributes} /></zw-form-field-control>`,
     '<zw-form-field-description>Enter your name.</zw-form-field-description>',
     '<zw-form-field-message>Required.</zw-form-field-message>',
   ].join('')
@@ -106,8 +109,8 @@ describe('form field runtime accessibility', () => {
     field.disabled = false
     await nextRender()
 
-    expect(native).toHaveAttribute('aria-invalid', 'false')
-    expect(native).toHaveAttribute('aria-required', 'false')
+    expect(native).not.toHaveAttribute('aria-invalid')
+    expect(native).not.toHaveAttribute('aria-required')
     expect(native).not.toHaveAttribute('disabled')
   })
 
@@ -127,5 +130,31 @@ describe('form field runtime accessibility', () => {
     expect(native.getAttribute('aria-describedby')).toBe(
       'external profile-description',
     )
+  })
+
+  it('preserves caller-owned control state while syncing field state', async () => {
+    const field = await createField(
+      undefined,
+      ' disabled aria-invalid="true" aria-required="true"',
+    )
+    const native = field.querySelector('input')
+    if (!native) throw new Error('Expected native input control.')
+
+    expect(native).toHaveAttribute('disabled')
+    expect(native).toHaveAttribute('aria-invalid', 'true')
+    expect(native).toHaveAttribute('aria-required', 'true')
+
+    field.invalid = true
+    field.required = true
+    field.disabled = true
+    await nextRender()
+    field.invalid = false
+    field.required = false
+    field.disabled = false
+    await nextRender()
+
+    expect(native).toHaveAttribute('disabled')
+    expect(native).toHaveAttribute('aria-invalid', 'true')
+    expect(native).toHaveAttribute('aria-required', 'true')
   })
 })

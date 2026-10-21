@@ -176,6 +176,20 @@ export const DropdownMenu = defineElement<
 function setupTrigger(_props: object, ctx: DefineElementContext<HTMLElement>) {
   const menu = useDropdownMenuContext(ctx.host)
   let button: HTMLButtonElement | undefined
+  const handleKeyDown = (nativeEvent: KeyboardEvent) => {
+    if (nativeEvent.key !== 'ArrowDown' && nativeEvent.key !== 'ArrowUp') return
+    const value = menu()
+    if (!value || value.isDisabled()) return
+
+    nativeEvent.preventDefault()
+    if (!value.getOpen()) value.setOpen(true, nativeEvent)
+    setTimeout(() => {
+      if (value.getOpen()) {
+        if (nativeEvent.key === 'ArrowDown') value.focusFirstItem()
+        else value.focusLastItem()
+      }
+    }, 0)
+  }
   createEffect(() => {
     const value = menu()
     if (button && value) value.registerTrigger(button)
@@ -197,6 +211,7 @@ function setupTrigger(_props: object, ctx: DefineElementContext<HTMLElement>) {
         onClick={(event: MouseEvent) =>
           menu()?.setOpen(!menu()!.getOpen(), event)
         }
+        onKeyDown={handleKeyDown}
       >
         <Slot />
       </button>
