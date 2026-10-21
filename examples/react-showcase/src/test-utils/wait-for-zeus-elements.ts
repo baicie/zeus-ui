@@ -39,9 +39,19 @@ function waitForComponent(
       }
     }, COMPONENT_READY_TIMEOUT_MS)
   })
-  return Promise.race([ready, timeout]).finally(() => {
+  const clearReadyTimeout = () => {
     if (timeoutId !== undefined) clearTimeout(timeoutId)
-  })
+  }
+  return Promise.race([ready, timeout]).then(
+    value => {
+      clearReadyTimeout()
+      return value
+    },
+    error => {
+      clearReadyTimeout()
+      throw error
+    },
+  )
 }
 
 function waitForNewZeusElements(
