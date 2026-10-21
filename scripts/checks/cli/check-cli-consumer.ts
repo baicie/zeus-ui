@@ -27,9 +27,12 @@ const registryComponents = [
   'checkbox',
   'collapsible',
   'dialog',
+  'dropdown-menu',
+  'form-field',
   'input',
   'label',
   'progress',
+  'popover',
   'radio-group',
   'select',
   'separator',
@@ -38,6 +41,7 @@ const registryComponents = [
   'tabs',
   'textarea',
   'tooltip',
+  'toast',
   'icon',
 ] as const
 
@@ -151,6 +155,11 @@ function verifyFramework(framework: 'react' | 'vue'): void {
       }),
     )
     run(['init', '--framework', framework])
+    run(['ai'])
+    const aiGuide = readFileSync(join(cwd, 'zeus-web.ai.md'), 'utf8')
+    assert.match(aiGuide, /# Zeus Web AI Guide/)
+    assert.match(aiGuide, /## Icons/)
+    assert.match(aiGuide, /zweb add button/)
     run(['add', '--all', '--skip-deps'])
     const typecheck = spawnSync(
       process.execPath,

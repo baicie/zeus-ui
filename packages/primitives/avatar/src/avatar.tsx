@@ -56,9 +56,9 @@ function setupAvatar(
     <Host
       part="root"
       data-slot="avatar-root"
-      data-size={() => props.size}
-      data-shape={() => props.shape}
-      data-image-status={() => context.getImageStatus()}
+      data-size={props.size}
+      data-shape={props.shape}
+      data-image-status={context.getImageStatus()}
     >
       <Slot />
     </Host>
@@ -114,10 +114,10 @@ function setupAvatarImage(
       <img
         part="image"
         data-slot="avatar-image"
-        src={() => props.src}
-        alt={() => props.alt || ''}
-        loading={() => props.loading}
-        referrerPolicy={() => props.referrerPolicy}
+        src={props.src}
+        alt={props.alt || ''}
+        loading={props.loading}
+        prop:referrerPolicy={() => props.referrerPolicy}
         onLoad={(nativeEvent: Event) => {
           avatar?.setImageStatus('loaded')
           ctx.emit.imageLoad({ nativeEvent })
@@ -172,8 +172,8 @@ function setupAvatarFallback(
     <Host
       part="fallback"
       data-slot="avatar-fallback"
-      data-delay-ms={() => String(props.delayMs ?? 0)}
-      hidden={() => !shouldShow()}
+      data-delay-ms={String(props.delayMs ?? 0)}
+      hidden={!shouldShow()}
     >
       <Slot />
     </Host>

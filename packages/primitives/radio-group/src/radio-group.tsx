@@ -99,14 +99,14 @@ function setupRadioGroup(
     <Host
       data-slot="radio-group-root"
       role="radiogroup"
-      data-orientation={() => props.orientation || 'vertical'}
-      data-size={() => context.getSize()}
-      data-disabled={() => (props.disabled ? '' : undefined)}
-      data-invalid={() => (props.invalid ? '' : undefined)}
-      aria-label={() => props.ariaLabel}
-      aria-describedby={() => props.ariaDescribedby}
-      aria-required={() => (props.required ? 'true' : undefined)}
-      aria-invalid={() => (props.invalid ? 'true' : undefined)}
+      data-orientation={props.orientation || 'vertical'}
+      data-size={context.getSize()}
+      data-disabled={props.disabled ? '' : undefined}
+      data-invalid={props.invalid ? '' : undefined}
+      aria-label={props.ariaLabel}
+      aria-describedby={props.ariaDescribedby}
+      aria-required={props.required ? 'true' : undefined}
+      aria-invalid={props.invalid ? 'true' : undefined}
     >
       <Slot />
     </Host>
@@ -227,9 +227,9 @@ function setupRadioGroupItem(
   return (
     <Host
       data-slot="radio-group-item"
-      data-value={() => props.value}
-      data-state={() => (isChecked() ? 'checked' : 'unchecked')}
-      data-disabled={() => (isDisabled() ? '' : undefined)}
+      data-value={props.value}
+      data-state={isChecked() ? 'checked' : 'unchecked'}
+      data-disabled={isDisabled() ? '' : undefined}
     >
       <label part="root">
         <input
@@ -240,12 +240,12 @@ function setupRadioGroupItem(
           data-slot="radio-group-control"
           prop:type={() => 'radio'}
           prop:checked={() => isChecked()}
-          name={() => group.getName()}
-          value={() => props.value}
-          disabled={() => isDisabled()}
-          required={() => Boolean(group.isRequired())}
-          aria-checked={() => String(isChecked())}
-          aria-invalid={() => (group.isInvalid() ? 'true' : undefined)}
+          name={group.getName()}
+          value={props.value}
+          disabled={isDisabled()}
+          required={Boolean(group.isRequired())}
+          aria-checked={String(isChecked())}
+          aria-invalid={group.isInvalid() ? 'true' : undefined}
           onChange={nativeEvent => {
             if (props.value && !isDisabled()) {
               group.setValue(props.value, nativeEvent)

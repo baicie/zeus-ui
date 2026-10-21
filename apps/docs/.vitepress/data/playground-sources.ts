@@ -84,6 +84,20 @@ function createPrimitiveSources(
 }
 
 const primitiveSources = {
+  'form-field': createPrimitiveSources({
+    name: 'form-field',
+    title: 'Form Field',
+    symbols: [
+      'FormField',
+      'FormFieldControl',
+      'FormFieldLabel',
+      'FormFieldMessage',
+    ],
+    webComponentMarkup:
+      '<zw-form-field invalid><zw-form-field-label>Email</zw-form-field-label><zw-form-field-control><input type="email" /></zw-form-field-control><zw-form-field-message>Enter a valid email.</zw-form-field-message></zw-form-field>',
+    frameworkMarkup:
+      '<FormField invalid><FormFieldLabel>Email</FormFieldLabel><FormFieldControl><input type="email" /></FormFieldControl><FormFieldMessage>Enter a valid email.</FormFieldMessage></FormField>',
+  }),
   button: createPrimitiveSources({
     name: 'button',
     title: 'Button',
@@ -409,6 +423,38 @@ const primitiveSources = {
       '  <TooltipContent>Copy link</TooltipContent>',
       '</Tooltip>',
     ].join('\n'),
+  }),
+  popover: createPrimitiveSources({
+    name: 'popover',
+    title: 'Popover',
+    symbols: ['Popover', 'PopoverTrigger', 'PopoverContent'],
+    webComponentMarkup:
+      '<zw-popover><zw-popover-trigger>Details</zw-popover-trigger><zw-popover-content>More information.</zw-popover-content></zw-popover>',
+    frameworkMarkup:
+      '<Popover><PopoverTrigger>Details</PopoverTrigger><PopoverContent>More information.</PopoverContent></Popover>',
+  }),
+  'dropdown-menu': createPrimitiveSources({
+    name: 'dropdown-menu',
+    title: 'Dropdown Menu',
+    symbols: [
+      'DropdownMenu',
+      'DropdownMenuTrigger',
+      'DropdownMenuContent',
+      'DropdownMenuItem',
+    ],
+    webComponentMarkup:
+      '<zw-dropdown-menu><zw-dropdown-menu-trigger>Actions</zw-dropdown-menu-trigger><zw-dropdown-menu-content><zw-dropdown-menu-item value="edit">Edit</zw-dropdown-menu-item></zw-dropdown-menu-content></zw-dropdown-menu>',
+    frameworkMarkup:
+      '<DropdownMenu><DropdownMenuTrigger>Actions</DropdownMenuTrigger><DropdownMenuContent><DropdownMenuItem value="edit">Edit</DropdownMenuItem></DropdownMenuContent></DropdownMenu>',
+  }),
+  toast: createPrimitiveSources({
+    name: 'toast',
+    title: 'Toast',
+    symbols: ['Toast', 'ToastTitle', 'ToastDescription', 'ToastClose'],
+    webComponentMarkup:
+      '<zw-toast default-open><zw-toast-title>Saved</zw-toast-title><zw-toast-description>Your changes are saved.</zw-toast-description><zw-toast-close>Close</zw-toast-close></zw-toast>',
+    frameworkMarkup:
+      '<Toast defaultOpen><ToastTitle>Saved</ToastTitle><ToastDescription>Your changes are saved.</ToastDescription><ToastClose>Close</ToastClose></Toast>',
   }),
   progress: createPrimitiveSources({
     name: 'progress',
@@ -897,6 +943,7 @@ const advancedSources = {
 }
 
 export const playgroundSources: Record<ComponentName, PlaygroundSourceSet> = {
+  'form-field': primitiveSources['form-field'],
   button: primitiveSources.button,
   input: primitiveSources.input,
   checkbox: primitiveSources.checkbox,
@@ -915,6 +962,9 @@ export const playgroundSources: Record<ComponentName, PlaygroundSourceSet> = {
   collapsible: primitiveSources.collapsible,
   accordion: primitiveSources.accordion,
   tooltip: primitiveSources.tooltip,
+  popover: primitiveSources.popover,
+  'dropdown-menu': primitiveSources['dropdown-menu'],
+  toast: primitiveSources.toast,
   progress: primitiveSources.progress,
   avatar: primitiveSources.avatar,
   'agent-console': advancedSources['agent-console'],

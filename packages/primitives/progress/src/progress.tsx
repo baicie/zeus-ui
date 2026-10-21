@@ -41,34 +41,24 @@ export const Progress = defineElement<ProgressProps, ProgressElement>(
     <Host
       part="root"
       data-slot="progress-root"
-      data-state={() => (props.indeterminate ? 'indeterminate' : 'determinate')}
-      data-value={() => String(getValue(props))}
-      data-max={() => String(getMax(props))}
-      data-percent={() => String(getPercent(props))}
-      style={() => {
-        const style: Record<string, string> = {}
-        style['--zw-progress-percent'] = `${getPercent(props)}%`
-        return style
-      }}
+      data-state={props.indeterminate ? 'indeterminate' : 'determinate'}
+      data-value={String(getValue(props))}
+      data-max={String(getMax(props))}
+      data-percent={String(getPercent(props))}
+      style={{ '--zw-progress-percent': `${getPercent(props)}%` }}
       role="progressbar"
-      aria-label={() => props.label}
-      aria-valuemin={() => (props.indeterminate ? undefined : '0')}
-      aria-valuemax={() =>
-        props.indeterminate ? undefined : String(getMax(props))
-      }
-      aria-valuenow={() =>
-        props.indeterminate ? undefined : String(getValue(props))
-      }
-      aria-valuetext={() =>
-        props.indeterminate ? 'Loading' : `${getPercent(props)}%`
-      }
+      aria-label={props.label}
+      aria-valuemin={props.indeterminate ? undefined : '0'}
+      aria-valuemax={props.indeterminate ? undefined : String(getMax(props))}
+      aria-valuenow={props.indeterminate ? undefined : String(getValue(props))}
+      aria-valuetext={props.indeterminate ? 'Loading' : `${getPercent(props)}%`}
     >
       <span
         part="indicator"
         data-slot="progress-indicator"
-        data-value={() => String(getValue(props))}
-        data-max={() => String(getMax(props))}
-        data-percent={() => String(getPercent(props))}
+        data-value={String(getValue(props))}
+        data-max={String(getMax(props))}
+        data-percent={String(getPercent(props))}
       />
       <Slot />
     </Host>

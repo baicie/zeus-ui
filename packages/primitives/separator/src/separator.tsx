@@ -30,12 +30,12 @@ export const Separator = defineElement<SeparatorProps, SeparatorElement>(
     <Host
       part="root"
       data-slot="separator-root"
-      data-orientation={() => props.orientation}
-      role={() => (props.decorative ? undefined : 'separator')}
-      aria-orientation={() =>
+      data-orientation={props.orientation}
+      role={props.decorative ? undefined : 'separator'}
+      aria-orientation={
         props.decorative ? undefined : props.orientation || 'horizontal'
       }
-      aria-hidden={() => (props.decorative ? 'true' : undefined)}
+      aria-hidden={props.decorative ? 'true' : undefined}
     >
       {null}
     </Host>

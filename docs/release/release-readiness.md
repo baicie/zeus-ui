@@ -42,7 +42,7 @@ pnpm release:verify:strict
 
 This validates publishable packages:
 
-- the release set contains 36 packages: 11 base packages, 20 primitive
+- the release set contains 40 packages: 11 base packages, 24 primitive
   packages and 5 advanced packages
 - package name starts with `@zeus-web/`
 - version is valid semver and non-zero
@@ -204,7 +204,7 @@ release version must still be a valid, non-zero semver version.
 ## Before publishing
 
 1. Create a clean `release/<version>` branch from the latest `main`.
-2. Prepare the root and all 36 package versions with
+2. Prepare the root and all 40 package versions with
    `pnpm release <version> --tag <tag> --skipGit`.
 3. Run `pnpm release:final <version>`; append `--allow-zero` only when the
    current workspace package versions are still `0.0.0`.

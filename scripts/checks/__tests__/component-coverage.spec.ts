@@ -27,7 +27,7 @@ describe('component coverage contract', () => {
   it('keeps overlay components explicitly deferred for beta', () => {
     const result = checkComponentCoverage()
 
-    expect(result.deferredNames).toEqual(['dropdown', 'popover', 'toast'])
+    expect(result.deferredNames).toEqual([])
 
     for (const name of result.deferredNames) {
       expect(result.primitiveNames).not.toContain(name)

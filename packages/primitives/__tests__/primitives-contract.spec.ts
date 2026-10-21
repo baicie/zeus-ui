@@ -27,6 +27,13 @@ const group12Primitives = [
   'avatar',
 ]
 
+const phase11ExtensionPrimitives = [
+  'form-field',
+  'popover',
+  'dropdown-menu',
+  'toast',
+]
+
 function readFile(path: string): string {
   return readFileSync(resolve(workspaceRoot, path), 'utf-8')
 }
@@ -64,7 +71,11 @@ describe('primitives contract', () => {
   })
 
   it('uses zeus defineElement for all primitives', () => {
-    for (const name of [...group11Primitives, ...group12Primitives]) {
+    for (const name of [
+      ...group11Primitives,
+      ...group12Primitives,
+      ...phase11ExtensionPrimitives,
+    ]) {
       const source = readFile(`packages/primitives/${name}/src/${name}.tsx`)
       expect(source).toContain('defineElement')
       expect(source).toContain('shadow: false')

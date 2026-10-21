@@ -2,9 +2,9 @@
 
 > `zeus-web` 不再自己手写 `wc/react/vue wrapper`，只写组件源、主题、registry、CLI、AI metadata、docs/examples；Web Component 产物、React wrapper、Vue wrapper、manifest、dts 继续交给 `@zeus-js/web-c` 生态生成。
 
-当前仓库已实现 MVP、Phase 10、Phase 12、Phase 14 的主要交付。CLI 包含
+当前仓库已实现 MVP 与 Phase 10–14 的路线图交付。CLI 包含
 `init / add / list / remove / diff / update / doctor / theme / icon / ai`；Phase 11、
-Phase 13 和 Phase 15 仍有明确欠项，状态以本文件各阶段记录为准。
+Phase 13 已完成。Phase 15 的发布前检查和 CI 已就绪，稳定版发布与发布后验证仍待执行。
 
 ---
 
@@ -613,11 +613,10 @@ toast
 复杂度高，需要 Phase 10 的 a11y 基础支撑。
 ```
 
-状态：**进行中**。当前已有 `label`、`textarea`、`radio-group`、`select`、`card`、
-`badge`、`separator`、`avatar`、`skeleton`、`alert`、`tooltip`、`accordion`、
-`collapsible` 等 13 个本阶段组件，并已进入 Registry、AI metadata 和双语组件文档。
-仍缺 `form-field`、`popover`、`dropdown-menu`、`toast`；其依赖、交互/a11y 验收与
-Registry/文档接入未完成。
+状态：**已完成**。本阶段 17 个组件已进入各自 headless primitive 包；第一批 13 个组件
+以及 `form-field`、`popover`、`dropdown-menu`、`toast` 均已接入 Registry、AI metadata
+和双语组件文档。四个扩展组件还覆盖生成包配置、表单关系、浮层关闭和菜单键盘行为、
+toast live region/自动关闭语义，并由 primitive 合同测试与 Registry/coverage 合同验证。
 
 ---
 
@@ -710,9 +709,11 @@ zweb theme set slate
 zweb theme tokens --json
 ```
 
-状态：**进行中**。已提供 `zweb theme list/tokens/set`、JSON token 输出、radius、accent、
-motion 与 dark-mode 策略；主题 presets、token 表和 CSS 输出也已纳入测试。尚未实现
-路线图中的主题生成器与自定义主题新增流程（`theme add`）。
+状态：**已完成**。已提供 `zweb theme list/tokens/set/add`、JSON token 输出、radius、accent、
+motion 与 dark-mode 策略；主题 presets、token 表、light/dark CSS 生成器和安全的自定义
+主题新增流程均有测试。生成 CSS 将语义变量映射到 `--zw-*` 原生组件与 `--zeus-*`
+Registry 变量；`theme add` 校验主题名、颜色 token/HSL、项目内 styles alias，并以独占创建
+模式保护已有文件。CLI/theme 与 product-contract 检查纳入 CI。
 
 ---
 
@@ -776,6 +777,11 @@ pnpm check:build-output
 7. Theme CSS token completeness test。
 ```
 
+以上本地/CI 验收已由临时 React/Vue consumer 中的 `zweb init/add/ai`、AI Markdown
+snapshot、全发布包 gzip JS 预算、Registry source/Theme token tests 和 `examples:build`
+覆盖。bundle-size 预算按发布包汇总 dist JavaScript 文件的 gzip 字节数；单包上限为 48 KiB，
+Chat 与 Data Grid 为 64 KiB。该检查不替代发布后的隔离 npm consumer 与 provenance 验收。
+
 ## 0.1.0 发布标准
 
 ```txt
@@ -792,8 +798,9 @@ pnpm check:build-output
 ```
 
 状态：**进行中**。测试矩阵、发布前 readiness/strict/tarball gate、CI、registry
-provenance verifier 与 `release:final` 已实现；当前仓库版本为 `0.1.0-beta.32`，尚未
-完成路线图要求的 `0.1.0` 稳定版发布及发布后 registry/消费者复核。
+provenance verifier、`release:final` 与上述 Phase 15 本地/CI 测试已实现；当前仓库版本为
+`0.1.0-beta.33`。尚未完成路线图要求的 `0.1.0` 稳定版发布及发布后 registry、provenance
+和独立消费者复核，因此本阶段仍未完成。
 
 ---
 
@@ -832,9 +839,8 @@ provenance verifier 与 `release:final` 已实现；当前仓库版本为 `0.1.0
 当前剩余工作的依赖顺序是：
 
 ```txt
-1. Phase 11：实现 form-field、popover、dropdown-menu、toast，并接入 Registry、AI、双语文档和 E2E。
-2. Phase 13：补自定义主题生成与 `theme add` 工作流。
-3. Phase 15：完成 0.1.0 发布和独立 registry consumer/provenance 验证。
+1. Phase 15：完成 0.1.0 稳定版发布。
+2. 发布后复核 registry package、消费者安装和 npm provenance。
 ```
 
 ```txt

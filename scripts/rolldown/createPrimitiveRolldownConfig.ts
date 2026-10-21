@@ -29,6 +29,7 @@ export function createPrimitiveRolldownConfig(
     plugins: [
       zeus({
         root: process.cwd(),
+        transpile: true,
         dts: true,
         components: {
           include: ['src/**/*.{ts,tsx}'],

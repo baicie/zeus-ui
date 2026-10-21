@@ -42,8 +42,8 @@ export const Badge = defineElement<BadgeProps, BadgeElement>(
     <Host
       part="root"
       data-slot="badge-root"
-      data-variant={() => props.variant}
-      data-size={() => props.size}
+      data-variant={props.variant}
+      data-size={props.size}
     >
       <Slot />
     </Host>

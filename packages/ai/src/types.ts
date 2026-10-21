@@ -19,6 +19,10 @@ export type ZeusWebAiComponentName =
   | 'tooltip'
   | 'progress'
   | 'avatar'
+  | 'form-field'
+  | 'popover'
+  | 'dropdown-menu'
+  | 'toast'
 
 export type ZeusWebAiAdvancedComponentName =
   | 'chat'

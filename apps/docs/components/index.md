@@ -2,7 +2,7 @@
 
 # Components
 
-Browse all 25 public component packages by capability. Each component has one canonical page with a live preview, framework-specific source, installation guidance and API details.
+Browse all 29 public component packages by capability. Each component has one canonical page with a live preview, framework-specific source, installation guidance and API details.
 
 <ComponentDirectory />
 
@@ -36,5 +36,9 @@ Browse all 25 public component packages by capability. Each component has one ca
 - `tooltip`
 - `progress`
 - `avatar`
+- `form-field`
+- `popover`
+- `dropdown-menu`
+- `toast`
 
 Registry availability applies to copyable primitive source. Advanced components are installed from their package.

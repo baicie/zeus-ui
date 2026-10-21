@@ -54,6 +54,10 @@ const publicRegistryItemNames = [
   'tabs',
   'textarea',
   'tooltip',
+  'form-field',
+  'popover',
+  'dropdown-menu',
+  'toast',
   'icon',
 ]
 
@@ -151,6 +155,10 @@ describe('@zeus-web/registry package contract', () => {
     expect(manifest.components.map(component => component.name)).toEqual([
       'button',
       'input',
+      'form-field',
+      'popover',
+      'dropdown-menu',
+      'toast',
     ])
     expect(getRegistryComponentSchema(manifest, 'button')).toMatchObject({
       variants: {

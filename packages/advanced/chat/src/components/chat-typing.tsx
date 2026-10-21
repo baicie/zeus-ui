@@ -12,8 +12,8 @@ function setup(props: ChatTypingProps) {
     <Host
       part="root"
       data-slot="chat-typing-root"
-      data-active={() => (props.active ? '' : undefined)}
-      aria-hidden={() => (props.active ? undefined : 'true')}
+      data-active={props.active ? '' : undefined}
+      aria-hidden={props.active ? undefined : 'true'}
     >
       <div part="indicator" data-slot="chat-typing">
         <Slot>{props.text ?? 'Typing...'}</Slot>

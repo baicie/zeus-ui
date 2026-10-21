@@ -206,11 +206,14 @@ function checkRegistry(errors: string[]): void {
     'cn',
     'collapsible',
     'dialog',
+    'dropdown-menu',
+    'form-field',
     'globals',
     'icon',
     'input',
     'label',
     'progress',
+    'popover',
     'radio-group',
     'select',
     'separator',
@@ -218,6 +221,7 @@ function checkRegistry(errors: string[]): void {
     'switch',
     'tabs',
     'textarea',
+    'toast',
     'tooltip',
   ]
   const requiredRegistryItemNames = new Set(requiredRegistryItems)
@@ -877,7 +881,7 @@ function checkPhase24Release(errors: string[]): void {
       'pnpm release:verify:published',
       '--expected-latest 0.1.0-beta.0',
       '--release-sha <merged-main-sha>',
-      '36 packages: 11 base packages, 20 primitive',
+      '40 packages: 11 base packages, 24 primitive',
       '5 advanced packages',
       'NPM_PUBLISH_TOKEN',
       'Dispatch the release workflow from `main`',
@@ -934,7 +938,7 @@ function checkPhase24Release(errors: string[]): void {
   mustContain(
     'docs/mvp/release.md',
     [
-      '包含 36 个 npm 包',
+      '包含 40 个 npm 包',
       '只允许从 `main` 运行',
       'dry-run job 只有 `contents: read`',
       '固定到完整 commit SHA',
@@ -979,6 +983,101 @@ function checkPhase24Release(errors: string[]): void {
 }
 
 // ---------------------------------------------------------------------------
+// check:theme-workflow
+// ---------------------------------------------------------------------------
+
+function checkThemeWorkflow(errors: string[]): void {
+  const required = [
+    'packages/themes/src/index.ts',
+    'packages/themes/__tests__/themes.spec.ts',
+    'packages/themes/README.md',
+    'packages/cli/src/commands/theme.ts',
+    'packages/cli/__tests__/theme.spec.ts',
+    'packages/cli/README.md',
+    'docs/mvp/roadmap.md',
+  ]
+  let allExist = true
+  for (const file of required) {
+    if (!fileExists(file, errors)) allExist = false
+  }
+  if (!allExist) return
+
+  mustContain(
+    'packages/themes/src/index.ts',
+    [
+      'export function createThemeCss',
+      'assertCustomThemeName',
+      'assertHslValue',
+      'nativeAliasTokens.map',
+      '--zw-',
+      '--zeus-',
+      'var(--',
+    ],
+    errors,
+  )
+  mustContain(
+    'packages/themes/__tests__/themes.spec.ts',
+    [
+      'generates custom light and dark theme CSS from a built-in palette',
+      '--zw-primary: var(--primary);',
+      '--zeus-popover: var(--popover);',
+      'rejects unsafe theme names, tokens, and CSS values',
+    ],
+    errors,
+  )
+  mustContain(
+    'packages/cli/src/commands/theme.ts',
+    [
+      'function parseAddOptions',
+      'exactly one mode and token',
+      "flag: 'wx'",
+      'Configured styles alias must resolve inside the project.',
+    ],
+    errors,
+  )
+  mustContain(
+    'packages/cli/__tests__/theme.spec.ts',
+    [
+      'generates a custom theme from a preset with light and dark overrides',
+      'refuses to overwrite generated themes',
+      'rejects styles aliases outside the project',
+      'rejects malformed theme color scopes',
+    ],
+    errors,
+  )
+  mustContain(
+    'packages/themes/README.md',
+    [
+      'createThemeCss',
+      '--zw-*',
+      '--zeus-*',
+      "import './styles/themes/brand.css'",
+      'data-theme="brand"',
+    ],
+    errors,
+  )
+  mustContain(
+    'packages/cli/README.md',
+    [
+      'zweb theme add brand --from slate',
+      "--color 'light.primary=12 80% 45%'",
+      "--color 'dark.primary=12 70% 65%'",
+      'data-theme="brand"',
+    ],
+    errors,
+  )
+  mustContain(
+    'docs/mvp/roadmap.md',
+    [
+      'Phase 11、\nPhase 13 已完成',
+      '状态：**已完成**。已提供 `zweb theme list/tokens/set/add`',
+      'Phase 15：Testing / Release / 0.1.0',
+    ],
+    errors,
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -991,6 +1090,7 @@ function main(): void {
   checkCliUpdateDiff(errors)
   checkShowcaseRegistry(errors)
   checkNativeShowcase(errors)
+  checkThemeWorkflow(errors)
   checkPhase24Release(errors)
 
   if (errors.length > 0) {

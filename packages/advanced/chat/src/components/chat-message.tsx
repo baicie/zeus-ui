@@ -44,11 +44,11 @@ function setup(
     <Host
       part="root"
       data-slot="chat-message-root"
-      data-message-id={() => props.messageId}
-      data-role={() => props.role}
-      data-status={() => props.status}
-      data-selected={() => (props.selected ? '' : undefined)}
-      data-interactive={() => (props.interactive ? '' : undefined)}
+      data-message-id={props.messageId}
+      data-role={props.role}
+      data-status={props.status}
+      data-selected={props.selected ? '' : undefined}
+      data-interactive={props.interactive ? '' : undefined}
     >
       <article part="message" data-slot="chat-message">
         <div part="avatar" data-slot="chat-message-avatar">

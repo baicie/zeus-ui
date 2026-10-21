@@ -65,6 +65,28 @@
       }
     },
     {
+      "name": "dropdown-menu",
+      "level": "experimental",
+      "evidence": {
+        "behavior": [
+          "packages/primitives/__tests__/phase11-extensions.spec.ts"
+        ],
+        "accessibility": [],
+        "endToEnd": []
+      }
+    },
+    {
+      "name": "form-field",
+      "level": "experimental",
+      "evidence": {
+        "behavior": [
+          "packages/primitives/__tests__/phase11-extensions.spec.ts"
+        ],
+        "accessibility": [],
+        "endToEnd": []
+      }
+    },
+    {
       "name": "input",
       "level": "beta",
       "evidence": {
@@ -87,6 +109,17 @@
       "name": "progress",
       "level": "experimental",
       "evidence": { "behavior": [], "accessibility": [], "endToEnd": [] }
+    },
+    {
+      "name": "popover",
+      "level": "experimental",
+      "evidence": {
+        "behavior": [
+          "packages/primitives/__tests__/phase11-extensions.spec.ts"
+        ],
+        "accessibility": [],
+        "endToEnd": []
+      }
     },
     {
       "name": "radio-group",
@@ -137,6 +170,17 @@
         "accessibility": [
           "packages/primitives/__tests__/a11y-contract.spec.ts"
         ],
+        "endToEnd": []
+      }
+    },
+    {
+      "name": "toast",
+      "level": "experimental",
+      "evidence": {
+        "behavior": [
+          "packages/primitives/__tests__/phase11-extensions.spec.ts"
+        ],
+        "accessibility": [],
         "endToEnd": []
       }
     },

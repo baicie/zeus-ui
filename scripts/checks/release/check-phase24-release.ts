@@ -14,6 +14,7 @@ const requiredFiles = [
   'scripts/checks/release/check-release-workflows.ts',
   'scripts/release/workspace.ts',
   'scripts/release.config.ts',
+  '.github/workflows/ci.yml',
   '.github/workflows/publish.yml',
   '.github/workflows/release.yml',
   'docs/release/release-readiness.md',
@@ -76,7 +77,14 @@ function main(): void {
         '"release:verify:pack"',
         '"release:final"',
         '"check:phase24-release"',
+        '"check:bundle-size"',
       ],
+      errors,
+    )
+
+    checkSourceContains(
+      '.github/workflows/ci.yml',
+      ['pnpm check:bundle-size', 'pnpm examples:build'],
       errors,
     )
 
@@ -142,7 +150,7 @@ function main(): void {
         'pnpm release:verify:published',
         '--expected-latest 0.1.0-beta.0',
         '--release-sha <merged-main-sha>',
-        '36 packages: 11 base packages, 20 primitive',
+        '40 packages: 11 base packages, 24 primitive',
         '5 advanced packages',
         'NPM_PUBLISH_TOKEN',
         'Dispatch the release workflow from `main`',
@@ -208,7 +216,7 @@ function main(): void {
     checkSourceContains(
       'docs/mvp/release.md',
       [
-        '包含 36 个 npm 包',
+        '包含 40 个 npm 包',
         '只允许从 `main` 运行',
         'dry-run job 只有 `contents: read`',
         '固定到完整 commit SHA',

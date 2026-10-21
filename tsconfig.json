@@ -1,6 +1,7 @@
 {
   "extends": "./scripts/config/tsconfig.base.json",
   "compilerOptions": {
+    "jsxImportSource": "@zeus-js/zeus",
     "types": ["vitest/globals", "node"],
     "noEmit": true,
     "outDir": "temp",

@@ -1,13 +1,6 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 import type { DOMContext } from '@zeus-web/zeus-compat'
-import {
-  createContext,
-  defineElement,
-  event,
-  Host,
-  prop,
-  Slot,
-} from '@zeus-js/zeus'
+import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
 import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export interface DialogProps {
@@ -49,8 +42,11 @@ interface DialogContextValue {
   closeOnOutsideClick: () => boolean
 }
 
-const DialogContext =
-  createContext<DialogContextValue>() as DOMContext<DialogContextValue>
+// The dialog parts are emitted as separate lazy entries, so they need one
+// context identity even when each entry evaluates this module independently.
+const DialogContext = {
+  id: Symbol.for('@zeus-web/dialog/context'),
+} as unknown as DOMContext<DialogContextValue>
 
 let dialogId = 0
 
@@ -218,8 +214,8 @@ function setupDialog(
         }
       }}
       data-slot="dialog-root"
-      data-state={() => (context.getOpen() ? 'open' : 'closed')}
-      data-modal={() => (context.isModal() ? '' : undefined)}
+      data-state={context.getOpen() ? 'open' : 'closed'}
+      data-modal={context.isModal() ? '' : undefined}
     >
       <Slot />
     </Host>
@@ -285,7 +281,7 @@ function setupDialogTrigger(
   return (
     <Host
       data-slot="dialog-trigger"
-      data-disabled={() => (props.disabled ? '' : undefined)}
+      data-disabled={props.disabled ? '' : undefined}
     >
       <button
         ref={(element: HTMLButtonElement | null) => {
@@ -296,11 +292,11 @@ function setupDialogTrigger(
         }}
         part="trigger"
         prop:type={() => 'button'}
-        disabled={() => Boolean(props.disabled)}
-        aria-haspopup={() => 'dialog'}
-        aria-controls={() => dialog?.getContentId()}
-        aria-expanded={() => String(Boolean(dialog?.getOpen()))}
-        onClick={nativeEvent => {
+        disabled={Boolean(props.disabled)}
+        aria-haspopup="dialog"
+        aria-controls={dialog?.getContentId()}
+        aria-expanded={String(Boolean(dialog?.getOpen()))}
+        onClick={(nativeEvent: MouseEvent) => {
           if (!props.disabled) {
             dialog?.setOpen(true, nativeEvent)
           }
@@ -368,8 +364,8 @@ function setupDialogContent(
   return (
     <Host
       data-slot="dialog-content"
-      data-state={() => (isOpen() ? 'open' : 'closed')}
-      hidden={() => (props.forceMount ? false : !isOpen())}
+      data-state={isOpen() ? 'open' : 'closed'}
+      hidden={props.forceMount ? false : !isOpen()}
     >
       <div
         ref={(element: HTMLDivElement | null) => {
@@ -378,13 +374,13 @@ function setupDialogContent(
             dialog?.registerContent(element)
           }
         }}
-        id={() => dialog?.getContentId()}
+        id={dialog?.getContentId()}
         part="content"
         role="dialog"
-        aria-modal={() => (dialog?.isModal() ? 'true' : undefined)}
-        aria-labelledby={() => dialog?.getTitleId()}
-        aria-describedby={() => dialog?.getDescriptionId()}
-        tabIndex={() => -1}
+        aria-modal={dialog?.isModal() ? 'true' : undefined}
+        aria-labelledby={dialog?.getTitleId()}
+        aria-describedby={dialog?.getDescriptionId()}
+        tabIndex={-1}
         onKeyDown={handleKeyDown}
       >
         <Slot />
@@ -426,8 +422,8 @@ function setupDialogOverlay(
     <Host
       part="overlay"
       data-slot="dialog-overlay"
-      data-state={() => (isOpen() ? 'open' : 'closed')}
-      hidden={() => (props.forceMount ? false : !isOpen())}
+      data-state={isOpen() ? 'open' : 'closed'}
+      hidden={props.forceMount ? false : !isOpen()}
     >
       <Slot />
     </Host>
@@ -475,7 +471,7 @@ function setupDialogClose(
   return (
     <Host
       data-slot="dialog-close"
-      data-disabled={() => (props.disabled ? '' : undefined)}
+      data-disabled={props.disabled ? '' : undefined}
     >
       <button
         ref={(element: HTMLButtonElement | null) => {
@@ -483,8 +479,8 @@ function setupDialogClose(
         }}
         part="close"
         prop:type={() => 'button'}
-        disabled={() => Boolean(props.disabled)}
-        onClick={nativeEvent => {
+        disabled={Boolean(props.disabled)}
+        onClick={(nativeEvent: MouseEvent) => {
           if (!props.disabled) {
             dialog?.setOpen(false, nativeEvent)
           }
@@ -525,11 +521,7 @@ export const DialogTitle = defineElement<object, DialogTitleElement>(
     const dialog = result.found ? result.value : undefined
 
     return (
-      <Host
-        id={() => dialog?.getTitleId()}
-        part="title"
-        data-slot="dialog-title"
-      >
+      <Host id={dialog?.getTitleId()} part="title" data-slot="dialog-title">
         <Slot />
       </Host>
     )
@@ -555,7 +547,7 @@ export const DialogDescription = defineElement<
 
     return (
       <Host
-        id={() => dialog?.getDescriptionId()}
+        id={dialog?.getDescriptionId()}
         part="description"
         data-slot="dialog-description"
       >

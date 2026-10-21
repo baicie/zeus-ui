@@ -59,7 +59,7 @@ function assertZeusCompatRequirements(): void
 
 状态：`0.1.0-beta.5`，MVP 阶段，不承诺向后兼容。
 
-本节适用于 `packages/primitives/*` 和 `packages/advanced/*` 的 25 个公开组件包。
+本节适用于 `packages/primitives/*` 和 `packages/advanced/*` 的 29 个公开组件包。
 每个组件包都必须提供以下入口：
 
 - 包根入口

@@ -308,6 +308,247 @@
           "description": "Validation or help message content."
         }
       ]
+    },
+    {
+      "name": "form-field",
+      "primitive": "@zeus-web/form-field",
+      "description": "Styled form field relationship built on the form-field primitive.",
+      "variants": {},
+      "props": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "Stable field identifier."
+        },
+        {
+          "name": "invalid",
+          "type": "boolean",
+          "default": false,
+          "description": "Marks the field as invalid."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "description": "Disables the associated control."
+        },
+        {
+          "name": "required",
+          "type": "boolean",
+          "default": false,
+          "description": "Marks the associated control as required."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "frameworks": ["react"],
+          "description": "Additional React class name."
+        },
+        {
+          "name": "class",
+          "type": "string",
+          "frameworks": ["vue"],
+          "description": "Additional Vue class name."
+        }
+      ],
+      "events": [],
+      "slots": [
+        {
+          "name": "default",
+          "types": { "react": "ReactNode", "vue": "() => unknown" },
+          "description": "FormFieldLabel, FormFieldDescription, FormFieldControl and FormFieldMessage children."
+        }
+      ]
+    },
+    {
+      "name": "popover",
+      "primitive": "@zeus-web/popover",
+      "description": "Styled popover built on the popover primitive.",
+      "variants": {},
+      "props": [
+        {
+          "name": "open",
+          "type": "boolean",
+          "description": "Controlled open state."
+        },
+        {
+          "name": "defaultOpen",
+          "type": "boolean",
+          "default": false,
+          "description": "Initial uncontrolled open state."
+        },
+        {
+          "name": "modal",
+          "type": "boolean",
+          "default": true,
+          "description": "Dismisses on outside pointer input."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "description": "Disables the trigger."
+        },
+        {
+          "name": "forceMount",
+          "type": "boolean",
+          "default": false,
+          "description": "Keeps popover content mounted while closed."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "frameworks": ["react"],
+          "description": "Additional React class name."
+        },
+        {
+          "name": "class",
+          "type": "string",
+          "frameworks": ["vue"],
+          "description": "Additional Vue class name."
+        }
+      ],
+      "events": [
+        {
+          "name": "open-change",
+          "reactName": "onOpenChange",
+          "vueName": "openChange",
+          "type": "CustomEvent<{ open: boolean; nativeEvent?: Event }>",
+          "description": "Emitted when the popover open state changes."
+        }
+      ],
+      "slots": [
+        {
+          "name": "default",
+          "types": { "react": "ReactNode", "vue": "() => unknown" },
+          "description": "PopoverTrigger and PopoverContent children."
+        }
+      ]
+    },
+    {
+      "name": "dropdown-menu",
+      "primitive": "@zeus-web/dropdown-menu",
+      "description": "Styled dropdown menu built on the dropdown-menu primitive.",
+      "variants": {},
+      "props": [
+        {
+          "name": "open",
+          "type": "boolean",
+          "description": "Controlled open state."
+        },
+        {
+          "name": "defaultOpen",
+          "type": "boolean",
+          "default": false,
+          "description": "Initial uncontrolled open state."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "description": "Disables the trigger and items."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "frameworks": ["react"],
+          "description": "Additional React class name."
+        },
+        {
+          "name": "class",
+          "type": "string",
+          "frameworks": ["vue"],
+          "description": "Additional Vue class name."
+        }
+      ],
+      "events": [
+        {
+          "name": "open-change",
+          "reactName": "onOpenChange",
+          "vueName": "openChange",
+          "type": "CustomEvent<{ open: boolean; nativeEvent?: Event }>",
+          "description": "Emitted when the menu open state changes."
+        },
+        {
+          "name": "select",
+          "reactName": "onSelect",
+          "vueName": "select",
+          "type": "CustomEvent<{ value?: string; nativeEvent: Event }>",
+          "description": "Emitted when an enabled menu item is selected."
+        }
+      ],
+      "slots": [
+        {
+          "name": "default",
+          "types": { "react": "ReactNode", "vue": "() => unknown" },
+          "description": "DropdownMenuTrigger, DropdownMenuContent and DropdownMenuItem children."
+        }
+      ]
+    },
+    {
+      "name": "toast",
+      "primitive": "@zeus-web/toast",
+      "description": "Styled live-region toast built on the toast primitive.",
+      "variants": {
+        "status": {
+          "type": "ToastStatus",
+          "values": ["foreground", "background"],
+          "default": "foreground",
+          "description": "Live-region announcement priority."
+        }
+      },
+      "props": [
+        {
+          "name": "open",
+          "type": "boolean",
+          "description": "Controlled open state."
+        },
+        {
+          "name": "defaultOpen",
+          "type": "boolean",
+          "default": false,
+          "description": "Initial uncontrolled open state."
+        },
+        {
+          "name": "duration",
+          "type": "number",
+          "default": 5000,
+          "description": "Auto-dismiss duration in milliseconds; zero disables it."
+        },
+        {
+          "name": "status",
+          "variant": "status",
+          "description": "Live-region announcement priority."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "frameworks": ["react"],
+          "description": "Additional React class name."
+        },
+        {
+          "name": "class",
+          "type": "string",
+          "frameworks": ["vue"],
+          "description": "Additional Vue class name."
+        }
+      ],
+      "events": [
+        {
+          "name": "open-change",
+          "reactName": "onOpenChange",
+          "vueName": "openChange",
+          "type": "CustomEvent<{ open: boolean; nativeEvent?: Event }>",
+          "description": "Emitted when the toast open state changes."
+        }
+      ],
+      "slots": [
+        {
+          "name": "default",
+          "types": { "react": "ReactNode", "vue": "() => unknown" },
+          "description": "ToastTitle, ToastDescription and ToastClose children."
+        }
+      ]
     }
   ]
 }

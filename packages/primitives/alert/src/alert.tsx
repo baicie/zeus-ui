@@ -31,9 +31,9 @@ export const Alert = defineElement<AlertProps, AlertElement>(
     <Host
       part="root"
       data-slot="alert-root"
-      data-variant={() => props.variant}
-      role={() => (props.live === 'assertive' ? 'alert' : 'status')}
-      aria-live={() => props.live}
+      data-variant={props.variant}
+      role={props.live === 'assertive' ? 'alert' : 'status'}
+      aria-live={props.live}
     >
       <Slot />
     </Host>

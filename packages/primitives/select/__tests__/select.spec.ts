@@ -348,10 +348,10 @@ describe('select runtime', () => {
       '[data-slot="select-trigger"]',
     )
 
-    select.focus()
+    await select.focus()
     expect(document.activeElement).toBe(trigger)
 
-    select.blur()
+    await select.blur()
     expect(document.activeElement).not.toBe(trigger)
   })
 

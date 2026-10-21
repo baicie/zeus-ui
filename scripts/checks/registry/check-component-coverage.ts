@@ -34,7 +34,7 @@ export interface CoverageResult {
   deferredNames: string[]
 }
 
-const deferredOverlayComponents = ['popover', 'dropdown', 'toast'] as const
+const deferredOverlayComponents = [] as const
 const specialRegistryItems = new Set(['icon'])
 
 const registryPhase17RequiredItems = [
@@ -58,6 +58,10 @@ const registryPhase17RequiredItems = [
   'tabs',
   'textarea',
   'tooltip',
+  'form-field',
+  'popover',
+  'dropdown-menu',
+  'toast',
   'icon',
 ] as const
 

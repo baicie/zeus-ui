@@ -62,9 +62,9 @@ export const packageRoots = [
 export const repositoryUrl = 'https://github.com/baicie/zeus-ui.git'
 
 export const expectedWorkspacePackageCounts: WorkspacePackageCounts = {
-  total: 36,
+  total: 40,
   base: 11,
-  primitive: 20,
+  primitive: 24,
   advanced: 5,
 }
 

@@ -208,7 +208,7 @@ describe('playground contract', () => {
 
     expect(result.errors).toEqual([])
     expect(result.valid).toBe(true)
-    expect(result.componentCount).toBe(25)
+    expect(result.componentCount).toBe(29)
     expect(result.categoryCount).toBe(7)
     expect(result.packageNames).toHaveLength(result.componentCount)
   })

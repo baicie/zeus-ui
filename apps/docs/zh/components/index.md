@@ -2,7 +2,7 @@
 
 # 组件
 
-按能力浏览全部 25 个公开组件包。每个组件都有唯一的规范页面，包含实时预览、不同框架的源码、安装指南和 API 详情。
+按能力浏览全部 29 个公开组件包。每个组件都有唯一的规范页面，包含实时预览、不同框架的源码、安装指南和 API 详情。
 
 <ComponentDirectory />
 
@@ -36,5 +36,9 @@
 - `tooltip`
 - `progress`
 - `avatar`
+- `form-field`
+- `popover`
+- `dropdown-menu`
+- `toast`
 
 Registry 可用性仅表示可复制的基础组件源码；高级组件通过各自的软件包安装。

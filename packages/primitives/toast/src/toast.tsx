@@ -1,0 +1,195 @@
+import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
+import type { DOMContext } from '@zeus-web/zeus-compat'
+import {
+  createContext,
+  createEffect,
+  defineElement,
+  event,
+  Host,
+  prop,
+  Slot,
+} from '@zeus-js/zeus'
+import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
+
+export type ToastStatus = 'foreground' | 'background'
+export interface ToastProps {
+  open?: boolean
+  defaultOpen?: boolean
+  duration?: number
+  status?: ToastStatus
+}
+export interface ToastElement extends HTMLElement {
+  open?: boolean
+  show: () => void
+  hide: () => void
+}
+export interface ToastOpenChangeDetail {
+  open: boolean
+  nativeEvent?: Event
+}
+interface ToastEmits extends Record<string, EventDefinition<unknown>> {
+  openChange: EventDefinition<ToastOpenChangeDetail>
+}
+interface ToastContextValue {
+  getOpen: () => boolean
+  setOpen: (open: boolean, event?: Event) => void
+  getTitleId: () => string
+  getDescriptionId: () => string
+}
+const ToastContext =
+  createContext<ToastContextValue>() as DOMContext<ToastContextValue>
+let toastId = 0
+function setupToast(
+  props: ToastProps,
+  ctx: DefineElementContext<ToastElement, ToastEmits>,
+) {
+  const id = `zw-toast-${++toastId}`
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const getOpen = () =>
+    props.open !== undefined ? Boolean(props.open) : Boolean(props.defaultOpen)
+  let schedule = (_duration?: number) => {}
+  const setOpen = (open: boolean, nativeEvent?: Event) => {
+    ctx.host.open = open
+    ctx.emit.openChange({ open, nativeEvent })
+    if (open) {
+      schedule()
+    } else if (timer) {
+      clearTimeout(timer)
+    }
+  }
+  schedule = (duration = props.duration) => {
+    if (timer) clearTimeout(timer)
+    if (getOpen() && duration !== 0) {
+      timer = setTimeout(setOpen, duration || 5000, false)
+    }
+  }
+  createEffect(() => {
+    const open = getOpen()
+    const duration = props.duration
+    if (open) {
+      schedule(duration)
+    } else if (timer) {
+      clearTimeout(timer)
+      timer = undefined
+    }
+  })
+  const value: ToastContextValue = {
+    getOpen,
+    getTitleId: () => `${id}-title`,
+    getDescriptionId: () => `${id}-description`,
+    setOpen,
+  }
+  provideDOMContext(ctx.host, ToastContext, value)
+  ctx.expose({
+    show: () => value.setOpen(true),
+    hide: () => value.setOpen(false),
+  })
+  return (
+    <Host
+      ref={(element: HTMLElement | null) => {
+        if (!element) {
+          if (timer) clearTimeout(timer)
+          timer = undefined
+          return
+        }
+        schedule()
+      }}
+      role="status"
+      aria-live={props.status === 'background' ? 'polite' : 'assertive'}
+      aria-atomic="true"
+      data-slot="toast"
+      data-state={value.getOpen() ? 'open' : 'closed'}
+      hidden={!value.getOpen()}
+      onMouseEnter={() => {
+        if (timer) clearTimeout(timer)
+      }}
+      onMouseLeave={schedule}
+    >
+      <Slot />
+    </Host>
+  )
+}
+export const Toast = defineElement<ToastProps, ToastElement, ToastEmits>(
+  'zw-toast',
+  {
+    shadow: false,
+    props: {
+      open: prop(Boolean, { reflect: true }),
+      defaultOpen: prop(Boolean, { attr: 'default-open' }),
+      duration: prop(Number, { default: 5000 }),
+      status: prop(['foreground', 'background'], { default: 'foreground' }),
+    },
+    emits: { openChange: event<{ open: boolean; nativeEvent?: Event }>() },
+    meta: {
+      description: 'Accessible toast with live region and auto-dismiss.',
+    },
+  },
+  setupToast,
+)
+
+function setupTitle(_props: object, ctx: DefineElementContext<HTMLElement>) {
+  const result = resolveDOMContext(ctx.host, ToastContext)
+  const toast = result.found ? result.value : undefined
+  return (
+    <Host id={toast?.getTitleId()} data-slot="toast-title">
+      <Slot />
+    </Host>
+  )
+}
+export const ToastTitle = defineElement<object, HTMLElement>(
+  'zw-toast-title',
+  { shadow: false, meta: { description: 'Toast title.' } },
+  setupTitle,
+)
+function setupDescription(
+  _props: object,
+  ctx: DefineElementContext<HTMLElement>,
+) {
+  const result = resolveDOMContext(ctx.host, ToastContext)
+  const toast = result.found ? result.value : undefined
+  return (
+    <Host id={toast?.getDescriptionId()} data-slot="toast-description">
+      <Slot />
+    </Host>
+  )
+}
+export const ToastDescription = defineElement<object, HTMLElement>(
+  'zw-toast-description',
+  { shadow: false, meta: { description: 'Toast description.' } },
+  setupDescription,
+)
+function setupClose(_props: object, ctx: DefineElementContext<HTMLElement>) {
+  const result = resolveDOMContext(ctx.host, ToastContext)
+  const toast = result.found ? result.value : undefined
+  return (
+    <Host data-slot="toast-close">
+      <button
+        type="button"
+        aria-label="Close"
+        onClick={(event: MouseEvent) => toast?.setOpen(false, event)}
+      >
+        <Slot />
+      </button>
+    </Host>
+  )
+}
+export const ToastClose = defineElement<object, HTMLElement>(
+  'zw-toast-close',
+  { shadow: false, meta: { description: 'Toast dismiss button.' } },
+  setupClose,
+)
+function setupViewport(
+  _props: object,
+  _ctx: DefineElementContext<HTMLElement>,
+) {
+  return (
+    <Host role="region" aria-label="Notifications" data-slot="toast-viewport">
+      <Slot />
+    </Host>
+  )
+}
+export const ToastViewport = defineElement<object, HTMLElement>(
+  'zw-toast-viewport',
+  { shadow: false, meta: { description: 'Toast viewport landmark.' } },
+  setupViewport,
+)

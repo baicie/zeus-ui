@@ -68,10 +68,10 @@ function setup(
   return (
     <Host
       data-slot="switch-root"
-      data-state={() => (resolveChecked(props) ? 'checked' : 'unchecked')}
-      data-size={() => props.size}
-      data-disabled={() => (props.disabled ? '' : undefined)}
-      data-invalid={() => (props.invalid ? '' : undefined)}
+      data-state={resolveChecked(props) ? 'checked' : 'unchecked'}
+      data-size={props.size}
+      data-disabled={props.disabled ? '' : undefined}
+      data-invalid={props.invalid ? '' : undefined}
     >
       <label part="root">
         <input
@@ -83,15 +83,15 @@ function setup(
           prop:type={() => 'checkbox'}
           prop:checked={() => resolveChecked(props)}
           role="switch"
-          disabled={() => Boolean(props.disabled)}
-          required={() => Boolean(props.required)}
-          name={() => props.name}
-          value={() => props.value}
-          aria-label={() => props.ariaLabel}
-          aria-describedby={() => props.ariaDescribedby}
-          aria-required={() => (props.required ? 'true' : undefined)}
-          aria-checked={() => String(resolveChecked(props))}
-          aria-invalid={() => (props.invalid ? 'true' : undefined)}
+          disabled={Boolean(props.disabled)}
+          required={Boolean(props.required)}
+          name={props.name}
+          value={props.value}
+          aria-label={props.ariaLabel}
+          aria-describedby={props.ariaDescribedby}
+          aria-required={props.required ? 'true' : undefined}
+          aria-checked={String(resolveChecked(props))}
+          aria-invalid={props.invalid ? 'true' : undefined}
           onChange={handleChange}
           onFocus={nativeEvent => {
             ctx.emit.focusChange({ focused: true, nativeEvent })

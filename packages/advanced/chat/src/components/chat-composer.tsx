@@ -107,8 +107,8 @@ function setup(
     <Host
       part="root"
       data-slot="chat-composer-root"
-      data-disabled={() => (props.disabled ? '' : undefined)}
-      data-loading={() => (props.loading ? '' : undefined)}
+      data-disabled={props.disabled ? '' : undefined}
+      data-loading={props.loading ? '' : undefined}
     >
       <form
         part="form"
@@ -136,11 +136,11 @@ function setup(
           part="control"
           data-slot="chat-composer-control"
           prop:value={() => props.value ?? composer.getValue()}
-          placeholder={() => props.placeholder}
-          disabled={() => Boolean(props.disabled)}
-          rows={() => normalizeRows(props.rows)}
-          maxLength={() => props.maxLength}
-          aria-label={() => props.ariaLabel}
+          placeholder={props.placeholder}
+          disabled={Boolean(props.disabled)}
+          rows={normalizeRows(props.rows)}
+          prop:maxLength={() => props.maxLength}
+          aria-label={props.ariaLabel}
           onInput={emitValueChange}
           onKeyDown={(nativeEvent: KeyboardEvent) => {
             if (
@@ -159,7 +159,7 @@ function setup(
           part="submit"
           data-slot="chat-composer-submit"
           type="submit"
-          disabled={() => Boolean(props.disabled || props.loading)}
+          disabled={Boolean(props.disabled || props.loading)}
         >
           <Slot name="submit">Send</Slot>
         </button>

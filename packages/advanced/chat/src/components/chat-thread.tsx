@@ -280,13 +280,13 @@ function setup(
     <Host
       part="root"
       data-slot="chat-thread-root"
-      data-loading={() => (props.loading ? '' : undefined)}
-      data-empty={() => (props.empty ? '' : undefined)}
-      data-virtual={() => (props.virtual ? '' : undefined)}
-      data-count={() => String(resolveCount(props))}
-      data-estimate-size={() => String(resolveEstimateSize(props))}
-      data-overscan={() => String(resolveOverscan(props))}
-      data-total-size={() => String(getTotalSize())}
+      data-loading={props.loading ? '' : undefined}
+      data-empty={props.empty ? '' : undefined}
+      data-virtual={props.virtual ? '' : undefined}
+      data-count={String(resolveCount(props))}
+      data-estimate-size={String(resolveEstimateSize(props))}
+      data-overscan={String(resolveOverscan(props))}
+      data-total-size={String(getTotalSize())}
     >
       <div
         ref={(element: HTMLElement | null) => {
@@ -300,8 +300,8 @@ function setup(
         role="log"
         aria-live="polite"
         aria-relevant="additions text"
-        aria-busy={() => (props.loading ? 'true' : undefined)}
-        aria-label={() => props.ariaLabel}
+        aria-busy={props.loading ? 'true' : undefined}
+        aria-label={props.ariaLabel}
         onScroll={(nativeEvent: Event) => {
           scheduleUpdateRange(nativeEvent)
         }}
@@ -310,19 +310,17 @@ function setup(
           part="spacer"
           data-slot="chat-thread-spacer"
           aria-hidden="true"
-          data-total-size={() => String(getTotalSize())}
-          style={() => getSpacerStyle()}
+          data-total-size={String(getTotalSize())}
+          style={getSpacerStyle()}
         />
 
         <div
           part="items"
           data-slot="chat-thread-items"
-          data-range-start={() => String(currentSnapshot.range.start)}
-          data-range-end={() => String(currentSnapshot.range.end)}
-          data-overscan-start={() =>
-            String(currentSnapshot.range.overscanStart)
-          }
-          data-overscan-end={() => String(currentSnapshot.range.overscanEnd)}
+          data-range-start={String(currentSnapshot.range.start)}
+          data-range-end={String(currentSnapshot.range.end)}
+          data-overscan-start={String(currentSnapshot.range.overscanStart)}
+          data-overscan-end={String(currentSnapshot.range.overscanEnd)}
         >
           <Slot />
         </div>

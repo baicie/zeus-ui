@@ -1,6 +1,6 @@
 # Zeus UI 发版指南
 
-Zeus UI 是一个 monorepo，包含 36 个 npm 包，所有包的版本必须保持同步。本文档介绍 Zeus UI 的完整发版流程。
+Zeus UI 是一个 monorepo，包含 40 个 npm 包，所有包的版本必须保持同步。本文档介绍 Zeus UI 的完整发版流程。
 
 ---
 
@@ -19,7 +19,7 @@ Zeus UI 采用 **workspace-fixed** 模式，通过 `@baicie/release` 统一管�
 | 目录                   | 包数量 | 说明                                                                                     |
 | ---------------------- | ------ | ---------------------------------------------------------------------------------------- |
 | `packages/`            | 11     | 基础包（react、vue、cli、icons、themes、registry、headless、utils、ai、ui、zeus-compat） |
-| `packages/primitives/` | 20     | 基础组件包（button、dialog、input、select 等）                                           |
+| `packages/primitives/` | 24     | 基础组件包（button、dialog、input、select 等）                                           |
 | `packages/advanced/`   | 5      | 高级包（agent-console、chat、data-grid、revogrid-adapter、virtual）                      |
 
 所有发布包必须满足：
@@ -41,7 +41,7 @@ pnpm release:final 0.2.0-beta.0
 pnpm release:plan --tag beta
 ```
 
-检查根 `package.json` 和全部 36 个发布包的版本，提交这些版本文件并创建 PR。等待 required checks 全部通过并合并后，才从 `main` dispatch Release workflow。禁止在受保护的 `main` 上运行会提交或推送 Git 的非 dry-run `pnpm release`。
+检查根 `package.json` 和全部 40 个发布包的版本，提交这些版本文件并创建 PR。等待 required checks 全部通过并合并后，才从 `main` dispatch Release workflow。禁止在受保护的 `main` 上运行会提交或推送 Git 的非 dry-run `pnpm release`。
 
 `--skipGit` 模式会完成以下步骤：
 
@@ -343,7 +343,7 @@ pnpm install --frozen-lockfile
 pnpm release 0.2.0-beta.0 --tag beta --skipGit
 pnpm release:final 0.2.0-beta.0
 pnpm release:plan --tag beta
-git diff  # 确认根目录和 36 个发布包版本符合预期
+git diff  # 确认根目录和 40 个发布包版本符合预期
 ```
 
 ### 合并版本 PR
@@ -356,7 +356,7 @@ git diff  # 确认根目录和 36 个发布包版本符合预期
 
 1. Release workflow 的 release job 和 `dispatch-publish` job 是否执行成功（tag 指向已合并的 `main` SHA 并触发发布）
 2. 独立的 Publish to NPM run 是否执行成功（事件 ref/SHA、version、dist-tag 与 release 输出一致）
-3. 36 个 npm 包是否都存在目标版本，且 `beta` 指向目标版本、`latest` 保持发布前快照的 canonical 值
+3. 40 个 npm 包是否都存在目标版本，且 `beta` 指向目标版本、`latest` 保持发布前快照的 canonical 值
 4. 执行以下发布后校验：
 
 ```bash

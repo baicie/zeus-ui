@@ -5,7 +5,7 @@ import { execa } from 'execa'
 import pc from 'picocolors'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
-const uiRoot = resolve(__dirname, '..')
+const uiRoot = resolve(__dirname, '../..')
 
 function resolve(...parts: string[]): string {
   let p = parts[0]
@@ -60,7 +60,7 @@ async function main() {
     }
 
     try {
-      await execa('pnpm', ['link', pkg.name, '--global'], {
+      await execa('pnpm', ['link', '--global', pkg.name], {
         cwd: uiRoot,
         stdio: 'inherit',
       })

@@ -16,15 +16,15 @@ function setup(props: ChatToolCallProps) {
     <Host
       part="root"
       data-slot="chat-tool-call-root"
-      data-tool-id={() => props.toolId}
-      data-name={() => props.name}
-      data-status={() => props.status}
-      data-open={() => (props.open ? '' : undefined)}
+      data-tool-id={props.toolId}
+      data-name={props.name}
+      data-status={props.status}
+      data-open={props.open ? '' : undefined}
     >
       <details
         part="details"
         data-slot="chat-tool-call"
-        open={() => Boolean(props.open)}
+        open={Boolean(props.open)}
       >
         <summary part="summary" data-slot="chat-tool-call-summary">
           <Slot name="summary">{props.name ?? ''}</Slot>

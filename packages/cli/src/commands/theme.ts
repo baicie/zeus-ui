@@ -2,12 +2,16 @@ import type {
   DarkModeStrategyName,
   MotionPresetName,
   RadiusPresetName,
+  SemanticColorToken,
   ThemeName,
 } from '@zeus-web/themes'
 
-import { isAbsolute, resolve } from 'node:path'
+import { existsSync, realpathSync } from 'node:fs'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 
 import {
+  createThemeCss,
   darkModeStrategyNames,
   getThemeTokens,
   getThemeTokensJson,
@@ -17,6 +21,7 @@ import {
   isThemeName,
   motionPresetNames,
   radiusPresetNames,
+  semanticColorTokens,
   themeNames,
 } from '@zeus-web/themes'
 import pc from 'picocolors'
@@ -24,10 +29,11 @@ import pc from 'picocolors'
 import {
   ensureThemeCss,
   readComponentsConfig,
+  resolveAliasToPath,
   updateComponentsConfig,
 } from '../config'
 
-type ThemeSubcommand = 'list' | 'tokens' | 'set'
+type ThemeSubcommand = 'list' | 'tokens' | 'set' | 'add'
 
 interface BaseOptions {
   cwd: string
@@ -42,8 +48,40 @@ interface SetOptions extends BaseOptions {
   accentColor?: string
 }
 
+interface AddOptions extends BaseOptions {
+  from: ThemeName
+  light: Partial<Record<SemanticColorToken, string>>
+  dark: Partial<Record<SemanticColorToken, string>>
+}
+
 function resolveCwd(base: string, value: string): string {
   return isAbsolute(value) ? value : resolve(base, value)
+}
+
+function assertProjectPath(cwd: string, target: string): void {
+  const projectRoot = realpathSync.native(cwd)
+  const absoluteTarget = resolve(target)
+  let existingAncestor = absoluteTarget
+
+  while (!existsSync(existingAncestor)) {
+    const parent = dirname(existingAncestor)
+    if (parent === existingAncestor) break
+    existingAncestor = parent
+  }
+
+  const canonicalAncestor = realpathSync.native(existingAncestor)
+  const canonicalTarget = resolve(
+    canonicalAncestor,
+    relative(existingAncestor, absoluteTarget),
+  )
+  const relativeTarget = relative(projectRoot, canonicalTarget)
+  if (
+    relativeTarget === '..' ||
+    relativeTarget.startsWith(`..${sep}`) ||
+    isAbsolute(relativeTarget)
+  ) {
+    throw new Error('Configured styles alias must resolve inside the project.')
+  }
 }
 
 function parseStyle(value: string): ThemeName {
@@ -273,6 +311,107 @@ async function themeSet(args: string[]): Promise<void> {
     console.log(`Accent: ${nextConfig.theme.accentColor}`)
 }
 
+function parseAddOptions(
+  args: string[],
+  cwd = process.cwd(),
+): {
+  name: string
+  options: AddOptions
+} {
+  const positional: string[] = []
+  const options: AddOptions = {
+    cwd,
+    json: false,
+    from: 'default',
+    light: {},
+    dark: {},
+  }
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]
+    if (arg === '--json') {
+      options.json = true
+      continue
+    }
+    if (arg === '--cwd' || arg.startsWith('--cwd=')) {
+      const value = arg === '--cwd' ? args[++i] : arg.slice('--cwd='.length)
+      if (!value) throw new Error('--cwd requires a directory path')
+      options.cwd = resolveCwd(cwd, value)
+      continue
+    }
+    if (arg === '--from' || arg.startsWith('--from=')) {
+      const value = arg === '--from' ? args[++i] : arg.slice('--from='.length)
+      if (!value) throw new Error('--from requires a theme name')
+      options.from = parseStyle(value)
+      continue
+    }
+    if (arg === '--color' || arg.startsWith('--color=')) {
+      const value = arg === '--color' ? args[++i] : arg.slice('--color='.length)
+      if (!value) throw new Error('--color requires token=value')
+      const separatorIndex = value.indexOf('=')
+      const token = value.slice(0, separatorIndex)
+      const color = value.slice(separatorIndex + 1)
+      if (separatorIndex < 1 || !color) {
+        throw new Error('--color requires token=value')
+      }
+      const parts = token.split('.')
+      if (parts.length !== 2) {
+        throw new Error(
+          'Theme color must use exactly one mode and token: light.<token> or dark.<token>',
+        )
+      }
+      const [mode, tokenName] = parts
+      if (!(semanticColorTokens as readonly string[]).includes(tokenName)) {
+        throw new Error(`Unsupported theme token: ${tokenName}`)
+      }
+      if (mode !== 'light' && mode !== 'dark') {
+        throw new Error('Theme color must use light.<token> or dark.<token>')
+      }
+      options[mode][tokenName as SemanticColorToken] = color
+      continue
+    }
+    if (arg.startsWith('-')) throw new Error(`Unknown option: ${arg}`)
+    positional.push(arg)
+  }
+  if (positional.length !== 1) {
+    throw new Error(
+      'Usage: zweb theme add <name> [--from <theme>] [--color light.primary="240 5.9% 10%"]',
+    )
+  }
+  return { name: positional[0], options }
+}
+
+async function themeAdd(args: string[]): Promise<void> {
+  const { name, options } = parseAddOptions(args)
+  const config = readComponentsConfig(options.cwd)
+  const stylesPath = resolveAliasToPath(options.cwd, config.aliases.styles)
+  const relativeStylesPath = relative(options.cwd, stylesPath)
+  if (
+    relativeStylesPath === '..' ||
+    relativeStylesPath.startsWith(`..${sep}`) ||
+    isAbsolute(relativeStylesPath)
+  ) {
+    throw new Error('Configured styles alias must resolve inside the project.')
+  }
+  const outputPath = resolve(stylesPath, 'themes', `${name}.css`)
+  assertProjectPath(options.cwd, outputPath)
+  const css = createThemeCss(name, options.from, {
+    light: options.light,
+    dark: options.dark,
+  })
+  await mkdir(resolve(outputPath, '..'), { recursive: true })
+  await writeFile(outputPath, css, { encoding: 'utf-8', flag: 'wx' })
+  const result = {
+    name,
+    from: options.from,
+    file: relative(options.cwd, outputPath),
+  }
+  if (options.json) {
+    console.log(JSON.stringify(result, null, 2))
+    return
+  }
+  console.log(pc.green(`Created ${result.file}`))
+}
+
 export async function theme(args: string[]): Promise<void> {
   try {
     const [subcommand, ...rest] = args
@@ -287,6 +426,10 @@ export async function theme(args: string[]): Promise<void> {
     }
     if (cmd === 'set') {
       await themeSet(rest)
+      return
+    }
+    if (cmd === 'add') {
+      await themeAdd(rest)
       return
     }
     throw new Error(`Unknown theme command: ${String(subcommand)}`)

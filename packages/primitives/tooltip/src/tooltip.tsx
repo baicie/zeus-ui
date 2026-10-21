@@ -86,8 +86,8 @@ function setupTooltip(
   return (
     <Host
       data-slot="tooltip-root"
-      data-state={() => (context.getOpen() ? 'open' : 'closed')}
-      data-disabled={() => (props.disabled ? '' : undefined)}
+      data-state={context.getOpen() ? 'open' : 'closed'}
+      data-disabled={props.disabled ? '' : undefined}
     >
       <Slot />
     </Host>
@@ -154,19 +154,19 @@ function setupTooltipTrigger(
     <Host
       part="trigger"
       data-slot="tooltip-trigger"
-      data-state={() => (tooltip?.getOpen() ? 'open' : 'closed')}
+      data-state={tooltip?.getOpen() ? 'open' : 'closed'}
     >
       <span
         ref={(e: HTMLSpanElement | null) => {
           if (e) control = e
         }}
         data-slot="tooltip-trigger-control"
-        tabIndex={() => 0}
-        aria-describedby={() =>
+        prop:tabIndex={0}
+        aria-describedby={
           tooltip?.getOpen() ? tooltip.getContentId() : undefined
         }
-        onMouseEnter={openWithDelay}
-        onMouseLeave={close}
+        onPointerEnter={openWithDelay}
+        onPointerLeave={close}
         onFocus={openWithDelay}
         onBlur={close}
         onKeyDown={nativeEvent => {
@@ -208,13 +208,13 @@ function setupTooltipContent(
 
   return (
     <Host
-      id={() => tooltip?.getContentId()}
+      id={tooltip?.getContentId()}
       part="content"
       data-slot="tooltip-content"
       role="tooltip"
-      data-state={() => (isOpen() ? 'open' : 'closed')}
-      data-side={() => props.side || 'top'}
-      hidden={() => (props.forceMount ? false : !isOpen())}
+      data-state={isOpen() ? 'open' : 'closed'}
+      data-side={props.side || 'top'}
+      hidden={props.forceMount ? false : !isOpen()}
     >
       <Slot />
     </Host>

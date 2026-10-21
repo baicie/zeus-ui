@@ -30,27 +30,32 @@ async function createDialog(): Promise<RuntimeDialog> {
   ])
 
   const dialog = document.createElement('zw-dialog') as RuntimeDialog
-  dialog.innerHTML = [
-    '<zw-dialog-overlay></zw-dialog-overlay>',
-    '<zw-dialog-content><zw-dialog-title>Settings</zw-dialog-title><button>Inside</button></zw-dialog-content>',
-  ].join('')
   dialog.open = true
   document.body.append(dialog)
-  const content = dialog.querySelector('zw-dialog-content') as
-    | (HTMLElement & { componentOnReady?: () => Promise<unknown> })
-    | null
-  const overlay = dialog.querySelector('zw-dialog-overlay') as
-    | (HTMLElement & { componentOnReady?: () => Promise<unknown> })
-    | null
-  const title = dialog.querySelector('zw-dialog-title') as
-    | (HTMLElement & { componentOnReady?: () => Promise<unknown> })
-    | null
+  // Wait for the root projection before adding lazy child elements; otherwise
+  // its initial light-DOM render can disconnect them while they are loading.
+  await dialog.componentOnReady()
+
+  const overlay = document.createElement('zw-dialog-overlay') as HTMLElement & {
+    componentOnReady?: () => Promise<unknown>
+  }
+  const content = document.createElement('zw-dialog-content') as HTMLElement & {
+    componentOnReady?: () => Promise<unknown>
+  }
+  dialog.append(overlay, content)
   await Promise.all([
-    dialog.componentOnReady(),
-    content?.componentOnReady?.(),
-    overlay?.componentOnReady?.(),
-    title?.componentOnReady?.(),
+    overlay.componentOnReady?.(),
+    content.componentOnReady?.(),
   ])
+
+  const title = document.createElement('zw-dialog-title') as HTMLElement & {
+    componentOnReady?: () => Promise<unknown>
+  }
+  title.textContent = 'Settings'
+  const button = document.createElement('button')
+  button.textContent = 'Inside'
+  content.append(title, button)
+  await title.componentOnReady?.()
   await nextRender()
   return dialog
 }

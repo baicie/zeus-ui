@@ -318,27 +318,27 @@ function setup(
     <Host
       part="root"
       data-slot="agent-console-root"
-      data-external-signature={() => {
+      data-external-signature={(() => {
         scheduleExternalSync()
         return getExternalSignature()
-      }}
-      data-status={() => state.status}
-      data-message-count={() => String(state.messages.length)}
-      data-tool-call-count={() => String(state.toolCalls.length)}
-      data-artifact-count={() => String(state.artifacts.length)}
-      data-diagnostic-count={() => String(state.diagnostics.length)}
+      })()}
+      data-status={state.status}
+      data-message-count={String(state.messages.length)}
+      data-tool-call-count={String(state.toolCalls.length)}
+      data-artifact-count={String(state.artifacts.length)}
+      data-diagnostic-count={String(state.diagnostics.length)}
     >
       <section
         part="layout"
         data-slot="agent-console-layout"
         role="region"
-        aria-label={() => props.ariaLabel ?? 'Agent console'}
+        aria-label={props.ariaLabel ?? 'Agent console'}
       >
         <div
           part="timeline"
           data-slot="agent-console-timeline"
           role="log"
-          aria-live={() => (state.status === 'running' ? 'polite' : 'off')}
+          aria-live={state.status === 'running' ? 'polite' : 'off'}
         >
           <Slot name="timeline" />
         </div>
@@ -355,7 +355,7 @@ function setup(
           part="artifacts"
           data-slot="agent-console-artifacts"
           aria-label="Artifacts"
-          data-selected-artifact-id={() => state.selectedArtifactId}
+          data-selected-artifact-id={state.selectedArtifactId}
         >
           <Slot name="artifactsContent" />
         </aside>

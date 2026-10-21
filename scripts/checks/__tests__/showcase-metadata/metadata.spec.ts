@@ -86,7 +86,15 @@ describe('showcase shared metadata', () => {
     const showcaseNames = new Set(
       showcaseComponents.map(component => component.name),
     )
-    expect(showcaseNames.has('button')).toBe(true)
-    expect(showcaseNames.has('input')).toBe(true)
+    for (const name of [
+      'button',
+      'input',
+      'form-field',
+      'popover',
+      'dropdown-menu',
+      'toast',
+    ]) {
+      expect(showcaseNames.has(name)).toBe(true)
+    }
   })
 })

@@ -6,8 +6,8 @@
       "kind": "bundled",
       "location": "@zeus-web/registry",
       "name": "@zeus-web/registry",
-      "version": "0.1.0-beta.32",
-      "integrity": "879bd5ebbed8f094c1c373b19cf7e6ed6763be089dde3f7f8212858e87a2d611"
+      "version": "0.1.0-beta.33",
+      "integrity": "bf4130a9da26dc354d277be4ff1227368eab8a0ca8de952ab8bea8802a5a5041"
     }
   },
   "components": {
@@ -44,10 +44,10 @@
       "registryDependencies": ["cn", "globals"],
       "updatedAt": "showcase-registry-sync",
       "fileHashes": {
-        "src/components/ui/button.tsx": "18e65f331c496d6d16bfe27077bc69deec2457aa7d9528046ba4d56bdb45c5a7"
+        "src/components/ui/button.tsx": "9ecb925c84ed28b53d40f5477324a96cb59ccae6383bbbfb22ea84827ce20ffc"
       },
       "registryHashes": {
-        "src/components/ui/button.tsx": "18e65f331c496d6d16bfe27077bc69deec2457aa7d9528046ba4d56bdb45c5a7"
+        "src/components/ui/button.tsx": "9ecb925c84ed28b53d40f5477324a96cb59ccae6383bbbfb22ea84827ce20ffc"
       }
     },
     "input": {
@@ -57,10 +57,10 @@
       "registryDependencies": ["cn", "globals"],
       "updatedAt": "showcase-registry-sync",
       "fileHashes": {
-        "src/components/ui/input.tsx": "9470eae4dbd3921538e337e0ea4e59dfbd211eca25ecda067c9f74bca9ee3c5b"
+        "src/components/ui/input.tsx": "d02f0031502fe484c54ad6dce9d250a28c7ffd73af11f322d69bca2a5192250d"
       },
       "registryHashes": {
-        "src/components/ui/input.tsx": "9470eae4dbd3921538e337e0ea4e59dfbd211eca25ecda067c9f74bca9ee3c5b"
+        "src/components/ui/input.tsx": "d02f0031502fe484c54ad6dce9d250a28c7ffd73af11f322d69bca2a5192250d"
       }
     }
   }

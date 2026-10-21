@@ -146,7 +146,7 @@ describe('playground docs generator', () => {
         })
     })
 
-    expect(componentCatalog).toHaveLength(25)
+    expect(componentCatalog).toHaveLength(29)
     expect(
       componentCatalog.map(component => component.packageName).sort(),
     ).toEqual(packageNames.sort())

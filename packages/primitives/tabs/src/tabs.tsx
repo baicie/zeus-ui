@@ -166,8 +166,8 @@ function setupTabs(
   return (
     <Host
       data-slot="tabs-root"
-      data-orientation={() => context.getOrientation()}
-      data-disabled={() => (props.disabled ? '' : undefined)}
+      data-orientation={context.getOrientation()}
+      data-disabled={props.disabled ? '' : undefined}
     >
       <Slot />
     </Host>
@@ -220,8 +220,8 @@ function setupTabsList(
       part="list"
       role="tablist"
       data-slot="tabs-list"
-      data-orientation={() => tabs?.getOrientation()}
-      aria-orientation={() => tabs?.getOrientation()}
+      data-orientation={tabs?.getOrientation()}
+      aria-orientation={tabs?.getOrientation()}
     >
       <Slot />
     </Host>
@@ -277,9 +277,9 @@ function setupTabsTrigger(
     <Host
       part="trigger"
       data-slot="tabs-trigger"
-      data-value={() => props.value}
-      data-state={() => (isSelected() ? 'active' : 'inactive')}
-      data-disabled={() => (isDisabled() ? '' : undefined)}
+      data-value={props.value}
+      data-state={isSelected() ? 'active' : 'inactive'}
+      data-disabled={isDisabled() ? '' : undefined}
     >
       <button
         ref={(element: HTMLButtonElement | null) => {
@@ -295,16 +295,16 @@ function setupTabsTrigger(
             }
           }
         }}
-        id={() => (props.value ? tabs?.getTriggerId(props.value) : undefined)}
+        id={props.value ? tabs?.getTriggerId(props.value) : undefined}
         part="trigger"
         role="tab"
         prop:type={() => 'button'}
-        aria-selected={() => String(isSelected())}
-        aria-controls={() =>
+        aria-selected={String(isSelected())}
+        aria-controls={
           props.value ? tabs?.getContentId(props.value) : undefined
         }
-        tabIndex={() => (isSelected() ? 0 : -1)}
-        disabled={() => isDisabled()}
+        tabIndex={isSelected() ? 0 : -1}
+        disabled={isDisabled()}
         onClick={event => {
           activate(event)
         }}
@@ -357,17 +357,17 @@ function setupTabsContent(
 
   return (
     <Host
-      id={() => (props.value ? tabs?.getContentId(props.value) : undefined)}
+      id={props.value ? tabs?.getContentId(props.value) : undefined}
       part="content"
       role="tabpanel"
       data-slot="tabs-content"
-      data-state={() => (isActive() ? 'active' : 'inactive')}
-      data-value={() => props.value}
-      aria-labelledby={() =>
+      data-state={isActive() ? 'active' : 'inactive'}
+      data-value={props.value}
+      aria-labelledby={
         props.value ? tabs?.getTriggerId(props.value) : undefined
       }
-      tabIndex={() => 0}
-      hidden={() => !isActive()}
+      prop:tabIndex={0}
+      hidden={!isActive()}
     >
       <Slot />
     </Host>

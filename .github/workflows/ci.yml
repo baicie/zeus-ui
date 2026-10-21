@@ -43,9 +43,11 @@ jobs:
       - run: pnpm check:zeus-imports
       - run: pnpm check
       - run: pnpm build
+      - run: pnpm check:bundle-size
       - name: Verify built CLI maintenance consumers
         run: pnpm check:cli-consumer
       - run: pnpm check:exports
       - run: pnpm check:build-output
       - run: pnpm site:check
+      - run: pnpm examples:build
       - run: pnpm release:verify --allow-zero

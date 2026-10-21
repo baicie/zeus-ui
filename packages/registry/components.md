@@ -59,3 +59,71 @@ Primitive: `@zeus-web/input`
 | Slot  | `prefix`            | react: `ReactNode`; vue: `() => unknown`                                 | -       | react, vue | Content before the input control.       |
 | Slot  | `suffix`            | react: `ReactNode`; vue: `() => unknown`                                 | -       | react, vue | Content after the input control.        |
 | Slot  | `message`           | react: `ReactNode`; vue: `() => unknown`                                 | -       | react, vue | Validation or help message content.     |
+
+## form-field
+
+Styled form field relationship built on the form-field primitive.
+
+Primitive: `@zeus-web/form-field`
+
+| Kind | Name        | Type / Values                            | Default | Framework  | Description                                                                           |
+| ---- | ----------- | ---------------------------------------- | ------- | ---------- | ------------------------------------------------------------------------------------- |
+| Prop | `id`        | `string`                                 | -       | react, vue | Stable field identifier.                                                              |
+| Prop | `invalid`   | `boolean`                                | `false` | react, vue | Marks the field as invalid.                                                           |
+| Prop | `disabled`  | `boolean`                                | `false` | react, vue | Disables the associated control.                                                      |
+| Prop | `required`  | `boolean`                                | `false` | react, vue | Marks the associated control as required.                                             |
+| Prop | `className` | `string`                                 | -       | react      | Additional React class name.                                                          |
+| Prop | `class`     | `string`                                 | -       | vue        | Additional Vue class name.                                                            |
+| Slot | `default`   | react: `ReactNode`; vue: `() => unknown` | -       | react, vue | FormFieldLabel, FormFieldDescription, FormFieldControl and FormFieldMessage children. |
+
+## popover
+
+Styled popover built on the popover primitive.
+
+Primitive: `@zeus-web/popover`
+
+| Kind  | Name          | Type / Values                                         | Default | Framework  | Description                                  |
+| ----- | ------------- | ----------------------------------------------------- | ------- | ---------- | -------------------------------------------- |
+| Prop  | `open`        | `boolean`                                             | -       | react, vue | Controlled open state.                       |
+| Prop  | `defaultOpen` | `boolean`                                             | `false` | react, vue | Initial uncontrolled open state.             |
+| Prop  | `modal`       | `boolean`                                             | `true`  | react, vue | Dismisses on outside pointer input.          |
+| Prop  | `disabled`    | `boolean`                                             | `false` | react, vue | Disables the trigger.                        |
+| Prop  | `forceMount`  | `boolean`                                             | `false` | react, vue | Keeps popover content mounted while closed.  |
+| Prop  | `className`   | `string`                                              | -       | react      | Additional React class name.                 |
+| Prop  | `class`       | `string`                                              | -       | vue        | Additional Vue class name.                   |
+| Event | `open-change` | `CustomEvent<{ open: boolean; nativeEvent?: Event }>` | -       | react, vue | Emitted when the popover open state changes. |
+| Slot  | `default`     | react: `ReactNode`; vue: `() => unknown`              | -       | react, vue | PopoverTrigger and PopoverContent children.  |
+
+## dropdown-menu
+
+Styled dropdown menu built on the dropdown-menu primitive.
+
+Primitive: `@zeus-web/dropdown-menu`
+
+| Kind  | Name          | Type / Values                                         | Default | Framework  | Description                                                             |
+| ----- | ------------- | ----------------------------------------------------- | ------- | ---------- | ----------------------------------------------------------------------- |
+| Prop  | `open`        | `boolean`                                             | -       | react, vue | Controlled open state.                                                  |
+| Prop  | `defaultOpen` | `boolean`                                             | `false` | react, vue | Initial uncontrolled open state.                                        |
+| Prop  | `disabled`    | `boolean`                                             | `false` | react, vue | Disables the trigger and items.                                         |
+| Prop  | `className`   | `string`                                              | -       | react      | Additional React class name.                                            |
+| Prop  | `class`       | `string`                                              | -       | vue        | Additional Vue class name.                                              |
+| Event | `open-change` | `CustomEvent<{ open: boolean; nativeEvent?: Event }>` | -       | react, vue | Emitted when the menu open state changes.                               |
+| Event | `select`      | `CustomEvent<{ value?: string; nativeEvent: Event }>` | -       | react, vue | Emitted when an enabled menu item is selected.                          |
+| Slot  | `default`     | react: `ReactNode`; vue: `() => unknown`              | -       | react, vue | DropdownMenuTrigger, DropdownMenuContent and DropdownMenuItem children. |
+
+## toast
+
+Styled live-region toast built on the toast primitive.
+
+Primitive: `@zeus-web/toast`
+
+| Kind  | Name          | Type / Values                                         | Default      | Framework  | Description                                              |
+| ----- | ------------- | ----------------------------------------------------- | ------------ | ---------- | -------------------------------------------------------- |
+| Prop  | `open`        | `boolean`                                             | -            | react, vue | Controlled open state.                                   |
+| Prop  | `defaultOpen` | `boolean`                                             | `false`      | react, vue | Initial uncontrolled open state.                         |
+| Prop  | `duration`    | `number`                                              | `5000`       | react, vue | Auto-dismiss duration in milliseconds; zero disables it. |
+| Prop  | `status`      | ToastStatus: `foreground`, `background`               | `foreground` | react, vue | Live-region announcement priority.                       |
+| Prop  | `className`   | `string`                                              | -            | react      | Additional React class name.                             |
+| Prop  | `class`       | `string`                                              | -            | vue        | Additional Vue class name.                               |
+| Event | `open-change` | `CustomEvent<{ open: boolean; nativeEvent?: Event }>` | -            | react, vue | Emitted when the toast open state changes.               |
+| Slot  | `default`     | react: `ReactNode`; vue: `() => unknown`              | -            | react, vue | ToastTitle, ToastDescription and ToastClose children.    |

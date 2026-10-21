@@ -216,6 +216,67 @@ const chineseMessages: ComponentDocsMessages = {
 }
 
 const chineseMetadataText: Record<string, string> = {
+  'form-field headless primitive for Zeus Web.':
+    'Zeus Web 的表单字段无样式基础组件。',
+  'Styled form field relationship built on the form-field primitive.':
+    '基于 form-field 基础组件的样式化表单字段关系组件。',
+  'Styled popover built on the popover primitive.':
+    '基于 popover 基础组件的样式化浮层组件。',
+  'Styled dropdown menu built on the dropdown-menu primitive.':
+    '基于 dropdown-menu 基础组件的样式化下拉菜单组件。',
+  'Styled live-region toast built on the toast primitive.':
+    '基于 toast 基础组件的样式化实时区域通知组件。',
+  'Stable field identifier.': '稳定的字段标识符。',
+  'Marks the field as invalid.': '将字段标记为无效。',
+  'Disables the associated control.': '禁用关联控件。',
+  'Marks the associated control as required.': '将关联控件标记为必填。',
+  'Initial uncontrolled open state.': '非受控模式的初始打开状态。',
+  'Dismisses on outside pointer input.': '在外部指针交互时关闭。',
+  'Disables the trigger.': '禁用触发器。',
+  'Keeps popover content mounted while closed.': '关闭时仍保持浮层内容挂载。',
+  'Keeps content mounted while closed.': '关闭时仍保持内容挂载。',
+  'Disables the trigger and items.': '禁用触发器和菜单项。',
+  'Item selection value.': '菜单项的选择值。',
+  'Emitted when the popover open state changes.': '浮层打开状态改变时触发。',
+  'Emitted when the menu open state changes.': '菜单打开状态改变时触发。',
+  'Emitted when an enabled menu item is selected.':
+    '选中未禁用的菜单项时触发。',
+  'Emitted when an enabled item is selected.': '选中未禁用的菜单项时触发。',
+  'Live-region announcement priority.': '实时区域播报优先级。',
+  'Auto-dismiss duration in milliseconds; zero disables it.':
+    '自动关闭时长，单位为毫秒；设为零时不自动关闭。',
+  'Emitted when the toast open state changes.': '通知打开状态改变时触发。',
+  'Additional React class name.': '额外的 React class 名称。',
+  'Additional Vue class name.': '额外的 Vue class 名称。',
+  'FormFieldLabel, FormFieldDescription, FormFieldControl and FormFieldMessage children.':
+    '包含 FormFieldLabel、FormFieldDescription、FormFieldControl 和 FormFieldMessage。',
+  'Label, description, control and message content.':
+    '标签、描述、控件和校验消息内容。',
+  'Popover trigger and content.': '浮层触发器与内容。',
+  'Menu trigger, content and items.': '菜单触发器、内容和菜单项。',
+  'Toast title, description and close action.': '通知标题、描述和关闭操作。',
+  'Auto-dismiss duration in milliseconds.': '自动关闭时长，单位为毫秒。',
+  'PopoverTrigger and PopoverContent children.':
+    '包含 PopoverTrigger 和 PopoverContent。',
+  'DropdownMenuTrigger, DropdownMenuContent and DropdownMenuItem children.':
+    '包含 DropdownMenuTrigger、DropdownMenuContent 和 DropdownMenuItem。',
+  'ToastTitle, ToastDescription and ToastClose children.':
+    '包含 ToastTitle、ToastDescription 和 ToastClose。',
+  'Use the copied Registry wrapper for styled application UI.':
+    '应用界面需要样式时，使用复制到项目中的 Registry 包装器。',
+  'popover headless primitive for Zeus Web.':
+    'Zeus Web 的弹出层无样式基础组件。',
+  'dropdown-menu headless primitive for Zeus Web.':
+    'Zeus Web 的下拉菜单无样式基础组件。',
+  'toast headless primitive for Zeus Web.': 'Zeus Web 的轻提示无样式基础组件。',
+  'Component content.': '组件内容。',
+  'Use the headless primitive for its named interaction.':
+    '使用对应的无样式基础组件实现其命名交互。',
+  'Do not assume the primitive provides final visual styling.':
+    '不要假设基础组件提供最终视觉样式。',
+  'Do not assume the headless primitive provides final visual styling.':
+    '不要假设无样式基础组件提供最终视觉样式。',
+  'Package usage': '软件包用法',
   'Styled button component built on the zw-button primitive.':
     '基于 zw-button 基础组件构建的样式化按钮。',
   'Visual style variant.': '视觉样式变体。',

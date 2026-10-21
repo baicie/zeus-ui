@@ -102,11 +102,11 @@ function setup(
   return (
     <Host
       data-slot="input-root"
-      data-size={() => props.size}
-      data-disabled={() => (props.disabled ? '' : undefined)}
-      data-invalid={() => (props.invalid ? '' : undefined)}
+      data-size={props.size}
+      data-disabled={props.disabled ? '' : undefined}
+      data-invalid={props.invalid ? '' : undefined}
     >
-      <label part="root" for={() => props.id}>
+      <label part="root" for={props.id}>
         <span part="prefix" data-slot="input-prefix">
           <Slot name="prefix" />
         </span>
@@ -115,26 +115,26 @@ function setup(
           ref={(element: HTMLInputElement | null) => {
             if (element) control = element
           }}
-          id={() => props.id}
+          id={props.id}
           part="control"
           data-slot="input"
-          prop:type={() => props.type || 'text'}
-          prop:value={() => resolveRenderedValue()}
-          placeholder={() => props.placeholder}
-          disabled={() => Boolean(props.disabled)}
-          readOnly={() => Boolean(props.readonly)}
-          required={() => Boolean(props.required)}
-          name={() => props.name}
-          autoComplete={() => props.autocomplete}
-          aria-label={() => props.ariaLabel}
-          aria-describedby={() => props.ariaDescribedby}
-          aria-errormessage={() => props.ariaErrormessage}
-          aria-invalid={() => (props.invalid ? 'true' : undefined)}
+          prop:type={props.type || 'text'}
+          prop:value={resolveRenderedValue()}
+          placeholder={props.placeholder}
+          disabled={Boolean(props.disabled)}
+          prop:readOnly={Boolean(props.readonly)}
+          required={Boolean(props.required)}
+          name={props.name}
+          autocomplete={props.autocomplete}
+          aria-label={props.ariaLabel}
+          aria-describedby={props.ariaDescribedby}
+          aria-errormessage={props.ariaErrormessage}
+          aria-invalid={props.invalid ? 'true' : undefined}
           onInput={handleInput}
-          onFocus={nativeEvent => {
+          onFocus={(nativeEvent: FocusEvent) => {
             ctx.emit.focusChange({ focused: true, nativeEvent })
           }}
-          onBlur={nativeEvent => {
+          onBlur={(nativeEvent: FocusEvent) => {
             ctx.emit.focusChange({ focused: false, nativeEvent })
           }}
         />

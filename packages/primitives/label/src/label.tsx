@@ -27,10 +27,10 @@ function setup(props: LabelProps, ctx: DefineElementContext<LabelElement>) {
   return (
     <Host
       data-slot="label-root"
-      data-size={() => props.size}
-      data-required={() => (props.required ? '' : undefined)}
-      data-disabled={() => (props.disabled ? '' : undefined)}
-      data-visually-hidden={() => (props.visuallyHidden ? '' : undefined)}
+      data-size={props.size}
+      data-required={props.required ? '' : undefined}
+      data-disabled={props.disabled ? '' : undefined}
+      data-visually-hidden={props.visuallyHidden ? '' : undefined}
     >
       <label
         ref={(element: HTMLLabelElement | null) => {
@@ -38,15 +38,15 @@ function setup(props: LabelProps, ctx: DefineElementContext<LabelElement>) {
         }}
         part="label"
         data-slot="label"
-        for={() => props.for}
-        aria-disabled={() => (props.disabled ? 'true' : undefined)}
+        for={props.for}
+        aria-disabled={props.disabled ? 'true' : undefined}
       >
         <Slot />
         <span
           part="required-indicator"
           data-slot="label-required-indicator"
-          aria-hidden={() => 'true'}
-          hidden={() => !props.required}
+          aria-hidden="true"
+          hidden={!props.required}
         >
           *
         </span>

@@ -291,23 +291,19 @@ function setup(
     <Host
       part="root"
       data-slot="revogrid-adapter-root"
-      data-adapter-signature={() => {
+      data-adapter-signature={(() => {
         scheduleApplyStateToGrid()
         return getSignature()
-      }}
-      data-readonly={() => (readOptions().readonly ? '' : undefined)}
-      data-selection-mode={() =>
-        resolveSelectionMode(readOptions().selectionMode)
-      }
-      data-row-count={() => String(resolveRows(readOptions().rows).length)}
-      data-column-count={() =>
-        String(resolveColumns(readOptions().columns).length)
-      }
+      })()}
+      data-readonly={readOptions().readonly ? '' : undefined}
+      data-selection-mode={resolveSelectionMode(readOptions().selectionMode)}
+      data-row-count={String(resolveRows(readOptions().rows).length)}
+      data-column-count={String(resolveColumns(readOptions().columns).length)}
     >
       <revo-grid
         part="grid"
         data-slot="revogrid-adapter-grid"
-        aria-label={() => props.ariaLabel}
+        aria-label={props.ariaLabel}
         ref={(element: RevoGridElementLike | null) => {
           if (element) {
             gridElement = element

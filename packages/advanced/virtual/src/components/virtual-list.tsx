@@ -219,11 +219,11 @@ function setup(
     <Host
       part="root"
       data-slot="virtual-list-root"
-      data-orientation={() => (props.horizontal ? 'horizontal' : 'vertical')}
-      data-count={() => String(resolveCount(props))}
-      data-estimate-size={() => String(resolveEstimateSize(props))}
-      data-overscan={() => String(resolveOverscan(props))}
-      data-total-size={() => String(getTotalSize())}
+      data-orientation={props.horizontal ? 'horizontal' : 'vertical'}
+      data-count={String(resolveCount(props))}
+      data-estimate-size={String(resolveEstimateSize(props))}
+      data-overscan={String(resolveOverscan(props))}
+      data-total-size={String(getTotalSize())}
     >
       <div
         ref={(element: HTMLElement | null) => {
@@ -247,25 +247,25 @@ function setup(
         part="viewport"
         data-slot="virtual-list-viewport"
         role="list"
-        tabindex={() => 0}
-        aria-label={() => props.ariaLabel}
-        aria-orientation={() => (props.horizontal ? 'horizontal' : 'vertical')}
+        prop:tabIndex={0}
+        aria-label={props.ariaLabel}
+        aria-orientation={props.horizontal ? 'horizontal' : 'vertical'}
       >
         <div
           part="spacer"
           data-slot="virtual-list-spacer"
-          data-total-size={() => String(getTotalSize())}
+          data-total-size={String(getTotalSize())}
           aria-hidden="true"
-          style={() => getSpacerStyle()}
+          style={getSpacerStyle()}
         />
 
         <div
           part="items"
           data-slot="virtual-list-items"
-          data-range-start={() => String(currentRange.start)}
-          data-range-end={() => String(currentRange.end)}
-          data-overscan-start={() => String(currentRange.overscanStart)}
-          data-overscan-end={() => String(currentRange.overscanEnd)}
+          data-range-start={String(currentRange.start)}
+          data-range-end={String(currentRange.end)}
+          data-overscan-start={String(currentRange.overscanStart)}
+          data-overscan-end={String(currentRange.overscanEnd)}
         >
           <Slot />
         </div>

@@ -21,9 +21,12 @@
     "@zeus-web/collapsible": "workspace:*",
     "@zeus-web/data-grid": "workspace:*",
     "@zeus-web/dialog": "workspace:*",
+    "@zeus-web/dropdown-menu": "workspace:*",
+    "@zeus-web/form-field": "workspace:*",
     "@zeus-web/icons": "workspace:*",
     "@zeus-web/input": "workspace:*",
     "@zeus-web/label": "workspace:*",
+    "@zeus-web/popover": "workspace:*",
     "@zeus-web/progress": "workspace:*",
     "@zeus-web/radio-group": "workspace:*",
     "@zeus-web/revogrid-adapter": "workspace:*",
@@ -34,6 +37,7 @@
     "@zeus-web/tabs": "workspace:*",
     "@zeus-web/textarea": "workspace:*",
     "@zeus-web/themes": "workspace:*",
+    "@zeus-web/toast": "workspace:*",
     "@zeus-web/tooltip": "workspace:*",
     "@zeus-web/virtual": "workspace:*"
   }

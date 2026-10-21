@@ -31,9 +31,9 @@ export const Skeleton = defineElement<SkeletonProps, SkeletonElement>(
     <Host
       part="root"
       data-slot="skeleton-root"
-      data-variant={() => props.variant}
-      data-animated={() => (props.animated ? '' : undefined)}
-      aria-hidden={() => 'true'}
+      data-variant={props.variant}
+      data-animated={props.animated ? '' : undefined}
+      aria-hidden="true"
     >
       {null}
     </Host>

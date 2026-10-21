@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { Button as ButtonPrimitive } from '@zeus-web/button/react'
 
 import { cn } from '@/lib/cn'
@@ -48,7 +48,7 @@ const buttonRegistryDefaults = {
   pressed: false,
 } as const
 export type ButtonProps = Omit<
-  ComponentProps<typeof ButtonPrimitive>,
+  React.ComponentProps<typeof ButtonPrimitive>,
   keyof ButtonRegistryProps | keyof ButtonRegistryEvents | 'children'
 > &
   ButtonRegistryProps &

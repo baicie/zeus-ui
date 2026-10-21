@@ -111,6 +111,11 @@ export default defineConfig({
   },
 
   test: {
+    server: {
+      deps: {
+        inline: ['@zeus-js/web-c-runtime'],
+      },
+    },
     globals: true,
     pool: 'threads',
     setupFiles: 'scripts/config/setup-vitest.ts',
@@ -165,6 +170,12 @@ export default defineConfig({
             'packages/primitives/input/__tests__/input-runtime.spec.ts',
             // dialog focus/outside-click tests require a DOM environment.
             'packages/primitives/dialog/__tests__/dialog-runtime.spec.ts',
+            // FormField and DropdownMenu runtime tests require DOM globals.
+            'packages/primitives/form-field/__tests__/form-field.runtime.spec.ts',
+            'packages/primitives/dropdown-menu/__tests__/dropdown-menu.runtime.spec.ts',
+            // Popover and Toast runtime tests require DOM globals.
+            'packages/primitives/popover/__tests__/popover.runtime.spec.ts',
+            'packages/primitives/toast/__tests__/toast.runtime.spec.ts',
           ],
         },
       },

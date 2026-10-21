@@ -32,7 +32,7 @@ describe('component docs generator', () => {
       ]
     })
 
-    expect(docs).toHaveLength(52)
+    expect(docs).toHaveLength(60)
     expect(docs.map(doc => doc.path)).toEqual(expectedPaths)
   })
 
@@ -43,7 +43,7 @@ describe('component docs generator', () => {
 
     expect(english).toContain('# Components')
     expect(english).toContain('<ComponentDirectory />')
-    expect(english).toContain('25 public component packages')
+    expect(english).toContain('29 public component packages')
     expect(english).toContain('zweb add <component>')
     expect(english).toContain('`select`')
     expect(english).toContain('`@/components/ui/<component>`')
@@ -51,7 +51,7 @@ describe('component docs generator', () => {
 
     expect(chinese).toContain('# 组件')
     expect(chinese).toContain('<ComponentDirectory />')
-    expect(chinese).toContain('全部 25 个公开组件包')
+    expect(chinese).toContain('全部 29 个公开组件包')
     expect(chinese).toContain('zweb add <component>')
     expect(chinese).toContain('`select`')
     expect(chinese).toContain('`@/components/ui/<component>`')
@@ -134,6 +134,33 @@ describe('component docs generator', () => {
       'focus-change',
     ]) {
       expect(english).toContain(`\`${publicMember}\``)
+    }
+  })
+
+  it('keeps union types inside a single generated Markdown table cell', () => {
+    const context = createComponentDocsContext()
+    const component = context.metadata.components.find(
+      item => item.name === 'dropdown-menu',
+    )
+    const registryItem = context.registry.items.find(
+      item => item.name === 'dropdown-menu',
+    )
+
+    expect(component).toBeDefined()
+
+    for (const locale of ['en', 'zh'] as const) {
+      const source = renderComponentDoc(
+        component!,
+        registryItem,
+        process.cwd(),
+        locale,
+      )
+      const row = source
+        .split('\n')
+        .find(line => line.includes('<code>value: string &#124; undefined'))
+
+      expect(row).toBeDefined()
+      expect(row!.match(/\|/g)).toHaveLength(5)
     }
   })
 
@@ -265,7 +292,7 @@ describe('component docs generator', () => {
     const docs = generateComponentDocs()
     const englishDocs = docs.filter(doc => !doc.path.includes('/zh/'))
 
-    expect(englishDocs).toHaveLength(26)
+    expect(englishDocs).toHaveLength(30)
 
     for (const doc of englishDocs) {
       expect(doc.content, doc.path).not.toMatch(HAN_PATTERN)
