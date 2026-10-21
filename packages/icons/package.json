@@ -63,6 +63,6 @@
     }
   },
   "dependencies": {
-    "@zeus-js/output-icons": "0.1.1-beta.15"
+    "@zeus-js/output-icons": "0.1.1-beta.16"
   }
 }
