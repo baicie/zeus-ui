@@ -125,7 +125,7 @@ describe('data-grid benchmark contract', () => {
 
     expect(manifest.schemaVersion).toBe(1)
     expect(manifest.baselineId).toMatch(/^u005-data-grid-\d{4}-\d{2}-\d{2}$/)
-    expect(manifest.packageVersion).toBe('0.1.0-beta.32')
+    expect(manifest.packageVersion).toBe('0.1.0-beta.33')
     expect(manifest.dataMode).toBe('sparse')
     expect(manifest.budgetPolicy.maxRenderedCells).toBe(600)
     expect(manifest.scenarios).toHaveLength(
