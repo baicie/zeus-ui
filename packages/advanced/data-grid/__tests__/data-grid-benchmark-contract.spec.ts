@@ -66,6 +66,7 @@ describe('data-grid benchmark contract', () => {
       '__tests__/benchmark-metrics.spec.ts',
       '__tests__/data-grid-benchmark-contract.spec.ts',
       '../../../e2e/advanced/data-grid/data-grid-runtime-harness.ts',
+      '../../../scripts/config/jsx.d.ts',
     ])
     expect(compilerOptions && compilerOptions.rootDir).toBe('../../..')
     expect(compilerOptions && compilerOptions.types).toEqual([

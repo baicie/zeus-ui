@@ -370,6 +370,18 @@ function escapeDataGridSelectorValue(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
+interface DataGridCellValueProps {
+  read: () => unknown
+}
+
+function DataGridCellValue(props: DataGridCellValueProps): Text {
+  const text = globalThis.document.createTextNode('')
+  createEffect(() => {
+    text.data = String(props.read() ?? '')
+  })
+  return text
+}
+
 function setup(
   props: DataGridProps,
   ctx: DefineElementContext<DataGridElement, DataGridEmits>,
@@ -428,6 +440,7 @@ function setup(
   let visibleColumns = getVisibleDataGridColumns(columns)
   let columnIndexById = createColumnIndexById(visibleColumns)
   let rows: DataGridRowModel = createDataGridRowModel(rowsSource)
+
   let sort: DataGridSortState | undefined = createDataGridControlledSortState(
     props.sortColumn,
     props.sortDirection,
@@ -1297,7 +1310,6 @@ function setup(
 
     sample.createdNodeCount = pendingCreatedNodes ? pendingCreatedNodes.size : 0
     sample.removedNodeCount = pendingRemovedNodes ? pendingRemovedNodes.size : 0
-
     if (pendingCreatedNodes) pendingCreatedNodes.clear()
     if (pendingRemovedNodes) pendingRemovedNodes.clear()
   }
@@ -2589,8 +2601,7 @@ function setup(
                 role="columnheader"
                 aria-colindex={String(getDataGridColumnAriaIndex(item.index))}
                 aria-sort={getDataGridAriaSort(item.data, sort)}
-                // @ts-expect-error Static HTML tabindex values serialize as strings.
-                tabindex="0"
+                tabindex={0}
                 style={{
                   gridColumnStart: getGridColumnStart(item),
                 }}
@@ -2799,7 +2810,7 @@ function setup(
                         resolveSelectionMode(props.selectionMode),
                         isRowSelectedForRender(rowItem.data.key),
                       )}
-                      prop:tabIndex={getDataGridCellTabIndex(
+                      tabindex={getDataGridCellTabIndex(
                         props.keyboardNavigation !== false,
                         isActiveCellForRender(
                           rowItem.data.key,
@@ -2859,12 +2870,14 @@ function setup(
                         )
                       }}
                     >
-                      {String(
-                        getDataGridCellValue(
-                          rowItem.data,
-                          columnItem.data.field,
-                        ) ?? '',
-                      )}
+                      <DataGridCellValue
+                        read={() =>
+                          getDataGridCellValue(
+                            rowItem.data,
+                            columnItem.data.field,
+                          )
+                        }
+                      />
                     </div>
                   )}
                 </For>

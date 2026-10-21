@@ -67,7 +67,14 @@ function createBuildTargetNames(options: Options): string[] {
    * @zeus-web/zeus-compat is consumed by docs playground and must also be
    * built so that vitepress can resolve its package exports during build.
    */
-  const nativeShowcasePackages = ['@zeus-web/ui', '@zeus-web/zeus-compat']
+  const nativeShowcasePackages = [
+    '@zeus-web/ui',
+    '@zeus-web/zeus-compat',
+    '@zeus-web/dropdown-menu',
+    '@zeus-web/form-field',
+    '@zeus-web/popover',
+    '@zeus-web/toast',
+  ]
   const advancedShowcasePackages = [
     '@zeus-web/virtual',
     '@zeus-web/chat',

@@ -30,6 +30,7 @@ import {
   ensureThemeCss,
   readComponentsConfig,
   resolveAliasToPath,
+  toRelativeProjectPath,
   updateComponentsConfig,
 } from '../config'
 
@@ -403,7 +404,7 @@ async function themeAdd(args: string[]): Promise<void> {
   const result = {
     name,
     from: options.from,
-    file: relative(options.cwd, outputPath),
+    file: toRelativeProjectPath(options.cwd, outputPath),
   }
   if (options.json) {
     console.log(JSON.stringify(result, null, 2))

@@ -57,7 +57,10 @@ function collectExportTargets(value: unknown, targets: Set<string>): void {
   }
 }
 
-function readPackageInfo(dir: string, kind: PackageKind): PackageInfo | undefined {
+function readPackageInfo(
+  dir: string,
+  kind: PackageKind,
+): PackageInfo | undefined {
   const file = join(dir, 'package.json')
 
   if (!existsSync(file)) return undefined
@@ -125,7 +128,9 @@ function checkExists(pkg: PackageInfo, rel: string, errors: string[]): void {
   const abs = join(pkg.dir, rel)
 
   if (!existsSync(abs)) {
-    errors.push(`${pkg.name}: missing ${toForwardSlash(relative(pkg.dir, abs))}`)
+    errors.push(
+      `${pkg.name}: missing ${toForwardSlash(relative(pkg.dir, abs))}`,
+    )
     return
   }
 
