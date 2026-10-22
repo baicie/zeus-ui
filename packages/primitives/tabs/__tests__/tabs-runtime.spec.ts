@@ -22,6 +22,30 @@ afterEach(() => {
 })
 
 describe('tabs runtime context', () => {
+  it('resolves context when the full subtree connects together', async () => {
+    const tabs = document.createElement('zw-tabs') as ReadyElement
+    tabs.setAttribute('default-value', 'account')
+    tabs.innerHTML = `
+      <zw-tabs-list><zw-tabs-trigger value="account">Account</zw-tabs-trigger></zw-tabs-list>
+      <zw-tabs-content value="account">Account settings</zw-tabs-content>
+    `
+    document.body.append(tabs)
+    await Promise.all(
+      [tabs, ...Array.from(tabs.querySelectorAll<ReadyElement>('*'))]
+        .filter(element => element.localName.startsWith('zw-'))
+        .map(element => element.componentOnReady()),
+    )
+
+    expect(tabs.querySelector('zw-tabs-list')).toHaveAttribute(
+      'aria-orientation',
+      'horizontal',
+    )
+    expect(tabs.querySelector('[role="tab"]')).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+  })
+
   it('shares root orientation and selection with independently loaded entries', async () => {
     const tabs = document.createElement('zw-tabs') as ReadyElement
     tabs.setAttribute('orientation', 'vertical')

@@ -22,6 +22,31 @@ afterEach(() => {
 })
 
 describe('accordion runtime context', () => {
+  it('resolves context when the full subtree connects together', async () => {
+    const accordion = document.createElement('zw-accordion') as ReadyElement
+    accordion.setAttribute('default-value', 'billing')
+    accordion.innerHTML = `
+      <zw-accordion-item value="billing">
+        <zw-accordion-trigger>Billing</zw-accordion-trigger>
+        <zw-accordion-content>Billing details</zw-accordion-content>
+      </zw-accordion-item>
+    `
+    document.body.append(accordion)
+    await Promise.all(
+      [accordion, ...Array.from(accordion.querySelectorAll<ReadyElement>('*'))]
+        .filter(element => element.localName.startsWith('zw-'))
+        .map(element => element.componentOnReady()),
+    )
+
+    expect(accordion.querySelector('zw-accordion-item')).toHaveAttribute(
+      'data-state',
+      'open',
+    )
+    expect(accordion.querySelector('zw-accordion-content')).not.toHaveAttribute(
+      'hidden',
+    )
+  })
+
   it('shares root and item state with independently loaded entries', async () => {
     const accordion = document.createElement('zw-accordion') as ReadyElement
     accordion.setAttribute('value', 'billing')
