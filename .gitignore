@@ -162,6 +162,7 @@ apps/docs/.vitepress/cache
 /temp/
 
 # Showcase E2E artifacts
+e2e/showcase/.artifacts
 examples/showcase-e2e/.artifacts
 playwright-report
 test-results

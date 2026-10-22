@@ -172,6 +172,8 @@ pnpm site:build
 
 > `pnpm site:check` intentionally does not run `pnpm showcase:e2e`.
 > Browser E2E is wired into CI through `.github/workflows/showcase.yml`.
+> Set `SHOWCASE_E2E_BASE_PORT=15173` when the default local ports are occupied.
+> The React, Vue, docs and advanced servers use four consecutive ports from that value.
 
 `--allow-zero` is only for the general case where the current workspace package
 versions are still `0.0.0`; it is not used for the current `0.1.0-beta.2`

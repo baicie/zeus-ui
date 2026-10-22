@@ -5,6 +5,8 @@ import process from 'node:process'
 import { chromium } from '@playwright/test'
 import { afterAll } from 'vitest'
 
+import { showcasePorts } from './ports'
+
 export interface ShowcaseTarget {
   name: string
   baseURL: string
@@ -13,22 +15,22 @@ export interface ShowcaseTarget {
 export const showcaseTargets: ShowcaseTarget[] = [
   {
     name: 'react',
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL: `http://127.0.0.1:${showcasePorts.react}`,
   },
   {
     name: 'vue',
-    baseURL: 'http://127.0.0.1:5174',
+    baseURL: `http://127.0.0.1:${showcasePorts.vue}`,
   },
 ]
 
 export const advancedShowcaseTarget: ShowcaseTarget = {
   name: 'advanced',
-  baseURL: 'http://127.0.0.1:5176',
+  baseURL: `http://127.0.0.1:${showcasePorts.advanced}`,
 }
 
 export const docsShowcaseTarget: ShowcaseTarget = {
   name: 'docs',
-  baseURL: 'http://127.0.0.1:5175/zeus-ui/',
+  baseURL: `http://127.0.0.1:${showcasePorts.docs}/zeus-ui/`,
 }
 
 export type ShowcasePageCallback<T> = (

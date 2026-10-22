@@ -55,7 +55,9 @@ describe.each(showcaseTargets)('$name showcase playground page', target => {
           ).toBeVisible(),
         )
         .then(() => expectPage(page.getByText('Settings ready')).toBeVisible())
-        .then(() => page.getByPlaceholder('Organization name').fill('ze'))
+        .then(() =>
+          page.locator('input[placeholder="Organization name"]').fill('ze'),
+        )
         .then(() =>
           expectPage(page.getByText('Validation warning')).toBeVisible(),
         )
