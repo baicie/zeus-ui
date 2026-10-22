@@ -86,6 +86,49 @@ describe('zw-data-grid accessibility runtime', () => {
     expect(getHeaderCell(grid, 'age').getAttribute('aria-colindex')).toBe('2')
   })
 
+  it('updates sorting metadata without replacing header cells', async () => {
+    const grid = await mountDataGrid()
+    const name = getHeaderCell(grid, 'name')
+    const age = getHeaderCell(grid, 'age')
+
+    grid.setSort('name', 'asc')
+    await nextFrame()
+    expect(getHeaderCell(grid, 'name')).toBe(name)
+    expect(name.getAttribute('aria-sort')).toBe('ascending')
+    expect(name.getAttribute('data-sort-direction')).toBe('asc')
+
+    grid.setSort('age', 'desc')
+    await nextFrame()
+    expect(getHeaderCell(grid, 'age')).toBe(age)
+    expect(name.getAttribute('aria-sort')).toBe('none')
+    expect(name).not.toHaveAttribute('data-sort-direction')
+    expect(age.getAttribute('aria-sort')).toBe('descending')
+
+    grid.clearSort()
+    await nextFrame()
+    expect(age.getAttribute('aria-sort')).toBe('none')
+    expect(age).not.toHaveAttribute('data-sort-direction')
+  })
+
+  it('keeps controlled sorting metadata until the owner accepts it', async () => {
+    const grid = await mountDataGrid({
+      sortColumn: 'name',
+      sortDirection: 'asc',
+    })
+    const name = getHeaderCell(grid, 'name')
+    const age = getHeaderCell(grid, 'age')
+    grid.setSort('age', 'desc')
+    await nextFrame()
+    expect(name.getAttribute('aria-sort')).toBe('ascending')
+    expect(age.getAttribute('aria-sort')).toBe('none')
+
+    grid.sortColumn = 'age'
+    grid.sortDirection = 'desc'
+    await nextFrame()
+    expect(name.getAttribute('aria-sort')).toBe('none')
+    expect(age.getAttribute('aria-sort')).toBe('descending')
+  })
+
   it('renders row and cell aria indexes and selected state', async () => {
     const grid = await mountDataGrid({
       selectionMode: 'multiple',

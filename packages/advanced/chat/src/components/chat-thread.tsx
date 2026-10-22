@@ -9,7 +9,14 @@ import type {
   ChatThreadVirtualSnapshot,
 } from '../types'
 
-import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
+import {
+  createSignal,
+  defineElement,
+  event,
+  Host,
+  prop,
+  Slot,
+} from '@zeus-js/zeus'
 import { createEmptyVirtualRange, createRafScheduler } from '@zeus-web/virtual'
 
 import {
@@ -123,7 +130,8 @@ function setup(
   let viewport: HTMLElement | undefined
   let virtualizer = createThreadVirtualizer(props)
   let signature = getVirtualizerSignature(props)
-  let currentSnapshot: ChatThreadVirtualSnapshot = cloneEmptySnapshot()
+  const [currentSnapshot, setCurrentSnapshot] =
+    createSignal(cloneEmptySnapshot())
 
   const scheduler = createRafScheduler()
 
@@ -134,7 +142,7 @@ function setup(
 
     signature = nextSignature
     virtualizer = createThreadVirtualizer(props)
-    currentSnapshot = cloneEmptySnapshot()
+    setCurrentSnapshot(cloneEmptySnapshot())
   }
 
   const emitSnapshotIfChanged = (
@@ -142,18 +150,20 @@ function setup(
     scrollOffset: number,
     viewportSize: number,
   ): void => {
-    if (!shouldUpdateChatThreadVirtualSnapshot(currentSnapshot, nextSnapshot)) {
+    if (
+      !shouldUpdateChatThreadVirtualSnapshot(currentSnapshot(), nextSnapshot)
+    ) {
       return
     }
 
-    currentSnapshot = nextSnapshot
+    setCurrentSnapshot(nextSnapshot)
 
     ctx.emit.rangeChange({
-      range: currentSnapshot.range,
-      items: currentSnapshot.items,
+      range: nextSnapshot.range,
+      items: nextSnapshot.items,
       scrollOffset,
       viewportSize,
-      totalSize: currentSnapshot.totalSize,
+      totalSize: nextSnapshot.totalSize,
     })
   }
 
@@ -201,11 +211,11 @@ function setup(
     },
 
     getRange(): ChatThreadVirtualRange {
-      return currentSnapshot.range
+      return currentSnapshot().range
     },
 
     getItems(): ChatThreadVirtualItem[] {
-      return currentSnapshot.items
+      return currentSnapshot().items
     },
 
     getTotalSize(): number {
@@ -317,10 +327,10 @@ function setup(
         <div
           part="items"
           data-slot="chat-thread-items"
-          data-range-start={String(currentSnapshot.range.start)}
-          data-range-end={String(currentSnapshot.range.end)}
-          data-overscan-start={String(currentSnapshot.range.overscanStart)}
-          data-overscan-end={String(currentSnapshot.range.overscanEnd)}
+          data-range-start={String(currentSnapshot().range.start)}
+          data-range-end={String(currentSnapshot().range.end)}
+          data-overscan-start={String(currentSnapshot().range.overscanStart)}
+          data-overscan-end={String(currentSnapshot().range.overscanEnd)}
         >
           <Slot />
         </div>

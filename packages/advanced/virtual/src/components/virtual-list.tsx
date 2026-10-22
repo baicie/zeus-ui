@@ -6,7 +6,14 @@ import type {
   VirtualScrollAlign,
 } from '../types'
 
-import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
+import {
+  createSignal,
+  defineElement,
+  event,
+  Host,
+  prop,
+  Slot,
+} from '@zeus-js/zeus'
 import {
   areVirtualRangesEqual,
   createEmptyVirtualRange,
@@ -110,7 +117,9 @@ function setup(
 ) {
   let viewport: HTMLElement | undefined
   let virtualizer = createListVirtualizer(props)
-  let currentRange: VirtualRange = createEmptyVirtualRange()
+  const [currentRange, setCurrentRange] = createSignal(
+    createEmptyVirtualRange(),
+  )
   let currentItems: VirtualItem[] = []
   let lastSignature = ''
 
@@ -140,12 +149,12 @@ function setup(
     const viewportSize = getViewportSize(viewport, props.horizontal)
     const nextRange = virtualizer.getRange(scrollOffset, viewportSize)
 
-    if (!areVirtualRangesEqual(currentRange, nextRange)) {
-      currentRange = nextRange
+    if (!areVirtualRangesEqual(currentRange(), nextRange)) {
       currentItems = virtualizer.getItems(nextRange)
+      setCurrentRange(nextRange)
 
       ctx.emit.rangeChange({
-        range: currentRange,
+        range: nextRange,
         items: currentItems,
         scrollOffset,
         viewportSize,
@@ -166,7 +175,7 @@ function setup(
 
   ctx.expose({
     getRange(): VirtualRange {
-      return currentRange
+      return currentRange()
     },
 
     getItems(): VirtualItem[] {
@@ -262,10 +271,10 @@ function setup(
         <div
           part="items"
           data-slot="virtual-list-items"
-          data-range-start={String(currentRange.start)}
-          data-range-end={String(currentRange.end)}
-          data-overscan-start={String(currentRange.overscanStart)}
-          data-overscan-end={String(currentRange.overscanEnd)}
+          data-range-start={String(currentRange().start)}
+          data-range-end={String(currentRange().end)}
+          data-overscan-start={String(currentRange().overscanStart)}
+          data-overscan-end={String(currentRange().overscanEnd)}
         >
           <Slot />
         </div>

@@ -34,15 +34,13 @@ const showcaseSharedPath = resolve(
   'examples/showcase-shared/src/index.ts',
 )
 
-function dataGridCompiler(): Plugin {
+function advancedComponentsCompiler(): Plugin {
   return {
-    name: 'zeus:data-grid-test-compiler',
+    name: 'zeus:advanced-components-test-compiler',
     enforce: 'pre',
     transform(code, id) {
       if (
-        !/[\\/]packages[\\/]advanced[\\/]data-grid[\\/]src[\\/].*\.tsx$/.test(
-          id,
-        )
+        !/[\\/]packages[\\/]advanced[\\/][^\\/]+[\\/]src[\\/].*\.tsx$/.test(id)
       ) {
         return null
       }
@@ -496,7 +494,7 @@ export default defineConfig({
 
       {
         extends: true,
-        plugins: [dataGridCompiler()],
+        plugins: [advancedComponentsCompiler()],
         test: {
           name: 'data-grid-benchmark',
           environment: 'jsdom',
@@ -524,7 +522,7 @@ export default defineConfig({
 
       {
         extends: true,
-        plugins: [dataGridCompiler()],
+        plugins: [advancedComponentsCompiler()],
         test: {
           name: 'e2e',
           environment: 'jsdom',

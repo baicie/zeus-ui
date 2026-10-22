@@ -182,16 +182,17 @@ function setup(
   // (e.g. adapter.rows = nextRows) walks through the data-attribute getters
   // and lands here. Coalesce into one microtask to avoid redundant rebuilds
   // when several props change in the same tick.
-  const scheduleApplyStateToGrid = (): void => {
+  const scheduleApplyStateToGrid = (force = false): void => {
     const nextSignature = getSignature()
 
-    if (nextSignature === lastSignature) return
+    if (!force && nextSignature === lastSignature) return
     if (pendingApply) return
 
     pendingApply = true
 
     queueMicrotask(() => {
       pendingApply = false
+      if (!gridElement) return
       applyStateToGrid()
     })
   }
@@ -307,7 +308,9 @@ function setup(
         ref={(element: RevoGridElementLike | null) => {
           if (element) {
             gridElement = element
-            applyStateToGrid()
+            // The cloned custom element upgrades when it is inserted. Apply
+            // after that upgrade so its public properties and refresh exist.
+            scheduleApplyStateToGrid(true)
             return
           }
 

@@ -445,6 +445,11 @@ function setup(
     props.sortColumn,
     props.sortDirection,
   )
+  const [sortRenderVersion, setSortRenderVersion] = createSignal(0)
+  const getSortForRender = (): DataGridSortState | undefined => {
+    void sortRenderVersion()
+    return sort
+  }
   let visibleRows: DataGridRowCollection = sort
     ? sortDataGridRowCollection(rows, columns, sort)
     : rows
@@ -885,11 +890,13 @@ function setup(
           props.sortColumn,
           props.sortDirection,
         )
+        setSortRenderVersion(value => value + 1)
         pendingControlledSortClear = false
         rowVirtualizerDirty = true
         activeCellDirty = true
       } else if (pendingControlledSortClear) {
         sort = undefined
+        setSortRenderVersion(value => value + 1)
         pendingControlledSortClear = false
         rowVirtualizerDirty = true
         activeCellDirty = true
@@ -2004,6 +2011,7 @@ function setup(
     }
 
     sort = nextSort
+    setSortRenderVersion(value => value + 1)
     modelVersion += 1
     rowVirtualizerDirty = true
     activeCellDirty = true
@@ -2127,6 +2135,7 @@ function setup(
       }
 
       sort = undefined
+      setSortRenderVersion(value => value + 1)
       modelVersion += 1
       rowVirtualizerDirty = true
       activeCellDirty = true
@@ -2596,11 +2605,13 @@ function setup(
                   props.resizable && item.data.resizable ? '' : undefined
                 }
                 data-sort-direction={
-                  sort?.columnId === item.data.id ? sort.direction : undefined
+                  getSortForRender()?.columnId === item.data.id
+                    ? getSortForRender()?.direction
+                    : undefined
                 }
                 role="columnheader"
                 aria-colindex={String(getDataGridColumnAriaIndex(item.index))}
-                aria-sort={getDataGridAriaSort(item.data, sort)}
+                aria-sort={getDataGridAriaSort(item.data, getSortForRender())}
                 tabindex={0}
                 style={{
                   gridColumnStart: getGridColumnStart(item),
