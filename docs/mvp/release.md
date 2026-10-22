@@ -1,6 +1,6 @@
 # Zeus UI 发版指南
 
-Zeus UI 是一个 monorepo，包含 40 个 npm 包，所有包的版本必须保持同步。本文档介绍 Zeus UI 的完整发版流程。
+Zeus UI 是一个 monorepo，所有可发布 workspace 包的版本必须保持同步。发布范围以 `pnpm release:plan --json --tag <tag>` 输出的动态清单为准。本文档介绍 Zeus UI 的完整发版流程。
 
 ---
 
@@ -11,16 +11,16 @@ Zeus UI 采用 **workspace-fixed** 模式，通过 `@baicie/release` 统一管�
 - 所有 `@zeus-web/*` 包共享同一个版本；
 - 不使用 changesets，版本通过命令行或交互式选择；
 - 目标版本文件先在 `release/<version>` 分支准备并通过 Pull Request 合并到 `main`；
-- 非 dry-run 的 `release.yml` 使用 `--skipGit` 复验已合并版本，只创建或复用同一 SHA 的 `v<version>` tag，不会创建 commit 或推送 `main`；
+- 非 dry-run 的 `release.yml` 检查根 `package.json` 版本与输入一致，只创建或复用同一 SHA 的 `v<version>` tag，不会创建 commit 或推送 `main`；
 - tag 就绪后，`release.yml` 以该 tag 为 ref 触发独立的 `publish.yml` run，并传递 version、npm dist-tag 和已合并的 `main` commit SHA。
 
 ### 包结构
 
-| 目录                   | 包数量 | 说明                                                                                     |
-| ---------------------- | ------ | ---------------------------------------------------------------------------------------- |
-| `packages/`            | 11     | 基础包（react、vue、cli、icons、themes、registry、headless、utils、ai、ui、zeus-compat） |
-| `packages/primitives/` | 24     | 基础组件包（button、dialog、input、select 等）                                           |
-| `packages/advanced/`   | 5      | 高级包（agent-console、chat、data-grid、revogrid-adapter、virtual）                      |
+| 目录                   | 说明                                                                                     |
+| ---------------------- | ---------------------------------------------------------------------------------------- |
+| `packages/`            | 基础包（react、vue、cli、icons、themes、registry、headless、utils、ai、ui、zeus-compat） |
+| `packages/primitives/` | 基础组件包（button、dialog、input、select 等）                                           |
+| `packages/advanced/`   | 高级包（agent-console、chat、data-grid、revogrid-adapter、virtual）                      |
 
 所有发布包必须满足：
 
@@ -35,13 +35,13 @@ Zeus UI 采用 **workspace-fixed** 模式，通过 `@baicie/release` 统一管�
 ### 准备版本 PR（推荐）
 
 ```bash
-git switch -c release/0.2.0-beta.0
-pnpm release 0.2.0-beta.0 --tag beta --skipGit
-pnpm release:final 0.2.0-beta.0
+git switch -c release/<version>
+pnpm release <version> --tag beta --skipGit
+pnpm release:final <version>
 pnpm release:plan --tag beta
 ```
 
-检查根 `package.json` 和全部 40 个发布包的版本，提交这些版本文件并创建 PR。等待 required checks 全部通过并合并后，才从 `main` dispatch Release workflow。禁止在受保护的 `main` 上运行会提交或推送 Git 的非 dry-run `pnpm release`。
+检查根 `package.json` 和动态发布清单内所有包的版本，提交这些版本文件并创建 PR。等待 required checks 全部通过并合并后，才从 `main` dispatch Release workflow。禁止在受保护的 `main` 上运行会提交或推送 Git 的非 dry-run `pnpm release`。
 
 `--skipGit` 模式会完成以下步骤：
 
@@ -75,10 +75,10 @@ dry-run 会执行完整流程（更新版本、precheck、publish dry-run），�
 
 ### 最终发布校验
 
-`release:final` 必须显式传入目标版本。当前纠正版运行：
+`release:final` 必须显式传入目标版本：
 
 ```bash
-pnpm release:final 0.1.0-beta.2
+pnpm release:final <version>
 ```
 
 一般情况下，只有当前 workspace 包版本仍为 `0.0.0` 时才附加
@@ -98,7 +98,7 @@ Zeus UI 使用两套 GitHub Actions workflow 通过两个相互校验的 run 完
 
 ### Release Workflow（`release.yml`）
 
-通过 `workflow_dispatch` 手动触发，且只允许从 `main` 运行。无 token 权限的 `validate-context` job 会显式验证 ref；从其他分支触发会红灯失败，而不是所有 job 绿色跳过。checkout 后先验证 `HEAD` 等于 dispatch SHA。dry-run 和真实发版由两个 job 隔离：dry-run job 只有 `contents: read`，两者都禁用 checkout 凭据持久化；非 dry-run release job 使用 `--skipGit` 验证版本 PR 已合并且验证前后工作区都保持干净。只有 `Tag release` 步骤接收步骤级 `GH_TOKEN`，依赖安装和仓库 release 脚本无法复用 `contents: write` 凭据。
+通过 `workflow_dispatch` 手动触发，且只允许从 `main` 运行。无 token 权限的 `validate-context` job 会显式验证 ref；从其他分支触发会红灯失败，而不是所有 job 绿色跳过。checkout 后先验证 `HEAD` 等于 dispatch SHA。dry-run 和真实发版由两个 job 隔离：dry-run job 只有 `contents: read`，两者都禁用 checkout 凭据持久化；非 dry-run release job 检查根 `package.json` 版本与输入一致，且验证前后工作区都保持干净。所有版本文件应已通过 PR 合并，该 job 不运行版本更新命令。只有 `Tag release` 步骤接收步骤级 `GH_TOKEN`，依赖安装和仓库 release 脚本无法复用 `contents: write` 凭据。
 
 发布通道同样会被双重校验：预发布版本必须使用 `beta`，稳定版本必须使用 `latest`。`validate-context` 在任何 Git 写操作前检查，publish 在接触 npm 前重复同一规则。
 
@@ -196,7 +196,7 @@ dispatch-publish:
 
 真实 publish 按仓库和 npm dist-tag 串行执行，使用 frozen lockfile 安装依赖，checkout 不持久化 Git 凭据，并在 fresh build 与 tarball 校验通过后发布，避免并发完成顺序回退 dist-tag 或发布缺失产物。正式触发前，`Release` environment 必须配置 required reviewer，且启用的 `refs/tags/v*` tag ruleset 必须禁止更新和删除版本 tag；workflow 内的发布前复核用于缩短竞态窗口，ruleset 才是 tag 不可变性的仓库级保证。
 
-publish workflow 在 beta 发布前会快照 npm 上 canonical `latest`，发布后将该值传给 published verifier，确保 beta 只推进 `beta` 而不漂移 `latest`。稳定版使用 `latest` 通道时，期望的 `latest` 就是当前发布版本。
+publish workflow 在发布前会用 `pnpm release:capture:latest` 快照每个包的 `latest`，发布后以 `--latest-baseline` 将快照文件传给 published verifier，确保 beta 只推进 `beta` 而不漂移已有包的 `latest`。稳定版使用 `latest` 通道时，期望的 `latest` 就是当前发布版本。
 
 ---
 
@@ -266,13 +266,13 @@ Zeus UI 作为 Zeus 的下游项目，通过 canary 机制验证兼容性。
 
 ```bash
 # 在 release 分支准备版本文件（正式路径）
-pnpm release 0.1.0-beta.0 --tag beta --skipGit
+pnpm release <version> --tag beta --skipGit
 
 # dry-run
-pnpm release 0.1.0 --dry
+pnpm release <version> --dry
 
-# 当前纠正版最终发布校验
-pnpm release:final 0.1.0-beta.2
+# 最终发布校验
+pnpm release:final <version>
 
 # 仅当当前 workspace 包版本仍为 0.0.0 时使用
 pnpm release:final <version> --allow-zero
@@ -284,7 +284,7 @@ pnpm release:plan --tag beta
 pnpm release:verify --strict
 
 # 发布 dry-run
-pnpm ci-publish --version 0.1.0-beta.0 --tag beta --dry-run
+pnpm ci-publish --version <version> --tag beta --dry-run
 ```
 
 非 dry-run 的 `pnpm release`、`pnpm release --publish` 和 `pnpm ci-publish` 是底层维护命令，不用于受保护仓库的正式发版。正式发布必须由版本 PR、`release.yml` 和 tag-scoped `publish.yml` 完成。纯验证如需丢弃临时版本改动，应使用临时 worktree，避免误删其他本地工作。
@@ -319,9 +319,7 @@ pnpm ci-publish --version 0.1.0 --tag latest --no-skip-existing
 
 npm registry 要求每个包始终存在 `latest`。首次使用 `beta` 发布包时，registry 可能让 `beta` 和 `latest` 同时指向该首个预发布版本；不得删除 `latest`、unpublish 或发布占位稳定版。后续 beta 只推进 `beta`，`latest` 保持原值，直到首个稳定版使用 `latest` 发布。
 
-因此发布纠正版 `0.1.0-beta.2` 后的预期是 `beta = 0.1.0-beta.2`、
-`latest = 0.1.0-beta.0`。已经发布的 `0.1.0-beta.1` 必须保持不可变，不得覆盖、删除或
-重新发布。
+因此每次 beta 发布后的预期是 `beta` 指向目标版本，已有包的 `latest` 与发布前逐包快照一致。首次发布的新包允许 `latest` 指向本次版本。已经发布的版本必须保持不可变，不得覆盖、删除或重新发布。
 
 ### dry-run 后本地有改动
 
@@ -329,7 +327,7 @@ npm registry 要求每个包始终存在 `latest`。首次使用 `beta` 发布�
 
 ### Release workflow 失败
 
-release job 失败时，根据错误信息定位版本不一致、工作区改动、precheck 或远端 `main` 前移。tag 尚未创建时，修复必须通过新 PR 合并后重新 dispatch。tag 已在同一 SHA 创建时可以安全重跑 Release；不同 SHA 的同名 tag 必须保留并人工调查，禁止覆盖或删除。dispatch 成功后会出现独立的 Publish to NPM run；该 run 失败时直接重新运行它，无需创建额外 tag。
+release job 失败时，根据错误信息定位版本不一致、工作区改动或远端 `main` 前移；dry-run job 失败时还应检查 precheck 输出。tag 尚未创建时，修复必须通过新 PR 合并后重新 dispatch。tag 已在同一 SHA 创建时可以安全重跑 Release；不同 SHA 的同名 tag 必须保留并人工调查，禁止覆盖或删除。dispatch 成功后会出现独立的 Publish to NPM run；该 run 失败时直接重新运行它，无需创建额外 tag。
 
 ---
 
@@ -340,10 +338,10 @@ release job 失败时，根据错误信息定位版本不一致、工作区改�
 ```bash
 git status
 pnpm install --frozen-lockfile
-pnpm release 0.2.0-beta.0 --tag beta --skipGit
-pnpm release:final 0.2.0-beta.0
+pnpm release <version> --tag beta --skipGit
+pnpm release:final <version>
 pnpm release:plan --tag beta
-git diff  # 确认根目录和 40 个发布包版本符合预期
+git diff  # 确认根目录和动态发布清单内所有包版本符合预期
 ```
 
 ### 合并版本 PR
@@ -356,15 +354,15 @@ git diff  # 确认根目录和 40 个发布包版本符合预期
 
 1. Release workflow 的 release job 和 `dispatch-publish` job 是否执行成功（tag 指向已合并的 `main` SHA 并触发发布）
 2. 独立的 Publish to NPM run 是否执行成功（事件 ref/SHA、version、dist-tag 与 release 输出一致）
-3. 40 个 npm 包是否都存在目标版本，且 `beta` 指向目标版本、`latest` 保持发布前快照的 canonical 值
+3. 动态发布清单内所有包是否都存在目标版本，且 `beta` 指向目标版本、已有包的 `latest` 保持发布前逐包快照值
 4. 执行以下发布后校验：
 
 ```bash
 pnpm release:verify:published \
-  --version 0.1.0-beta.2 \
+  --version <version> \
   --tag beta \
-  --expected-latest 0.1.0-beta.0 \
+  --latest-baseline <latest-baseline.json> \
   --release-sha <merged-main-sha>
 ```
 
-该命令会逐包校验 `beta` 与 `latest`，解码 SLSA provenance v1，并确认 subject npm purl 的 `sha512` 与 `dist.integrity` 一致。它还要求 workflow repository/path/ref 分别对应 `https://github.com/baicie/zeus-ui`、`.github/workflows/publish.yml` 和版本 tag，resolved source URI 对应同一版本 tag，且 `gitCommit` 等于合并后的 `main` SHA。元数据校验通过后，命令继续执行现有隔离消费 smoke，覆盖所有可安全导入的根入口、25 个 `/react` 与 `/vue` 子入口、TypeScript、Vite bundle、runtime 和 CLI。
+`<latest-baseline.json>` 必须来自本次发布前的 `pnpm release:capture:latest --output <latest-baseline.json>`，不得在发布后重新捕获。该命令会逐包校验 `beta` 与 `latest`，解码 SLSA provenance v1，并确认 subject npm purl 的 `sha512` 与 `dist.integrity` 一致。它还要求 workflow repository/path/ref 分别对应 `https://github.com/baicie/zeus-ui`、`.github/workflows/publish.yml` 和版本 tag，resolved source URI 对应同一版本 tag，且 `gitCommit` 等于合并后的 `main` SHA。元数据校验通过后，命令继续执行现有隔离消费 smoke，覆盖所有可安全导入的根入口、从发布清单中基础与高级组件包动态发现的 `/react` 与 `/vue` 子入口、TypeScript、Vite bundle、runtime 和 CLI。

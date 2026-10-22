@@ -4,16 +4,15 @@ This document defines the final verification workflow before publishing Zeus Web
 
 ## Final command
 
-The command requires the target release version. For the current corrective
-beta, run:
+The command requires the target release version:
 
 ```bash
-pnpm release:final 0.1.0-beta.2
+pnpm release:final <version>
 ```
 
 The general form is `pnpm release:final <version> [--allow-zero]`.
 `--allow-zero` is only for the general case where the current workspace package
-versions are still `0.0.0`; it is not needed for the current beta.
+versions are still `0.0.0`.
 
 The final dry-run can temporarily update package versions, changelog files and
 the lockfile. For a real release, run it on the release branch, keep the target
@@ -29,7 +28,7 @@ pnpm site:check
 pnpm showcase:ci
 pnpm release:verify:strict
 pnpm release:verify:pack
-pnpm release:dry 0.1.0-beta.2
+pnpm release:dry <version>
 ```
 
 ## Release readiness
@@ -42,8 +41,9 @@ pnpm release:verify:strict
 
 This validates publishable packages:
 
-- the release set contains 40 packages: 11 base packages, 24 primitive
-  packages and 5 advanced packages
+- the release set matches the publishable workspace packages in
+  `packages/`, `packages/primitives/` and `packages/advanced/`; inspect the
+  current names, versions and total with `pnpm release:plan --json --tag <tag>`
 - package name starts with `@zeus-web/`
 - version is valid semver and non-zero
 - license is MIT
@@ -145,30 +145,36 @@ The built `dist/index.js` must start with:
 
 ## Published package verification
 
-After npm publication, run the verifier against the immutable version and its
-release channel:
+Before npm publication, capture each package's current `latest` dist-tag:
+
+```bash
+pnpm release:capture:latest --output <latest-baseline.json>
+```
+
+After npm publication, run the verifier against the immutable version, its
+release channel and that pre-publication snapshot:
 
 ```bash
 pnpm release:verify:published \
-  --version 0.1.0-beta.2 \
+  --version <version> \
   --tag beta \
-  --expected-latest 0.1.0-beta.0 \
+  --latest-baseline <latest-baseline.json> \
   --release-sha <merged-main-sha>
 ```
 
 For every package, this verifies:
 
 - the exact version exists
-- the requested `beta` dist-tag points to `0.1.0-beta.2`
-- `latest` still points to the expected canonical version,
-  `0.1.0-beta.0`
+- the requested `beta` dist-tag points to `<version>`
+- each existing package's `latest` still matches its pre-publication snapshot;
+  a newly published package may acquire its first `latest` at `<version>`
 - the decoded SLSA provenance v1 subject uses the package npm purl and a
   `sha512` digest equal to the package's `dist.integrity`
 - the provenance workflow repository is `https://github.com/baicie/zeus-ui`,
   its path is `.github/workflows/publish.yml`, and its ref is
-  `refs/tags/v0.1.0-beta.2`
+  `refs/tags/v<version>`
 - the resolved source URI is
-  `git+https://github.com/baicie/zeus-ui@refs/tags/v0.1.0-beta.2` and its
+  `git+https://github.com/baicie/zeus-ui@refs/tags/v<version>` and its
   `gitCommit` equals `<merged-main-sha>`
 
 The verifier then runs the existing consumption smoke in an isolated consumer
@@ -176,8 +182,8 @@ outside the workspace, installs its own TypeScript and Vite toolchain, and
 checks:
 
 - every browser-safe package root entry
-- all 25 component `./react` entries
-- all 25 component `./vue` entries
+- every component `./react` and `./vue` entry, discovered from the primitive
+  and advanced packages in the release set
 - TypeScript declaration resolution
 - a production Vite bundle
 - the `@zeus-web/zeus-compat` runtime surface
@@ -185,10 +191,10 @@ checks:
 
 ## Development verification
 
-For the current corrective beta, run:
+For any target release version, run:
 
 ```bash
-pnpm release:final 0.1.0-beta.2
+pnpm release:final <version>
 ```
 
 For a general release whose current workspace package versions are still
@@ -204,7 +210,7 @@ release version must still be a valid, non-zero semver version.
 ## Before publishing
 
 1. Create a clean `release/<version>` branch from the latest `main`.
-2. Prepare the root and all 40 package versions with
+2. Prepare the root and all publishable workspace package versions with
    `pnpm release <version> --tag <tag> --skipGit`.
 3. Run `pnpm release:final <version>`; append `--allow-zero` only when the
    current workspace package versions are still `0.0.0`.
@@ -225,9 +231,10 @@ Dry runs execute in a separate `contents: read` job. Both release checkouts
 have credential persistence disabled. Only the real release job receives
 `contents: write`, and only the `Tag release` step receives its GitHub token
 through a step-local `GH_TOKEN`; dependency installation and repository release
-scripts cannot reuse that credential. The job runs the release tool
-with `--skipGit` to verify the versions already merged through the pull request,
-and requires a clean worktree both before and after that verification. Just
+scripts cannot reuse that credential. The real release job checks the root
+`package.json` version against the requested version and requires a clean
+worktree both before and after that verification. The version files must already
+be merged through the pull request; this job does not run the version bump. Just
 before tagging, it queries `main` through the GitHub refs API and fails unless
 the remote commit still equals the dispatch `GITHUB_SHA`. It creates the
 lightweight version ref through that API only when the remote tag is absent and
@@ -256,11 +263,12 @@ pinned to a full commit SHA. The required environment review is the human gate;
 the active tag ruleset is the repository-level guarantee that release tags
 cannot be updated or deleted during the workflow.
 
-Immediately before publishing, the publish workflow snapshots the canonical
-`latest` dist-tag for a beta release and passes that value to the published
-verifier after publication. This prevents a beta from silently moving
-`latest`. For a stable release using the `latest` channel, the expected
-`latest` value is the current release version.
+Immediately before publishing, the publish workflow runs
+`pnpm release:capture:latest` to snapshot each package's `latest` dist-tag and
+passes the file with `--latest-baseline` to the verifier after publication.
+This prevents a beta from silently moving an existing package's `latest`.
+For a stable release using the `latest` channel, the expected `latest` value
+is the current release version.
 
 ## Non-goals
 
