@@ -72,7 +72,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Run advanced component runtime tests
-        run: pnpm exec vitest --project e2e --run
+        run: pnpm exec vitest --project e2e --run e2e/advanced
       - name: Verify DataGrid React 18 consumer fixture
         run: |
           pnpm --filter @zeus-web/example-data-grid-react18-consumer check

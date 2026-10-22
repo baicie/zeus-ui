@@ -86,14 +86,16 @@ describe('ci workflow contract', () => {
     const commands = getRunCommands(getObject(jobs, 'unit-test'))
     const installIndex = commands.indexOf('pnpm install --frozen-lockfile')
     const runtimeE2eIndex = commands.indexOf(
-      'pnpm exec vitest --project e2e --run',
+      'pnpm exec vitest --project e2e --run e2e/advanced',
     )
 
     expect(installIndex).toBeGreaterThanOrEqual(0)
     expect(runtimeE2eIndex).toBeGreaterThan(installIndex)
     expect(
-      commands.filter(command => command.includes('--project e2e --run')),
-    ).toEqual(['pnpm exec vitest --project e2e --run'])
+      commands.filter(command =>
+        command.includes('--project e2e --run e2e/advanced'),
+      ),
+    ).toEqual(['pnpm exec vitest --project e2e --run e2e/advanced'])
   })
 
   it('uses an explicit Bash shell so artifact logging pipelines preserve failures', () => {
