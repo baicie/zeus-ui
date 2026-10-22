@@ -1,13 +1,6 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 import type { DOMContext } from '@zeus-web/zeus-compat'
-import {
-  createContext,
-  defineElement,
-  event,
-  Host,
-  prop,
-  Slot,
-} from '@zeus-js/zeus'
+import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
 import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export interface CollapsibleProps {
@@ -39,8 +32,11 @@ interface CollapsibleContextValue {
   getContentId: () => string
 }
 
-const CollapsibleContext =
-  createContext<CollapsibleContextValue>() as DOMContext<CollapsibleContextValue>
+// Lazy custom-element entries are evaluated independently. Keep one DOM
+// context identity across the root and child entries.
+const CollapsibleContext = {
+  id: Symbol.for('@zeus-web/collapsible/context'),
+} as DOMContext<CollapsibleContextValue>
 
 let collapsibleId = 0
 
@@ -89,8 +85,8 @@ function setupCollapsible(
   return (
     <Host
       data-slot="collapsible-root"
-      data-state={() => (context.getOpen() ? 'open' : 'closed')}
-      data-disabled={() => (props.disabled ? '' : undefined)}
+      data-state={context.getOpen() ? 'open' : 'closed'}
+      data-disabled={props.disabled ? '' : undefined}
     >
       <Slot />
     </Host>
@@ -140,8 +136,8 @@ function setupCollapsibleTrigger(
   return (
     <Host
       data-slot="collapsible-trigger"
-      data-state={() => (collapsible?.getOpen() ? 'open' : 'closed')}
-      data-disabled={() => (isDisabled() ? '' : undefined)}
+      data-state={collapsible?.getOpen() ? 'open' : 'closed'}
+      data-disabled={isDisabled() ? '' : undefined}
     >
       <button
         ref={(e: HTMLButtonElement | null) => {
@@ -149,10 +145,10 @@ function setupCollapsibleTrigger(
         }}
         part="trigger"
         data-slot="collapsible-trigger-button"
-        prop:type={() => 'button'}
-        disabled={() => isDisabled()}
-        aria-expanded={() => String(Boolean(collapsible?.getOpen()))}
-        aria-controls={() => collapsible?.getContentId()}
+        type="button"
+        disabled={isDisabled()}
+        aria-expanded={String(Boolean(collapsible?.getOpen()))}
+        aria-controls={collapsible?.getContentId()}
         onClick={nativeEvent => {
           if (!isDisabled())
             collapsible?.setOpen(!collapsible.getOpen(), nativeEvent)
@@ -193,11 +189,11 @@ function setupCollapsibleContent(
 
   return (
     <Host
-      id={() => collapsible?.getContentId()}
+      id={collapsible?.getContentId()}
       part="content"
       data-slot="collapsible-content"
-      data-state={() => (isOpen() ? 'open' : 'closed')}
-      hidden={() => (props.forceMount ? false : !isOpen())}
+      data-state={isOpen() ? 'open' : 'closed'}
+      hidden={props.forceMount ? false : !isOpen()}
     >
       <Slot />
     </Host>

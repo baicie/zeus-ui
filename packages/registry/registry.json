@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "@zeus-web/registry",
-  "version": "0.1.0-beta.32",
+  "version": "0.1.0-beta.33",
   "items": [
     {
       "name": "cn",
@@ -430,6 +430,86 @@
           "framework": "vue",
           "source": "templates/vue/tooltip.ts",
           "target": "components/ui/tooltip.ts"
+        }
+      ]
+    },
+    {
+      "name": "form-field",
+      "type": "component",
+      "description": "Styled form field relationship built on @zeus-web/form-field primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/form-field"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/form-field.tsx",
+          "target": "components/ui/form-field.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/form-field.ts",
+          "target": "components/ui/form-field.ts"
+        }
+      ]
+    },
+    {
+      "name": "popover",
+      "type": "component",
+      "description": "Styled popover built on @zeus-web/popover primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/popover"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/popover.tsx",
+          "target": "components/ui/popover.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/popover.ts",
+          "target": "components/ui/popover.ts"
+        }
+      ]
+    },
+    {
+      "name": "dropdown-menu",
+      "type": "component",
+      "description": "Styled dropdown menu built on @zeus-web/dropdown-menu primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/dropdown-menu"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/dropdown-menu.tsx",
+          "target": "components/ui/dropdown-menu.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/dropdown-menu.ts",
+          "target": "components/ui/dropdown-menu.ts"
+        }
+      ]
+    },
+    {
+      "name": "toast",
+      "type": "component",
+      "description": "Styled live-region toast built on @zeus-web/toast primitives.",
+      "frameworks": ["react", "vue"],
+      "dependencies": ["@zeus-web/toast"],
+      "registryDependencies": ["cn", "globals"],
+      "files": [
+        {
+          "framework": "react",
+          "source": "templates/react/toast.tsx",
+          "target": "components/ui/toast.tsx"
+        },
+        {
+          "framework": "vue",
+          "source": "templates/vue/toast.ts",
+          "target": "components/ui/toast.ts"
         }
       ]
     },

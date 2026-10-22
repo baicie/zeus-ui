@@ -28,6 +28,10 @@ describe('@zeus-web/ai metadata', () => {
       'tooltip',
       'progress',
       'avatar',
+      'form-field',
+      'popover',
+      'dropdown-menu',
+      'toast',
     ]
 
     expect(aiMetadata.components.map(component => component.name)).toEqual(
@@ -71,6 +75,23 @@ describe('@zeus-web/ai metadata', () => {
     }
   })
 
+  it('uses PascalCase exports for phase 11 registry components', () => {
+    const expectedExports = {
+      'form-field': 'FormField',
+      popover: 'Popover',
+      'dropdown-menu': 'DropdownMenu',
+      toast: 'Toast',
+    } as const
+
+    for (const [name, exportName] of Object.entries(expectedExports)) {
+      const component = aiMetadata.components.find(item => item.name === name)
+
+      expect(component).toBeDefined()
+      expect(component?.reactImport).toContain(`import { ${exportName} }`)
+      expect(component?.styledImport).toContain(`import { ${exportName} }`)
+    }
+  })
+
   it('keeps registry examples usable through copied styled components', () => {
     for (const component of aiMetadata.components) {
       expect(component.examples.length).toBeGreaterThan(0)
@@ -83,6 +104,16 @@ describe('@zeus-web/ai metadata', () => {
       const code = component.examples.map(example => example.code).join('\n')
       expect(code).toContain(`@/components/ui/${component.name}`)
     }
+  })
+
+  it('scopes forceMount guidance to PopoverContent', () => {
+    const popover = aiMetadata.components.find(item => item.name === 'popover')
+
+    expect(popover).toBeDefined()
+    expect(popover!.props.map(prop => prop.name)).not.toContain('forceMount')
+    expect(popover!.aiRules.do).toContain(
+      'Set forceMount on PopoverContent to keep content mounted while closed.',
+    )
   })
 
   it('renders markdown guide', () => {
@@ -100,12 +131,16 @@ describe('@zeus-web/ai metadata', () => {
     expect(markdown).toContain('@/components/ui/select')
   })
 
+  it('matches the AI markdown guide snapshot', () => {
+    expect(renderAiMarkdown(aiMetadata)).toMatchSnapshot()
+  })
+
   it('renders json guide', () => {
     const json = renderAiJson(aiMetadata)
     const parsed = JSON.parse(json)
 
     expect(parsed.packageName).toBe('@zeus-web/ai')
-    expect(parsed.components).toHaveLength(20)
+    expect(parsed.components).toHaveLength(24)
     expect(parsed.icons.packageName).toBe('@zeus-web/icons')
     expect(parsed.icons.recommendedIcons).toContain('check')
 

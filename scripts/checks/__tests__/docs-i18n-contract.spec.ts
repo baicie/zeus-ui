@@ -10,7 +10,7 @@ describe('docs i18n contract', () => {
 
     expect(result.valid).toBe(true)
     expect(result.errors).toEqual([])
-    expect(result.generatedDocCount).toBe(52)
+    expect(result.generatedDocCount).toBe(60)
   })
 
   it('rejects Chinese prose in the default English component docs', () => {

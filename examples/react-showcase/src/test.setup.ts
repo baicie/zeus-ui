@@ -5,4 +5,10 @@ import { waitForZeusElements } from './test-utils/wait-for-zeus-elements'
 import '@testing-library/react/dont-cleanup-after-each'
 import '@testing-library/jest-dom/vitest'
 
-afterEach(() => waitForZeusElements().then(() => cleanup()))
+afterEach(async () => {
+  try {
+    await waitForZeusElements()
+  } finally {
+    cleanup()
+  }
+})

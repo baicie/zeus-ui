@@ -17,7 +17,9 @@ export const Card = defineElement<object, CardElement>(
   ),
 )
 
-export const CardHeader = defineElement<object, HTMLElement>(
+export interface CardHeaderElement extends HTMLElement {}
+
+export const CardHeader = defineElement<object, CardHeaderElement>(
   'zw-card-header',
   {
     shadow: false,
@@ -32,7 +34,9 @@ export const CardHeader = defineElement<object, HTMLElement>(
   ),
 )
 
-export const CardTitle = defineElement<object, HTMLElement>(
+export interface CardTitleElement extends HTMLElement {}
+
+export const CardTitle = defineElement<object, CardTitleElement>(
   'zw-card-title',
   {
     shadow: false,
@@ -47,7 +51,9 @@ export const CardTitle = defineElement<object, HTMLElement>(
   ),
 )
 
-export const CardDescription = defineElement<object, HTMLElement>(
+export interface CardDescriptionElement extends HTMLElement {}
+
+export const CardDescription = defineElement<object, CardDescriptionElement>(
   'zw-card-description',
   {
     shadow: false,
@@ -62,7 +68,9 @@ export const CardDescription = defineElement<object, HTMLElement>(
   ),
 )
 
-export const CardContent = defineElement<object, HTMLElement>(
+export interface CardContentElement extends HTMLElement {}
+
+export const CardContent = defineElement<object, CardContentElement>(
   'zw-card-content',
   {
     shadow: false,
@@ -77,7 +85,9 @@ export const CardContent = defineElement<object, HTMLElement>(
   ),
 )
 
-export const CardFooter = defineElement<object, HTMLElement>(
+export interface CardFooterElement extends HTMLElement {}
+
+export const CardFooter = defineElement<object, CardFooterElement>(
   'zw-card-footer',
   {
     shadow: false,

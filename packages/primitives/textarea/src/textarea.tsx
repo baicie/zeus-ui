@@ -86,33 +86,33 @@ function setup(
   return (
     <Host
       data-slot="textarea-root"
-      data-size={() => props.size}
-      data-resize={() => props.resize}
-      data-disabled={() => (props.disabled ? '' : undefined)}
-      data-invalid={() => (props.invalid ? '' : undefined)}
+      data-size={props.size}
+      data-resize={props.resize}
+      data-disabled={props.disabled ? '' : undefined}
+      data-invalid={props.invalid ? '' : undefined}
     >
-      <label part="root" for={() => props.id}>
+      <label part="root" for={props.id}>
         <textarea
           ref={(element: HTMLTextAreaElement | null) => {
             if (element) control = element
           }}
-          id={() => props.id}
+          id={props.id}
           part="control"
           data-slot="textarea"
-          prop:value={() => resolveTextareaValue(props)}
-          placeholder={() => props.placeholder}
-          disabled={() => Boolean(props.disabled)}
-          readOnly={() => Boolean(props.readonly)}
-          required={() => Boolean(props.required)}
-          name={() => props.name}
-          rows={() => props.rows}
-          cols={() => props.cols}
-          minLength={() => props.minlength}
-          maxLength={() => props.maxlength}
-          aria-label={() => props.ariaLabel}
-          aria-describedby={() => props.ariaDescribedby}
-          aria-errormessage={() => props.ariaErrormessage}
-          aria-invalid={() => (props.invalid ? 'true' : undefined)}
+          prop:value={resolveTextareaValue(props)}
+          placeholder={props.placeholder}
+          disabled={Boolean(props.disabled)}
+          prop:readOnly={Boolean(props.readonly)}
+          required={Boolean(props.required)}
+          name={props.name}
+          rows={props.rows}
+          cols={props.cols}
+          minlength={props.minlength}
+          maxlength={props.maxlength}
+          aria-label={props.ariaLabel}
+          aria-describedby={props.ariaDescribedby}
+          aria-errormessage={props.ariaErrormessage}
+          aria-invalid={props.invalid ? 'true' : undefined}
           onInput={handleInput}
           onFocus={nativeEvent => {
             ctx.emit.focusChange({ focused: true, nativeEvent })

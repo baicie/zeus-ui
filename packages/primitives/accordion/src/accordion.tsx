@@ -1,13 +1,6 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 import type { DOMContext } from '@zeus-web/zeus-compat'
-import {
-  createContext,
-  defineElement,
-  event,
-  Host,
-  prop,
-  Slot,
-} from '@zeus-js/zeus'
+import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
 import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export type AccordionType = 'single' | 'multiple'
@@ -52,10 +45,14 @@ interface AccordionContextValue {
   getContentId: (value: string) => string
 }
 
-const AccordionContext =
-  createContext<AccordionContextValue>() as DOMContext<AccordionContextValue>
-const AccordionItemContext =
-  createContext<AccordionItemContextValue>() as DOMContext<AccordionItemContextValue>
+// Lazy custom-element entries are evaluated independently. Keep one DOM
+// context identity for each relationship across the root and child entries.
+const AccordionContext = {
+  id: Symbol.for('@zeus-web/accordion/context'),
+} as DOMContext<AccordionContextValue>
+const AccordionItemContext = {
+  id: Symbol.for('@zeus-web/accordion/item-context'),
+} as DOMContext<AccordionItemContextValue>
 
 let accordionId = 0
 
@@ -125,9 +122,9 @@ function setupAccordion(
   return (
     <Host
       data-slot="accordion-root"
-      data-type={() => context.getType()}
-      data-orientation={() => context.getOrientation()}
-      data-disabled={() => (props.disabled ? '' : undefined)}
+      data-type={context.getType()}
+      data-orientation={context.getOrientation()}
+      data-disabled={props.disabled ? '' : undefined}
     >
       <Slot />
     </Host>
@@ -186,11 +183,9 @@ function setupAccordionItem(
     <Host
       part="item"
       data-slot="accordion-item"
-      data-value={() => props.value}
-      data-state={() =>
-        accordion?.isItemOpen(props.value) ? 'open' : 'closed'
-      }
-      data-disabled={() => (item.isDisabled() ? '' : undefined)}
+      data-value={props.value}
+      data-state={accordion?.isItemOpen(props.value) ? 'open' : 'closed'}
+      data-disabled={item.isDisabled() ? '' : undefined}
     >
       <Slot />
     </Host>
@@ -235,21 +230,19 @@ function setupAccordionTrigger(
     <Host
       part="trigger"
       data-slot="accordion-trigger"
-      data-state={() => (isOpen() ? 'open' : 'closed')}
-      data-disabled={() => (isDisabled() ? '' : undefined)}
+      data-state={isOpen() ? 'open' : 'closed'}
+      data-disabled={isDisabled() ? '' : undefined}
     >
       <button
         ref={(e: HTMLButtonElement | null) => {
           if (e) control = e
         }}
         data-slot="accordion-trigger-button"
-        prop:type={() => 'button'}
-        disabled={() => isDisabled()}
-        id={() => (value() ? accordion?.getTriggerId(value()!) : undefined)}
-        aria-expanded={() => String(Boolean(isOpen()))}
-        aria-controls={() =>
-          value() ? accordion?.getContentId(value()!) : undefined
-        }
+        type="button"
+        disabled={isDisabled()}
+        id={value() ? accordion?.getTriggerId(value()!) : undefined}
+        aria-expanded={String(Boolean(isOpen()))}
+        aria-controls={value() ? accordion?.getContentId(value()!) : undefined}
         onClick={nativeEvent => {
           const v = value()
           if (v && !isDisabled())
@@ -290,13 +283,11 @@ function setupAccordionContent(
     <Host
       part="content"
       data-slot="accordion-content"
-      data-state={() => (isOpen() ? 'open' : 'closed')}
-      id={() => (value() ? accordion?.getContentId(value()!) : undefined)}
+      data-state={isOpen() ? 'open' : 'closed'}
+      id={value() ? accordion?.getContentId(value()!) : undefined}
       role="region"
-      aria-labelledby={() =>
-        value() ? accordion?.getTriggerId(value()!) : undefined
-      }
-      hidden={() => (props.forceMount ? false : !isOpen())}
+      aria-labelledby={value() ? accordion?.getTriggerId(value()!) : undefined}
+      hidden={props.forceMount ? false : !isOpen()}
     >
       <Slot />
     </Host>

@@ -1,13 +1,6 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 import type { DOMContext } from '@zeus-web/zeus-compat'
-import {
-  createContext,
-  defineElement,
-  event,
-  Host,
-  prop,
-  Slot,
-} from '@zeus-js/zeus'
+import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
 import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export type TabsOrientation = 'horizontal' | 'vertical'
@@ -54,8 +47,11 @@ interface TabsContextValue {
   ) => void
 }
 
-const TabsContext =
-  createContext<TabsContextValue>() as DOMContext<TabsContextValue>
+// Lazy custom-element entries are evaluated independently. Keep one DOM
+// context identity across the root and its child entries.
+const TabsContext = {
+  id: Symbol.for('@zeus-web/tabs/context'),
+} as DOMContext<TabsContextValue>
 
 let tabsId = 0
 
@@ -166,8 +162,8 @@ function setupTabs(
   return (
     <Host
       data-slot="tabs-root"
-      data-orientation={() => context.getOrientation()}
-      data-disabled={() => (props.disabled ? '' : undefined)}
+      data-orientation={context.getOrientation()}
+      data-disabled={props.disabled ? '' : undefined}
     >
       <Slot />
     </Host>
@@ -220,8 +216,8 @@ function setupTabsList(
       part="list"
       role="tablist"
       data-slot="tabs-list"
-      data-orientation={() => tabs?.getOrientation()}
-      aria-orientation={() => tabs?.getOrientation()}
+      data-orientation={tabs?.getOrientation()}
+      aria-orientation={tabs?.getOrientation()}
     >
       <Slot />
     </Host>
@@ -277,9 +273,9 @@ function setupTabsTrigger(
     <Host
       part="trigger"
       data-slot="tabs-trigger"
-      data-value={() => props.value}
-      data-state={() => (isSelected() ? 'active' : 'inactive')}
-      data-disabled={() => (isDisabled() ? '' : undefined)}
+      data-value={props.value}
+      data-state={isSelected() ? 'active' : 'inactive'}
+      data-disabled={isDisabled() ? '' : undefined}
     >
       <button
         ref={(element: HTMLButtonElement | null) => {
@@ -295,16 +291,16 @@ function setupTabsTrigger(
             }
           }
         }}
-        id={() => (props.value ? tabs?.getTriggerId(props.value) : undefined)}
+        id={props.value ? tabs?.getTriggerId(props.value) : undefined}
         part="trigger"
         role="tab"
-        prop:type={() => 'button'}
-        aria-selected={() => String(isSelected())}
-        aria-controls={() =>
+        type="button"
+        aria-selected={String(isSelected())}
+        aria-controls={
           props.value ? tabs?.getContentId(props.value) : undefined
         }
-        tabIndex={() => (isSelected() ? 0 : -1)}
-        disabled={() => isDisabled()}
+        tabIndex={isSelected() ? 0 : -1}
+        disabled={isDisabled()}
         onClick={event => {
           activate(event)
         }}
@@ -357,17 +353,17 @@ function setupTabsContent(
 
   return (
     <Host
-      id={() => (props.value ? tabs?.getContentId(props.value) : undefined)}
+      id={props.value ? tabs?.getContentId(props.value) : undefined}
       part="content"
       role="tabpanel"
       data-slot="tabs-content"
-      data-state={() => (isActive() ? 'active' : 'inactive')}
-      data-value={() => props.value}
-      aria-labelledby={() =>
+      data-state={isActive() ? 'active' : 'inactive'}
+      data-value={props.value}
+      aria-labelledby={
         props.value ? tabs?.getTriggerId(props.value) : undefined
       }
-      tabIndex={() => 0}
-      hidden={() => !isActive()}
+      prop:tabIndex={0}
+      hidden={!isActive()}
     >
       <Slot />
     </Host>

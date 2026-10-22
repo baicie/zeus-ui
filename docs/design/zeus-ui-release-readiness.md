@@ -104,7 +104,7 @@ Source maps are allowed only under `dist/`.
 
 ## Published package rules
 
-The published verifier checks all 36 packages individually. The requested
+The published verifier checks all 40 packages individually. The requested
 `beta` dist-tag must equal the release version and `latest` must equal the
 explicit pre-publish expectation. Each decoded SLSA provenance v1 statement
 must bind:

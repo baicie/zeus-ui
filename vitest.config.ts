@@ -34,15 +34,13 @@ const showcaseSharedPath = resolve(
   'examples/showcase-shared/src/index.ts',
 )
 
-function dataGridCompiler(): Plugin {
+function advancedComponentsCompiler(): Plugin {
   return {
-    name: 'zeus:data-grid-test-compiler',
+    name: 'zeus:advanced-components-test-compiler',
     enforce: 'pre',
     transform(code, id) {
       if (
-        !/[\\/]packages[\\/]advanced[\\/]data-grid[\\/]src[\\/].*\.tsx$/.test(
-          id,
-        )
+        !/[\\/]packages[\\/]advanced[\\/][^\\/]+[\\/]src[\\/].*\.tsx$/.test(id)
       ) {
         return null
       }
@@ -111,6 +109,11 @@ export default defineConfig({
   },
 
   test: {
+    server: {
+      deps: {
+        inline: ['@zeus-js/web-c-runtime'],
+      },
+    },
     globals: true,
     pool: 'threads',
     setupFiles: 'scripts/config/setup-vitest.ts',
@@ -165,6 +168,19 @@ export default defineConfig({
             'packages/primitives/input/__tests__/input-runtime.spec.ts',
             // dialog focus/outside-click tests require a DOM environment.
             'packages/primitives/dialog/__tests__/dialog-runtime.spec.ts',
+            // FormField and DropdownMenu runtime tests require DOM globals.
+            'packages/primitives/form-field/__tests__/form-field.runtime.spec.ts',
+            'packages/primitives/dropdown-menu/__tests__/dropdown-menu.runtime.spec.ts',
+            // Popover and Toast runtime tests require DOM globals.
+            'packages/primitives/popover/__tests__/popover.runtime.spec.ts',
+            'packages/primitives/toast/__tests__/toast.runtime.spec.ts',
+            // Independently loaded Web Component entries require DOM globals.
+            'packages/primitives/accordion/__tests__/accordion-runtime.spec.ts',
+            'packages/primitives/tabs/__tests__/tabs-runtime.spec.ts',
+            'packages/primitives/checkbox/__tests__/checkbox-runtime.spec.ts',
+            'packages/primitives/switch/__tests__/switch-runtime.spec.ts',
+            'packages/primitives/textarea/__tests__/textarea-runtime.spec.ts',
+            'packages/advanced/chat/__tests__/chat-composer-runtime.spec.ts',
           ],
         },
       },
@@ -478,7 +494,7 @@ export default defineConfig({
 
       {
         extends: true,
-        plugins: [dataGridCompiler()],
+        plugins: [advancedComponentsCompiler()],
         test: {
           name: 'data-grid-benchmark',
           environment: 'jsdom',
@@ -506,7 +522,7 @@ export default defineConfig({
 
       {
         extends: true,
-        plugins: [dataGridCompiler()],
+        plugins: [advancedComponentsCompiler()],
         test: {
           name: 'e2e',
           environment: 'jsdom',

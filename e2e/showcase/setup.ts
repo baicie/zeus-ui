@@ -3,6 +3,8 @@ import process from 'node:process'
 import { createServer } from 'vite'
 import { createServer as createVitePressServer } from 'vitepress'
 
+import { showcasePorts } from './utils/ports'
+
 interface CloseableServer {
   close: () => Promise<void>
 }
@@ -15,21 +17,21 @@ interface ShowcaseServerConfig {
 const showcaseServers: ShowcaseServerConfig[] = [
   {
     root: 'examples/react-showcase',
-    port: 5173,
+    port: showcasePorts.react,
   },
   {
     root: 'examples/vue-showcase',
-    port: 5174,
+    port: showcasePorts.vue,
   },
   {
     root: 'examples/advanced-showcase',
-    port: 5176,
+    port: showcasePorts.advanced,
   },
 ]
 
 const docsServer: ShowcaseServerConfig = {
   root: 'apps/docs',
-  port: 5175,
+  port: showcasePorts.docs,
 }
 
 function startShowcaseServer(

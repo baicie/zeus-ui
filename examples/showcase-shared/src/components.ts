@@ -699,6 +699,138 @@ export const showcaseComponents: ShowcaseComponent[] = [
     iconExamples: ['user'],
     productionPatterns: ['User profile', 'Assignee list', 'Team member card'],
   },
+  {
+    name: 'form-field',
+    title: 'Form Field',
+    routePath: '/components/form-field',
+    packageName: '@zeus-web/form-field',
+    group: 'Forms',
+    description:
+      'Form label, control, description and validation relationships.',
+    registryCommand: 'zweb add form-field',
+    imports: {
+      react:
+        "import { FormField, FormFieldControl, FormFieldLabel } from '@/components/ui/form-field'",
+      vue: "import { FormField, FormFieldControl, FormFieldLabel } from '@zeus-web/form-field/vue'",
+      webComponent: "import '@zeus-web/form-field/wc/auto'",
+      registry: 'zweb add form-field',
+    },
+    sections: formSections,
+    states: ['valid', 'invalid', 'disabled', 'required'],
+    events: [],
+    themeTokens: ['input', 'ring', 'destructive', 'muted-foreground'],
+    iconExamples: ['check', 'info'],
+    productionPatterns: [
+      'Email field',
+      'Password field',
+      'Validated settings form',
+    ],
+  },
+  {
+    name: 'popover',
+    title: 'Popover',
+    routePath: '/components/popover',
+    packageName: '@zeus-web/popover',
+    group: 'Disclosure',
+    description: 'Dismissible contextual content anchored to a trigger.',
+    registryCommand: 'zweb add popover',
+    imports: {
+      react:
+        "import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'",
+      vue: "import { Popover, PopoverContent, PopoverTrigger } from '@zeus-web/popover/vue'",
+      webComponent: "import '@zeus-web/popover/wc/auto'",
+      registry: 'zweb add popover',
+    },
+    sections: [...baseSections, 'controlled', 'uncontrolled', 'events'],
+    states: ['closed', 'open', 'disabled', 'modal', 'non-modal'],
+    events: [
+      {
+        name: 'open-change',
+        reactName: 'onOpenChange',
+        vueName: 'open-change',
+        description: 'Emitted when the popover open state changes.',
+      },
+    ],
+    themeTokens: ['popover', 'popover-foreground', 'border', 'ring'],
+    iconExamples: ['chevron-down', 'info'],
+    productionPatterns: ['Date picker', 'Contextual help', 'Filter options'],
+  },
+  {
+    name: 'dropdown-menu',
+    title: 'Dropdown Menu',
+    routePath: '/components/dropdown-menu',
+    packageName: '@zeus-web/dropdown-menu',
+    group: 'Actions',
+    description: 'Keyboard-navigable menu of actions attached to a trigger.',
+    registryCommand: 'zweb add dropdown-menu',
+    imports: {
+      react:
+        "import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'",
+      vue: "import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@zeus-web/dropdown-menu/vue'",
+      webComponent: "import '@zeus-web/dropdown-menu/wc/auto'",
+      registry: 'zweb add dropdown-menu',
+    },
+    sections: [...baseSections, 'controlled', 'uncontrolled', 'events'],
+    states: ['closed', 'open', 'disabled', 'focused-item'],
+    events: [
+      {
+        name: 'open-change',
+        reactName: 'onOpenChange',
+        vueName: 'open-change',
+        description: 'Emitted when the menu open state changes.',
+      },
+      {
+        name: 'select',
+        reactName: 'onSelect',
+        vueName: 'select',
+        description: 'Emitted when an enabled menu item is selected.',
+      },
+    ],
+    themeTokens: ['popover', 'popover-foreground', 'accent', 'ring'],
+    iconExamples: ['chevron-down', 'plus', 'trash'],
+    productionPatterns: ['Row actions', 'Account menu', 'Create menu'],
+  },
+  {
+    name: 'toast',
+    title: 'Toast',
+    routePath: '/components/toast',
+    packageName: '@zeus-web/toast',
+    group: 'Feedback',
+    description:
+      'Accessible live-region notification with optional auto-dismiss.',
+    registryCommand: 'zweb add toast',
+    imports: {
+      react:
+        "import { Toast, ToastClose, ToastDescription, ToastTitle } from '@/components/ui/toast'",
+      vue: "import { Toast, ToastClose, ToastDescription, ToastTitle } from '@zeus-web/toast/vue'",
+      webComponent: "import '@zeus-web/toast/wc/auto'",
+      registry: 'zweb add toast',
+    },
+    sections: [...baseSections, 'controlled', 'uncontrolled', 'events'],
+    states: [
+      'closed',
+      'open',
+      'auto-dismiss',
+      'persistent',
+      'foreground',
+      'background',
+    ],
+    events: [
+      {
+        name: 'open-change',
+        reactName: 'onOpenChange',
+        vueName: 'open-change',
+        description: 'Emitted when the toast open state changes.',
+      },
+    ],
+    themeTokens: ['background', 'foreground', 'border', 'muted-foreground'],
+    iconExamples: ['check', 'x', 'info'],
+    productionPatterns: [
+      'Save confirmation',
+      'Deployment status',
+      'Background job result',
+    ],
+  },
 ]
 
-export const deferredComponents = ['popover', 'dropdown', 'toast'] as const
+export const deferredComponents = ['dropdown'] as const

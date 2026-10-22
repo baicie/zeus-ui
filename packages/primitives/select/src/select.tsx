@@ -472,9 +472,12 @@ function setup(
     })
   }
 
-  const syncBooleanAttributeProps = () => {
-    for (const name of SELECT_BOOLEAN_ATTRIBUTES) {
-      ctx.host[name] = ctx.host.hasAttribute(name)
+  const syncBooleanAttributeProps = (
+    names: readonly (typeof SELECT_BOOLEAN_ATTRIBUTES)[number][],
+  ) => {
+    for (const name of names) {
+      const value = ctx.host.hasAttribute(name)
+      if (Boolean(ctx.host[name]) !== value) ctx.host[name] = value
     }
   }
 
@@ -668,13 +671,10 @@ function setup(
   return (
     <Host
       data-slot="select-root"
-      data-size={() => props.size}
-      data-disabled={() => (isDisabled() ? '' : undefined)}
-      data-invalid={() => (props.invalid ? '' : undefined)}
-      data-value={() => {
-        queueSync()
-        return resolveValue(props)
-      }}
+      data-size={props.size}
+      data-disabled={isDisabled() ? '' : undefined}
+      data-invalid={props.invalid ? '' : undefined}
+      data-value={(queueSync(), resolveValue(props))}
     >
       <div part="root" data-slot="select-control">
         <select
@@ -710,9 +710,15 @@ function setup(
                 setHostValues(ctx.host, selectedValues, Boolean(props.multiple))
               }
 
-              if (records.some(record => record.target === ctx.host)) {
-                syncBooleanAttributeProps()
-              }
+              syncBooleanAttributeProps(
+                SELECT_BOOLEAN_ATTRIBUTES.filter(name =>
+                  records.some(
+                    record =>
+                      record.target === ctx.host &&
+                      record.attributeName === name,
+                  ),
+                ),
+              )
               queueSync()
             })
             observer.observe(control, {
@@ -725,14 +731,18 @@ function setup(
               attributes: true,
               attributeFilter: SELECT_BOOLEAN_ATTRIBUTES.slice(),
             })
-            syncBooleanAttributeProps()
+            syncBooleanAttributeProps(
+              SELECT_BOOLEAN_ATTRIBUTES.filter(name =>
+                ctx.host.hasAttribute(name),
+              ),
+            )
             queueSync()
           }}
           part="native"
           data-slot="select-native"
-          tabIndex={() => -1}
-          aria-hidden={() => 'true'}
-          multiple={() => Boolean(props.multiple)}
+          tabIndex={-1}
+          aria-hidden="true"
+          multiple={Boolean(props.multiple)}
           onChange={handleNativeChange}
         >
           <Slot />
@@ -742,32 +752,43 @@ function setup(
           ref={(element: HTMLButtonElement | null) => {
             if (element) {
               trigger = element
+              // The beta.15 lazy proxy reserves HTMLElement methods. Define
+              // instance methods so the public Select focus API still targets
+              // the rendered combobox trigger.
+              Object.defineProperty(ctx.host, 'focus', {
+                configurable: true,
+                value: () => trigger?.focus(),
+              })
+              Object.defineProperty(ctx.host, 'blur', {
+                configurable: true,
+                value: () => trigger?.blur(),
+              })
               queueSync()
             }
           }}
-          id={resolveTriggerId}
+          id={resolveTriggerId()}
           part="trigger"
           data-slot="select-trigger"
-          prop:type={() => 'button'}
+          prop:type={String('button')}
           role="combobox"
-          disabled={isDisabled}
-          aria-haspopup={() => 'listbox'}
-          aria-expanded={() => String(open)}
-          aria-controls={() => listboxId}
-          aria-label={() => props.ariaLabel}
-          aria-labelledby={() => props.ariaLabelledby}
-          aria-describedby={() => props.ariaDescribedby}
-          aria-errormessage={() => props.ariaErrormessage}
-          aria-invalid={() => (props.invalid ? 'true' : undefined)}
-          aria-required={() => (props.required ? 'true' : undefined)}
+          disabled={isDisabled()}
+          aria-haspopup="listbox"
+          aria-expanded={String(open)}
+          aria-controls={listboxId}
+          aria-label={props.ariaLabel}
+          aria-labelledby={props.ariaLabelledby}
+          aria-describedby={props.ariaDescribedby}
+          aria-errormessage={props.ariaErrormessage}
+          aria-invalid={props.invalid ? 'true' : undefined}
+          aria-required={props.required ? 'true' : undefined}
           onClick={() => {
             setOpen(!open)
           }}
           onKeyDown={handleKeyDown}
-          onFocus={nativeEvent => {
+          onFocus={(nativeEvent: FocusEvent) => {
             ctx.emit.focusChange({ focused: true, nativeEvent })
           }}
-          onBlur={nativeEvent => {
+          onBlur={(nativeEvent: FocusEvent) => {
             setOpen(false)
             ctx.emit.focusChange({ focused: false, nativeEvent })
           }}
@@ -800,9 +821,9 @@ function setup(
           part="content"
           data-slot="select-content"
           role="listbox"
-          aria-label={() => props.ariaLabel}
-          aria-labelledby={resolveListboxLabelledby}
-          aria-multiselectable={() => (props.multiple ? 'true' : undefined)}
+          aria-label={props.ariaLabel}
+          aria-labelledby={resolveListboxLabelledby()}
+          aria-multiselectable={props.multiple ? 'true' : undefined}
           hidden
         />
       </div>

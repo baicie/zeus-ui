@@ -1,13 +1,6 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 import type { DOMContext } from '@zeus-web/zeus-compat'
-import {
-  createContext,
-  defineElement,
-  event,
-  Host,
-  prop,
-  Slot,
-} from '@zeus-js/zeus'
+import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
 import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export type RadioGroupOrientation = 'horizontal' | 'vertical'
@@ -49,8 +42,11 @@ interface RadioGroupContextValue {
   getSize: () => RadioGroupSize
 }
 
-const RadioGroupContext =
-  createContext<RadioGroupContextValue>() as DOMContext<RadioGroupContextValue>
+// Lazy custom-element entries are evaluated independently. Keep one DOM
+// context identity across the group and item entries.
+const RadioGroupContext = {
+  id: Symbol.for('@zeus-web/radio-group/context'),
+} as DOMContext<RadioGroupContextValue>
 
 let radioGroupId = 0
 
@@ -99,14 +95,14 @@ function setupRadioGroup(
     <Host
       data-slot="radio-group-root"
       role="radiogroup"
-      data-orientation={() => props.orientation || 'vertical'}
-      data-size={() => context.getSize()}
-      data-disabled={() => (props.disabled ? '' : undefined)}
-      data-invalid={() => (props.invalid ? '' : undefined)}
-      aria-label={() => props.ariaLabel}
-      aria-describedby={() => props.ariaDescribedby}
-      aria-required={() => (props.required ? 'true' : undefined)}
-      aria-invalid={() => (props.invalid ? 'true' : undefined)}
+      data-orientation={props.orientation || 'vertical'}
+      data-size={context.getSize()}
+      data-disabled={props.disabled ? '' : undefined}
+      data-invalid={props.invalid ? '' : undefined}
+      aria-label={props.ariaLabel}
+      aria-describedby={props.ariaDescribedby}
+      aria-required={props.required ? 'true' : undefined}
+      aria-invalid={props.invalid ? 'true' : undefined}
     >
       <Slot />
     </Host>
@@ -227,9 +223,9 @@ function setupRadioGroupItem(
   return (
     <Host
       data-slot="radio-group-item"
-      data-value={() => props.value}
-      data-state={() => (isChecked() ? 'checked' : 'unchecked')}
-      data-disabled={() => (isDisabled() ? '' : undefined)}
+      data-value={props.value}
+      data-state={isChecked() ? 'checked' : 'unchecked'}
+      data-disabled={isDisabled() ? '' : undefined}
     >
       <label part="root">
         <input
@@ -238,14 +234,14 @@ function setupRadioGroupItem(
           }}
           part="control"
           data-slot="radio-group-control"
-          prop:type={() => 'radio'}
-          prop:checked={() => isChecked()}
-          name={() => group.getName()}
-          value={() => props.value}
-          disabled={() => isDisabled()}
-          required={() => Boolean(group.isRequired())}
-          aria-checked={() => String(isChecked())}
-          aria-invalid={() => (group.isInvalid() ? 'true' : undefined)}
+          type="radio"
+          prop:checked={isChecked()}
+          name={group.getName()}
+          value={props.value}
+          disabled={isDisabled()}
+          required={Boolean(group.isRequired())}
+          aria-checked={String(isChecked())}
+          aria-invalid={group.isInvalid() ? 'true' : undefined}
           onChange={nativeEvent => {
             if (props.value && !isDisabled()) {
               group.setValue(props.value, nativeEvent)

@@ -31,16 +31,18 @@ export const Alert = defineElement<AlertProps, AlertElement>(
     <Host
       part="root"
       data-slot="alert-root"
-      data-variant={() => props.variant}
-      role={() => (props.live === 'assertive' ? 'alert' : 'status')}
-      aria-live={() => props.live}
+      data-variant={props.variant}
+      role={props.live === 'assertive' ? 'alert' : 'status'}
+      aria-live={props.live}
     >
       <Slot />
     </Host>
   ),
 )
 
-export const AlertTitle = defineElement<object, HTMLElement>(
+export interface AlertTitleElement extends HTMLElement {}
+
+export const AlertTitle = defineElement<object, AlertTitleElement>(
   'zw-alert-title',
   {
     shadow: false,
@@ -55,7 +57,9 @@ export const AlertTitle = defineElement<object, HTMLElement>(
   ),
 )
 
-export const AlertDescription = defineElement<object, HTMLElement>(
+export interface AlertDescriptionElement extends HTMLElement {}
+
+export const AlertDescription = defineElement<object, AlertDescriptionElement>(
   'zw-alert-description',
   {
     shadow: false,

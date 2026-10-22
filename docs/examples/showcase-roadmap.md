@@ -137,11 +137,14 @@ pnpm check:native-showcase
 pnpm check:phase24-release
 pnpm release:verify:strict
 pnpm release:verify:pack
-pnpm release:final 0.1.0-beta.2
+pnpm release:final <version>
+# Before publication; retain this snapshot for the verification below.
+pnpm release:capture:latest --output <latest-baseline.json>
+# After publication:
 pnpm release:verify:published \
-  --version 0.1.0-beta.2 \
+  --version <version> \
   --tag beta \
-  --expected-latest 0.1.0-beta.0 \
+  --latest-baseline <latest-baseline.json> \
   --release-sha <merged-main-sha>
 pnpm check:public-docs
 pnpm docs:check
@@ -172,12 +175,14 @@ pnpm site:build
 
 > `pnpm site:check` intentionally does not run `pnpm showcase:e2e`.
 > Browser E2E is wired into CI through `.github/workflows/showcase.yml`.
+> Set `SHOWCASE_E2E_BASE_PORT=15173` when the default local ports are occupied.
+> The React, Vue, docs and advanced servers use four consecutive ports from that value.
 
 `--allow-zero` is only for the general case where the current workspace package
-versions are still `0.0.0`; it is not used for the current `0.1.0-beta.2`
-release. For beta publication, the publish workflow snapshots canonical
-`latest` before publishing; stable `latest` publication expects the current
-version. The published verifier checks both dist-tags, binds the SLSA subject
+versions are still `0.0.0`. For beta publication, the publish workflow snapshots
+each package's `latest` before publishing and retains existing values; stable
+`latest` publication expects the current version. The published verifier checks
+both dist-tags, binds the SLSA subject
 digest to `dist.integrity`, validates repository/workflow/tag/source URI/release
 SHA, and then runs the existing isolated consumption smoke.
 

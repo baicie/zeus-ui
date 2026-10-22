@@ -54,6 +54,12 @@ export const componentIdentities = [
     category: 'data-entry',
   },
   {
+    name: 'form-field',
+    packageName: '@zeus-web/form-field',
+    packageGroup: 'primitives',
+    category: 'data-entry',
+  },
+  {
     name: 'input',
     packageName: '@zeus-web/input',
     packageGroup: 'primitives',
@@ -126,8 +132,26 @@ export const componentIdentities = [
     category: 'data-display',
   },
   {
+    name: 'popover',
+    packageName: '@zeus-web/popover',
+    packageGroup: 'primitives',
+    category: 'navigation',
+  },
+  {
+    name: 'dropdown-menu',
+    packageName: '@zeus-web/dropdown-menu',
+    packageGroup: 'primitives',
+    category: 'navigation',
+  },
+  {
     name: 'alert',
     packageName: '@zeus-web/alert',
+    packageGroup: 'primitives',
+    category: 'feedback',
+  },
+  {
+    name: 'toast',
+    packageName: '@zeus-web/toast',
     packageGroup: 'primitives',
     category: 'feedback',
   },
@@ -280,6 +304,11 @@ const componentCopyByLocale = {
       title: 'Label',
       description: 'Accessible labels for form controls.',
     },
+    'form-field': {
+      title: 'Form Field',
+      description:
+        'Accessible relationships between controls and validation copy.',
+    },
     input: {
       title: 'Input',
       description: 'Text entry, placeholders and validation states.',
@@ -328,9 +357,21 @@ const componentCopyByLocale = {
       title: 'Tooltip',
       description: 'Contextual help on pointer hover and keyboard focus.',
     },
+    popover: {
+      title: 'Popover',
+      description: 'Non-modal contextual content with keyboard dismissal.',
+    },
+    'dropdown-menu': {
+      title: 'Dropdown Menu',
+      description: 'Action menus with semantic roles and keyboard activation.',
+    },
     alert: {
       title: 'Alert',
       description: 'Inline contextual feedback and status messages.',
+    },
+    toast: {
+      title: 'Toast',
+      description: 'Accessible status notifications with timed dismissal.',
     },
     dialog: {
       title: 'Dialog',
@@ -383,6 +424,10 @@ const componentCopyByLocale = {
       title: '标签',
       description: '为表单控件提供无障碍标签。',
     },
+    'form-field': {
+      title: '表单字段',
+      description: '关联表单控件、辅助说明和校验信息的无障碍组件。',
+    },
     input: {
       title: '输入框',
       description: '支持文本输入、占位提示与校验状态。',
@@ -431,9 +476,21 @@ const componentCopyByLocale = {
       title: '文字提示',
       description: '在指针悬停或键盘聚焦时提供上下文帮助。',
     },
+    popover: {
+      title: '弹出层',
+      description: '支持键盘关闭的非模态上下文内容区域。',
+    },
+    'dropdown-menu': {
+      title: '下拉菜单',
+      description: '提供语义角色和键盘激活能力的操作菜单。',
+    },
     alert: {
       title: '警告提示',
       description: '用于展示上下文反馈和状态消息。',
+    },
+    toast: {
+      title: '轻提示',
+      description: '支持自动消失和 live region 语义的状态通知。',
     },
     dialog: {
       title: '对话框',

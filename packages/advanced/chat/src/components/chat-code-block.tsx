@@ -36,9 +36,9 @@ function setup(
     <Host
       part="root"
       data-slot="chat-code-block-root"
-      data-language={() => props.language}
-      data-filename={() => props.filename}
-      data-copied={() => (props.copied ? '' : undefined)}
+      data-language={props.language}
+      data-filename={props.filename}
+      data-copied={props.copied ? '' : undefined}
     >
       <figure part="figure" data-slot="chat-code-block">
         <figcaption part="header" data-slot="chat-code-block-header">

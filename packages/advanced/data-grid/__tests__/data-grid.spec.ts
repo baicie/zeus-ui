@@ -375,9 +375,9 @@ describe('data-grid component protocol', () => {
     )?.[0]
 
     expect(headerAriaBinding).toContain(', true)')
-    expect(result.code).toContain('role=\\"columnheader\\" tabindex=\\"0\\"')
-    expect(result.code).not.toContain(
-      '$zeusBindAttr($zeusInlineElement0, "tabindex"',
+    expect(result.code).toContain('role=\\"columnheader\\"')
+    expect(result.code).toContain(
+      '$zeusBindAttr($zeusInlineElement0, "tabindex", () => (0));',
     )
     expect(result.code).not.toContain(', "key",')
   })

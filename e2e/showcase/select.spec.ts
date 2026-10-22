@@ -1,8 +1,23 @@
+import type { Page } from '@playwright/test'
 import { expect as expectPage } from '@playwright/test'
 import { describe, expect, it } from 'vitest'
 
-import { docsShowcaseTarget, withShowcasePage } from './utils/browser'
+import {
+  docsShowcaseTarget,
+  waitForZeusElements,
+  withShowcasePage,
+} from './utils/browser'
 import { collectPageErrors } from './utils/page-errors'
+
+function openSelectPage(page: Page, path = 'components/select'): Promise<void> {
+  const playground = page.locator(
+    '.component-playground[data-playground="select"]',
+  )
+  return page
+    .goto(path)
+    .then(() => expectPage(playground).toHaveAttribute('data-ready', 'true'))
+    .then(() => waitForZeusElements(playground))
+}
 
 describe('select playground', () => {
   it('uses a custom popup and supports keyboard selection', () => {
@@ -18,8 +33,7 @@ describe('select playground', () => {
         '.component-playground[data-playground="select"]',
       )
 
-      return page
-        .goto('components/select')
+      return openSelectPage(page)
         .then(() => combobox.evaluate(element => element.tagName))
         .then(tagName => expect(tagName).toBe('BUTTON'))
         .then(() =>
@@ -81,8 +95,7 @@ describe('select playground', () => {
       const errors = collectPageErrors(page)
       const combobox = page.getByRole('combobox', { name: '部署环境' })
 
-      return page
-        .goto('zh/components/select')
+      return openSelectPage(page, 'zh/components/select')
         .then(() => combobox.dispatchEvent('keydown', { key: '生' }))
         .then(() =>
           expectPage(combobox).toHaveAttribute('aria-expanded', 'true'),
@@ -107,8 +120,7 @@ describe('select playground', () => {
     return withShowcasePage(docsShowcaseTarget, page => {
       const errors = collectPageErrors(page)
 
-      return page
-        .goto('components/select')
+      return openSelectPage(page)
         .then(() =>
           page.evaluate(() => {
             const form = document.createElement('form')
@@ -241,8 +253,7 @@ describe('select playground', () => {
     return withShowcasePage(docsShowcaseTarget, page => {
       const errors = collectPageErrors(page)
 
-      return page
-        .goto('components/select')
+      return openSelectPage(page)
         .then(() =>
           page.evaluate(() => {
             const form = document.createElement('form')
@@ -296,8 +307,7 @@ describe('select playground', () => {
     return withShowcasePage(docsShowcaseTarget, page => {
       const errors = collectPageErrors(page)
 
-      return page
-        .goto('components/select')
+      return openSelectPage(page)
         .then(() =>
           page.evaluate(() => {
             const form = document.createElement('form')
@@ -340,8 +350,7 @@ describe('select playground', () => {
     return withShowcasePage(docsShowcaseTarget, page => {
       const errors = collectPageErrors(page)
 
-      return page
-        .goto('components/select')
+      return openSelectPage(page)
         .then(() =>
           page.evaluate(() => {
             const form = document.createElement('form')
@@ -388,8 +397,7 @@ describe('select playground', () => {
     return withShowcasePage(docsShowcaseTarget, page => {
       const errors = collectPageErrors(page)
 
-      return page
-        .goto('components/select')
+      return openSelectPage(page)
         .then(() =>
           page.evaluate(() => {
             const form = document.createElement('form')

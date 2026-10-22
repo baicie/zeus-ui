@@ -6,8 +6,8 @@
       "kind": "bundled",
       "location": "@zeus-web/registry",
       "name": "@zeus-web/registry",
-      "version": "0.1.0-beta.32",
-      "integrity": "879bd5ebbed8f094c1c373b19cf7e6ed6763be089dde3f7f8212858e87a2d611"
+      "version": "0.1.0-beta.33",
+      "integrity": "bf4130a9da26dc354d277be4ff1227368eab8a0ca8de952ab8bea8802a5a5041"
     }
   },
   "components": {

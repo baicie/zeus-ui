@@ -27,6 +27,28 @@ const group12Primitives = [
   'avatar',
 ]
 
+const phase11ExtensionPrimitives = [
+  'form-field',
+  'popover',
+  'dropdown-menu',
+  'toast',
+]
+
+const lazyEntryContextContracts = [
+  {
+    name: 'accordion',
+    symbols: [
+      '@zeus-web/accordion/context',
+      '@zeus-web/accordion/item-context',
+    ],
+  },
+  { name: 'avatar', symbols: ['@zeus-web/avatar/context'] },
+  { name: 'collapsible', symbols: ['@zeus-web/collapsible/context'] },
+  { name: 'radio-group', symbols: ['@zeus-web/radio-group/context'] },
+  { name: 'tabs', symbols: ['@zeus-web/tabs/context'] },
+  { name: 'tooltip', symbols: ['@zeus-web/tooltip/context'] },
+]
+
 function readFile(path: string): string {
   return readFileSync(resolve(workspaceRoot, path), 'utf-8')
 }
@@ -64,7 +86,11 @@ describe('primitives contract', () => {
   })
 
   it('uses zeus defineElement for all primitives', () => {
-    for (const name of [...group11Primitives, ...group12Primitives]) {
+    for (const name of [
+      ...group11Primitives,
+      ...group12Primitives,
+      ...phase11ExtensionPrimitives,
+    ]) {
       const source = readFile(`packages/primitives/${name}/src/${name}.tsx`)
       expect(source).toContain('defineElement')
       expect(source).toContain('shadow: false')
@@ -105,6 +131,19 @@ describe('primitives contract', () => {
     expect(source).toContain("nativeEvent.key === 'Escape'")
     expect(source).not.toContain('floating-ui')
     expect(source).not.toContain('document.addEventListener')
+  })
+
+  it('uses stable DOM context identities across lazy custom-element entries', () => {
+    for (const contract of lazyEntryContextContracts) {
+      const source = readFile(
+        `packages/primitives/${contract.name}/src/${contract.name}.tsx`,
+      )
+
+      expect(source).not.toContain('createContext')
+      for (const symbol of contract.symbols) {
+        expect(source).toContain(`Symbol.for('${symbol}')`)
+      }
+    }
   })
 
   it('adds progressbar semantics', () => {

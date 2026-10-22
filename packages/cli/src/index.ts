@@ -106,6 +106,10 @@ function printHelp() {
   console.log('  zweb theme set slate')
   console.log('  zweb theme set zinc --radius lg --motion reduced')
   console.log('  zweb theme set default --accent "240 5.9% 10%"')
+  console.log(
+    '  zweb theme add brand --from slate --color light.primary="12 80% 45%"',
+  )
+  console.log('  zweb theme add brand --color dark.primary="12 70% 65%"')
   console.log('  zweb icon list')
   console.log('  zweb icon list --json')
   console.log('  zweb icon search check')

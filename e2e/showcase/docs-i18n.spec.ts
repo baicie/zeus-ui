@@ -46,7 +46,7 @@ describe('docs internationalization', () => {
         )
         .then(() =>
           expectPage(page).toHaveURL(
-            'http://127.0.0.1:5175/zeus-ui/zh/components/button',
+            new URL('zh/components/button', docsShowcaseTarget.baseURL).href,
           ),
         )
         .then(() =>
@@ -76,7 +76,7 @@ describe('docs internationalization', () => {
         )
         .then(() =>
           expectPage(page).toHaveURL(
-            'http://127.0.0.1:5175/zeus-ui/components/button',
+            new URL('components/button', docsShowcaseTarget.baseURL).href,
           ),
         )
         .then(() =>

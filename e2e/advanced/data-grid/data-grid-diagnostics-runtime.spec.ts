@@ -76,6 +76,7 @@ describe('zw-data-grid diagnostics', () => {
     setElementClientHeight(viewport, 60)
     setElementClientWidth(viewport, 300)
     grid.scrollToOffset(400)
+    await nextFrame()
     commits.length = 0
 
     const scrollInputTime = Math.max(0, performance.now() - 1)

@@ -37,9 +37,9 @@ function setup(
     <Host
       part="root"
       data-slot="chat-artifact-root"
-      data-artifact-id={() => props.artifactId}
-      data-kind={() => props.kind}
-      data-open={() => (props.open ? '' : undefined)}
+      data-artifact-id={props.artifactId}
+      data-kind={props.kind}
+      data-open={props.open ? '' : undefined}
     >
       <section part="artifact" data-slot="chat-artifact">
         <header part="header" data-slot="chat-artifact-header">

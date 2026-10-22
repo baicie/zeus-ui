@@ -1,13 +1,6 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 import type { DOMContext } from '@zeus-web/zeus-compat'
-import {
-  createContext,
-  defineElement,
-  event,
-  Host,
-  prop,
-  Slot,
-} from '@zeus-js/zeus'
+import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
 import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export type TooltipSide = 'top' | 'right' | 'bottom' | 'left'
@@ -42,8 +35,11 @@ interface TooltipContextValue {
   getDelayDuration: () => number
 }
 
-const TooltipContext =
-  createContext<TooltipContextValue>() as DOMContext<TooltipContextValue>
+// Lazy custom-element entries are evaluated independently. Keep one DOM
+// context identity across the root, trigger, and content entries.
+const TooltipContext = {
+  id: Symbol.for('@zeus-web/tooltip/context'),
+} as DOMContext<TooltipContextValue>
 
 let tooltipId = 0
 
@@ -86,8 +82,8 @@ function setupTooltip(
   return (
     <Host
       data-slot="tooltip-root"
-      data-state={() => (context.getOpen() ? 'open' : 'closed')}
-      data-disabled={() => (props.disabled ? '' : undefined)}
+      data-state={context.getOpen() ? 'open' : 'closed'}
+      data-disabled={props.disabled ? '' : undefined}
     >
       <Slot />
     </Host>
@@ -154,19 +150,19 @@ function setupTooltipTrigger(
     <Host
       part="trigger"
       data-slot="tooltip-trigger"
-      data-state={() => (tooltip?.getOpen() ? 'open' : 'closed')}
+      data-state={tooltip?.getOpen() ? 'open' : 'closed'}
     >
       <span
         ref={(e: HTMLSpanElement | null) => {
           if (e) control = e
         }}
         data-slot="tooltip-trigger-control"
-        tabIndex={() => 0}
-        aria-describedby={() =>
+        prop:tabIndex={0}
+        aria-describedby={
           tooltip?.getOpen() ? tooltip.getContentId() : undefined
         }
-        onMouseEnter={openWithDelay}
-        onMouseLeave={close}
+        onPointerEnter={openWithDelay}
+        onPointerLeave={close}
         onFocus={openWithDelay}
         onBlur={close}
         onKeyDown={nativeEvent => {
@@ -195,7 +191,8 @@ export interface TooltipContentProps {
   side?: TooltipSide
   forceMount?: boolean
 }
-export interface TooltipContentElement extends HTMLElement {}
+export interface TooltipContentElement
+  extends HTMLElement, TooltipContentProps {}
 
 function setupTooltipContent(
   props: TooltipContentProps,
@@ -208,13 +205,13 @@ function setupTooltipContent(
 
   return (
     <Host
-      id={() => tooltip?.getContentId()}
+      id={tooltip?.getContentId()}
       part="content"
       data-slot="tooltip-content"
       role="tooltip"
-      data-state={() => (isOpen() ? 'open' : 'closed')}
-      data-side={() => props.side || 'top'}
-      hidden={() => (props.forceMount ? false : !isOpen())}
+      data-state={isOpen() ? 'open' : 'closed'}
+      data-side={props.side || 'top'}
+      hidden={props.forceMount ? false : !isOpen()}
     >
       <Slot />
     </Host>

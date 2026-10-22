@@ -1,3 +1,4 @@
+import type { PublishedPackageLatestBaseline } from '../release/check-published-packages'
 import { Buffer } from 'node:buffer'
 import { spawnSync } from 'node:child_process'
 import {
@@ -8,10 +9,10 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
+
 import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
-
 import {
   parseCapturePublishedLatestOptions,
   runCapturePublishedLatest,
@@ -141,9 +142,10 @@ function createSlsaAttestation(statement: unknown) {
 
 function createLatestBaseline(
   latest: string | null = '0.1.0-beta.0',
-): Record<string, string | null> {
+  published = true,
+): PublishedPackageLatestBaseline {
   return {
-    '@zeus-web/button': latest,
+    '@zeus-web/button': { latest, published },
   }
 }
 
@@ -231,8 +233,8 @@ describe('published package smoke check', () => {
         'https://registry.npmjs.org/%40zeus-web%2Fnew-package',
       ])
       expect(baseline).toEqual({
-        '@zeus-web/button': '0.1.0-beta.0',
-        '@zeus-web/new-package': null,
+        '@zeus-web/button': { latest: '0.1.0-beta.0', published: true },
+        '@zeus-web/new-package': { latest: null, published: false },
       })
     })
   })
@@ -322,7 +324,7 @@ describe('published package smoke check', () => {
           'https://registry.example.test/%40zeus-web%2Fbutton',
         ])
         expect(JSON.parse(readFileSync(output, 'utf8'))).toEqual({
-          '@zeus-web/button': '0.1.0',
+          '@zeus-web/button': { latest: '0.1.0', published: true },
         })
         rmSync(root, { force: true, recursive: true })
       },
@@ -348,7 +350,7 @@ describe('published package smoke check', () => {
     ).rejects.toThrow('@zeus-web/button: registry returned HTTP 503')
   })
 
-  it('records an existing package without a latest tag as null', () => {
+  it('distinguishes an existing package without latest from an unpublished package', () => {
     return capturePublishedPackageLatestBaseline(
       ['@zeus-web/button'],
       'https://registry.npmjs.org/',
@@ -360,7 +362,7 @@ describe('published package smoke check', () => {
         }),
     ).then(baseline => {
       expect(baseline).toEqual({
-        '@zeus-web/button': null,
+        '@zeus-web/button': { latest: null, published: true },
       })
     })
   })
@@ -408,18 +410,17 @@ describe('published package smoke check', () => {
     const path = join(directory, 'latest.json')
 
     try {
-      writePublishedPackageLatestBaseline(path, {
-        '@zeus-web/button': '0.1.0-beta.0',
-        '@zeus-web/new-package': null,
-      })
+      const baseline = {
+        '@zeus-web/button': { latest: '0.1.0-beta.0', published: true },
+        '@zeus-web/new-package': { latest: null, published: false },
+      }
+
+      writePublishedPackageLatestBaseline(path, baseline)
 
       expect(readFileSync(path, 'utf8')).toBe(
-        '{\n  "@zeus-web/button": "0.1.0-beta.0",\n  "@zeus-web/new-package": null\n}\n',
+        `${JSON.stringify(baseline, null, 2)}\n`,
       )
-      expect(readPublishedPackageLatestBaseline(path)).toEqual({
-        '@zeus-web/button': '0.1.0-beta.0',
-        '@zeus-web/new-package': null,
-      })
+      expect(readPublishedPackageLatestBaseline(path)).toEqual(baseline)
     } finally {
       rmSync(directory, { force: true, recursive: true })
     }
@@ -463,7 +464,24 @@ describe('published package smoke check', () => {
       ]) {
         writeFileSync(
           path,
-          `${JSON.stringify({ '@zeus-web/button': latest })}\n`,
+          `${JSON.stringify(createLatestBaseline(latest))}\n`,
+          'utf8',
+        )
+        expect(() => readPublishedPackageLatestBaseline(path)).toThrow(
+          '@zeus-web/button: latest baseline is invalid',
+        )
+      }
+
+      for (const entry of [
+        null,
+        '0.1.0-beta.0',
+        { latest: null },
+        { latest: null, published: 'false' },
+        { latest: '0.1.0-beta.0', published: false },
+      ]) {
+        writeFileSync(
+          path,
+          `${JSON.stringify({ '@zeus-web/button': entry })}\n`,
           'utf8',
         )
         expect(() => readPublishedPackageLatestBaseline(path)).toThrow(
@@ -791,8 +809,8 @@ describe('published package smoke check', () => {
         }),
       },
       {
-        '@zeus-web/button': '0.1.0-beta.0',
-        '@zeus-web/input': '0.0.9',
+        '@zeus-web/button': { latest: '0.1.0-beta.0', published: true },
+        '@zeus-web/input': { latest: '0.0.9', published: true },
       },
       RELEASE_SHA,
     )
@@ -800,7 +818,7 @@ describe('published package smoke check', () => {
     expect(problems).toEqual([])
   })
 
-  it('expects no latest tag for a beta package first published from an empty registry', () => {
+  it('accepts no latest tag for a beta package first published from an empty registry', () => {
     const problems = getPublishedMetadataProblems(
       ['@zeus-web/button'],
       '0.1.0-beta.1',
@@ -810,9 +828,7 @@ describe('published package smoke check', () => {
           latest: null,
         }),
       },
-      {
-        '@zeus-web/button': null,
-      },
+      createLatestBaseline(null, false),
       RELEASE_SHA,
     )
 
@@ -916,7 +932,7 @@ describe('published package smoke check', () => {
       })
   })
 
-  it('rejects a beta package first publish that unexpectedly creates latest', () => {
+  it('accepts registry-created latest at the exact first beta version', () => {
     const problems = getPublishedMetadataProblems(
       ['@zeus-web/button'],
       '0.1.0-beta.1',
@@ -926,9 +942,58 @@ describe('published package smoke check', () => {
           latest: '0.1.0-beta.1',
         }),
       },
+      createLatestBaseline(null, false),
+      RELEASE_SHA,
+    )
+
+    expect(problems).toEqual([])
+  })
+
+  it('rejects any other latest version for a first beta publish', () => {
+    const problems = getPublishedMetadataProblems(
+      ['@zeus-web/button'],
+      '0.1.0-beta.1',
+      'beta',
       {
-        '@zeus-web/button': null,
+        '@zeus-web/button': createPublishedMetadata({
+          latest: '0.1.0-beta.2',
+        }),
       },
+      createLatestBaseline(null, false),
+      RELEASE_SHA,
+    )
+
+    expect(problems).toEqual([
+      '@zeus-web/button: dist-tag latest points to 0.1.0-beta.2',
+    ])
+  })
+
+  it('preserves an existing package without latest during a beta publish', () => {
+    const problems = getPublishedMetadataProblems(
+      ['@zeus-web/button'],
+      '0.1.0-beta.1',
+      'beta',
+      {
+        '@zeus-web/button': createPublishedMetadata({ latest: null }),
+      },
+      createLatestBaseline(null),
+      RELEASE_SHA,
+    )
+
+    expect(problems).toEqual([])
+  })
+
+  it('rejects newly setting latest on an already published beta package', () => {
+    const problems = getPublishedMetadataProblems(
+      ['@zeus-web/button'],
+      '0.1.0-beta.1',
+      'beta',
+      {
+        '@zeus-web/button': createPublishedMetadata({
+          latest: '0.1.0-beta.1',
+        }),
+      },
+      createLatestBaseline(null),
       RELEASE_SHA,
     )
 
@@ -948,9 +1013,7 @@ describe('published package smoke check', () => {
           version: '0.1.0',
         }),
       },
-      {
-        '@zeus-web/button': null,
-      },
+      createLatestBaseline(null, false),
       RELEASE_SHA,
     )
 

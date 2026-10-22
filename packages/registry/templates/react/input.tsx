@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { Input as InputPrimitive } from '@zeus-web/input/react'
 
 import { cn } from '@/lib/cn'
@@ -60,7 +60,7 @@ const inputRegistryDefaults = {
   required: false,
 } as const
 export type InputProps = Omit<
-  ComponentProps<typeof InputPrimitive>,
+  React.ComponentProps<typeof InputPrimitive>,
   keyof InputRegistryProps | keyof InputRegistryEvents | 'children'
 > &
   InputRegistryProps &

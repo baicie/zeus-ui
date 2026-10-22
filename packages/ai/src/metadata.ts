@@ -26,7 +26,223 @@ const registryComponentNames = new Set<ZeusWebAiComponentName>([
   'tooltip',
   'progress',
   'avatar',
+  'form-field',
+  'popover',
+  'dropdown-menu',
+  'toast',
 ])
+
+function createPhase11RegistryMetadata(
+  name: 'form-field' | 'popover' | 'dropdown-menu' | 'toast',
+): ZeusWebAiComponent {
+  const exportName = name
+    .split('-')
+    .map(part => `${part[0]?.toUpperCase()}${part.slice(1)}`)
+    .join('')
+  const shared = {
+    name,
+    primitivePackage: `@zeus-web/${name}`,
+    registryCommand: `zweb add ${name}`,
+    installCommand: `pnpm add @zeus-web/${name}`,
+    reactImport: `import { ${exportName} } from '@zeus-web/${name}/react'`,
+    webComponentImport: `import '@zeus-web/${name}/wc/auto'`,
+    styledImport: `import { ${exportName} } from '@/components/ui/${name}'`,
+    sourceTarget: `components/ui/${name}.tsx`,
+    dependencies: [`@zeus-web/${name}`],
+    styling: {
+      usesTailwind: true,
+      themeTokens: ['border', 'background', 'foreground', 'ring'],
+      internalSelectors: [`[data-slot=${name}]`],
+    },
+    aiRules: {
+      do: ['Use the copied Registry wrapper for styled application UI.'],
+      dont: [
+        'Do not assume the headless primitive provides final visual styling.',
+      ],
+    },
+  }
+
+  if (name === 'form-field') {
+    return {
+      ...shared,
+      description:
+        'Styled form field relationship built on the form-field primitive.',
+      props: [
+        { name: 'id', type: 'string', description: 'Stable field identifier.' },
+        {
+          name: 'invalid',
+          type: 'boolean',
+          description: 'Marks the field as invalid.',
+        },
+        {
+          name: 'disabled',
+          type: 'boolean',
+          description: 'Disables the associated control.',
+        },
+        {
+          name: 'required',
+          type: 'boolean',
+          description: 'Marks the associated control as required.',
+        },
+      ],
+      events: [],
+      slots: [
+        {
+          name: 'default',
+          description: 'Label, description, control and message content.',
+        },
+      ],
+      examples: [
+        {
+          title: 'React styled usage',
+          code: 'import { FormField, FormFieldControl, FormFieldLabel } from \'@/components/ui/form-field\'\n\nexport function Example() {\n  return (\n    <FormField required>\n      <FormFieldLabel>Work email</FormFieldLabel>\n      <FormFieldControl><input type="email" /></FormFieldControl>\n    </FormField>\n  )\n}',
+        },
+      ],
+    }
+  }
+
+  if (name === 'popover') {
+    return {
+      ...shared,
+      description: 'Styled popover built on the popover primitive.',
+      props: [
+        {
+          name: 'open',
+          type: 'boolean',
+          description: 'Controlled open state.',
+        },
+        {
+          name: 'defaultOpen',
+          type: 'boolean',
+          description: 'Initial uncontrolled open state.',
+        },
+        {
+          name: 'modal',
+          type: 'boolean',
+          description: 'Dismisses on outside pointer input.',
+        },
+        {
+          name: 'disabled',
+          type: 'boolean',
+          description: 'Disables the trigger.',
+        },
+      ],
+      aiRules: {
+        do: shared.aiRules.do.concat(
+          'Set forceMount on PopoverContent to keep content mounted while closed.',
+        ),
+        dont: shared.aiRules.dont,
+      },
+      events: [
+        {
+          name: 'open-change',
+          reactName: 'onOpenChange',
+          description: 'Emitted when open state changes.',
+          detail: { open: 'boolean', nativeEvent: 'Event' },
+        },
+      ],
+      slots: [{ name: 'default', description: 'Popover trigger and content.' }],
+      examples: [
+        {
+          title: 'React styled usage',
+          code: "import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'\n\nexport function Example() {\n  return (\n    <Popover>\n      <PopoverTrigger>Details</PopoverTrigger>\n      <PopoverContent>Deployment details</PopoverContent>\n    </Popover>\n  )\n}",
+        },
+      ],
+    }
+  }
+
+  if (name === 'dropdown-menu') {
+    return {
+      ...shared,
+      description: 'Styled dropdown menu built on the dropdown-menu primitive.',
+      props: [
+        {
+          name: 'open',
+          type: 'boolean',
+          description: 'Controlled open state.',
+        },
+        {
+          name: 'defaultOpen',
+          type: 'boolean',
+          description: 'Initial uncontrolled open state.',
+        },
+        {
+          name: 'disabled',
+          type: 'boolean',
+          description: 'Disables the trigger and items.',
+        },
+        { name: 'value', type: 'string', description: 'Item selection value.' },
+      ],
+      events: [
+        {
+          name: 'open-change',
+          reactName: 'onOpenChange',
+          description: 'Emitted when open state changes.',
+          detail: { open: 'boolean', nativeEvent: 'Event' },
+        },
+        {
+          name: 'select',
+          reactName: 'onSelect',
+          description: 'Emitted when an enabled item is selected.',
+          detail: { value: 'string | undefined', nativeEvent: 'Event' },
+        },
+      ],
+      slots: [
+        { name: 'default', description: 'Menu trigger, content and items.' },
+      ],
+      examples: [
+        {
+          title: 'React styled usage',
+          code: 'import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from \'@/components/ui/dropdown-menu\'\n\nexport function Example() {\n  return (\n    <DropdownMenu>\n      <DropdownMenuTrigger>Actions</DropdownMenuTrigger>\n      <DropdownMenuContent><DropdownMenuItem value="rename">Rename</DropdownMenuItem></DropdownMenuContent>\n    </DropdownMenu>\n  )\n}',
+        },
+      ],
+    }
+  }
+
+  return {
+    ...shared,
+    description: 'Styled live-region toast built on the toast primitive.',
+    props: [
+      { name: 'open', type: 'boolean', description: 'Controlled open state.' },
+      {
+        name: 'defaultOpen',
+        type: 'boolean',
+        description: 'Initial uncontrolled open state.',
+      },
+      {
+        name: 'duration',
+        type: 'number',
+        description: 'Auto-dismiss duration in milliseconds.',
+      },
+      {
+        name: 'status',
+        type: 'ToastStatus',
+        values: ['foreground', 'background'],
+        description: 'Live-region announcement priority.',
+      },
+    ],
+    events: [
+      {
+        name: 'open-change',
+        reactName: 'onOpenChange',
+        description: 'Emitted when open state changes.',
+        detail: { open: 'boolean', nativeEvent: 'Event' },
+      },
+    ],
+    slots: [
+      {
+        name: 'default',
+        description: 'Toast title, description and close action.',
+      },
+    ],
+    examples: [
+      {
+        title: 'React styled usage',
+        code: "import { Toast, ToastClose, ToastDescription, ToastTitle } from '@/components/ui/toast'\n\nexport function Example() {\n  return (\n    <Toast defaultOpen><ToastTitle>Deployment complete</ToastTitle><ToastDescription>The build is live.</ToastDescription><ToastClose>Dismiss</ToastClose></Toast>\n  )\n}",
+      },
+    ],
+  }
+}
 
 export function isRegistryBackedAiComponent(
   name: ZeusWebAiComponentName,
@@ -1845,6 +2061,9 @@ const rawAiMetadata: ZeusWebAiMetadata = {
         ],
       },
     },
+    ...(['form-field', 'popover', 'dropdown-menu', 'toast'] as const).map(
+      createPhase11RegistryMetadata,
+    ),
   ],
   advancedComponents: [
     {

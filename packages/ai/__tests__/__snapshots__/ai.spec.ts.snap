@@ -1,0 +1,2238 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`@zeus-web/ai metadata > matches the AI markdown guide snapshot 1`] = `
+"# Zeus Web AI Guide
+
+This file is generated from \`@zeus-web/ai\` metadata.
+
+## Recommended workflow
+
+- Run \`zweb init\` before adding registry-backed styled components.
+- Run \`zweb add <component>\` to copy the selected registry source into the user project.
+- Import styled components from the copied local path, usually \`@/components/ui/<component>\`.
+- Use \`@zeus-web/ui\` for package-owned styled native Web Components.
+- Use per-component packages such as \`@zeus-web/button/react\` when building advanced primitive-based design systems.
+
+## Themes
+
+- \`default\`
+- \`slate\`
+- \`zinc\`
+- \`neutral\`
+- \`stone\`
+
+## Icons
+
+Package: \`@zeus-web/icons\`
+Install: \`pnpm add @zeus-web/icons\`
+React: \`import { IconCheck, IconX } from '@zeus-web/icons/react'\`
+Vue: \`import { IconCheck, IconX } from '@zeus-web/icons/vue'\`
+Web Component: \`import '@zeus-web/icons/wc'\`
+Raw SVG: \`import checkIcon from '@zeus-web/icons/svg/check.svg'\`
+
+Recommended icons:
+- \`check\`
+- \`x\`
+- \`plus\`
+- \`minus\`
+- \`chevron-down\`
+- \`chevron-up\`
+- \`chevron-left\`
+- \`chevron-right\`
+- \`search\`
+- \`menu\`
+- \`settings\`
+- \`user\`
+- \`copy\`
+- \`external-link\`
+- \`info\`
+- \`alert-triangle\`
+- \`circle-check\`
+- \`circle-x\`
+- \`loader\`
+- \`sun\`
+- \`moon\`
+- \`eye\`
+- \`eye-off\`
+- \`trash\`
+
+Icon AI do:
+- Use @zeus-web/icons/react for React examples.
+- Use @zeus-web/icons/vue for Vue examples.
+- Use @zeus-web/icons/wc when showing native Web Component usage.
+- Use aria-hidden for decorative icons.
+- Provide an accessible label on the parent control when an icon-only button is used.
+- Prefer currentColor icons so color follows text/theme tokens.
+
+Icon AI do not:
+- Do not inline random SVG markup when an icon exists in @zeus-web/icons.
+- Do not use icons as the only accessible name.
+- Do not hardcode width/height when size can be controlled with className or CSS.
+- Do not import React icons in Vue examples or Vue icons in React examples.
+
+## Global AI rules: do
+
+- Use Zeus Web registry components for app-level React and Vue code when a registry template exists.
+- Use --zeus-* semantic variables inside registry-installed source components.
+- Respect zeus-ui.json aliases when generating local imports.
+- Use \`zweb add <component>\` for registry-backed components.
+- Use \`zweb init --style <theme>\` to set up registry CSS variables.
+
+## Global AI rules: do not
+
+- Do not hand-write Web Component registration code.
+- Do not import generated app components from @zeus-web/registry/default/* at runtime.
+- Do not style only the custom element host when the primitive exposes internal data-slot or part selectors.
+- Do not assume Shadow DOM; current MVP registry styling targets light DOM internals.
+- Do not use non-semantic hard-coded colors when theme tokens are available.
+
+# Components
+
+## button
+
+Styled button component built on the zw-button primitive.
+
+Add command: \`zweb add button\`
+Styled import: \`import { Button } from '@/components/ui/button'\`
+Install command: \`pnpm add @zeus-web/button\`
+Primitive React import: \`import { Button } from '@zeus-web/button/react'\`
+Web Component import: \`import '@zeus-web/button/wc/auto'\`
+
+### Props
+
+- \`variant\` (\`ButtonVariant\`): Visual style variant.. Values: default, primary, secondary, outline, ghost, danger. Default: default.
+- \`size\` (\`ButtonSize\`): Button size.. Values: sm, md, lg, icon. Default: md.
+- \`disabled\` (\`boolean\`): Disables user interaction..
+- \`loading\` (\`boolean\`): Marks the button as loading and prevents press handling..
+- \`ariaLabel\` (\`string\`): Accessible label for icon-only buttons..
+
+### Events
+
+- \`press\` / React \`onPress\`: Emitted when the button is clicked and not disabled.. Detail: nativeEvent: MouseEvent
+
+### Slots
+
+- \`default\`: Button label content.
+- \`prefix\`: Content before the label.
+- \`suffix\`: Content after the label.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- bg-primary
+- text-primary-foreground
+- border-input
+- ring-ring
+
+Internal selectors:
+- [&_[data-slot=button]]
+- [&_[data-slot=button-prefix]]
+- [&_[data-slot=button-suffix]]
+
+### AI do
+
+- Use Button for actions.
+- Use variant="outline" for secondary actions.
+- Use size="icon" only for icon-only buttons.
+
+### AI do not
+
+- Do not add asChild; the current registry Button does not implement asChild.
+- Do not attach click handlers to internal button selectors manually.
+
+### React styled usage
+
+\`\`\`tsx
+import { Button } from '@/components/ui/button'
+
+export function Example() {
+  return <Button variant="primary">Save</Button>
+}
+\`\`\`
+
+---
+
+## input
+
+Styled text input component built on the zw-input primitive.
+
+Add command: \`zweb add input\`
+Styled import: \`import { Input } from '@/components/ui/input'\`
+Install command: \`pnpm add @zeus-web/input\`
+Primitive React import: \`import { Input } from '@zeus-web/input/react'\`
+Web Component import: \`import '@zeus-web/input/wc/auto'\`
+
+### Props
+
+- \`value\` (\`string\`): Controlled input value..
+- \`defaultValue\` (\`string\`): Initial uncontrolled value..
+- \`type\` (\`InputType\`): Native input type.. Values: text, email, password, search, tel, url, number. Default: text.
+- \`placeholder\` (\`string\`): Placeholder text..
+- \`disabled\` (\`boolean\`): Disables input interaction..
+- \`id\` (\`string\`): Native input id attribute..
+- \`autocomplete\` (\`string\`): Native input autocomplete attribute..
+- \`ariaLabel\` (\`string\`): Accessible label for unlabeled inputs..
+- \`ariaDescribedby\` (\`string\`): ID reference for additional accessible description..
+- \`ariaErrormessage\` (\`string\`): ID reference for accessible error message..
+
+### Events
+
+- \`value-change\` / React \`onValueChange\`: Emitted when the input value changes.. Detail: value: string, nativeEvent: Event
+
+### Slots
+
+- \`prefix\`: Content before the native input.
+- \`suffix\`: Content after the native input.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- border-input
+- ring-ring
+- text-muted-foreground
+
+Internal selectors:
+- [&_[part=root]]
+- [&_[data-slot=input]]
+
+### AI do
+
+- Use Input for text-like form fields.
+- Use onValueChange when the user wants Zeus custom events.
+
+### AI do not
+
+- Do not style only the host for placeholder or disabled states.
+- Do not assume the native input is the custom element itself.
+
+### React styled usage
+
+\`\`\`tsx
+import { Input } from '@/components/ui/input'
+
+export function Example() {
+  return <Input placeholder="Email" type="email" />
+}
+\`\`\`
+
+---
+
+## checkbox
+
+Styled checkbox component built on the zw-checkbox primitive.
+
+Add command: \`zweb add checkbox\`
+Styled import: \`import { Checkbox } from '@/components/ui/checkbox'\`
+Install command: \`pnpm add @zeus-web/checkbox\`
+Primitive React import: \`import { Checkbox } from '@zeus-web/checkbox/react'\`
+Web Component import: \`import '@zeus-web/checkbox/wc/auto'\`
+
+### Props
+
+- \`checked\` (\`boolean\`): Controlled checked state..
+- \`defaultChecked\` (\`boolean\`): Initial checked state..
+- \`indeterminate\` (\`boolean\`): Mixed state..
+- \`size\` (\`CheckboxSize\`): Checkbox size.. Values: sm, md, lg. Default: md.
+- \`required\` (\`boolean\`): Marks the checkbox as required..
+- \`ariaLabel\` (\`string\`): Accessible label for unlabeled checkboxes..
+- \`ariaDescribedby\` (\`string\`): ID reference for additional accessible description..
+
+### Events
+
+- \`checked-change\` / React \`onCheckedChange\`: Emitted when checked state changes.. Detail: checked: boolean, nativeEvent: Event
+- \`focus-change\` / React \`onFocusChange\`: Emitted when focus state changes.. Detail: focused: boolean, nativeEvent: FocusEvent
+
+### Slots
+
+- \`default\`: Label content.
+- \`indicator\`: Custom indicator content.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- bg-primary
+- text-primary-foreground
+- ring-ring
+
+Internal selectors:
+- [&_[data-slot=checkbox-control]]
+- [&_[data-slot=checkbox-indicator]]
+
+### AI do
+
+- Use Checkbox for boolean form choices.
+- Use indeterminate for mixed state.
+
+### AI do not
+
+- Do not render a separate native input next to Checkbox.
+- Do not manually manage aria-checked when using the primitive props.
+
+### React styled usage
+
+\`\`\`tsx
+import { Checkbox } from '@/components/ui/checkbox'
+
+export function Example() {
+  return <Checkbox>Accept terms</Checkbox>
+}
+\`\`\`
+
+---
+
+## switch
+
+Styled switch component built on the zw-switch primitive.
+
+Add command: \`zweb add switch\`
+Styled import: \`import { Switch } from '@/components/ui/switch'\`
+Install command: \`pnpm add @zeus-web/switch\`
+Primitive React import: \`import { Switch } from '@zeus-web/switch/react'\`
+Web Component import: \`import '@zeus-web/switch/wc/auto'\`
+
+### Props
+
+- \`checked\` (\`boolean\`): Controlled checked state..
+- \`defaultChecked\` (\`boolean\`): Initial checked state..
+- \`size\` (\`SwitchSize\`): Switch size.. Values: sm, md, lg. Default: md.
+- \`required\` (\`boolean\`): Marks the switch as required..
+- \`ariaLabel\` (\`string\`): Accessible label for unlabeled switches..
+- \`ariaDescribedby\` (\`string\`): ID reference for additional accessible description..
+
+### Events
+
+- \`checked-change\` / React \`onCheckedChange\`: Emitted when checked state changes.. Detail: checked: boolean, nativeEvent: Event
+
+### Slots
+
+- \`default\`: Label content.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- bg-primary
+- bg-input
+
+Internal selectors:
+- [&_[data-slot=switch-track]]
+- [&_[data-slot=switch-thumb]]
+
+### AI do
+
+- Use Switch for on/off settings.
+- Use Checkbox instead when the field is part of a multi-select list.
+
+### AI do not
+
+- Do not use Switch for submitting an immediate destructive action.
+
+### React styled usage
+
+\`\`\`tsx
+import { Switch } from '@/components/ui/switch'
+
+export function Example() {
+  return <Switch>Enable notifications</Switch>
+}
+\`\`\`
+
+---
+
+## tabs
+
+Styled tabs component family built on zw-tabs primitives.
+
+Add command: \`zweb add tabs\`
+Styled import: \`import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'\`
+Install command: \`pnpm add @zeus-web/tabs\`
+Primitive React import: \`import { Tabs, TabsList, TabsTrigger, TabsContent } from '@zeus-web/tabs/react'\`
+Web Component import: \`import '@zeus-web/tabs/wc/auto'\`
+
+### Props
+
+- \`value\` (\`string\`): Controlled active tab value..
+- \`defaultValue\` (\`string\`): Initial active tab value..
+- \`orientation\` (\`TabsOrientation\`): Tabs orientation.. Values: horizontal, vertical. Default: horizontal.
+- \`disabled\` (\`boolean\`): Disables all triggers..
+
+### Events
+
+- \`value-change\` / React \`onValueChange\`: Emitted when active tab changes.. Detail: value: string, nativeEvent: Event
+
+### Slots
+
+- \`default\`: Tabs child components.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- bg-muted
+- text-muted-foreground
+- ring-ring
+
+Internal selectors:
+- [data-slot=tabs-list]
+- [data-slot=tabs-trigger]
+- [data-slot=tabs-content]
+
+### AI do
+
+- Use Tabs, TabsList, TabsTrigger and TabsContent together.
+- Keep trigger value and content value aligned.
+
+### AI do not
+
+- Do not use TabsContent without matching TabsTrigger value.
+
+### React styled usage
+
+\`\`\`tsx
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
+export function Example() {
+  return (
+    <Tabs defaultValue="account">
+      <TabsList>
+        <TabsTrigger value="account">Account</TabsTrigger>
+        <TabsTrigger value="password">Password</TabsTrigger>
+      </TabsList>
+      <TabsContent value="account">Account panel</TabsContent>
+      <TabsContent value="password">Password panel</TabsContent>
+    </Tabs>
+  )
+}
+\`\`\`
+
+---
+
+## dialog
+
+Styled dialog component family built on zw-dialog primitives.
+
+Add command: \`zweb add dialog\`
+Styled import: \`import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog'\`
+Install command: \`pnpm add @zeus-web/dialog\`
+Primitive React import: \`import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription, DialogClose } from '@zeus-web/dialog/react'\`
+Web Component import: \`import '@zeus-web/dialog/wc/auto'\`
+
+### Props
+
+- \`open\` (\`boolean\`): Controlled open state..
+- \`defaultOpen\` (\`boolean\`): Initial open state..
+- \`modal\` (\`boolean\`): Whether the dialog is modal.. Default: true.
+
+### Events
+
+- \`open-change\` / React \`onOpenChange\`: Emitted when open state changes.. Detail: open: boolean, nativeEvent: Event
+
+### Slots
+
+- \`default\`: Dialog child components.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- bg-background
+- text-foreground
+- ring-ring
+
+Internal selectors:
+- [data-slot=dialog-content]
+- [data-slot=dialog-title]
+- [data-slot=dialog-description]
+
+### AI do
+
+- Use Dialog, DialogTrigger and DialogContent together.
+- Use DialogTitle for accessible titles.
+- Use DialogDescription when extra accessible context is available.
+- Rely on the primitive for Escape close, focus return, and modal focus trapping.
+
+### AI do not
+
+- Do not create a second overlay unless the registry provides one.
+- Do not remove DialogTitle when the dialog needs an accessible name.
+- Do not manually wire aria-labelledby or aria-describedby when using the provided title and description primitives.
+
+### React styled usage
+
+\`\`\`tsx
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+
+export function Example() {
+  return (
+    <Dialog>
+      <DialogTrigger><Button>Open</Button></DialogTrigger>
+      <DialogContent>
+        <DialogTitle>Title</DialogTitle>
+      </DialogContent>
+    </Dialog>
+  )
+}
+\`\`\`
+
+---
+
+## label
+
+Styled label component built on the zw-label primitive.
+
+Add command: \`zweb add label\`
+Styled import: \`import { Label } from '@/components/ui/label'\`
+Install command: \`pnpm add @zeus-web/label\`
+Primitive React import: \`import { Label } from '@zeus-web/label/react'\`
+Web Component import: \`import '@zeus-web/label/wc/auto'\`
+
+### Props
+
+- \`for\` (\`string\`): ID of the associated form control..
+- \`required\` (\`boolean\`): Shows a required indicator..
+- \`disabled\` (\`boolean\`): Marks the label as disabled..
+- \`visuallyHidden\` (\`boolean\`): Visually hides the label while keeping it accessible..
+
+### Events
+
+- No public events documented.
+
+### Slots
+
+- \`default\`: Label content.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- text-foreground
+- text-destructive
+
+Internal selectors:
+- [data-slot=label]
+- [data-slot=label-required-indicator]
+
+### AI do
+
+- Use Label with form controls.
+- Use for to associate labels with control ids.
+
+### AI do not
+
+- Do not use Label as a generic text wrapper.
+
+### React styled usage
+
+\`\`\`tsx
+import { Label } from '@/components/ui/label'
+
+export function Example() {
+  return <Label for="email">Email</Label>
+}
+\`\`\`
+
+---
+
+## textarea
+
+Styled textarea component built on the zw-textarea primitive.
+
+Add command: \`zweb add textarea\`
+Styled import: \`import { Textarea } from '@/components/ui/textarea'\`
+Install command: \`pnpm add @zeus-web/textarea\`
+Primitive React import: \`import { Textarea } from '@zeus-web/textarea/react'\`
+Web Component import: \`import '@zeus-web/textarea/wc/auto'\`
+
+### Props
+
+- \`value\` (\`string\`): Controlled textarea value..
+- \`defaultValue\` (\`string\`): Initial uncontrolled value..
+- \`placeholder\` (\`string\`): Placeholder text..
+- \`rows\` (\`number\`): Native rows attribute..
+- \`disabled\` (\`boolean\`): Disables user interaction..
+- \`ariaLabel\` (\`string\`): Accessible label for unlabeled textareas..
+- \`ariaDescribedby\` (\`string\`): ID reference for additional accessible description..
+- \`ariaErrormessage\` (\`string\`): ID reference for accessible error message..
+
+### Events
+
+- \`value-change\` / React \`onValueChange\`: Emitted when the textarea value changes.. Detail: value: string, nativeEvent: Event
+- \`focus-change\` / React \`onFocusChange\`: Emitted when focus state changes.. Detail: focused: boolean, nativeEvent: FocusEvent
+
+### Slots
+
+- \`message\`: Validation or help message.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- border-input
+- ring-ring
+- text-muted-foreground
+
+Internal selectors:
+- [data-slot=textarea]
+- [data-slot=textarea-message]
+
+### AI do
+
+- Use Textarea for multi-line text input.
+
+### AI do not
+
+- Do not use Input for multi-line content.
+
+### React styled usage
+
+\`\`\`tsx
+import { Textarea } from '@/components/ui/textarea'
+
+export function Example() {
+  return <Textarea placeholder="Message" />
+}
+\`\`\`
+
+---
+
+## radio-group
+
+Styled radio group component built on zw-radio-group primitives.
+
+Add command: \`zweb add radio-group\`
+Styled import: \`import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'\`
+Install command: \`pnpm add @zeus-web/radio-group\`
+Primitive React import: \`import { RadioGroup, RadioGroupItem } from '@zeus-web/radio-group/react'\`
+Web Component import: \`import '@zeus-web/radio-group/wc/auto'\`
+
+### Props
+
+- \`value\` (\`string\`): Controlled selected value..
+- \`defaultValue\` (\`string\`): Initial selected value..
+- \`name\` (\`string\`): Native radio group name..
+- \`orientation\` (\`RadioGroupOrientation\`): Layout orientation.. Values: horizontal, vertical. Default: vertical.
+- \`required\` (\`boolean\`): Marks the group as required..
+
+### Events
+
+- \`value-change\` / React \`onValueChange\`: Emitted when selected value changes.. Detail: value: string, nativeEvent: Event
+
+### Slots
+
+- \`default\`: RadioGroupItem children.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- text-primary
+- ring-ring
+
+Internal selectors:
+- [data-slot=radio-group-control]
+- [data-slot=radio-group-label]
+
+### AI do
+
+- Use RadioGroup for one-of-many choices.
+- Keep RadioGroupItem values unique.
+
+### AI do not
+
+- Do not use Checkbox when only one option can be selected.
+
+### React styled usage
+
+\`\`\`tsx
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+
+export function Example() {
+  return (
+    <RadioGroup defaultValue="email">
+      <RadioGroupItem value="email">Email</RadioGroupItem>
+      <RadioGroupItem value="sms">SMS</RadioGroupItem>
+    </RadioGroup>
+  )
+}
+\`\`\`
+
+---
+
+## select
+
+Accessible custom select with a combobox trigger and listbox popup.
+
+Add command: \`zweb add select\`
+Styled import: \`import { Select } from '@/components/ui/select'\`
+Install command: \`pnpm add @zeus-web/select\`
+Primitive React import: \`import { Select } from '@zeus-web/select/react'\`
+Web Component import: \`import '@zeus-web/select/wc/auto'\`
+
+### Props
+
+- \`id\` (\`string\`): Base ID used to derive the internal trigger ID; the listbox keeps its generated ID..
+- \`value\` (\`string\`): Current selected value..
+- \`defaultValue\` (\`string\`): Initial selected value..
+- \`values\` (\`string[]\`): Current selected values in multiple mode. Pass as a JavaScript property..
+- \`defaultValues\` (\`string[]\`): Initial selected values in multiple mode. Pass as a JavaScript property..
+- \`placeholder\` (\`string\`): Text shown when no option is selected..
+- \`size\` (\`SelectSize\`): Select control size.. Values: sm, md, lg. Default: md.
+- \`multiple\` (\`boolean\`): Enables multiple selection..
+- \`disabled\` (\`boolean\`): Disables user interaction..
+- \`required\` (\`boolean\`): Marks the select as required for form validation..
+- \`invalid\` (\`boolean\`): Marks the select as invalid..
+- \`name\` (\`string\`): Form field name used during submission..
+- \`ariaLabel\` (\`string\`): Accessible label for unlabeled selects..
+- \`ariaLabelledby\` (\`string\`): ID reference for the visible select label..
+- \`ariaDescribedby\` (\`string\`): ID reference for additional accessible description..
+- \`ariaErrormessage\` (\`string\`): ID reference for the accessible error message..
+
+### Events
+
+- \`value-change\` / React \`onValueChange\`: Emitted when selected value changes.. Detail: value: string, values: string[], nativeEvent: Event
+- \`focus-change\` / React \`onFocusChange\`: Emitted when focus enters or leaves the select trigger.. Detail: focused: boolean, nativeEvent: FocusEvent
+
+### Slots
+
+- \`default\`: Option children used as the select data source.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- border-input
+- bg-popover
+- text-popover-foreground
+- bg-accent
+- ring-ring
+
+Internal selectors:
+- [data-slot=select-trigger]
+- [data-slot=select-content]
+- [data-slot=select-option]
+- [data-slot=select-option-indicator]
+- [data-slot=select-message]
+
+### AI do
+
+- Use Select for single or multiple choice lists with keyboard navigation.
+- Use placeholder when the field has no initial selection.
+- Set values and defaultValues as JavaScript properties, not HTML attributes.
+
+### AI do not
+
+- Do not use Select for free-form text entry or remote autocomplete.
+
+### React styled usage
+
+\`\`\`tsx
+import { Select } from '@/components/ui/select'
+
+export function Example() {
+  return (
+    <Select defaultValue="apple">
+      <option value="apple">Apple</option>
+      <option value="orange">Orange</option>
+    </Select>
+  )
+}
+\`\`\`
+
+---
+
+## card
+
+Styled card component family built on zw-card primitives.
+
+Add command: \`zweb add card\`
+Styled import: \`import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'\`
+Install command: \`pnpm add @zeus-web/card\`
+Primitive React import: \`import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@zeus-web/card/react'\`
+Web Component import: \`import '@zeus-web/card/wc/auto'\`
+
+### Props
+
+- No public props documented.
+
+### Events
+
+- No public events documented.
+
+### Slots
+
+- \`default\`: Card child components.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- bg-card
+- text-card-foreground
+- border
+
+Internal selectors:
+- [data-slot=card-root]
+- [data-slot=card-header]
+- [data-slot=card-title]
+- [data-slot=card-content]
+
+### AI do
+
+- Use Card for grouped content containers.
+- Use CardHeader + CardTitle for titles.
+- Use CardContent for the main body.
+- Use CardFooter for actions.
+
+### AI do not
+
+- Do not use Card inside another Card.
+- Do not place interactive elements in CardDescription.
+
+### React styled usage
+
+\`\`\`tsx
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+
+export function Example() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Title</CardTitle>
+        <CardDescription>Description</CardDescription>
+      </CardHeader>
+      <CardContent>Content</CardContent>
+    </Card>
+  )
+}
+\`\`\`
+
+---
+
+## badge
+
+Styled badge component built on the zw-badge primitive.
+
+Add command: \`zweb add badge\`
+Styled import: \`import { Badge } from '@/components/ui/badge'\`
+Install command: \`pnpm add @zeus-web/badge\`
+Primitive React import: \`import { Badge } from '@zeus-web/badge/react'\`
+Web Component import: \`import '@zeus-web/badge/wc/auto'\`
+
+### Props
+
+- \`variant\` (\`BadgeVariant\`): Visual style variant.. Values: default, secondary, outline, danger, success, warning. Default: default.
+- \`size\` (\`BadgeSize\`): Badge size.. Values: sm, md, lg. Default: md.
+
+### Events
+
+- No public events documented.
+
+### Slots
+
+- \`default\`: Badge content.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- bg-primary
+- text-primary-foreground
+- bg-secondary
+
+Internal selectors:
+- [data-slot=badge-root]
+
+### AI do
+
+- Use Badge for status labels and counts.
+
+### AI do not
+
+- Do not use Badge as a clickable button.
+
+### React styled usage
+
+\`\`\`tsx
+import { Badge } from '@/components/ui/badge'
+
+export function Example() {
+  return <Badge>New</Badge>
+}
+\`\`\`
+
+---
+
+## separator
+
+Styled separator component built on the zw-separator primitive.
+
+Add command: \`zweb add separator\`
+Styled import: \`import { Separator } from '@/components/ui/separator'\`
+Install command: \`pnpm add @zeus-web/separator\`
+Primitive React import: \`import { Separator } from '@zeus-web/separator/react'\`
+Web Component import: \`import '@zeus-web/separator/wc/auto'\`
+
+### Props
+
+- \`orientation\` (\`SeparatorOrientation\`): Visual orientation.. Values: horizontal, vertical. Default: horizontal.
+
+### Events
+
+- No public events documented.
+
+### Slots
+
+- No slots documented.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- bg-border
+
+Internal selectors:
+- [data-slot=separator-root]
+
+### AI do
+
+- Use Separator to divide sections.
+
+### AI do not
+
+- Do not use Separator for decorative spacing.
+
+### React styled usage
+
+\`\`\`tsx
+import { Separator } from '@/components/ui/separator'
+
+export function Example() {
+  return <Separator />
+}
+\`\`\`
+
+---
+
+## skeleton
+
+Styled skeleton component built on the zw-skeleton primitive.
+
+Add command: \`zweb add skeleton\`
+Styled import: \`import { Skeleton } from '@/components/ui/skeleton'\`
+Install command: \`pnpm add @zeus-web/skeleton\`
+Primitive React import: \`import { Skeleton } from '@zeus-web/skeleton/react'\`
+Web Component import: \`import '@zeus-web/skeleton/wc/auto'\`
+
+### Props
+
+- \`variant\` (\`SkeletonVariant\`): Shape variant.. Values: text, rect, circle. Default: rect.
+- \`animated\` (\`boolean\`): Enables loading animation.. Default: true.
+
+### Events
+
+- No public events documented.
+
+### Slots
+
+- No slots documented.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- bg-muted
+
+Internal selectors:
+- [data-slot=skeleton-root]
+
+### AI do
+
+- Use Skeleton for loading placeholders.
+
+### AI do not
+
+- Do not show Skeleton for content that loads instantly.
+
+### React styled usage
+
+\`\`\`tsx
+import { Skeleton } from '@/components/ui/skeleton'
+
+export function Example() {
+  return <Skeleton className="h-4 w-12" />
+}
+\`\`\`
+
+---
+
+## alert
+
+Styled alert component family built on zw-alert primitives.
+
+Add command: \`zweb add alert\`
+Styled import: \`import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'\`
+Install command: \`pnpm add @zeus-web/alert\`
+Primitive React import: \`import { Alert, AlertTitle, AlertDescription } from '@zeus-web/alert/react'\`
+Web Component import: \`import '@zeus-web/alert/wc/auto'\`
+
+### Props
+
+- \`variant\` (\`AlertVariant\`): Visual style variant.. Values: default, info, success, warning, danger. Default: default.
+- \`live\` (\`string\`): ARIA live region mode.. Default: polite.
+
+### Events
+
+- No public events documented.
+
+### Slots
+
+- \`default\`: Alert content.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- bg-background
+- text-foreground
+- border
+
+Internal selectors:
+- [data-slot=alert-root]
+- [data-slot=alert-title]
+- [data-slot=alert-description]
+
+### AI do
+
+- Use Alert for system messages.
+- Use AlertTitle for the heading.
+- Use AlertDescription for the detail.
+
+### AI do not
+
+- Do not use Alert for persistent banners outside the page content.
+
+### React styled usage
+
+\`\`\`tsx
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
+
+export function Example() {
+  return (
+    <Alert variant="info">
+      <AlertTitle>Heads up!</AlertTitle>
+      <AlertDescription>Info message here.</AlertDescription>
+    </Alert>
+  )
+}
+\`\`\`
+
+---
+
+## collapsible
+
+Styled collapsible component family built on zw-collapsible primitives.
+
+Add command: \`zweb add collapsible\`
+Styled import: \`import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'\`
+Install command: \`pnpm add @zeus-web/collapsible\`
+Primitive React import: \`import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@zeus-web/collapsible/react'\`
+Web Component import: \`import '@zeus-web/collapsible/wc/auto'\`
+
+### Props
+
+- \`open\` (\`boolean\`): Controlled open state..
+- \`defaultOpen\` (\`boolean\`): Initial open state..
+- \`disabled\` (\`boolean\`): Disables trigger interaction..
+
+### Events
+
+- \`open-change\` / React \`onOpenChange\`: Emitted when open state changes.. Detail: open: boolean, nativeEvent: Event
+
+### Slots
+
+- \`default\`: Trigger and content children.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- ring-ring
+
+Internal selectors:
+- [data-slot=collapsible-trigger-button]
+- [data-slot=collapsible-content]
+
+### AI do
+
+- Use Collapsible for simple show/hide content.
+- Use CollapsibleTrigger and CollapsibleContent together.
+
+### AI do not
+
+- Do not use Collapsible when multiple related sections should coordinate; use Accordion instead.
+
+### React styled usage
+
+\`\`\`tsx
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+
+export function Example() {
+  return (
+    <Collapsible>
+      <CollapsibleTrigger>Toggle</CollapsibleTrigger>
+      <CollapsibleContent>Content</CollapsibleContent>
+    </Collapsible>
+  )
+}
+\`\`\`
+
+---
+
+## accordion
+
+Styled accordion component family built on zw-accordion primitives.
+
+Add command: \`zweb add accordion\`
+Styled import: \`import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'\`
+Install command: \`pnpm add @zeus-web/accordion\`
+Primitive React import: \`import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@zeus-web/accordion/react'\`
+Web Component import: \`import '@zeus-web/accordion/wc/auto'\`
+
+### Props
+
+- \`type\` (\`AccordionType\`): Accordion selection mode.. Values: single, multiple. Default: single.
+- \`value\` (\`string\`): Controlled selected value..
+- \`defaultValue\` (\`string\`): Initial selected value..
+- \`collapsible\` (\`boolean\`): Allows closing the active item in single mode..
+
+### Events
+
+- \`value-change\` / React \`onValueChange\`: Emitted when open item values change.. Detail: value: string, values: string[], nativeEvent: Event
+
+### Slots
+
+- \`default\`: AccordionItem children.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- border
+- ring-ring
+
+Internal selectors:
+- [data-slot=accordion-item]
+- [data-slot=accordion-trigger-button]
+- [data-slot=accordion-content]
+
+### AI do
+
+- Use Accordion for grouped expandable sections.
+- Keep AccordionItem values unique.
+
+### AI do not
+
+- Do not use Accordion as a tab replacement.
+- Do not omit AccordionItem value.
+
+### React styled usage
+
+\`\`\`tsx
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+
+export function Example() {
+  return (
+    <Accordion defaultValue="item-1" collapsible>
+      <AccordionItem value="item-1">
+        <AccordionTrigger>Question</AccordionTrigger>
+        <AccordionContent>Answer</AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  )
+}
+\`\`\`
+
+---
+
+## tooltip
+
+Styled tooltip component family built on zw-tooltip primitives.
+
+Add command: \`zweb add tooltip\`
+Styled import: \`import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'\`
+Install command: \`pnpm add @zeus-web/tooltip\`
+Primitive React import: \`import { Tooltip, TooltipContent, TooltipTrigger } from '@zeus-web/tooltip/react'\`
+Web Component import: \`import '@zeus-web/tooltip/wc/auto'\`
+
+### Props
+
+- \`open\` (\`boolean\`): Controlled open state..
+- \`defaultOpen\` (\`boolean\`): Initial open state..
+- \`delayDuration\` (\`number\`): Delay in milliseconds before opening.. Default: 300.
+
+### Events
+
+- \`open-change\` / React \`onOpenChange\`: Emitted when open state changes.. Detail: open: boolean, nativeEvent: Event
+
+### Slots
+
+- \`default\`: Tooltip trigger and content.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- bg-primary
+- text-primary-foreground
+
+Internal selectors:
+- [data-slot=tooltip-trigger-control]
+- [data-slot=tooltip-content]
+
+### AI do
+
+- Use Tooltip for short supplemental information.
+- Keep tooltip content concise.
+
+### AI do not
+
+- Do not put interactive controls inside TooltipContent.
+- Do not rely on Tooltip for essential information.
+
+### React styled usage
+
+\`\`\`tsx
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+
+export function Example() {
+  return (
+    <Tooltip>
+      <TooltipTrigger>Hover me</TooltipTrigger>
+      <TooltipContent>Tooltip content</TooltipContent>
+    </Tooltip>
+  )
+}
+\`\`\`
+
+---
+
+## progress
+
+Styled progress component built on the zw-progress primitive.
+
+Add command: \`zweb add progress\`
+Styled import: \`import { Progress } from '@/components/ui/progress'\`
+Install command: \`pnpm add @zeus-web/progress\`
+Primitive React import: \`import { Progress } from '@zeus-web/progress/react'\`
+Web Component import: \`import '@zeus-web/progress/wc/auto'\`
+
+### Props
+
+- \`value\` (\`number\`): Current progress value..
+- \`max\` (\`number\`): Maximum progress value.. Default: 100.
+- \`indeterminate\` (\`boolean\`): Whether progress is indeterminate..
+- \`label\` (\`string\`): Accessible progress label..
+
+### Events
+
+- No public events documented.
+
+### Slots
+
+- \`default\`: Optional content.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- bg-primary
+- bg-primary/20
+
+Internal selectors:
+- [data-slot=progress-root]
+- [data-slot=progress-indicator]
+
+### AI do
+
+- Use Progress to represent task completion.
+
+### AI do not
+
+- Do not use Progress as a generic loading spinner.
+
+### React styled usage
+
+\`\`\`tsx
+import { Progress } from '@/components/ui/progress'
+
+export function Example() {
+  return <Progress value={60} label="Upload progress" />
+}
+\`\`\`
+
+---
+
+## avatar
+
+Styled avatar component family built on zw-avatar primitives.
+
+Add command: \`zweb add avatar\`
+Styled import: \`import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'\`
+Install command: \`pnpm add @zeus-web/avatar\`
+Primitive React import: \`import { Avatar, AvatarFallback, AvatarImage } from '@zeus-web/avatar/react'\`
+Web Component import: \`import '@zeus-web/avatar/wc/auto'\`
+
+### Props
+
+- \`size\` (\`AvatarSize\`): Avatar size.. Values: sm, md, lg. Default: md.
+- \`shape\` (\`AvatarShape\`): Avatar shape.. Values: circle, square. Default: circle.
+
+### Events
+
+- \`image-load\` / React \`onImageLoad\`: Emitted when avatar image loads.. Detail: nativeEvent: Event
+- \`image-error\` / React \`onImageError\`: Emitted when avatar image fails to load.. Detail: nativeEvent: Event
+
+### Slots
+
+- \`default\`: AvatarImage and AvatarFallback children.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- bg-muted
+
+Internal selectors:
+- [data-slot=avatar-root]
+- [data-slot=avatar-image]
+- [data-slot=avatar-fallback]
+
+### AI do
+
+- Use AvatarImage with meaningful alt text.
+- Always provide AvatarFallback.
+
+### AI do not
+
+- Do not use Avatar for decorative icons.
+- Do not omit fallback content.
+
+### React styled usage
+
+\`\`\`tsx
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+
+export function Example() {
+  return (
+    <Avatar>
+      <AvatarImage src="/avatar.png" alt="User" />
+      <AvatarFallback>ZW</AvatarFallback>
+    </Avatar>
+  )
+}
+\`\`\`
+
+---
+
+## form-field
+
+Styled form field relationship built on the form-field primitive.
+
+Add command: \`zweb add form-field\`
+Styled import: \`import { FormField } from '@/components/ui/form-field'\`
+Install command: \`pnpm add @zeus-web/form-field\`
+Primitive React import: \`import { FormField } from '@zeus-web/form-field/react'\`
+Web Component import: \`import '@zeus-web/form-field/wc/auto'\`
+
+### Props
+
+- \`id\` (\`string\`): Stable field identifier..
+- \`invalid\` (\`boolean\`): Marks the field as invalid..
+- \`disabled\` (\`boolean\`): Disables the associated control..
+- \`required\` (\`boolean\`): Marks the associated control as required..
+
+### Events
+
+- No public events documented.
+
+### Slots
+
+- \`default\`: Label, description, control and message content.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- border
+- background
+- foreground
+- ring
+
+Internal selectors:
+- [data-slot=form-field]
+
+### AI do
+
+- Use the copied Registry wrapper for styled application UI.
+
+### AI do not
+
+- Do not assume the headless primitive provides final visual styling.
+
+### React styled usage
+
+\`\`\`tsx
+import { FormField, FormFieldControl, FormFieldLabel } from '@/components/ui/form-field'
+
+export function Example() {
+  return (
+    <FormField required>
+      <FormFieldLabel>Work email</FormFieldLabel>
+      <FormFieldControl><input type="email" /></FormFieldControl>
+    </FormField>
+  )
+}
+\`\`\`
+
+---
+
+## popover
+
+Styled popover built on the popover primitive.
+
+Add command: \`zweb add popover\`
+Styled import: \`import { Popover } from '@/components/ui/popover'\`
+Install command: \`pnpm add @zeus-web/popover\`
+Primitive React import: \`import { Popover } from '@zeus-web/popover/react'\`
+Web Component import: \`import '@zeus-web/popover/wc/auto'\`
+
+### Props
+
+- \`open\` (\`boolean\`): Controlled open state..
+- \`defaultOpen\` (\`boolean\`): Initial uncontrolled open state..
+- \`modal\` (\`boolean\`): Dismisses on outside pointer input..
+- \`disabled\` (\`boolean\`): Disables the trigger..
+
+### Events
+
+- \`open-change\` / React \`onOpenChange\`: Emitted when open state changes.. Detail: open: boolean, nativeEvent: Event
+
+### Slots
+
+- \`default\`: Popover trigger and content.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- border
+- background
+- foreground
+- ring
+
+Internal selectors:
+- [data-slot=popover]
+
+### AI do
+
+- Use the copied Registry wrapper for styled application UI.
+- Set forceMount on PopoverContent to keep content mounted while closed.
+
+### AI do not
+
+- Do not assume the headless primitive provides final visual styling.
+
+### React styled usage
+
+\`\`\`tsx
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+
+export function Example() {
+  return (
+    <Popover>
+      <PopoverTrigger>Details</PopoverTrigger>
+      <PopoverContent>Deployment details</PopoverContent>
+    </Popover>
+  )
+}
+\`\`\`
+
+---
+
+## dropdown-menu
+
+Styled dropdown menu built on the dropdown-menu primitive.
+
+Add command: \`zweb add dropdown-menu\`
+Styled import: \`import { DropdownMenu } from '@/components/ui/dropdown-menu'\`
+Install command: \`pnpm add @zeus-web/dropdown-menu\`
+Primitive React import: \`import { DropdownMenu } from '@zeus-web/dropdown-menu/react'\`
+Web Component import: \`import '@zeus-web/dropdown-menu/wc/auto'\`
+
+### Props
+
+- \`open\` (\`boolean\`): Controlled open state..
+- \`defaultOpen\` (\`boolean\`): Initial uncontrolled open state..
+- \`disabled\` (\`boolean\`): Disables the trigger and items..
+- \`value\` (\`string\`): Item selection value..
+
+### Events
+
+- \`open-change\` / React \`onOpenChange\`: Emitted when open state changes.. Detail: open: boolean, nativeEvent: Event
+- \`select\` / React \`onSelect\`: Emitted when an enabled item is selected.. Detail: value: string | undefined, nativeEvent: Event
+
+### Slots
+
+- \`default\`: Menu trigger, content and items.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- border
+- background
+- foreground
+- ring
+
+Internal selectors:
+- [data-slot=dropdown-menu]
+
+### AI do
+
+- Use the copied Registry wrapper for styled application UI.
+
+### AI do not
+
+- Do not assume the headless primitive provides final visual styling.
+
+### React styled usage
+
+\`\`\`tsx
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+
+export function Example() {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger>Actions</DropdownMenuTrigger>
+      <DropdownMenuContent><DropdownMenuItem value="rename">Rename</DropdownMenuItem></DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+\`\`\`
+
+---
+
+## toast
+
+Styled live-region toast built on the toast primitive.
+
+Add command: \`zweb add toast\`
+Styled import: \`import { Toast } from '@/components/ui/toast'\`
+Install command: \`pnpm add @zeus-web/toast\`
+Primitive React import: \`import { Toast } from '@zeus-web/toast/react'\`
+Web Component import: \`import '@zeus-web/toast/wc/auto'\`
+
+### Props
+
+- \`open\` (\`boolean\`): Controlled open state..
+- \`defaultOpen\` (\`boolean\`): Initial uncontrolled open state..
+- \`duration\` (\`number\`): Auto-dismiss duration in milliseconds..
+- \`status\` (\`ToastStatus\`): Live-region announcement priority.. Values: foreground, background.
+
+### Events
+
+- \`open-change\` / React \`onOpenChange\`: Emitted when open state changes.. Detail: open: boolean, nativeEvent: Event
+
+### Slots
+
+- \`default\`: Toast title, description and close action.
+
+### Styling
+
+Tailwind: yes
+
+Theme tokens:
+- border
+- background
+- foreground
+- ring
+
+Internal selectors:
+- [data-slot=toast]
+
+### AI do
+
+- Use the copied Registry wrapper for styled application UI.
+
+### AI do not
+
+- Do not assume the headless primitive provides final visual styling.
+
+### React styled usage
+
+\`\`\`tsx
+import { Toast, ToastClose, ToastDescription, ToastTitle } from '@/components/ui/toast'
+
+export function Example() {
+  return (
+    <Toast defaultOpen><ToastTitle>Deployment complete</ToastTitle><ToastDescription>The build is live.</ToastDescription><ToastClose>Dismiss</ToastClose></Toast>
+  )
+}
+\`\`\`
+
+# Advanced components
+
+## chat (advanced)
+
+Use @zeus-web/chat to build headless ChatGPT-style chat interfaces with Web Components and thin React/Vue wrappers.
+
+Package: \`@zeus-web/chat\`
+Tags: \`chat\`, \`ai\`, \`agent\`, \`advanced\`, \`headless\`, \`web-component\`
+
+### When to use
+
+- Build AI chat, agent console or conversational assistant UIs.
+- Reuse the same chat behavior protocol across native Web Component, React and Vue.
+- Keep product styling free while reusing structure, events, methods and a11y semantics.
+
+### Do not use for
+
+- 不要把它当作模型请求库。
+- 不要在组件内部嵌入 provider 请求逻辑。
+- 不要把凭据、密钥或 token 放进组件属性。
+- 不要在 Phase 3 依赖 markdown 解析、代码高亮或文件上传传输层。
+
+### Components
+
+- \`zw-chat\`
+- \`zw-chat-thread\`
+- \`zw-chat-message\`
+- \`zw-chat-composer\`
+- \`zw-chat-code-block\`
+- \`zw-chat-tool-call\`
+- \`zw-chat-artifact\`
+- \`zw-chat-typing\`
+
+### Slots
+
+- \`zw-chat\` → \`header\`
+- \`zw-chat\` → \`sidebar\`
+- \`zw-chat\` → \`thread\`
+- \`zw-chat\` → \`artifact\`
+- \`zw-chat\` → \`composer\`
+- \`zw-chat\` → \`empty\`
+- \`zw-chat\` → \`loadingContent\`
+- \`zw-chat-message\` → \`avatar\`
+- \`zw-chat-message\` → \`header\`
+- \`zw-chat-message\` → \`default\`
+- \`zw-chat-message\` → \`footer\`
+- \`zw-chat-message\` → \`actions\`
+- \`zw-chat-composer\` → \`prefix\`
+- \`zw-chat-composer\` → \`attachments\`
+- \`zw-chat-composer\` → \`submit\`
+- \`zw-chat-composer\` → \`suffix\`
+- \`zw-chat-code-block\` → \`filenameContent\`
+- \`zw-chat-code-block\` → \`languageContent\`
+- \`zw-chat-code-block\` → \`actions\`
+- \`zw-chat-code-block\` → \`default\`
+- \`zw-chat-tool-call\` → \`summary\`
+- \`zw-chat-tool-call\` → \`input\`
+- \`zw-chat-tool-call\` → \`output\`
+- \`zw-chat-tool-call\` → \`error\`
+- \`zw-chat-tool-call\` → \`actions\`
+- \`zw-chat-artifact\` → \`header\`
+- \`zw-chat-artifact\` → \`default\`
+- \`zw-chat-artifact\` → \`footer\`
+- \`zw-chat-artifact\` → \`actions\`
+
+### Events
+
+- \`zw-chat\` → \`send\`
+- \`zw-chat\` → \`abort\`
+- \`zw-chat\` → \`regenerate\`
+- \`zw-chat\` → \`message-action\`
+- \`zw-chat\` → \`artifact-open\`
+- \`zw-chat-composer\` → \`send\`
+- \`zw-chat-composer\` → \`value-change\`
+- \`zw-chat-composer\` → \`attachment-change\`
+- \`zw-chat-message\` → \`message-action\`
+- \`zw-chat-code-block\` → \`code-action\`
+- \`zw-chat-artifact\` → \`artifact-open\`
+
+### Methods
+
+- \`zw-chat\` → \`setMessages()\`
+- \`zw-chat\` → \`appendMessage()\`
+- \`zw-chat\` → \`updateMessage()\`
+- \`zw-chat\` → \`appendMessagePart()\`
+- \`zw-chat\` → \`clear()\`
+- \`zw-chat\` → \`getMessages()\`
+- \`zw-chat\` → \`scrollToBottom()\`
+- \`zw-chat\` → \`emitSend()\`
+- \`zw-chat\` → \`emitAbort()\`
+- \`zw-chat\` → \`emitRegenerate()\`
+- \`zw-chat\` → \`emitMessageAction()\`
+- \`zw-chat\` → \`emitArtifactOpen()\`
+- \`zw-chat-thread\` → \`scrollToBottom()\`
+- \`zw-chat-composer\` → \`focus()\`
+- \`zw-chat-composer\` → \`clear()\`
+- \`zw-chat-composer\` → \`submit()\`
+- \`zw-chat-message\` → \`emitAction()\`
+- \`zw-chat-code-block\` → \`emitAction()\`
+- \`zw-chat-artifact\` → \`openArtifact()\`
+
+### Prompt hints
+
+- 生成 Chat UI 时优先组合 zw-chat、zw-chat-thread、zw-chat-message、zw-chat-composer。
+- 需要代码块时使用 zw-chat-code-block，不要把代码高亮库塞入 chat 根组件。
+- 需要 artifact / canvas 区域时使用 zw-chat-artifact 的对应 slot。
+- 需要工具调用展示时使用 zw-chat-tool-call。
+- 业务请求逻辑应该放在应用层，不应放在组件内部。
+
+### Native Web Component usage
+
+Use the auto entry and compose chat, thread, message and composer with plain DOM.
+
+\`\`\`tsx
+import '@zeus-web/chat/wc/auto'
+
+const chat = document.createElement('zw-chat')
+const thread = document.createElement('zw-chat-thread')
+const composer = document.createElement('zw-chat-composer')
+
+thread.slot = 'thread'
+composer.slot = 'composer'
+
+composer.addEventListener('send', event => {
+  console.log((event as CustomEvent).detail.value)
+})
+
+chat.append(thread, composer)
+document.body.append(chat)
+\`\`\`
+
+### React wrapper usage
+
+Use the generated React wrapper when the host application is React.
+
+\`\`\`tsx
+import { Chat, ChatComposer, ChatThread } from '@zeus-web/chat/react'
+
+export function App() {
+  return (
+    <Chat emptyText="暂无消息">
+      <ChatThread slot="thread" />
+      <ChatComposer slot="composer" placeholder="输入消息..." />
+    </Chat>
+  )
+}
+\`\`\`
+
+---
+
+## virtual (advanced)
+
+Use @zeus-web/virtual as a headless, one-axis virtualization foundation for large lists and higher-level Zeus Web components.
+
+Package: \`@zeus-web/virtual\`
+Tags: \`virtual\`, \`virtual-list\`, \`virtualization\`, \`scroll\`, \`performance\`, \`advanced\`, \`headless\`, \`web-component\`
+
+### When to use
+
+- Render large activity feeds, logs, timelines or other one-dimensional collections without mounting every item.
+- Build a higher-level advanced component that needs reusable range calculation, size measurement and scroll alignment.
+- Support vertical or horizontal virtual scrolling with explicit overscan and imperative navigation.
+
+### Do not use for
+
+- Do not treat this package as a model request library. 不要把它当作模型请求库。
+- Do not expect zw-virtual-list to render item content; the application owns the item renderer.
+- Do not use it for small collections where rendering every item is simpler and inexpensive.
+- Do not use the one-axis list as a substitute for @zeus-web/data-grid when rows and columns both need virtualization.
+- Do not put network requests, credentials or provider-specific transport inside the virtualizer.
+
+### Components
+
+- \`zw-virtual-list\`
+
+### Slots
+
+- \`zw-virtual-list\` → \`default\`
+
+### Events
+
+- \`zw-virtual-list\` → \`range-change\`
+- \`zw-virtual-list\` → \`scroll-offset-change\`
+
+### Methods
+
+- \`zw-virtual-list\` → \`getRange()\`
+- \`zw-virtual-list\` → \`getItems()\`
+- \`zw-virtual-list\` → \`getTotalSize()\`
+- \`zw-virtual-list\` → \`scrollToIndex()\`
+- \`zw-virtual-list\` → \`scrollToOffset()\`
+- \`zw-virtual-list\` → \`measure()\`
+
+### Prompt hints
+
+- zw-virtual-list is headless and does not render item nodes; handle range-change or call getItems() to obtain the current virtual items.
+- Render only the returned items and position each item from its start and size values.
+- Give the viewport a bounded size and overflow so the component can measure a useful visible range.
+- Use scrollToIndex with start, center or end alignment for imperative navigation.
+- Use createVirtualizer directly when implementing a higher-level Zeus Web component.
+- Keep business request logic in the application layer. 业务请求逻辑应该放在应用层。
+
+### Core virtualizer usage
+
+Use the framework-independent engine when building a higher-level component.
+
+\`\`\`tsx
+import { createVirtualizer } from '@zeus-web/virtual'
+
+const virtualizer = createVirtualizer({
+  count: 10_000,
+  estimateSize: 40,
+  overscan: 4,
+})
+
+const range = virtualizer.getRange(0, 320)
+const visibleItems = virtualizer.getItems(range)
+const middleOffset = virtualizer.getOffsetForIndex(5_000, {
+  align: 'center',
+  viewportSize: 320,
+})
+\`\`\`
+
+### Independent DOM renderer
+
+Use the keyed renderer to mount only the current range and reuse DOM nodes that remain visible.
+
+\`\`\`tsx
+import { createDomVirtualListRenderer } from '@zeus-web/virtual'
+
+const list = document.querySelector('zw-virtual-list')!
+const renderer = createDomVirtualListRenderer({
+  container: document.querySelector('#virtual-items')!,
+  createNode: () => document.createElement('div'),
+  updateNode(node, item) {
+    const element = node as HTMLElement
+    element.textContent = \`Activity \${item.index + 1}\`
+    element.style.position = 'absolute'
+    element.style.transform = \`translateY(\${item.start}px)\`
+    element.style.height = \`\${item.size}px\`
+  },
+})
+
+list.addEventListener('range-change', event => {
+  renderer.render(event.detail.items)
+})
+
+renderer.dispose()
+\`\`\`
+
+### Native Web Component usage
+
+Listen for range changes and render only the items supplied by the headless list.
+
+\`\`\`tsx
+import '@zeus-web/virtual/wc/auto'
+
+const list = document.querySelector('zw-virtual-list')
+const itemLayer = document.querySelector('#virtual-items')
+
+list.addEventListener('range-change', event => {
+  const elements = event.detail.items.map(item => {
+    const element = document.createElement('div')
+    element.textContent = \`Activity \${item.index + 1}\`
+    element.style.position = 'absolute'
+    element.style.transform = \`translateY(\${item.start}px)\`
+    element.style.height = \`\${item.size}px\`
+    return element
+  })
+
+  itemLayer.replaceChildren(...elements)
+})
+
+list.scrollToIndex(5_000, 'center')
+\`\`\`
+
+### React wrapper usage
+
+Use the generated wrapper and keep visible items in application state.
+
+\`\`\`tsx
+import type { VirtualItem } from '@zeus-web/virtual'
+import { VirtualList } from '@zeus-web/virtual/react'
+import { useState } from 'react'
+
+export function ActivityList() {
+  const [items, setItems] = useState<VirtualItem[]>([])
+
+  return (
+    <VirtualList
+      count={10_000}
+      estimateSize={40}
+      overscan={4}
+      onRangeChange={event => setItems(event.detail.items)}
+    >
+      {items.map(item => (
+        <div
+          key={item.key}
+          style={{
+            position: 'absolute',
+            transform: \`translateY(\${item.start}px)\`,
+            height: item.size,
+          }}
+        >
+          Activity {item.index + 1}
+        </div>
+      ))}
+    </VirtualList>
+  )
+}
+\`\`\`
+
+---
+
+## data-grid (advanced)
+
+Use @zeus-web/data-grid to build headless data grids with two-axis virtualization, column model, row model, selection and sorting.
+
+Package: \`@zeus-web/data-grid\`
+Tags: \`data-grid\`, \`table\`, \`virtual\`, \`advanced\`, \`headless\`, \`web-component\`
+
+### When to use
+
+- 需要展示结构化表格数据时使用。
+- 需要轻量 DataGrid 而不是 AG Grid 级完整表格系统时使用。
+- 需要跨 Native Web Component、React、Vue 复用同一套 DataGrid 行为协议时使用。
+- 需要双轴虚拟滚动、单列排序、单选或多选时使用。
+
+### Do not use for
+
+- 不要把它当作服务端数据源。
+- 不要在组件内部写真实请求逻辑。
+- 不要把它当作模型请求库。
+- 不要把鉴权信息、密钥、token 放入组件属性。
+- 不要在当前阶段依赖过滤器、树表、分组或单元格编辑器。
+
+### Components
+
+- \`zw-data-grid\`
+
+### Slots
+
+- \`zw-data-grid\` → \`empty\`
+
+### Events
+
+- \`zw-data-grid\` → \`range-change\`
+- \`zw-data-grid\` → \`scroll-offset-change\`
+- \`zw-data-grid\` → \`viewport-resize\`
+- \`zw-data-grid\` → \`selection-change\`
+- \`zw-data-grid\` → \`sort-change\`
+- \`zw-data-grid\` → \`row-action\`
+- \`zw-data-grid\` → \`cell-action\`
+- \`zw-data-grid\` → \`column-resize-start\`
+- \`zw-data-grid\` → \`column-resize\`
+- \`zw-data-grid\` → \`column-resize-end\`
+- \`zw-data-grid\` → \`active-cell-change\`
+
+### Methods
+
+- \`zw-data-grid\` → \`setRows()\`
+- \`zw-data-grid\` → \`setColumns()\`
+- \`zw-data-grid\` → \`getRows()\`
+- \`zw-data-grid\` → \`getColumns()\`
+- \`zw-data-grid\` → \`getVisibleRows()\`
+- \`zw-data-grid\` → \`getSelection()\`
+- \`zw-data-grid\` → \`setSelection()\`
+- \`zw-data-grid\` → \`clearSelection()\`
+- \`zw-data-grid\` → \`toggleRowSelection()\`
+- \`zw-data-grid\` → \`setSort()\`
+- \`zw-data-grid\` → \`clearSort()\`
+- \`zw-data-grid\` → \`getSort()\`
+- \`zw-data-grid\` → \`getRange()\`
+- \`zw-data-grid\` → \`getItems()\`
+- \`zw-data-grid\` → \`getTotalSize()\`
+- \`zw-data-grid\` → \`getColumnRange()\`
+- \`zw-data-grid\` → \`getColumnItems()\`
+- \`zw-data-grid\` → \`getTotalColumnSize()\`
+- \`zw-data-grid\` → \`scrollToIndex()\`
+- \`zw-data-grid\` → \`scrollToOffset()\`
+- \`zw-data-grid\` → \`scrollToColumn()\`
+- \`zw-data-grid\` → \`measure()\`
+- \`zw-data-grid\` → \`resetMeasurements()\`
+- \`zw-data-grid\` → \`resizeColumn()\`
+- \`zw-data-grid\` → \`resetColumnWidths()\`
+- \`zw-data-grid\` → \`getColumnWidths()\`
+- \`zw-data-grid\` → \`setActiveCell()\`
+- \`zw-data-grid\` → \`getActiveCell()\`
+- \`zw-data-grid\` → \`moveActiveCell()\`
+- \`zw-data-grid\` → \`focusCell()\`
+- \`zw-data-grid\` → \`focusActiveCell()\`
+- \`zw-data-grid\` → \`refreshViewport()\`
+
+### Prompt hints
+
+- 生成结构化数据表格时优先使用 data-grid，而不是手写复杂 div table。
+- 需要大量行数据时设置 virtual。
+- 需要选择行时设置 selectionMode="single" 或 selectionMode="multiple"。
+- 需要排序时在 column 上设置 sortable: true。
+- 业务请求逻辑应该放在应用层，不应放在组件内部。
+- 不要在 data-grid 中生成 provider、鉴权、远程请求或服务端数据源逻辑。
+
+### React package usage
+
+Use the generated DataGrid wrapper from the advanced package in React apps.
+
+\`\`\`tsx
+import { DataGrid } from '@zeus-web/data-grid/react'
+
+const columns = [
+  { id: 'name', header: 'Name', field: 'name', sortable: true },
+  { id: 'role', header: 'Role', field: 'role', sortable: true },
+]
+
+const rows = [
+  { id: 'u1', name: 'Ada Lovelace', role: 'Engineer' },
+  { id: 'u2', name: 'Grace Hopper', role: 'Compiler' },
+]
+
+export function Example() {
+  return (
+    <DataGrid
+      ariaLabel="Users"
+      columns={columns}
+      rows={rows}
+      virtual
+      selectionMode="multiple"
+    />
+  )
+}
+\`\`\`
+
+### Native Web Component usage
+
+Use the auto entry when the host application is not React or Vue.
+
+\`\`\`tsx
+import '@zeus-web/data-grid/wc/auto'
+
+const grid = document.createElement('zw-data-grid')
+grid.setAttribute('aria-label', 'Users')
+grid.setAttribute('virtual', '')
+grid.setAttribute('selection-mode', 'multiple')
+grid.columns = columns
+grid.rows = rows
+document.body.append(grid)
+\`\`\`
+
+---
+
+## revogrid-adapter (advanced)
+
+Use @zeus-web/revogrid-adapter to map Zeus DataGrid rows, columns, sorting and selection state to a <revo-grid> custom element without bundling RevoGrid itself.
+
+Package: \`@zeus-web/revogrid-adapter\`
+Tags: \`revogrid-adapter\`, \`data-grid\`, \`revogrid\`, \`advanced\`, \`headless\`, \`web-component\`
+
+### When to use
+
+- 应用已经注册了 <revo-grid> 真实实现并希望把 DataGrid 模型接入时使用。
+- 需要把现有 DataGrid 数据源桥接到 RevoGrid-compatible 表格组件时使用。
+- 需要跨 Native Web Component、React、Vue 复用同一套 adapter 行为协议时使用。
+
+### Do not use for
+
+- 不要把它当作模型请求库。
+- 不要在组件内部嵌入 provider 请求逻辑。
+- 不要把凭据、密钥或 token 放进组件属性。
+- 不要在 adapter 模板中导入 @revolist/revogrid 真实实现。
+- 不要在简单场景用 RevoGrid 替代内置 data-grid。
+
+### Components
+
+- \`zw-revogrid-adapter\`
+
+### Slots
+
+
+
+### Events
+
+- \`zw-revogrid-adapter\` → \`adapter-ready\`
+- \`zw-revogrid-adapter\` → \`adapter-change\`
+
+### Methods
+
+- \`zw-revogrid-adapter\` → \`getRevoColumns()\`
+- \`zw-revogrid-adapter\` → \`getRevoSource()\`
+- \`zw-revogrid-adapter\` → \`getRevoSort()\`
+- \`zw-revogrid-adapter\` → \`getRevoSelection()\`
+- \`zw-revogrid-adapter\` → \`getState()\`
+- \`zw-revogrid-adapter\` → \`getGridElement()\`
+- \`zw-revogrid-adapter\` → \`setRows()\`
+- \`zw-revogrid-adapter\` → \`setColumns()\`
+- \`zw-revogrid-adapter\` → \`setSelection()\`
+- \`zw-revogrid-adapter\` → \`setSort()\`
+- \`zw-revogrid-adapter\` → \`clearSort()\`
+- \`zw-revogrid-adapter\` → \`refresh()\`
+
+### Prompt hints
+
+- 生成需要桥接到 RevoGrid 实现的表格时使用 revogrid-adapter，并把 <revo-grid> 注册交给应用层。
+- 需要 columns / rows / sorting / selection 时使用 DataGrid 模型以保持跨 adapter 行为一致。
+- 轻量场景继续用 data-grid。
+- 业务请求逻辑应该放在应用层，不应放在组件内部。
+- 不要在 revogrid-adapter 模板中导入 @revolist/revogrid 真实实现。
+
+### React package usage
+
+Use the generated RevoGrid adapter wrapper from the advanced package in React apps.
+
+\`\`\`tsx
+import { RevoGridAdapter } from '@zeus-web/revogrid-adapter/react'
+
+const columns = [
+  { id: 'name', header: 'Name', field: 'userName', sortable: true },
+  { id: 'role', header: 'Role', field: 'role', sortable: true },
+]
+
+const rows = [
+  { id: 'u1', userName: 'Ada Lovelace', role: 'Engineer' },
+  { id: 'u2', userName: 'Grace Hopper', role: 'Compiler' },
+]
+
+export function Example() {
+  return (
+    <RevoGridAdapter
+      ariaLabel="Users"
+      columns={columns}
+      rows={rows}
+      selectionMode="multiple"
+      sortColumn="role"
+      sortDirection="asc"
+    />
+  )
+}
+\`\`\`
+
+### Native Web Component usage
+
+Use the auto entry when the host application is not React or Vue.
+
+\`\`\`tsx
+import '@zeus-web/revogrid-adapter/wc/auto'
+
+const adapter = document.createElement('zw-revogrid-adapter')
+adapter.setAttribute('aria-label', 'Users')
+adapter.setAttribute('selection-mode', 'multiple')
+adapter.setAttribute('sort-column', 'role')
+adapter.setAttribute('sort-direction', 'asc')
+adapter.columns = columns
+adapter.rows = rows
+document.body.append(adapter)
+\`\`\`
+
+---
+
+## agent-console (advanced)
+
+Headless agent console foundation for messages, tool calls, artifacts, diagnostics and local status state.
+
+Package: \`@zeus-web/agent-console\`
+Tags: \`agent\`, \`console\`, \`chat\`, \`tools\`, \`artifacts\`, \`diagnostics\`
+
+### When to use
+
+- Use when building an AI assistant console UI.
+- Use when you need a local state model for messages, tool calls, artifacts and diagnostics.
+- Use before adding a real provider adapter.
+
+### Do not use for
+
+- 不要把它当作模型请求库。
+- Do not use as a direct OpenAI/Anthropic/DeepSeek client.
+- Do not use when you only need a basic chat transcript.
+- Do not put API keys or network transport inside templates.
+
+### Components
+
+- \`zw-agent-console\`
+
+### Slots
+
+- \`zw-agent-console\` → \`timeline\`
+- \`zw-agent-console\` → \`tools\`
+- \`zw-agent-console\` → \`artifactsContent\`
+- \`zw-agent-console\` → \`diagnosticsContent\`
+
+### Events
+
+- \`zw-agent-console\` → \`agent-event\`
+- \`zw-agent-console\` → \`status-change\`
+- \`zw-agent-console\` → \`artifact-select\`
+- \`zw-agent-console\` → \`reset\`
+
+### Methods
+
+- \`zw-agent-console\` → \`appendMessage()\`
+- \`zw-agent-console\` → \`updateMessage()\`
+- \`zw-agent-console\` → \`startToolCall()\`
+- \`zw-agent-console\` → \`finishToolCall()\`
+- \`zw-agent-console\` → \`addArtifact()\`
+- \`zw-agent-console\` → \`selectArtifact()\`
+- \`zw-agent-console\` → \`addDiagnostic()\`
+- \`zw-agent-console\` → \`setStatus()\`
+- \`zw-agent-console\` → \`getState()\`
+- \`zw-agent-console\` → \`getEvents()\`
+- \`zw-agent-console\` → \`reset()\`
+
+### Prompt hints
+
+- 业务请求逻辑应该放在应用层，不应放在组件内部。
+- Generate local UI only.
+- Do not add fetch, WebSocket, EventSource or provider SDK usage.
+- Use appendMessage/startToolCall/addArtifact methods for local state transitions.
+
+### React package usage
+
+Use the generated Agent Console wrapper from the advanced package.
+
+\`\`\`tsx
+import { AgentConsole } from '@zeus-web/agent-console/react'
+
+export function Example() {
+  return <AgentConsole />
+}
+\`\`\`
+"
+`;

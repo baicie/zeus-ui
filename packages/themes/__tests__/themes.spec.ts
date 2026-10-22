@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 import {
+  createThemeCss,
   darkModeStrategyNames,
   getThemeCssImport,
   getThemeTokens,
@@ -174,5 +175,40 @@ describe('@zeus-web/themes', () => {
     expect(json.radiusPresets.md).toBe('0.5rem')
     expect(json.motionPresets.normal.durationNormal).toBe('180ms')
     expect(JSON.parse(JSON.stringify(json))).toEqual(json)
+  })
+
+  it('generates custom light and dark theme CSS from a built-in palette', () => {
+    const css = createThemeCss('brand', 'slate', {
+      light: { primary: '12 80% 45%' },
+      dark: { primary: '12 70% 65%' },
+    })
+
+    expect(css).toContain("[data-theme='brand'] {")
+    expect(css).toContain('--primary: 12 80% 45%;')
+    expect(css).toContain("[data-theme='brand'].dark,")
+    expect(css).toContain('--primary: 12 70% 65%;')
+    expect(css).toContain('--background: 0 0% 100%;')
+    expect(css).toContain('--zw-primary: var(--primary);')
+    expect(css).toContain('--zw-ring: var(--ring);')
+    expect(css).toContain('--zeus-primary: var(--primary);')
+    expect(css).toContain('--zeus-popover: var(--popover);')
+    expect(css).toMatch(
+      /\[data-theme='brand'\]\.dark,[\s\S]*?--primary: 12 70% 65%;[\s\S]*?--zw-primary: var\(--primary\);[\s\S]*?--zeus-primary: var\(--primary\);/,
+    )
+  })
+
+  it('rejects unsafe theme names, tokens, and CSS values', () => {
+    expect(() => createThemeCss('../brand')).toThrow('Theme name')
+    expect(() => createThemeCss('slate')).toThrow('Theme already exists')
+    expect(() =>
+      createThemeCss('brand', 'default', {
+        light: { primary: 'red; } body { display:none' },
+      }),
+    ).toThrow('Invalid HSL value')
+    expect(() =>
+      createThemeCss('brand', 'default', {
+        light: { unknown: '0 0% 0%' } as never,
+      }),
+    ).toThrow('Unsupported theme token')
   })
 })

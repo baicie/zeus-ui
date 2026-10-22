@@ -94,6 +94,30 @@ zweb doctor --json
 zweb list --json
 zweb theme list
 zweb theme tokens slate --json
+zweb theme add brand --from slate --color 'light.primary=12 80% 45%'
 zweb icon list
 zweb ai --json
+```
+
+`zweb theme add <name>` writes generated light/dark CSS under the configured
+styles alias at `themes/<name>.css`. Use `--from <preset>` to choose a base and
+repeat `--color light.<token>=<hsl>` or `--color dark.<token>=<hsl>` to override
+semantic tokens. Existing files are never overwritten.
+
+The generated file can be imported after the base theme and selected with a
+`data-theme` boundary:
+
+```bash
+zweb theme add brand --from slate \
+  --color 'light.primary=12 80% 45%' \
+  --color 'dark.primary=12 70% 65%'
+```
+
+```ts
+import '@zeus-web/themes/components.css'
+import './styles/themes/brand.css'
+```
+
+```html
+<main data-theme="brand">...</main>
 ```

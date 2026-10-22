@@ -2,9 +2,9 @@
 
 > `zeus-web` 不再自己手写 `wc/react/vue wrapper`，只写组件源、主题、registry、CLI、AI metadata、docs/examples；Web Component 产物、React wrapper、Vue wrapper、manifest、dts 继续交给 `@zeus-js/web-c` 生态生成。
 
-当前代码已经进入比较完整的 MVP 后半段：`CLI` 已经有 `init / add / ai` 命令，入口已接入 `ai`。
-`@zeus-web/ai` 包也已经存在，并具备 build/check/test 脚本。
-CLI 也已经依赖 `@zeus-web/ai / registry / themes`。
+当前仓库已实现 MVP 与 Phase 10–14 的路线图交付。CLI 包含
+`init / add / list / remove / diff / update / doctor / theme / icon / ai`；Phase 11、
+Phase 13 已完成。Phase 15 的发布前检查和 CI 已就绪，稳定版发布与发布后验证仍待执行。
 
 ---
 
@@ -613,7 +613,10 @@ toast
 复杂度高，需要 Phase 10 的 a11y 基础支撑。
 ```
 
-状态：**未开始**
+状态：**已完成**。本阶段 17 个组件已进入各自 headless primitive 包；第一批 13 个组件
+以及 `form-field`、`popover`、`dropdown-menu`、`toast` 均已接入 Registry、AI metadata
+和双语组件文档。四个扩展组件还覆盖生成包配置、表单关系、浮层关闭和菜单键盘行为、
+toast live region/自动关闭语义，并由 primitive 合同测试与 Registry/coverage 合同验证。
 
 ---
 
@@ -674,7 +677,10 @@ registry 文件是否存在
 支持 registry lock
 ```
 
-状态：**未开始**
+状态：**已完成**。CLI 已实现 `add --all/--path/--registry/--yes/--skip-deps/--force`、
+`diff`、`update`、`doctor`，并通过版本化 `zeus-ui.lock.json` 记录 registry source
+快照与文件 hash。Registry source 支持内置、文件和 HTTP(S)；CLI maintenance 124 项、
+CLI consumer、add/init/update-diff、Registry、组件覆盖及 UI package contract 检查通过。
 
 ---
 
@@ -703,7 +709,11 @@ zweb theme set slate
 zweb theme tokens --json
 ```
 
-状态：**未开始**
+状态：**已完成**。已提供 `zweb theme list/tokens/set/add`、JSON token 输出、radius、accent、
+motion 与 dark-mode 策略；主题 presets、token 表、light/dark CSS 生成器和安全的自定义
+主题新增流程均有测试。生成 CSS 将语义变量映射到 `--zw-*` 原生组件与 `--zeus-*`
+Registry 变量；`theme add` 校验主题名、颜色 token/HSL、项目内 styles alias，并以独占创建
+模式保护已有文件。CLI/theme 与 product-contract 检查纳入 CI。
 
 ---
 
@@ -733,8 +743,9 @@ packages/icons
 6. AI metadata icon rules
 ```
 
-优先级：**P2**
-原因：组件 MVP 和 CLI 生产化更重要。
+状态：**已完成**。`@zeus-web/icons` 通过 `@zeus-js/output-icons` 生成 React、Vue、WC、
+raw SVG 与 Manifest 入口；Registry 提供 icon 模板，AI metadata 描述多端导入规则，
+CLI 支持 list/search/show。相关 package build、exports 与 consumer smoke 仍属于每次发布验证。
 
 ---
 
@@ -766,6 +777,11 @@ pnpm check:build-output
 7. Theme CSS token completeness test。
 ```
 
+以上本地/CI 验收已由临时 React/Vue consumer 中的 `zweb init/add/ai`、AI Markdown
+snapshot、全发布包 gzip JS 预算、Registry source/Theme token tests 和 `examples:build`
+覆盖。bundle-size 预算按发布包汇总 dist JavaScript 文件的 gzip 字节数；单包上限为 48 KiB，
+Chat 与 Data Grid 为 64 KiB。该检查不替代发布后的隔离 npm consumer 与 provenance 验收。
+
 ## 0.1.0 发布标准
 
 ```txt
@@ -781,7 +797,10 @@ pnpm check:build-output
 10. CI 全绿。
 ```
 
-状态：**未开始**
+状态：**进行中**。测试矩阵、发布前 readiness/strict/tarball gate、CI、registry
+provenance verifier、`release:final` 与上述 Phase 15 本地/CI 测试已实现；当前仓库版本为
+`0.1.0-beta.33`。尚未完成路线图要求的 `0.1.0` 稳定版发布及发布后 registry、provenance
+和独立消费者复核，因此本阶段仍未完成。
 
 ---
 
@@ -817,13 +836,11 @@ pnpm check:build-output
 
 # 当前最推荐的下一步
 
-不要马上进入新组件扩展。建议顺序是：
+当前剩余工作的依赖顺序是：
 
 ```txt
-1. Phase 10：开始补 Dialog/Tabs a11y。
-2. Phase 11：再扩 label/textarea/radio/select。
-3. Phase 12：CLI update/doctor/remote registry。
-4. Phase 13：Theming 进阶。
+1. Phase 15：完成 0.1.0 稳定版发布。
+2. 发布后复核 registry package、消费者安装和 npm provenance。
 ```
 
 ```txt

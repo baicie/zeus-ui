@@ -46,12 +46,15 @@ function readWorkspaceJson<T>(path: string): T {
 }
 
 describe('data-grid benchmark contract', () => {
-  it('keeps package build tsconfig scoped to published src output', () => {
+  it('keeps package typecheck scoped to src and shared JSX declarations', () => {
     const tsconfig = readWorkspaceJson<BenchmarkTsconfig>(
       'packages/advanced/data-grid/tsconfig.json',
     )
 
-    expect(tsconfig.include).toEqual(['src'])
+    expect(tsconfig.include).toEqual([
+      'src',
+      '../../../scripts/config/jsx.d.ts',
+    ])
   })
 
   it('declares an isolated benchmark typecheck config', () => {
@@ -66,6 +69,7 @@ describe('data-grid benchmark contract', () => {
       '__tests__/benchmark-metrics.spec.ts',
       '__tests__/data-grid-benchmark-contract.spec.ts',
       '../../../e2e/advanced/data-grid/data-grid-runtime-harness.ts',
+      '../../../scripts/config/jsx.d.ts',
     ])
     expect(compilerOptions && compilerOptions.rootDir).toBe('../../..')
     expect(compilerOptions && compilerOptions.types).toEqual([
@@ -105,7 +109,7 @@ describe('data-grid benchmark contract', () => {
     expect(vitestConfig).toContain("name: 'data-grid-benchmark'")
     expect(vitestConfig).toContain("environment: 'jsdom'")
     expect(vitestConfig).toContain('fileParallelism: false')
-    expect(vitestConfig).toContain('plugins: [dataGridCompiler()]')
+    expect(vitestConfig).toContain('plugins: [advancedComponentsCompiler()]')
     expect(vitestConfig).toContain('transformModule({')
     expect(vitestConfig).toContain("runtimeModule: '@zeus-js/runtime-dom'")
     expect(vitestConfig).not.toContain('transformAsync')
@@ -124,7 +128,7 @@ describe('data-grid benchmark contract', () => {
 
     expect(manifest.schemaVersion).toBe(1)
     expect(manifest.baselineId).toMatch(/^u005-data-grid-\d{4}-\d{2}-\d{2}$/)
-    expect(manifest.packageVersion).toBe('0.1.0-beta.32')
+    expect(manifest.packageVersion).toBe('0.1.0-beta.33')
     expect(manifest.dataMode).toBe('sparse')
     expect(manifest.budgetPolicy.maxRenderedCells).toBe(600)
     expect(manifest.scenarios).toHaveLength(

@@ -92,7 +92,7 @@ const requiredContent: Record<string, string[]> = {
     '@zeus-web/ui',
   ],
   'apps/docs/components/index.md': [
-    '25 public component packages',
+    '29 public component packages',
     'one canonical page with a live preview',
     '<ComponentDirectory />',
     'Current registry components',

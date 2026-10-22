@@ -177,6 +177,22 @@ function mdInlineCode(value: string): string {
   return `\`${value.replace(/`/g, '\\`')}\``
 }
 
+function mdTableCode(value: string): string {
+  if (!value.includes('|')) return mdInlineCode(value)
+
+  const escaped = value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\|/g, '&#124;')
+
+  return `<code>${escaped}</code>`
+}
+
+function mdTableText(value: string): string {
+  return value.replace(/\|/g, '&#124;')
+}
+
 function renderInlineElementTag(value: string): string {
   return mdInlineCode(value)
 }
@@ -219,16 +235,18 @@ function renderPropsTable(
     `| ${propHeader} | ${typeHeader} | ${defaultHeader} | ${descriptionHeader} |`,
     '| --- | --- | --- | --- |',
     ...component.props.map(prop => {
-      const type = mdInlineCode(prop.type)
+      const type = mdTableCode(prop.type)
       const values =
         prop.values && prop.values.length
-          ? `<br />${messages.valuesLabel}: ${prop.values.map(mdInlineCode).join(', ')}`
+          ? `<br />${messages.valuesLabel}: ${prop.values.map(mdTableCode).join(', ')}`
           : ''
-      const defaultValue = prop.default ? mdInlineCode(prop.default) : '-'
+      const defaultValue = prop.default ? mdTableCode(prop.default) : '-'
 
-      const description = translatePrimitiveDocsText(prop.description, locale)
+      const description = mdTableText(
+        translatePrimitiveDocsText(prop.description, locale),
+      )
 
-      return `| ${mdInlineCode(prop.name)} | ${type}${values} | ${defaultValue} | ${description} |`
+      return `| ${mdTableCode(prop.name)} | ${type}${values} | ${defaultValue} | ${description} |`
     }),
   ].join('\n')
 }
@@ -250,9 +268,11 @@ function renderEventsTable(
         .map(([key, value]) => `${key}: ${value}`)
         .join(', ')
 
-      const description = translatePrimitiveDocsText(event.description, locale)
+      const description = mdTableText(
+        translatePrimitiveDocsText(event.description, locale),
+      )
 
-      return `| ${mdInlineCode(event.name)} | ${mdInlineCode(event.reactName)} | ${mdInlineCode(detail)} | ${description} |`
+      return `| ${mdTableCode(event.name)} | ${mdTableCode(event.reactName)} | ${mdTableCode(detail)} | ${description} |`
     }),
   ].join('\n')
 }
@@ -269,7 +289,7 @@ function renderSlotsTable(
     `| ${slotHeader} | ${descriptionHeader} |`,
     '| --- | --- |',
     ...component.slots.map(slot => {
-      return `| ${mdInlineCode(slot.name)} | ${translatePrimitiveDocsText(slot.description, locale)} |`
+      return `| ${mdTableCode(slot.name)} | ${mdTableText(translatePrimitiveDocsText(slot.description, locale))} |`
     }),
   ].join('\n')
 }

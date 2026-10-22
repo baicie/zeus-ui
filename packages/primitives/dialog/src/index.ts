@@ -12,6 +12,7 @@ export {
   type DialogDescriptionElement,
   type DialogElement,
   type DialogOpenChangeDetail,
+  type DialogOverlayElement,
   type DialogProps,
   type DialogTitleElement,
   type DialogTriggerElement,

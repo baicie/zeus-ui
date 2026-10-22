@@ -27,9 +27,12 @@ const registryComponents = [
   'checkbox',
   'collapsible',
   'dialog',
+  'dropdown-menu',
+  'form-field',
   'input',
   'label',
   'progress',
+  'popover',
   'radio-group',
   'select',
   'separator',
@@ -38,6 +41,7 @@ const registryComponents = [
   'tabs',
   'textarea',
   'tooltip',
+  'toast',
   'icon',
 ] as const
 
@@ -151,7 +155,27 @@ function verifyFramework(framework: 'react' | 'vue'): void {
       }),
     )
     run(['init', '--framework', framework])
+    run(['ai'])
+    const aiGuide = readFileSync(join(cwd, 'zeus-web.ai.md'), 'utf8')
+    assert.match(aiGuide, /# Zeus Web AI Guide/)
+    assert.match(aiGuide, /## Icons/)
+    assert.match(aiGuide, /zweb add button/)
     run(['add', '--all', '--skip-deps'])
+    writeFileSync(
+      join(cwd, `src/popover-contract.${framework === 'react' ? 'tsx' : 'ts'}`),
+      framework === 'react'
+        ? [
+            "import { Popover, PopoverContent } from '@/components/ui/popover'",
+            'export const content = <PopoverContent forceMount />',
+            '// @ts-expect-error forceMount belongs to PopoverContent',
+            'export const root = <Popover forceMount />',
+          ].join('\n')
+        : [
+            "import type { PopoverRegistryProps } from '@/components/ui/popover'",
+            '// @ts-expect-error forceMount belongs to PopoverContent',
+            'export const root: PopoverRegistryProps = { forceMount: true }',
+          ].join('\n'),
+    )
     const typecheck = spawnSync(
       process.execPath,
       [resolve(root, 'node_modules/typescript/bin/tsc'), '-p', cwd],

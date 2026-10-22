@@ -1,8 +1,10 @@
 import '@zeus-js/zeus/jsx'
 
 declare global {
+  function once<T>(value: T): T
+
   namespace JSX {
-    type Element = import('@zeus-js/runtime-dom').JSXValue
+    type Element = any
     interface ElementChildrenAttribute {
       children: unknown
     }

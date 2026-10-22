@@ -71,8 +71,13 @@ export interface PublishedMetadataByName {
   [packageName: string]: PublishedPackageMetadata | undefined
 }
 
+export interface PublishedPackageLatestState {
+  latest: string | null
+  published: boolean
+}
+
 export interface PublishedPackageLatestBaseline {
-  [packageName: string]: string | null | undefined
+  [packageName: string]: PublishedPackageLatestState | undefined
 }
 
 export interface PublishedPackageCheckOptions {
@@ -124,8 +129,7 @@ export interface PublishedPackageVerificationDependencies {
   wait?: (milliseconds: number) => Promise<void>
 }
 
-interface CapturedPackageLatest {
-  latest: string | null
+interface CapturedPackageLatest extends PublishedPackageLatestState {
   packageName: string
 }
 
@@ -219,15 +223,22 @@ export function getPublishedMetadataProblems(
       )
     }
 
-    const baselineLatest = latestBaseline[packageName]
+    const baseline = latestBaseline[packageName]
 
-    if (baselineLatest === undefined) {
+    if (baseline === undefined) {
       problems.push(`${packageName}: latest baseline is unavailable`)
     }
 
+    const baselineLatest = baseline ? baseline.latest : undefined
     const expectedLatest = tag === 'latest' ? version : baselineLatest
     const actualLatest = metadata.distTags.latest
+    const acceptsInitialLatest =
+      tag !== 'latest' &&
+      baseline !== undefined &&
+      !baseline.published &&
+      actualLatest === version
     const latestMatches =
+      acceptsInitialLatest ||
       expectedLatest === undefined ||
       (expectedLatest === null
         ? actualLatest === undefined
@@ -731,7 +742,7 @@ export function capturePublishedPackageLatestBaseline(
         },
       }).then<CapturedPackageLatest>(response => {
         if (response.status === 404) {
-          return { latest: null, packageName }
+          return { latest: null, packageName, published: false }
         }
 
         if (!response.ok) {
@@ -750,7 +761,9 @@ export function capturePublishedPackageLatestBaseline(
 
           const latest = distTags.latest
 
-          if (latest === undefined) return { latest: null, packageName }
+          if (latest === undefined) {
+            return { latest: null, packageName, published: true }
+          }
 
           if (typeof latest !== 'string' || !isValidReleaseVersion(latest)) {
             throw new Error(
@@ -758,7 +771,7 @@ export function capturePublishedPackageLatestBaseline(
             )
           }
 
-          return { latest, packageName }
+          return { latest, packageName, published: true }
         })
       })
     }),
@@ -766,7 +779,10 @@ export function capturePublishedPackageLatestBaseline(
     const baseline: PublishedPackageLatestBaseline = {}
 
     for (const result of results) {
-      baseline[result.packageName] = result.latest
+      baseline[result.packageName] = {
+        latest: result.latest,
+        published: result.published,
+      }
     }
 
     return baseline
@@ -791,16 +807,23 @@ export function readPublishedPackageLatestBaseline(
   const baseline: PublishedPackageLatestBaseline = {}
 
   for (const packageName of Object.keys(value)) {
-    const latest = value[packageName]
+    const entry = value[packageName]
 
     if (
-      latest !== null &&
-      (typeof latest !== 'string' || !isValidReleaseVersion(latest))
+      !isRecord(entry) ||
+      typeof entry.published !== 'boolean' ||
+      (entry.latest !== null &&
+        (typeof entry.latest !== 'string' ||
+          !isValidReleaseVersion(entry.latest))) ||
+      (!entry.published && entry.latest !== null)
     ) {
       throw new Error(`${packageName}: latest baseline is invalid`)
     }
 
-    baseline[packageName] = latest
+    baseline[packageName] = {
+      latest: entry.latest,
+      published: entry.published,
+    }
   }
 
   return baseline

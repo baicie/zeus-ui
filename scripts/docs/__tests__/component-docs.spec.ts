@@ -32,7 +32,7 @@ describe('component docs generator', () => {
       ]
     })
 
-    expect(docs).toHaveLength(52)
+    expect(docs).toHaveLength(60)
     expect(docs.map(doc => doc.path)).toEqual(expectedPaths)
   })
 
@@ -43,7 +43,7 @@ describe('component docs generator', () => {
 
     expect(english).toContain('# Components')
     expect(english).toContain('<ComponentDirectory />')
-    expect(english).toContain('25 public component packages')
+    expect(english).toContain('29 public component packages')
     expect(english).toContain('zweb add <component>')
     expect(english).toContain('`select`')
     expect(english).toContain('`@/components/ui/<component>`')
@@ -51,7 +51,7 @@ describe('component docs generator', () => {
 
     expect(chinese).toContain('# 组件')
     expect(chinese).toContain('<ComponentDirectory />')
-    expect(chinese).toContain('全部 25 个公开组件包')
+    expect(chinese).toContain('全部 29 个公开组件包')
     expect(chinese).toContain('zweb add <component>')
     expect(chinese).toContain('`select`')
     expect(chinese).toContain('`@/components/ui/<component>`')
@@ -135,6 +135,63 @@ describe('component docs generator', () => {
     ]) {
       expect(english).toContain(`\`${publicMember}\``)
     }
+  })
+
+  it('keeps union types inside a single generated Markdown table cell', () => {
+    const context = createComponentDocsContext()
+    const component = context.metadata.components.find(
+      item => item.name === 'dropdown-menu',
+    )
+    const registryItem = context.registry.items.find(
+      item => item.name === 'dropdown-menu',
+    )
+
+    expect(component).toBeDefined()
+
+    for (const locale of ['en', 'zh'] as const) {
+      const source = renderComponentDoc(
+        component!,
+        registryItem,
+        process.cwd(),
+        locale,
+      )
+      const row = source
+        .split('\n')
+        .find(line => line.includes('<code>value: string &#124; undefined'))
+
+      expect(row).toBeDefined()
+      expect(row!.match(/\|/g)).toHaveLength(5)
+    }
+  })
+
+  it('documents forceMount on PopoverContent without a Popover root prop', () => {
+    const context = createComponentDocsContext()
+    const component = context.metadata.components.find(
+      item => item.name === 'popover',
+    )
+    const registryItem = context.registry.items.find(
+      item => item.name === 'popover',
+    )
+
+    expect(component).toBeDefined()
+
+    const english = renderComponentDoc(component!, registryItem)
+    const chinese = renderComponentDoc(
+      component!,
+      registryItem,
+      process.cwd(),
+      'zh',
+    )
+
+    for (const source of [english, chinese]) {
+      expect(source).not.toMatch(/^\|\s*`forceMount`\s*\|/m)
+    }
+    expect(english).toContain(
+      'Set forceMount on PopoverContent to keep content mounted while closed.',
+    )
+    expect(chinese).toContain(
+      '在 PopoverContent 上设置 forceMount，以在关闭时保持内容挂载。',
+    )
   })
 
   it('derives package-only examples from the Registry manifest', () => {
@@ -265,7 +322,7 @@ describe('component docs generator', () => {
     const docs = generateComponentDocs()
     const englishDocs = docs.filter(doc => !doc.path.includes('/zh/'))
 
-    expect(englishDocs).toHaveLength(26)
+    expect(englishDocs).toHaveLength(30)
 
     for (const doc of englishDocs) {
       expect(doc.content, doc.path).not.toMatch(HAN_PATTERN)

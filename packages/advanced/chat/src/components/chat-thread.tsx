@@ -9,7 +9,14 @@ import type {
   ChatThreadVirtualSnapshot,
 } from '../types'
 
-import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
+import {
+  createSignal,
+  defineElement,
+  event,
+  Host,
+  prop,
+  Slot,
+} from '@zeus-js/zeus'
 import { createEmptyVirtualRange, createRafScheduler } from '@zeus-web/virtual'
 
 import {
@@ -123,7 +130,8 @@ function setup(
   let viewport: HTMLElement | undefined
   let virtualizer = createThreadVirtualizer(props)
   let signature = getVirtualizerSignature(props)
-  let currentSnapshot: ChatThreadVirtualSnapshot = cloneEmptySnapshot()
+  const [currentSnapshot, setCurrentSnapshot] =
+    createSignal(cloneEmptySnapshot())
 
   const scheduler = createRafScheduler()
 
@@ -134,7 +142,7 @@ function setup(
 
     signature = nextSignature
     virtualizer = createThreadVirtualizer(props)
-    currentSnapshot = cloneEmptySnapshot()
+    setCurrentSnapshot(cloneEmptySnapshot())
   }
 
   const emitSnapshotIfChanged = (
@@ -142,18 +150,20 @@ function setup(
     scrollOffset: number,
     viewportSize: number,
   ): void => {
-    if (!shouldUpdateChatThreadVirtualSnapshot(currentSnapshot, nextSnapshot)) {
+    if (
+      !shouldUpdateChatThreadVirtualSnapshot(currentSnapshot(), nextSnapshot)
+    ) {
       return
     }
 
-    currentSnapshot = nextSnapshot
+    setCurrentSnapshot(nextSnapshot)
 
     ctx.emit.rangeChange({
-      range: currentSnapshot.range,
-      items: currentSnapshot.items,
+      range: nextSnapshot.range,
+      items: nextSnapshot.items,
       scrollOffset,
       viewportSize,
-      totalSize: currentSnapshot.totalSize,
+      totalSize: nextSnapshot.totalSize,
     })
   }
 
@@ -201,11 +211,11 @@ function setup(
     },
 
     getRange(): ChatThreadVirtualRange {
-      return currentSnapshot.range
+      return currentSnapshot().range
     },
 
     getItems(): ChatThreadVirtualItem[] {
-      return currentSnapshot.items
+      return currentSnapshot().items
     },
 
     getTotalSize(): number {
@@ -280,13 +290,13 @@ function setup(
     <Host
       part="root"
       data-slot="chat-thread-root"
-      data-loading={() => (props.loading ? '' : undefined)}
-      data-empty={() => (props.empty ? '' : undefined)}
-      data-virtual={() => (props.virtual ? '' : undefined)}
-      data-count={() => String(resolveCount(props))}
-      data-estimate-size={() => String(resolveEstimateSize(props))}
-      data-overscan={() => String(resolveOverscan(props))}
-      data-total-size={() => String(getTotalSize())}
+      data-loading={props.loading ? '' : undefined}
+      data-empty={props.empty ? '' : undefined}
+      data-virtual={props.virtual ? '' : undefined}
+      data-count={String(resolveCount(props))}
+      data-estimate-size={String(resolveEstimateSize(props))}
+      data-overscan={String(resolveOverscan(props))}
+      data-total-size={String(getTotalSize())}
     >
       <div
         ref={(element: HTMLElement | null) => {
@@ -300,8 +310,8 @@ function setup(
         role="log"
         aria-live="polite"
         aria-relevant="additions text"
-        aria-busy={() => (props.loading ? 'true' : undefined)}
-        aria-label={() => props.ariaLabel}
+        aria-busy={props.loading ? 'true' : undefined}
+        aria-label={props.ariaLabel}
         onScroll={(nativeEvent: Event) => {
           scheduleUpdateRange(nativeEvent)
         }}
@@ -310,19 +320,17 @@ function setup(
           part="spacer"
           data-slot="chat-thread-spacer"
           aria-hidden="true"
-          data-total-size={() => String(getTotalSize())}
-          style={() => getSpacerStyle()}
+          data-total-size={String(getTotalSize())}
+          style={getSpacerStyle()}
         />
 
         <div
           part="items"
           data-slot="chat-thread-items"
-          data-range-start={() => String(currentSnapshot.range.start)}
-          data-range-end={() => String(currentSnapshot.range.end)}
-          data-overscan-start={() =>
-            String(currentSnapshot.range.overscanStart)
-          }
-          data-overscan-end={() => String(currentSnapshot.range.overscanEnd)}
+          data-range-start={String(currentSnapshot().range.start)}
+          data-range-end={String(currentSnapshot().range.end)}
+          data-overscan-start={String(currentSnapshot().range.overscanStart)}
+          data-overscan-end={String(currentSnapshot().range.overscanEnd)}
         >
           <Slot />
         </div>

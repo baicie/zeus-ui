@@ -1,13 +1,6 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 import type { DOMContext } from '@zeus-web/zeus-compat'
-import {
-  createContext,
-  defineElement,
-  event,
-  Host,
-  prop,
-  Slot,
-} from '@zeus-js/zeus'
+import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
 import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export type AvatarSize = 'sm' | 'md' | 'lg'
@@ -29,8 +22,11 @@ interface AvatarContextValue {
   setImageStatus: (status: AvatarImageStatus) => void
 }
 
-const AvatarContext =
-  createContext<AvatarContextValue>() as DOMContext<AvatarContextValue>
+// Lazy custom-element entries are evaluated independently. Keep one DOM
+// context identity across the avatar, image, and fallback entries.
+const AvatarContext = {
+  id: Symbol.for('@zeus-web/avatar/context'),
+} as DOMContext<AvatarContextValue>
 
 function resolveImageStatus(
   props: AvatarProps,
@@ -56,9 +52,9 @@ function setupAvatar(
     <Host
       part="root"
       data-slot="avatar-root"
-      data-size={() => props.size}
-      data-shape={() => props.shape}
-      data-image-status={() => context.getImageStatus()}
+      data-size={props.size}
+      data-shape={props.shape}
+      data-image-status={context.getImageStatus()}
     >
       <Slot />
     </Host>
@@ -114,10 +110,10 @@ function setupAvatarImage(
       <img
         part="image"
         data-slot="avatar-image"
-        src={() => props.src}
-        alt={() => props.alt || ''}
-        loading={() => props.loading}
-        referrerPolicy={() => props.referrerPolicy}
+        src={props.src}
+        alt={props.alt || ''}
+        loading={props.loading}
+        prop:referrerPolicy={props.referrerPolicy}
         onLoad={(nativeEvent: Event) => {
           avatar?.setImageStatus('loaded')
           ctx.emit.imageLoad({ nativeEvent })
@@ -172,8 +168,8 @@ function setupAvatarFallback(
     <Host
       part="fallback"
       data-slot="avatar-fallback"
-      data-delay-ms={() => String(props.delayMs ?? 0)}
-      hidden={() => !shouldShow()}
+      data-delay-ms={String(props.delayMs ?? 0)}
+      hidden={!shouldShow()}
     >
       <Slot />
     </Host>

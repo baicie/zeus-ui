@@ -72,11 +72,11 @@ function setup(
   return (
     <Host
       data-slot="button-root"
-      data-variant={() => props.variant}
-      data-size={() => props.size}
-      data-disabled={() => (isDisabled() ? '' : undefined)}
-      data-loading={() => (props.loading ? '' : undefined)}
-      data-pressed={() => (props.pressed ? '' : undefined)}
+      data-variant={props.variant}
+      data-size={props.size}
+      data-disabled={isDisabled() ? '' : undefined}
+      data-loading={props.loading ? '' : undefined}
+      data-pressed={props.pressed ? '' : undefined}
     >
       <button
         ref={(element: HTMLButtonElement | null) => {
@@ -84,18 +84,18 @@ function setup(
         }}
         part="button"
         data-slot="button"
-        prop:type={() => props.type || 'button'}
-        disabled={() => isDisabled()}
-        aria-label={() => props.ariaLabel}
-        aria-disabled={() => (isDisabled() ? 'true' : undefined)}
-        aria-busy={() => (props.loading ? 'true' : undefined)}
-        aria-pressed={() =>
+        prop:type={props.type || 'button'}
+        disabled={isDisabled()}
+        aria-label={props.ariaLabel}
+        aria-disabled={isDisabled() ? 'true' : undefined}
+        aria-busy={props.loading ? 'true' : undefined}
+        aria-pressed={
           props.pressed === undefined
             ? undefined
             : String(Boolean(props.pressed))
         }
-        name={() => props.name}
-        value={() => props.value}
+        name={props.name}
+        value={props.value}
         onClick={handleClick}
       >
         <span part="prefix" data-slot="button-prefix">

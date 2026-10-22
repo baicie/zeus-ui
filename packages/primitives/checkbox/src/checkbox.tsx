@@ -70,16 +70,16 @@ function setup(
   return (
     <Host
       data-slot="checkbox-root"
-      data-state={() =>
+      data-state={
         props.indeterminate
           ? 'indeterminate'
           : resolveChecked(props)
             ? 'checked'
             : 'unchecked'
       }
-      data-size={() => props.size}
-      data-disabled={() => (props.disabled ? '' : undefined)}
-      data-invalid={() => (props.invalid ? '' : undefined)}
+      data-size={props.size}
+      data-disabled={props.disabled ? '' : undefined}
+      data-invalid={props.invalid ? '' : undefined}
     >
       <label part="root">
         <input
@@ -88,20 +88,20 @@ function setup(
           }}
           part="control"
           data-slot="checkbox-control"
-          prop:type={() => 'checkbox'}
-          prop:checked={() => resolveChecked(props)}
-          prop:indeterminate={() => Boolean(props.indeterminate)}
-          disabled={() => Boolean(props.disabled)}
-          required={() => Boolean(props.required)}
-          name={() => props.name}
-          value={() => props.value}
-          aria-label={() => props.ariaLabel}
-          aria-describedby={() => props.ariaDescribedby}
-          aria-required={() => (props.required ? 'true' : undefined)}
-          aria-checked={() =>
+          type="checkbox"
+          prop:checked={resolveChecked(props)}
+          prop:indeterminate={Boolean(props.indeterminate)}
+          disabled={Boolean(props.disabled)}
+          required={Boolean(props.required)}
+          name={props.name}
+          value={props.value}
+          aria-label={props.ariaLabel}
+          aria-describedby={props.ariaDescribedby}
+          aria-required={props.required ? 'true' : undefined}
+          aria-checked={
             props.indeterminate ? 'mixed' : String(resolveChecked(props))
           }
-          aria-invalid={() => (props.invalid ? 'true' : undefined)}
+          aria-invalid={props.invalid ? 'true' : undefined}
           onChange={handleChange}
           onFocus={nativeEvent => {
             ctx.emit.focusChange({ focused: true, nativeEvent })

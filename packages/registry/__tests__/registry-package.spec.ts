@@ -54,6 +54,10 @@ const publicRegistryItemNames = [
   'tabs',
   'textarea',
   'tooltip',
+  'form-field',
+  'popover',
+  'dropdown-menu',
+  'toast',
   'icon',
 ]
 
@@ -151,6 +155,10 @@ describe('@zeus-web/registry package contract', () => {
     expect(manifest.components.map(component => component.name)).toEqual([
       'button',
       'input',
+      'form-field',
+      'popover',
+      'dropdown-menu',
+      'toast',
     ])
     expect(getRegistryComponentSchema(manifest, 'button')).toMatchObject({
       variants: {
@@ -181,6 +189,13 @@ describe('@zeus-web/registry package contract', () => {
       ],
       { cwd: packageRoot },
     )
+  })
+
+  it('keeps content-only props out of the Popover root contract', () => {
+    const popover = getRegistryComponentSchema(readComponentSchema(), 'popover')
+
+    expect(popover).toBeDefined()
+    expect(popover!.props.map(prop => prop.name)).not.toContain('forceMount')
   })
 
   it('resolves item dependencies', () => {
@@ -381,6 +396,31 @@ describe('@zeus-web/registry package contract', () => {
     expect(read('templates/vue/button.vue')).toContain(
       "import { cn } from '@/lib/cn'",
     )
+  })
+
+  it('styles the FormFieldControl host in React and Vue templates', () => {
+    const react = read('templates/react/form-field.tsx')
+    const vue = read('templates/vue/form-field.ts')
+    const controlClasses = [
+      'data-[slot=form-field-control]:w-full',
+      'data-[slot=form-field-control]:rounded-[var(--zeus-radius-md)]',
+      'data-[slot=form-field-control]:border',
+      'data-[slot=form-field-control]:border-[hsl(var(--zeus-input))]',
+      'data-[slot=form-field-control]:bg-[hsl(var(--zeus-background))]',
+      'data-[slot=form-field-control]:px-3',
+      'data-[slot=form-field-control]:py-2',
+      'data-[slot=form-field-control]:text-sm',
+      'data-[slot=form-field-control]:focus-within:outline-none',
+      'data-[slot=form-field-control]:focus-within:ring-2',
+      'data-[slot=form-field-control]:focus-within:ring-[hsl(var(--zeus-ring)/0.45)]',
+    ]
+
+    for (const className of controlClasses) {
+      expect(react).toContain(className)
+      expect(vue).toContain(className)
+    }
+    expect(react).not.toContain('[&_[data-slot=form-field-control]]:')
+    expect(vue).not.toContain('[&_[data-slot=form-field-control]]:')
   })
 
   it('uses collision-free Agent Console slots in the Vue template', () => {

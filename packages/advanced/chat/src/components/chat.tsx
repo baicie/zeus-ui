@@ -154,10 +154,10 @@ function setup(
     <Host
       part="root"
       data-slot="chat-root"
-      data-loading={() => (props.loading ? '' : undefined)}
-      data-disabled={() => (props.disabled ? '' : undefined)}
-      data-virtual={() => (props.virtual ? '' : undefined)}
-      data-empty={() => (store.getMessages().length === 0 ? '' : undefined)}
+      data-loading={props.loading ? '' : undefined}
+      data-disabled={props.disabled ? '' : undefined}
+      data-virtual={props.virtual ? '' : undefined}
+      data-empty={store.getMessages().length === 0 ? '' : undefined}
     >
       <section
         ref={(element: HTMLElement | null) => {

@@ -14,6 +14,7 @@ const requiredFiles = [
   'scripts/checks/release/check-release-workflows.ts',
   'scripts/release/workspace.ts',
   'scripts/release.config.ts',
+  '.github/workflows/ci.yml',
   '.github/workflows/publish.yml',
   '.github/workflows/release.yml',
   'docs/release/release-readiness.md',
@@ -76,7 +77,14 @@ function main(): void {
         '"release:verify:pack"',
         '"release:final"',
         '"check:phase24-release"',
+        '"check:bundle-size"',
       ],
+      errors,
+    )
+
+    checkSourceContains(
+      '.github/workflows/ci.yml',
+      ['pnpm check:bundle-size', 'pnpm examples:build'],
       errors,
     )
 
@@ -136,14 +144,15 @@ function main(): void {
     checkSourceContains(
       'docs/release/release-readiness.md',
       [
-        'pnpm release:final 0.1.0-beta.2',
+        'pnpm release:final <version>',
         'pnpm release:verify:strict',
         'pnpm release:verify:pack',
         'pnpm release:verify:published',
-        '--expected-latest 0.1.0-beta.0',
+        'pnpm release:capture:latest',
+        '--latest-baseline <latest-baseline.json>',
         '--release-sha <merged-main-sha>',
-        '36 packages: 11 base packages, 20 primitive',
-        '5 advanced packages',
+        'pnpm release:plan --json --tag <tag>',
+        'discovered from the primitive',
         'NPM_PUBLISH_TOKEN',
         'Dispatch the release workflow from `main`',
         'separate `contents: read` job',
@@ -155,7 +164,8 @@ function main(): void {
         '`GITHUB_REF` and `GITHUB_SHA`',
         'pnpm check:build-output',
         'pnpm release:verify:pack',
-        '`--skipGit`',
+        'pnpm release <version> --tag <tag> --skipGit',
+        'this job does not run the version bump',
         'merge them through a pull request',
         'never commits or pushes `main`',
         'safely reuses an existing tag only when',
@@ -174,6 +184,10 @@ function main(): void {
         'pnpm release:final\n',
         'default@',
         'creates the release commit and tag',
+        '0.1.0-beta.2',
+        '--expected-latest',
+        'all 25 component',
+        'with `--skipGit` to verify',
       ],
       errors,
     )
@@ -197,18 +211,25 @@ function main(): void {
     checkSourceContains(
       'docs/examples/showcase-roadmap.md',
       [
-        'pnpm release:final 0.1.0-beta.2',
+        'pnpm release:final <version>',
         'pnpm release:verify:published',
-        '--expected-latest 0.1.0-beta.0',
+        'pnpm release:capture:latest',
+        '--latest-baseline <latest-baseline.json>',
         '--release-sha <merged-main-sha>',
       ],
+      errors,
+    )
+
+    checkSourceNotContains(
+      'docs/examples/showcase-roadmap.md',
+      ['0.1.0-beta.2', '--expected-latest'],
       errors,
     )
 
     checkSourceContains(
       'docs/mvp/release.md',
       [
-        '包含 36 个 npm 包',
+        'pnpm release:plan --json --tag <tag>',
         '只允许从 `main` 运行',
         'dry-run job 只有 `contents: read`',
         '固定到完整 commit SHA',
@@ -219,15 +240,18 @@ function main(): void {
         'pnpm check:build-output',
         'pnpm release:verify:pack',
         'release workflow 不接收 npm token',
-        'pnpm release:final 0.1.0-beta.2',
+        'pnpm release:final <version>',
         'pnpm release:verify:published',
-        '--expected-latest 0.1.0-beta.0',
+        'pnpm release:capture:latest',
+        '--latest-baseline <latest-baseline.json>',
         '--release-sha <merged-main-sha>',
         '`--skipGit`',
+        '该 job 不运行版本更新命令',
         '目标版本文件先在',
         '不会创建 commit 或推送 `main`',
         '同一 SHA',
-        'npm registry 要求每个包始终存在 `latest`',
+        '只有快照时 registry 返回 404 的新包',
+        '首次 `latest` 缺失或精确指向本次版本',
         '预发布版本必须使用 `beta`，稳定版本必须使用 `latest`',
         '只有 `Tag release` 步骤接收步骤级 `GH_TOKEN`',
         '`git merge-base --is-ancestor --`',
@@ -248,6 +272,10 @@ function main(): void {
         '自动完成 commit + `v<version>` tag + push',
         '# 发版 + 立即发布',
         'git checkout -- .',
+        '0.1.0-beta.2',
+        '--expected-latest',
+        '25 个 `/react`',
+        'release job 使用 `--skipGit`',
       ],
       errors,
     )

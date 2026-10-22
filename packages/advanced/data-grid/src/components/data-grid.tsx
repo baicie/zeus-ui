@@ -370,6 +370,18 @@ function escapeDataGridSelectorValue(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
+interface DataGridCellValueProps {
+  read: () => unknown
+}
+
+function DataGridCellValue(props: DataGridCellValueProps): Text {
+  const text = globalThis.document.createTextNode('')
+  createEffect(() => {
+    text.data = String(props.read() ?? '')
+  })
+  return text
+}
+
 function setup(
   props: DataGridProps,
   ctx: DefineElementContext<DataGridElement, DataGridEmits>,
@@ -428,10 +440,16 @@ function setup(
   let visibleColumns = getVisibleDataGridColumns(columns)
   let columnIndexById = createColumnIndexById(visibleColumns)
   let rows: DataGridRowModel = createDataGridRowModel(rowsSource)
+
   let sort: DataGridSortState | undefined = createDataGridControlledSortState(
     props.sortColumn,
     props.sortDirection,
   )
+  const [sortRenderVersion, setSortRenderVersion] = createSignal(0)
+  const getSortForRender = (): DataGridSortState | undefined => {
+    void sortRenderVersion()
+    return sort
+  }
   let visibleRows: DataGridRowCollection = sort
     ? sortDataGridRowCollection(rows, columns, sort)
     : rows
@@ -872,11 +890,13 @@ function setup(
           props.sortColumn,
           props.sortDirection,
         )
+        setSortRenderVersion(value => value + 1)
         pendingControlledSortClear = false
         rowVirtualizerDirty = true
         activeCellDirty = true
       } else if (pendingControlledSortClear) {
         sort = undefined
+        setSortRenderVersion(value => value + 1)
         pendingControlledSortClear = false
         rowVirtualizerDirty = true
         activeCellDirty = true
@@ -1297,7 +1317,6 @@ function setup(
 
     sample.createdNodeCount = pendingCreatedNodes ? pendingCreatedNodes.size : 0
     sample.removedNodeCount = pendingRemovedNodes ? pendingRemovedNodes.size : 0
-
     if (pendingCreatedNodes) pendingCreatedNodes.clear()
     if (pendingRemovedNodes) pendingRemovedNodes.clear()
   }
@@ -1992,6 +2011,7 @@ function setup(
     }
 
     sort = nextSort
+    setSortRenderVersion(value => value + 1)
     modelVersion += 1
     rowVirtualizerDirty = true
     activeCellDirty = true
@@ -2115,6 +2135,7 @@ function setup(
       }
 
       sort = undefined
+      setSortRenderVersion(value => value + 1)
       modelVersion += 1
       rowVirtualizerDirty = true
       activeCellDirty = true
@@ -2476,39 +2497,35 @@ function setup(
     <Host
       part="root"
       data-slot="data-grid-root"
-      data-virtual={() => (props.virtual ? '' : undefined)}
-      data-resizable={() => (props.resizable ? '' : undefined)}
-      data-keyboard-navigation={() =>
+      data-virtual={props.virtual ? '' : undefined}
+      data-resizable={props.resizable ? '' : undefined}
+      data-keyboard-navigation={
         props.keyboardNavigation !== false ? '' : undefined
       }
-      data-selection-mode={() => resolveSelectionMode(props.selectionMode)}
-      data-row-count={() =>
-        String(resolveSource(props.rows, fallbackRows).length)
-      }
-      data-column-count={() =>
-        String(resolveSource(props.columns, fallbackColumns).length)
-      }
-      data-total-size={() => String(virtualizer.getTotalSize())}
+      data-selection-mode={resolveSelectionMode(props.selectionMode)}
+      data-row-count={String(resolveSource(props.rows, fallbackRows).length)}
+      data-column-count={String(
+        resolveSource(props.columns, fallbackColumns).length,
+      )}
+      data-total-size={String(virtualizer.getTotalSize())}
     >
       <div
         part="viewport"
         data-slot="data-grid-viewport"
         role="grid"
-        aria-label={() => props.ariaLabel}
-        aria-rowcount={() =>
-          String(resolveSource(props.rows, fallbackRows).length + 1)
-        }
-        aria-colcount={() => {
+        aria-label={props.ariaLabel}
+        aria-rowcount={String(
+          resolveSource(props.rows, fallbackRows).length + 1,
+        )}
+        aria-colcount={(() => {
           void columnRangeRenderVersion()
           void columnRenderVersion()
           return String(visibleColumns.length)
-        }}
-        aria-activedescendant={() => getActiveDescendantForRender()}
-        aria-multiselectable={() =>
-          getDataGridAriaMultiSelectable(
-            resolveSelectionMode(props.selectionMode),
-          )
-        }
+        })()}
+        aria-activedescendant={getActiveDescendantForRender()}
+        aria-multiselectable={getDataGridAriaMultiSelectable(
+          resolveSelectionMode(props.selectionMode),
+        )}
         ref={(element: HTMLElement | null) => {
           if (element) {
             if (viewport && viewport !== element) {
@@ -2567,14 +2584,12 @@ function setup(
           part="header"
           data-slot="data-grid-header"
           role="row"
-          aria-rowindex={
-            /* @once */ () => String(getDataGridHeaderRowAriaIndex())
-          }
-          style={() => ({
+          aria-rowindex={once(String(getDataGridHeaderRowAriaIndex()))}
+          style={{
             display: 'grid',
             gridTemplateColumns: getGridTemplateColumns(),
             width: `${columnVirtualizer.getTotalSize()}px`,
-          })}
+          }}
         >
           <For
             each={getHeaderColumnsForRender()}
@@ -2585,23 +2600,22 @@ function setup(
                 part="header-cell"
                 data-slot="data-grid-header-cell"
                 data-column-id={item.data.id}
-                data-sortable={() => (item.data.sortable ? '' : undefined)}
-                data-resizable={() =>
+                data-sortable={item.data.sortable ? '' : undefined}
+                data-resizable={
                   props.resizable && item.data.resizable ? '' : undefined
                 }
-                data-sort-direction={() =>
-                  sort?.columnId === item.data.id ? sort.direction : undefined
+                data-sort-direction={
+                  getSortForRender()?.columnId === item.data.id
+                    ? getSortForRender()?.direction
+                    : undefined
                 }
                 role="columnheader"
-                aria-colindex={() =>
-                  String(getDataGridColumnAriaIndex(item.index))
-                }
-                aria-sort={() => getDataGridAriaSort(item.data, sort)}
-                // @ts-expect-error Static HTML tabindex values serialize as strings.
-                tabindex="0"
-                style={() => ({
+                aria-colindex={String(getDataGridColumnAriaIndex(item.index))}
+                aria-sort={getDataGridAriaSort(item.data, getSortForRender())}
+                tabindex={0}
+                style={{
                   gridColumnStart: getGridColumnStart(item),
-                })}
+                }}
                 onClick={(nativeEvent: Event) => {
                   applySort(item.data.id, undefined, nativeEvent)
                 }}
@@ -2622,9 +2636,9 @@ function setup(
                   part="resize-handle"
                   data-slot="data-grid-resize-handle"
                   role="separator"
-                  aria-label={() => getDataGridResizeHandleAriaLabel(item.data)}
+                  aria-label={getDataGridResizeHandleAriaLabel(item.data)}
                   aria-orientation="vertical"
-                  aria-valuenow={() => {
+                  aria-valuenow={(() => {
                     void columnRangeRenderVersion()
 
                     const currentColumn = getDataGridColumnById(
@@ -2635,13 +2649,13 @@ function setup(
                     return String(
                       currentColumn ? currentColumn.width : item.data.width,
                     )
-                  }}
-                  aria-valuemin={() => String(item.data.minWidth)}
-                  aria-valuemax={() => String(item.data.maxWidth)}
-                  tabindex={() =>
+                  })()}
+                  aria-valuemin={String(item.data.minWidth)}
+                  aria-valuemax={String(item.data.maxWidth)}
+                  prop:tabIndex={
                     props.resizable && item.data.resizable ? 0 : undefined
                   }
-                  hidden={() => !(props.resizable && item.data.resizable)}
+                  hidden={!(props.resizable && item.data.resizable)}
                   onPointerDown={(nativeEvent: PointerEvent) => {
                     let currentColumn = getDataGridColumnById(
                       columns,
@@ -2721,7 +2735,7 @@ function setup(
           part="spacer"
           data-slot="data-grid-spacer"
           aria-hidden="true"
-          style={() => getSpacerStyle()}
+          style={getSpacerStyle()}
         />
 
         <div part="body" data-slot="data-grid-body" role="rowgroup">
@@ -2731,28 +2745,26 @@ function setup(
                 part="row"
                 data-slot="data-grid-row"
                 data-row-key={rowItem.data.key}
-                data-row-index={() => String(rowItem.data.index)}
-                data-selected={() =>
+                data-row-index={String(rowItem.data.index)}
+                data-selected={
                   isRowSelectedForRender(rowItem.data.key) ? '' : undefined
                 }
                 role="row"
-                aria-rowindex={() =>
-                  String(getDataGridDataRowAriaIndex(rowItem.data.index))
-                }
-                aria-selected={() =>
-                  getDataGridAriaSelected(
-                    resolveSelectionMode(props.selectionMode),
-                    isRowSelectedForRender(rowItem.data.key),
-                  )
-                }
-                style={() => ({
+                aria-rowindex={String(
+                  getDataGridDataRowAriaIndex(rowItem.data.index),
+                )}
+                aria-selected={getDataGridAriaSelected(
+                  resolveSelectionMode(props.selectionMode),
+                  isRowSelectedForRender(rowItem.data.key),
+                )}
+                style={{
                   display: 'grid',
                   gridTemplateColumns: getGridTemplateColumns(),
                   width: `${columnVirtualizer.getTotalSize()}px`,
                   transform: props.virtual
                     ? `translateY(${rowItem.start}px)`
                     : undefined,
-                })}
+                }}
                 onClick={(nativeEvent: Event) => {
                   if (resolveSelectionMode(props.selectionMode) !== 'none') {
                     applySelection(
@@ -2790,7 +2802,7 @@ function setup(
                       data-column-id={columnItem.data.id}
                       data-row-key={rowItem.data.key}
                       data-align={columnItem.data.align}
-                      data-active={() =>
+                      data-active={
                         isActiveCellForRender(
                           rowItem.data.key,
                           columnItem.data.id,
@@ -2799,27 +2811,23 @@ function setup(
                           : undefined
                       }
                       role="gridcell"
-                      style={() => ({
+                      style={{
                         gridColumnStart: getGridColumnStart(columnItem),
-                      })}
-                      aria-colindex={() =>
-                        String(getDataGridColumnAriaIndex(columnItem.index))
-                      }
-                      aria-selected={() =>
-                        getDataGridAriaSelected(
-                          resolveSelectionMode(props.selectionMode),
-                          isRowSelectedForRender(rowItem.data.key),
-                        )
-                      }
-                      tabindex={() =>
-                        getDataGridCellTabIndex(
-                          props.keyboardNavigation !== false,
-                          isActiveCellForRender(
-                            rowItem.data.key,
-                            columnItem.data.id,
-                          ),
-                        )
-                      }
+                      }}
+                      aria-colindex={String(
+                        getDataGridColumnAriaIndex(columnItem.index),
+                      )}
+                      aria-selected={getDataGridAriaSelected(
+                        resolveSelectionMode(props.selectionMode),
+                        isRowSelectedForRender(rowItem.data.key),
+                      )}
+                      tabindex={getDataGridCellTabIndex(
+                        props.keyboardNavigation !== false,
+                        isActiveCellForRender(
+                          rowItem.data.key,
+                          columnItem.data.id,
+                        ),
+                      )}
                       onFocus={(nativeEvent: FocusEvent) => {
                         preserveFocusedBodyDomPoolForCurrentRange =
                           poolRowsForCurrentReconciliation ||
@@ -2873,12 +2881,14 @@ function setup(
                         )
                       }}
                     >
-                      {String(
-                        getDataGridCellValue(
-                          rowItem.data,
-                          columnItem.data.field,
-                        ) ?? '',
-                      )}
+                      <DataGridCellValue
+                        read={() =>
+                          getDataGridCellValue(
+                            rowItem.data,
+                            columnItem.data.field,
+                          )
+                        }
+                      />
                     </div>
                   )}
                 </For>
