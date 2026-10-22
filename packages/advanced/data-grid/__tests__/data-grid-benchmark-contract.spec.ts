@@ -106,7 +106,7 @@ describe('data-grid benchmark contract', () => {
     expect(vitestConfig).toContain("name: 'data-grid-benchmark'")
     expect(vitestConfig).toContain("environment: 'jsdom'")
     expect(vitestConfig).toContain('fileParallelism: false')
-    expect(vitestConfig).toContain('plugins: [dataGridCompiler()]')
+    expect(vitestConfig).toContain('plugins: [advancedComponentsCompiler()]')
     expect(vitestConfig).toContain('transformModule({')
     expect(vitestConfig).toContain("runtimeModule: '@zeus-js/runtime-dom'")
     expect(vitestConfig).not.toContain('transformAsync')
