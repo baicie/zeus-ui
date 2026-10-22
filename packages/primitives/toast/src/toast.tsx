@@ -32,14 +32,35 @@ interface ToastEmits extends Record<string, EventDefinition<unknown>> {
   openChange: EventDefinition<ToastOpenChangeDetail>
 }
 let toastId = 0
+
+function useToastContext(host: HTMLElement) {
+  const [toast, setToast] = createSignal<ToastContextValue | undefined>(
+    undefined,
+  )
+  const root = host.closest('zw-toast') as
+    | (HTMLElement & { componentOnReady?: () => Promise<unknown> })
+    | null
+
+  const resolve = () => {
+    const result = resolveDOMContext(host, ToastContext)
+    if (result.found) setToast(result.value)
+  }
+
+  if (root?.componentOnReady) void root.componentOnReady().then(resolve)
+  else resolve()
+
+  return toast
+}
+
 function setupToast(
   props: ToastProps,
   ctx: DefineElementContext<ToastElement, ToastEmits>,
 ) {
   const id = `zw-toast-${++toastId}`
   let timer: ReturnType<typeof setTimeout> | undefined
+  const controlled = props.open !== undefined
   const [open, setOpenState] = createSignal(
-    props.open !== undefined ? Boolean(props.open) : Boolean(props.defaultOpen),
+    controlled ? Boolean(props.open) : Boolean(props.defaultOpen),
   )
   let initialOpenSync = true
   createEffect(() => {
@@ -50,13 +71,17 @@ function setupToast(
     }
     setOpenState(propOpen)
   })
-  const getOpen = () => open()
+  const getOpen = () => (controlled ? Boolean(props.open) : open())
   let schedule = (_duration?: number) => {}
-  const setOpen = (open: boolean, nativeEvent?: Event) => {
-    setOpenState(open)
-    ctx.host.open = open
-    ctx.emit.openChange({ open, nativeEvent })
-    if (open) {
+  const setOpen = (nextOpen: boolean, nativeEvent?: Event) => {
+    if (controlled) {
+      ctx.emit.openChange({ open: nextOpen, nativeEvent })
+      return
+    }
+    setOpenState(nextOpen)
+    ctx.host.open = nextOpen
+    ctx.emit.openChange({ open: nextOpen, nativeEvent })
+    if (nextOpen) {
       schedule()
     } else if (timer) {
       clearTimeout(timer)
@@ -137,10 +162,9 @@ export const Toast = defineElement<ToastProps, ToastElement, ToastEmits>(
 )
 
 function setupTitle(_props: object, ctx: DefineElementContext<HTMLElement>) {
-  const result = resolveDOMContext(ctx.host, ToastContext)
-  const toast = result.found ? result.value : undefined
+  const toast = useToastContext(ctx.host)
   return (
-    <Host id={toast?.getTitleId()} data-slot="toast-title">
+    <Host id={toast()?.getTitleId()} data-slot="toast-title">
       <Slot />
     </Host>
   )
@@ -154,10 +178,9 @@ function setupDescription(
   _props: object,
   ctx: DefineElementContext<HTMLElement>,
 ) {
-  const result = resolveDOMContext(ctx.host, ToastContext)
-  const toast = result.found ? result.value : undefined
+  const toast = useToastContext(ctx.host)
   return (
-    <Host id={toast?.getDescriptionId()} data-slot="toast-description">
+    <Host id={toast()?.getDescriptionId()} data-slot="toast-description">
       <Slot />
     </Host>
   )
@@ -168,14 +191,13 @@ export const ToastDescription = defineElement<object, HTMLElement>(
   setupDescription,
 )
 function setupClose(_props: object, ctx: DefineElementContext<HTMLElement>) {
-  const result = resolveDOMContext(ctx.host, ToastContext)
-  const toast = result.found ? result.value : undefined
+  const toast = useToastContext(ctx.host)
   return (
     <Host data-slot="toast-close">
       <button
         type="button"
         aria-label="Close"
-        onClick={(event: MouseEvent) => toast?.setOpen(false, event)}
+        onClick={(event: MouseEvent) => toast()?.setOpen(false, event)}
       >
         <Slot />
       </button>

@@ -3,7 +3,11 @@ import { createContext } from '@zeus-js/zeus'
 
 export interface PopoverContextValue {
   getOpen: () => boolean
-  setOpen: (open: boolean, event?: Event) => void
+  setOpen: (
+    open: boolean,
+    event?: Event,
+    focusIntent?: 'content' | 'trigger',
+  ) => void
   isDisabled: () => boolean
   getContentId: () => string
   registerTrigger: (element: HTMLElement | undefined) => void

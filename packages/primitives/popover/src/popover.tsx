@@ -56,8 +56,9 @@ function setupPopover(
   ctx: DefineElementContext<PopoverElement, PopoverEmits>,
 ) {
   const contentId = `zw-popover-content-${++popoverId}`
+  const controlled = props.open !== undefined
   const [open, setOpenState] = createSignal(
-    props.open !== undefined ? Boolean(props.open) : Boolean(props.defaultOpen),
+    controlled ? Boolean(props.open) : Boolean(props.defaultOpen),
   )
   let initialOpenSync = true
   createEffect(() => {
@@ -70,8 +71,10 @@ function setupPopover(
   })
   let trigger: HTMLElement | undefined
   let content: HTMLElement | undefined
+  let focusRequest = 0
+  let pendingFocus: 'content' | 'trigger' | undefined
   const value: PopoverContextValue = {
-    getOpen: () => open(),
+    getOpen: () => (controlled ? Boolean(props.open) : open()),
     isDisabled: () => Boolean(props.disabled),
     getContentId: () => contentId,
     registerTrigger: element => {
@@ -82,21 +85,36 @@ function setupPopover(
       content = element
     },
     focusContent: () => content?.focus(),
-    setOpen: (open, nativeEvent) => {
+    setOpen: (nextOpen, nativeEvent, focusIntent) => {
       if (props.disabled) return
-      setOpenState(open)
-      ctx.host.open = open
-      ctx.emit.openChange({ open, nativeEvent })
-      if (open) {
-        setTimeout(() => value.focusContent(), 0)
-      } else if (
-        nativeEvent?.type === 'keydown' &&
-        (nativeEvent as KeyboardEvent).key === 'Escape'
-      ) {
-        setTimeout(() => value.focusTrigger(), 0)
+      focusRequest += 1
+      pendingFocus =
+        nextOpen !== value.getOpen()
+          ? (focusIntent ?? (nextOpen ? 'content' : undefined))
+          : undefined
+      if (controlled) {
+        ctx.emit.openChange({ open: nextOpen, nativeEvent })
+        return
       }
+      setOpenState(nextOpen)
+      ctx.host.open = nextOpen
+      ctx.emit.openChange({ open: nextOpen, nativeEvent })
     },
   }
+  let previousOpen = value.getOpen()
+  createEffect(() => {
+    const isOpen = value.getOpen()
+    if (isOpen === previousOpen) return
+    previousOpen = isOpen
+    const intent = pendingFocus
+    pendingFocus = undefined
+    if (!intent) return
+    const request = ++focusRequest
+    const focus = intent === 'content' ? value.focusContent : value.focusTrigger
+    setTimeout(() => {
+      if (request === focusRequest && value.getOpen() === isOpen) focus()
+    }, 0)
+  })
   const outside = (nativeEvent: PointerEvent) => {
     if (!value.getOpen() || props.modal === false || !content) return
     const path = nativeEvent.composedPath?.() || []
@@ -166,9 +184,12 @@ function setupTrigger(_props: object, ctx: DefineElementContext<HTMLElement>) {
         aria-expanded={String(Boolean(popover()?.getOpen()))}
         aria-controls={popover()?.getContentId()}
         disabled={Boolean(popover()?.isDisabled())}
-        onClick={(event: MouseEvent) =>
-          popover()?.setOpen(!popover()!.getOpen(), event)
-        }
+        onClick={(event: MouseEvent) => {
+          const value = popover()
+          if (!value) return
+          const nextOpen = !value.getOpen()
+          value.setOpen(nextOpen, event, nextOpen ? 'content' : 'trigger')
+        }}
       >
         <Slot />
       </button>
@@ -213,7 +234,7 @@ function setupContent(
       onKeyDown={(nativeEvent: KeyboardEvent) => {
         if (nativeEvent.key === 'Escape') {
           nativeEvent.preventDefault()
-          popover()?.setOpen(false, nativeEvent)
+          popover()?.setOpen(false, nativeEvent, 'trigger')
         }
       }}
     >

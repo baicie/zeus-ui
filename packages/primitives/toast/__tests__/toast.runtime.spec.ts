@@ -65,7 +65,7 @@ describe('toast runtime', () => {
     )
   })
 
-  it('closes a controlled toast when its close control is activated', async () => {
+  it('keeps a controlled toast open until its owner updates open', async () => {
     const toast = document.createElement('zw-toast') as RuntimeToast
     toast.open = true
     toast.setAttribute('duration', '0')
@@ -81,8 +81,12 @@ describe('toast runtime', () => {
 
     toast.querySelector('button')?.click()
     await tick()
+    expect(toast).not.toHaveAttribute('hidden')
+    expect(toast).toHaveAttribute('open')
+
+    toast.open = false
+    await tick()
     expect(toast).toHaveAttribute('hidden')
-    expect(toast).not.toHaveAttribute('open')
   })
 
   it('keeps an explicitly closed toast closed when default-open is also set', async () => {

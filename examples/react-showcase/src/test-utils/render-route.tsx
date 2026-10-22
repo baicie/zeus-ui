@@ -1,5 +1,5 @@
 import { RouterProvider } from '@tanstack/react-router'
-import { act, render } from '@testing-library/react'
+import { render } from '@testing-library/react'
 
 import { createShowcaseRouter } from '../router'
 
@@ -10,9 +10,7 @@ export async function renderReactShowcaseRoute(initialPath: string) {
 
   const result = render(<RouterProvider router={router} />)
 
-  await act(async () => {
-    await router.load()
-  })
+  await router.load()
 
   return {
     router,

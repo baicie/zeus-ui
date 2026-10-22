@@ -112,4 +112,77 @@ describe('popover runtime', () => {
 
     expect(popover.querySelector('[role="dialog"]')).toHaveAttribute('hidden')
   })
+
+  it('keeps a controlled popover open until its owner updates open', async () => {
+    const popover = document.createElement('zw-popover') as RuntimeElement & {
+      open?: boolean
+    }
+    popover.open = true
+    popover.innerHTML =
+      '<zw-popover-trigger>Open</zw-popover-trigger><zw-popover-content>Content</zw-popover-content>'
+    document.body.append(popover)
+    await popover.componentOnReady?.()
+    await Promise.all(
+      [...popover.querySelectorAll<RuntimeElement>('*')].map(element =>
+        element.componentOnReady?.(),
+      ),
+    )
+    await tick()
+
+    const trigger = popover.querySelector('button')
+    const content = popover.querySelector('[role="dialog"]')
+    expect(content).not.toHaveAttribute('hidden')
+    trigger?.click()
+    await tick()
+    expect(content).not.toHaveAttribute('hidden')
+    expect(popover).toHaveAttribute('open')
+
+    popover.open = false
+    await tick()
+    expect(content).toHaveAttribute('hidden')
+  })
+
+  it('waits for controlled open changes before moving focus', async () => {
+    const popover = document.createElement('zw-popover') as RuntimeElement & {
+      open?: boolean
+    }
+    popover.open = false
+    popover.innerHTML =
+      '<zw-popover-trigger>Open</zw-popover-trigger><zw-popover-content>Content</zw-popover-content>'
+    document.body.append(popover)
+    await popover.componentOnReady?.()
+    await Promise.all(
+      [...popover.querySelectorAll<RuntimeElement>('*')].map(element =>
+        element.componentOnReady?.(),
+      ),
+    )
+    await tick()
+
+    const trigger = popover.querySelector('button')
+    const content = popover.querySelector<HTMLElement>('[role="dialog"]')
+    if (!trigger || !content) throw new Error('Expected popover controls.')
+
+    trigger.focus()
+    trigger.click()
+    await tick()
+    expect(content).toHaveAttribute('hidden')
+    expect(document.activeElement).toBe(trigger)
+
+    popover.open = true
+    await tick()
+    expect(content).not.toHaveAttribute('hidden')
+    expect(document.activeElement).toBe(content)
+
+    content.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    )
+    await tick()
+    expect(content).not.toHaveAttribute('hidden')
+    expect(document.activeElement).toBe(content)
+
+    popover.open = false
+    await tick()
+    expect(content).toHaveAttribute('hidden')
+    expect(document.activeElement).toBe(trigger)
+  })
 })

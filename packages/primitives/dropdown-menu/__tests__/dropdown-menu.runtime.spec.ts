@@ -174,6 +174,78 @@ describe('dropdown menu keyboard behavior', () => {
     expect(menu.querySelector('[role="menu"]')).toHaveAttribute('hidden')
   })
 
+  it('keeps a controlled menu open until its owner updates open', async () => {
+    const menu = document.createElement(
+      'zw-dropdown-menu',
+    ) as RuntimeDropdownMenu
+    menu.open = true
+    menu.innerHTML = [
+      '<zw-dropdown-menu-trigger>Open menu</zw-dropdown-menu-trigger>',
+      '<zw-dropdown-menu-content><zw-dropdown-menu-item value="first">First</zw-dropdown-menu-item></zw-dropdown-menu-content>',
+    ].join('')
+    document.body.append(menu)
+    await menu.componentOnReady?.()
+    await Promise.all(
+      [...menu.querySelectorAll<RuntimeElement>('*')].map(element =>
+        element.componentOnReady?.(),
+      ),
+    )
+    await nextRender()
+
+    const trigger = getTrigger(menu)
+    expect(menu.querySelector('[role="menu"]')).not.toHaveAttribute('hidden')
+    trigger.click()
+    await nextRender()
+    expect(menu.querySelector('[role="menu"]')).not.toHaveAttribute('hidden')
+    expect(menu).toHaveAttribute('open')
+
+    menu.open = false
+    await nextRender()
+    expect(menu.querySelector('[role="menu"]')).toHaveAttribute('hidden')
+  })
+
+  it('waits for controlled open changes before moving focus', async () => {
+    const menu = document.createElement(
+      'zw-dropdown-menu',
+    ) as RuntimeDropdownMenu
+    menu.open = false
+    menu.innerHTML = [
+      '<zw-dropdown-menu-trigger>Open menu</zw-dropdown-menu-trigger>',
+      '<zw-dropdown-menu-content><zw-dropdown-menu-item value="first">First</zw-dropdown-menu-item></zw-dropdown-menu-content>',
+    ].join('')
+    document.body.append(menu)
+    await menu.componentOnReady?.()
+    await Promise.all(
+      [...menu.querySelectorAll<RuntimeElement>('*')].map(element =>
+        element.componentOnReady?.(),
+      ),
+    )
+    await nextRender()
+
+    const trigger = getTrigger(menu)
+    const first = getItem(menu, 'first')
+    trigger.focus()
+    dispatchKey(trigger, 'ArrowDown')
+    await nextRender()
+    expect(menu.querySelector('[role="menu"]')).toHaveAttribute('hidden')
+    expect(document.activeElement).toBe(trigger)
+
+    menu.open = true
+    await nextRender()
+    expect(menu.querySelector('[role="menu"]')).not.toHaveAttribute('hidden')
+    expect(document.activeElement).toBe(first)
+
+    dispatchKey(first, 'Escape')
+    await nextRender()
+    expect(menu.querySelector('[role="menu"]')).not.toHaveAttribute('hidden')
+    expect(document.activeElement).toBe(first)
+
+    menu.open = false
+    await nextRender()
+    expect(menu.querySelector('[role="menu"]')).toHaveAttribute('hidden')
+    expect(document.activeElement).toBe(trigger)
+  })
+
   it('opens from trigger arrow keys and focuses the matching edge item', async () => {
     const menu = await createMenu()
     const trigger = getTrigger(menu)

@@ -55,8 +55,9 @@ function setupMenu(
   ctx: DefineElementContext<DropdownMenuElement, DropdownMenuEmits>,
 ) {
   const contentId = `zw-dropdown-menu-${++dropdownId}`
+  const controlled = props.open !== undefined
   const [open, setOpenState] = createSignal(
-    props.open !== undefined ? Boolean(props.open) : Boolean(props.defaultOpen),
+    controlled ? Boolean(props.open) : Boolean(props.defaultOpen),
   )
   let initialOpenSync = true
   createEffect(() => {
@@ -80,8 +81,9 @@ function setupMenu(
         item.getAttribute('aria-disabled') !== 'true',
     )
   let focusRequest = 0
+  let pendingFocus: 'first' | 'last' | 'trigger' | undefined
   const value: DropdownMenuContextValue = {
-    getOpen: () => open(),
+    getOpen: () => (controlled ? Boolean(props.open) : open()),
     isDisabled: () => Boolean(props.disabled),
     getContentId: () => contentId,
     getEnabledItems,
@@ -116,30 +118,54 @@ function setupMenu(
       items[nextIndex]?.focus()
     },
     focusTrigger: () => trigger?.focus(),
-    setOpen: (open, nativeEvent) => {
-      if (!props.disabled) {
-        setOpenState(open)
-        ctx.host.open = open
-        ctx.emit.openChange({ open, nativeEvent })
+    setOpen: (nextOpen, nativeEvent, focusIntent) => {
+      if (props.disabled) return
+      focusRequest += 1
+      pendingFocus =
+        nextOpen !== value.getOpen()
+          ? (focusIntent ?? (nextOpen ? 'first' : undefined))
+          : undefined
+      if (controlled) {
+        ctx.emit.openChange({ open: nextOpen, nativeEvent })
+        return
       }
+      setOpenState(nextOpen)
+      ctx.host.open = nextOpen
+      ctx.emit.openChange({ open: nextOpen, nativeEvent })
     },
     select: (itemValue, nativeEvent) => {
       ctx.emit.select({ value: itemValue, nativeEvent })
     },
     close: (nativeEvent, restoreFocus = false) => {
-      if (restoreFocus) focusRequest += 1
-      value.setOpen(false, nativeEvent)
-      if (restoreFocus) setTimeout(value.focusTrigger, 0)
+      value.setOpen(false, nativeEvent, restoreFocus ? 'trigger' : undefined)
     },
   }
+  let previousOpen: boolean | undefined
   createEffect(() => {
-    const open = value.getOpen()
-    const request = ++focusRequest
-    if (open) {
+    const isOpen = value.getOpen()
+    const wasOpen = previousOpen
+    previousOpen = isOpen
+    if (wasOpen === undefined) {
+      if (!isOpen) return
+      const request = ++focusRequest
       setTimeout(() => {
         if (request === focusRequest && value.getOpen()) value.focusFirstItem()
       }, 0)
+      return
     }
+    if (isOpen === wasOpen) return
+    const request = ++focusRequest
+    const intent = pendingFocus
+    pendingFocus = undefined
+    if (!isOpen && intent !== 'trigger') return
+    const focus = isOpen
+      ? intent === 'last'
+        ? value.focusLastItem
+        : value.focusFirstItem
+      : value.focusTrigger
+    setTimeout(() => {
+      if (request === focusRequest && value.getOpen() === isOpen) focus()
+    }, 0)
   })
   const outside = (nativeEvent: PointerEvent) => {
     if (!value.getOpen()) return
@@ -196,13 +222,17 @@ function setupTrigger(_props: object, ctx: DefineElementContext<HTMLElement>) {
     if (!value || value.isDisabled()) return
 
     nativeEvent.preventDefault()
-    if (!value.getOpen()) value.setOpen(true, nativeEvent)
-    setTimeout(() => {
-      if (value.getOpen()) {
-        if (nativeEvent.key === 'ArrowDown') value.focusFirstItem()
-        else value.focusLastItem()
-      }
-    }, 0)
+    if (!value.getOpen()) {
+      value.setOpen(
+        true,
+        nativeEvent,
+        nativeEvent.key === 'ArrowDown' ? 'first' : 'last',
+      )
+    } else if (nativeEvent.key === 'ArrowDown') {
+      value.focusFirstItem()
+    } else {
+      value.focusLastItem()
+    }
   }
   createEffect(() => {
     const value = menu()
@@ -222,9 +252,12 @@ function setupTrigger(_props: object, ctx: DefineElementContext<HTMLElement>) {
         aria-expanded={String(Boolean(menu()?.getOpen()))}
         aria-controls={menu()?.getContentId()}
         disabled={Boolean(menu()?.isDisabled())}
-        onClick={(event: MouseEvent) =>
-          menu()?.setOpen(!menu()!.getOpen(), event)
-        }
+        onClick={(event: MouseEvent) => {
+          const value = menu()
+          if (!value) return
+          const nextOpen = !value.getOpen()
+          value.setOpen(nextOpen, event, nextOpen ? 'first' : 'trigger')
+        }}
         onKeyDown={handleKeyDown}
       >
         <Slot />

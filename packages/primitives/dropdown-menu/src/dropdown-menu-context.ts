@@ -3,7 +3,11 @@ import { createContext } from '@zeus-js/zeus'
 
 export interface DropdownMenuContextValue {
   getOpen: () => boolean
-  setOpen: (open: boolean, event?: Event) => void
+  setOpen: (
+    open: boolean,
+    event?: Event,
+    focusIntent?: 'first' | 'last' | 'trigger',
+  ) => void
   select: (value: string | undefined, event: Event) => void
   isDisabled: () => boolean
   getContentId: () => string
