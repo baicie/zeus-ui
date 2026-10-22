@@ -91,6 +91,9 @@ describe('popover runtime', () => {
     expect(popover.querySelector('[role="dialog"]')).not.toHaveAttribute(
       'hidden',
     )
+    expect(document.activeElement).toBe(
+      popover.querySelector('[role="dialog"]'),
+    )
     trigger?.click()
     await tick()
     expect(popover.querySelector('[role="dialog"]')).toHaveAttribute('hidden')
@@ -140,6 +143,27 @@ describe('popover runtime', () => {
     popover.open = false
     await tick()
     expect(content).toHaveAttribute('hidden')
+  })
+
+  it('focuses content when the controlled popover starts open', async () => {
+    const popover = document.createElement('zw-popover') as RuntimeElement & {
+      open?: boolean
+    }
+    popover.open = true
+    popover.innerHTML =
+      '<zw-popover-trigger>Open</zw-popover-trigger><zw-popover-content>Content</zw-popover-content>'
+    document.body.append(popover)
+    await popover.componentOnReady?.()
+    await Promise.all(
+      [...popover.querySelectorAll<RuntimeElement>('*')].map(element =>
+        element.componentOnReady?.(),
+      ),
+    )
+    await tick()
+
+    expect(document.activeElement).toBe(
+      popover.querySelector('[role="dialog"]'),
+    )
   })
 
   it('waits for controlled open changes before moving focus', async () => {

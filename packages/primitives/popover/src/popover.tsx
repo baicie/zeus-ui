@@ -101,11 +101,20 @@ function setupPopover(
       ctx.emit.openChange({ open: nextOpen, nativeEvent })
     },
   }
-  let previousOpen = value.getOpen()
+  let previousOpen: boolean | undefined
   createEffect(() => {
     const isOpen = value.getOpen()
-    if (isOpen === previousOpen) return
+    const wasOpen = previousOpen
     previousOpen = isOpen
+    if (wasOpen === undefined) {
+      if (!isOpen) return
+      const request = ++focusRequest
+      setTimeout(() => {
+        if (request === focusRequest && value.getOpen()) value.focusContent()
+      }, 0)
+      return
+    }
+    if (isOpen === wasOpen) return
     const intent = pendingFocus
     pendingFocus = undefined
     if (!intent) return
