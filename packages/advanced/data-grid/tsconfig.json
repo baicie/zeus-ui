@@ -6,5 +6,5 @@
     "outDir": "dist",
     "isolatedDeclarations": false
   },
-  "include": ["src"]
+  "include": ["src", "../../../scripts/config/jsx.d.ts"]
 }

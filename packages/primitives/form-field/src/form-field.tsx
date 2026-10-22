@@ -104,9 +104,11 @@ function setupControl(
     originalAriaInvalid: string | null
     originalAriaRequired: string | null
     originalDisabled: boolean
+    originalRequired: boolean
     lastAriaInvalid: string | null | undefined
     lastAriaRequired: string | null | undefined
     lastDisabled: boolean | undefined
+    lastRequired: boolean | undefined
     generatedId?: string
     describedByIds: string[]
   }
@@ -175,10 +177,33 @@ function setupControl(
     state.lastDisabled = undefined
   }
 
+  const syncRequired = (
+    control: HTMLElement,
+    state: ManagedControlState,
+    required: boolean,
+  ) => {
+    if (required) {
+      if (state.lastRequired === undefined)
+        state.originalRequired = control.hasAttribute('required')
+      control.setAttribute('required', '')
+      state.lastRequired = true
+      return
+    }
+    if (
+      state.lastRequired !== undefined &&
+      control.hasAttribute('required') === state.lastRequired
+    ) {
+      if (state.originalRequired) control.setAttribute('required', '')
+      else control.removeAttribute('required')
+    }
+    state.lastRequired = undefined
+  }
+
   const restoreControl = (control: HTMLElement, state: ManagedControlState) => {
     syncManagedAttribute(control, state, 'aria-invalid', false, 'true')
     syncManagedAttribute(control, state, 'aria-required', false, 'true')
     syncDisabled(control, state, false)
+    syncRequired(control, state, false)
     if (state.generatedId && control.id === state.generatedId)
       control.removeAttribute('id')
     const describedBy = (control.getAttribute('aria-describedby') || '')
@@ -204,9 +229,11 @@ function setupControl(
       originalAriaInvalid: control.getAttribute('aria-invalid'),
       originalAriaRequired: control.getAttribute('aria-required'),
       originalDisabled: control.hasAttribute('disabled'),
+      originalRequired: control.hasAttribute('required'),
       lastAriaInvalid: undefined,
       lastAriaRequired: undefined,
       lastDisabled: undefined,
+      lastRequired: undefined,
       describedByIds: [],
     }
     managedControls.set(control, state)
@@ -251,6 +278,7 @@ function setupControl(
           'true',
         )
         syncDisabled(control, state, value.isDisabled())
+        syncRequired(control, state, value.isRequired())
         const current = (control.getAttribute('aria-describedby') || '')
           .split(/\s+/)
           .filter(id => Boolean(id) && !state.describedByIds.includes(id))

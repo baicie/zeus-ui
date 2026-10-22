@@ -47,7 +47,7 @@ export const FormField = styled(
 )
 export const FormFieldControl = styled(
   FormFieldControlPrimitive,
-  '[&_[data-slot=form-field-control]]:w-full [&_[data-slot=form-field-control]]:rounded-[var(--zeus-radius-md)] [&_[data-slot=form-field-control]]:border [&_[data-slot=form-field-control]]:border-[hsl(var(--zeus-input))] [&_[data-slot=form-field-control]]:bg-[hsl(var(--zeus-background))] [&_[data-slot=form-field-control]]:px-3 [&_[data-slot=form-field-control]]:py-2 [&_[data-slot=form-field-control]]:text-sm [&_[data-slot=form-field-control]]:focus-within:outline-none [&_[data-slot=form-field-control]]:focus-within:ring-2 [&_[data-slot=form-field-control]]:focus-within:ring-[hsl(var(--zeus-ring)/0.45)]',
+  'data-[slot=form-field-control]:w-full data-[slot=form-field-control]:rounded-[var(--zeus-radius-md)] data-[slot=form-field-control]:border data-[slot=form-field-control]:border-[hsl(var(--zeus-input))] data-[slot=form-field-control]:bg-[hsl(var(--zeus-background))] data-[slot=form-field-control]:px-3 data-[slot=form-field-control]:py-2 data-[slot=form-field-control]:text-sm data-[slot=form-field-control]:focus-within:outline-none data-[slot=form-field-control]:focus-within:ring-2 data-[slot=form-field-control]:focus-within:ring-[hsl(var(--zeus-ring)/0.45)]',
 )
 export const FormFieldLabel = styled(
   FormFieldLabelPrimitive,

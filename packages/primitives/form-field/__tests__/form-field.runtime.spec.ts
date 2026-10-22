@@ -32,6 +32,7 @@ function nextRender(): Promise<void> {
 async function createField(
   nativeId?: string,
   nativeAttributes = '',
+  parent: HTMLElement = document.body,
 ): Promise<RuntimeFormField> {
   await Promise.all(
     [
@@ -50,7 +51,7 @@ async function createField(
     '<zw-form-field-description>Enter your name.</zw-form-field-description>',
     '<zw-form-field-message>Required.</zw-form-field-message>',
   ].join('')
-  document.body.append(field)
+  parent.append(field)
   await field.componentOnReady?.()
   await Promise.all(
     [...field.querySelectorAll<RuntimeFormField>('*')].map(element =>
@@ -102,6 +103,8 @@ describe('form field runtime accessibility', () => {
 
     expect(native).toHaveAttribute('aria-invalid', 'true')
     expect(native).toHaveAttribute('aria-required', 'true')
+    expect(native).toHaveAttribute('required')
+    expect((native as HTMLInputElement).required).toBe(true)
     expect(native).toHaveAttribute('disabled')
 
     field.invalid = false
@@ -111,7 +114,27 @@ describe('form field runtime accessibility', () => {
 
     expect(native).not.toHaveAttribute('aria-invalid')
     expect(native).not.toHaveAttribute('aria-required')
+    expect(native).not.toHaveAttribute('required')
+    expect((native as HTMLInputElement).required).toBe(false)
     expect(native).not.toHaveAttribute('disabled')
+  })
+
+  it('uses the native required constraint for form validation', async () => {
+    const form = document.createElement('form')
+    document.body.append(form)
+    const field = await createField(undefined, '', form)
+    const native = field.querySelector('input')
+    if (!native) throw new Error('Expected native input control.')
+
+    field.required = true
+    await nextRender()
+    expect(native).toHaveAttribute('required')
+    expect((native as HTMLInputElement).form).toBe(form)
+    expect(form.checkValidity()).toBe(false)
+
+    field.required = false
+    await nextRender()
+    expect(form.checkValidity()).toBe(true)
   })
 
   it('removes the managed message id when invalid state is restored', async () => {
@@ -135,12 +158,13 @@ describe('form field runtime accessibility', () => {
   it('preserves caller-owned control state while syncing field state', async () => {
     const field = await createField(
       undefined,
-      ' disabled aria-invalid="true" aria-required="true"',
+      ' disabled required aria-invalid="true" aria-required="true"',
     )
     const native = field.querySelector('input')
     if (!native) throw new Error('Expected native input control.')
 
     expect(native).toHaveAttribute('disabled')
+    expect(native).toHaveAttribute('required')
     expect(native).toHaveAttribute('aria-invalid', 'true')
     expect(native).toHaveAttribute('aria-required', 'true')
 
@@ -158,7 +182,7 @@ describe('form field runtime accessibility', () => {
     expect(native).toHaveAttribute('aria-required', 'true')
   })
 
-  it('releases field-owned state before reconnecting an enabled field', async () => {
+  it('restores managed state on disconnect and resyncs required on reconnect', async () => {
     const field = await createField('email-control')
     const native = field.querySelector('input')
     if (!native) throw new Error('Expected native input control.')
@@ -172,13 +196,13 @@ describe('form field runtime accessibility', () => {
     field.remove()
     await nextRender()
     expect(native).not.toHaveAttribute('disabled')
+    expect(native).not.toHaveAttribute('required')
     expect(native).not.toHaveAttribute('aria-invalid')
     expect(native).not.toHaveAttribute('aria-required')
     expect(native).toHaveAttribute('aria-describedby', 'external')
     expect(native).toHaveAttribute('id', 'email-control')
 
     field.invalid = false
-    field.required = false
     field.disabled = false
     document.body.append(field)
     await field.componentOnReady?.()
@@ -192,11 +216,17 @@ describe('form field runtime accessibility', () => {
     expect(field.querySelector('input')).toBe(native)
     expect(native).not.toHaveAttribute('disabled')
     expect(native).not.toHaveAttribute('aria-invalid')
-    expect(native).not.toHaveAttribute('aria-required')
+    expect(native).toHaveAttribute('aria-required', 'true')
+    expect(native).toHaveAttribute('required')
+    expect((native as HTMLInputElement).required).toBe(true)
     expect(native).toHaveAttribute(
       'aria-describedby',
       'external profile-description',
     )
+
+    field.required = false
+    await nextRender()
+    expect(native).not.toHaveAttribute('required')
   })
 
   it('releases controls moved outside the field control container', async () => {
@@ -226,7 +256,7 @@ describe('form field runtime accessibility', () => {
   it('restores caller-owned attributes when the field is disconnected', async () => {
     const field = await createField(
       'email-control',
-      ' disabled aria-invalid="spelling" aria-required="false"',
+      ' disabled required aria-invalid="spelling" aria-required="false"',
     )
     const native = field.querySelector('input')
     if (!native) throw new Error('Expected native input control.')
@@ -242,6 +272,7 @@ describe('form field runtime accessibility', () => {
     await nextRender()
 
     expect(native).toHaveAttribute('disabled')
+    expect(native).toHaveAttribute('required')
     expect(native).toHaveAttribute('aria-invalid', 'spelling')
     expect(native).toHaveAttribute('aria-required', 'false')
     expect(native).toHaveAttribute('aria-describedby', 'external')
