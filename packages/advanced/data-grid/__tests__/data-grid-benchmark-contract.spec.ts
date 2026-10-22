@@ -46,12 +46,15 @@ function readWorkspaceJson<T>(path: string): T {
 }
 
 describe('data-grid benchmark contract', () => {
-  it('keeps package build tsconfig scoped to published src output', () => {
+  it('keeps package typecheck scoped to src and shared JSX declarations', () => {
     const tsconfig = readWorkspaceJson<BenchmarkTsconfig>(
       'packages/advanced/data-grid/tsconfig.json',
     )
 
-    expect(tsconfig.include).toEqual(['src'])
+    expect(tsconfig.include).toEqual([
+      'src',
+      '../../../scripts/config/jsx.d.ts',
+    ])
   })
 
   it('declares an isolated benchmark typecheck config', () => {
