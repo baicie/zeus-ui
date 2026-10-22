@@ -1,13 +1,6 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 import type { DOMContext } from '@zeus-web/zeus-compat'
-import {
-  createContext,
-  defineElement,
-  event,
-  Host,
-  prop,
-  Slot,
-} from '@zeus-js/zeus'
+import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
 import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export type TabsOrientation = 'horizontal' | 'vertical'
@@ -54,8 +47,11 @@ interface TabsContextValue {
   ) => void
 }
 
-const TabsContext =
-  createContext<TabsContextValue>() as DOMContext<TabsContextValue>
+// Lazy custom-element entries are evaluated independently. Keep one DOM
+// context identity across the root and its child entries.
+const TabsContext = {
+  id: Symbol.for('@zeus-web/tabs/context'),
+} as DOMContext<TabsContextValue>
 
 let tabsId = 0
 

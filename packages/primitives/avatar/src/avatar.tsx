@@ -1,13 +1,6 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 import type { DOMContext } from '@zeus-web/zeus-compat'
-import {
-  createContext,
-  defineElement,
-  event,
-  Host,
-  prop,
-  Slot,
-} from '@zeus-js/zeus'
+import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
 import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export type AvatarSize = 'sm' | 'md' | 'lg'
@@ -29,8 +22,11 @@ interface AvatarContextValue {
   setImageStatus: (status: AvatarImageStatus) => void
 }
 
-const AvatarContext =
-  createContext<AvatarContextValue>() as DOMContext<AvatarContextValue>
+// Lazy custom-element entries are evaluated independently. Keep one DOM
+// context identity across the avatar, image, and fallback entries.
+const AvatarContext = {
+  id: Symbol.for('@zeus-web/avatar/context'),
+} as DOMContext<AvatarContextValue>
 
 function resolveImageStatus(
   props: AvatarProps,

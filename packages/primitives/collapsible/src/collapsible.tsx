@@ -1,13 +1,6 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 import type { DOMContext } from '@zeus-web/zeus-compat'
-import {
-  createContext,
-  defineElement,
-  event,
-  Host,
-  prop,
-  Slot,
-} from '@zeus-js/zeus'
+import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
 import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export interface CollapsibleProps {
@@ -39,8 +32,11 @@ interface CollapsibleContextValue {
   getContentId: () => string
 }
 
-const CollapsibleContext =
-  createContext<CollapsibleContextValue>() as DOMContext<CollapsibleContextValue>
+// Lazy custom-element entries are evaluated independently. Keep one DOM
+// context identity across the root and child entries.
+const CollapsibleContext = {
+  id: Symbol.for('@zeus-web/collapsible/context'),
+} as DOMContext<CollapsibleContextValue>
 
 let collapsibleId = 0
 

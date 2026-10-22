@@ -1,13 +1,6 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 import type { DOMContext } from '@zeus-web/zeus-compat'
-import {
-  createContext,
-  defineElement,
-  event,
-  Host,
-  prop,
-  Slot,
-} from '@zeus-js/zeus'
+import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
 import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export type RadioGroupOrientation = 'horizontal' | 'vertical'
@@ -49,8 +42,11 @@ interface RadioGroupContextValue {
   getSize: () => RadioGroupSize
 }
 
-const RadioGroupContext =
-  createContext<RadioGroupContextValue>() as DOMContext<RadioGroupContextValue>
+// Lazy custom-element entries are evaluated independently. Keep one DOM
+// context identity across the group and item entries.
+const RadioGroupContext = {
+  id: Symbol.for('@zeus-web/radio-group/context'),
+} as DOMContext<RadioGroupContextValue>
 
 let radioGroupId = 0
 

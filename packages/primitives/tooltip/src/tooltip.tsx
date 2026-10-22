@@ -1,13 +1,6 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 import type { DOMContext } from '@zeus-web/zeus-compat'
-import {
-  createContext,
-  defineElement,
-  event,
-  Host,
-  prop,
-  Slot,
-} from '@zeus-js/zeus'
+import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
 import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export type TooltipSide = 'top' | 'right' | 'bottom' | 'left'
@@ -42,8 +35,11 @@ interface TooltipContextValue {
   getDelayDuration: () => number
 }
 
-const TooltipContext =
-  createContext<TooltipContextValue>() as DOMContext<TooltipContextValue>
+// Lazy custom-element entries are evaluated independently. Keep one DOM
+// context identity across the root, trigger, and content entries.
+const TooltipContext = {
+  id: Symbol.for('@zeus-web/tooltip/context'),
+} as DOMContext<TooltipContextValue>
 
 let tooltipId = 0
 

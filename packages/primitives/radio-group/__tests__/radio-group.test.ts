@@ -59,6 +59,32 @@ describe('radio-group primitive', () => {
     expect(items[1].textContent?.trim()).toBe('Large')
   })
 
+  it('shares group state with items loaded after the group entry', async () => {
+    const group = document.createElement('zw-radio-group') as HTMLElement & {
+      componentOnReady: () => Promise<unknown>
+    }
+    group.setAttribute('name', 'plan')
+    group.setAttribute('value', 'large')
+    group.setAttribute('disabled', '')
+    document.body.append(group)
+    await group.componentOnReady()
+
+    const item = document.createElement('zw-radio-group-item')
+    item.setAttribute('value', 'large')
+    item.textContent = 'Large'
+    group.append(item)
+    await (
+      item as HTMLElement & { componentOnReady: () => Promise<unknown> }
+    ).componentOnReady()
+
+    const control = item.querySelector<HTMLInputElement>('input')
+
+    expect(control?.name).toBe('plan')
+    expect(control?.checked).toBe(true)
+    expect(control?.disabled).toBe(true)
+    expect(item).toHaveAttribute('data-state', 'checked')
+  })
+
   it('does not throw when a radio item is rendered without a group', async () => {
     document.body.innerHTML = `<zw-radio-group-item value="orphan">Orphan</zw-radio-group-item>`
 

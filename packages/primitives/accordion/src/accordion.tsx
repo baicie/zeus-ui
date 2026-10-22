@@ -1,13 +1,6 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 import type { DOMContext } from '@zeus-web/zeus-compat'
-import {
-  createContext,
-  defineElement,
-  event,
-  Host,
-  prop,
-  Slot,
-} from '@zeus-js/zeus'
+import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
 import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export type AccordionType = 'single' | 'multiple'
@@ -52,10 +45,14 @@ interface AccordionContextValue {
   getContentId: (value: string) => string
 }
 
-const AccordionContext =
-  createContext<AccordionContextValue>() as DOMContext<AccordionContextValue>
-const AccordionItemContext =
-  createContext<AccordionItemContextValue>() as DOMContext<AccordionItemContextValue>
+// Lazy custom-element entries are evaluated independently. Keep one DOM
+// context identity for each relationship across the root and child entries.
+const AccordionContext = {
+  id: Symbol.for('@zeus-web/accordion/context'),
+} as DOMContext<AccordionContextValue>
+const AccordionItemContext = {
+  id: Symbol.for('@zeus-web/accordion/item-context'),
+} as DOMContext<AccordionItemContextValue>
 
 let accordionId = 0
 
