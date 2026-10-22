@@ -135,11 +135,11 @@ function setup(
           }}
           part="control"
           data-slot="chat-composer-control"
-          prop:value={() => props.value ?? composer.getValue()}
+          prop:value={props.value ?? composer.getValue()}
           placeholder={props.placeholder}
           disabled={Boolean(props.disabled)}
           rows={normalizeRows(props.rows)}
-          prop:maxLength={() => props.maxLength}
+          maxlength={props.maxLength}
           aria-label={props.ariaLabel}
           onInput={emitValueChange}
           onKeyDown={(nativeEvent: KeyboardEvent) => {

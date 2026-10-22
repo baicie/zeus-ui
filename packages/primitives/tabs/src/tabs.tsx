@@ -294,7 +294,7 @@ function setupTabsTrigger(
         id={props.value ? tabs?.getTriggerId(props.value) : undefined}
         part="trigger"
         role="tab"
-        prop:type={() => 'button'}
+        type="button"
         aria-selected={String(isSelected())}
         aria-controls={
           props.value ? tabs?.getContentId(props.value) : undefined

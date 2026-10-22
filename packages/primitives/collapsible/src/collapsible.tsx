@@ -145,7 +145,7 @@ function setupCollapsibleTrigger(
         }}
         part="trigger"
         data-slot="collapsible-trigger-button"
-        prop:type={() => 'button'}
+        type="button"
         disabled={isDisabled()}
         aria-expanded={String(Boolean(collapsible?.getOpen()))}
         aria-controls={collapsible?.getContentId()}

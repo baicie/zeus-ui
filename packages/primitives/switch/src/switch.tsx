@@ -80,8 +80,8 @@ function setup(
           }}
           part="control"
           data-slot="switch-control"
-          prop:type={() => 'checkbox'}
-          prop:checked={() => resolveChecked(props)}
+          type="checkbox"
+          prop:checked={resolveChecked(props)}
           role="switch"
           disabled={Boolean(props.disabled)}
           required={Boolean(props.required)}

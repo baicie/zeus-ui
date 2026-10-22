@@ -234,8 +234,8 @@ function setupRadioGroupItem(
           }}
           part="control"
           data-slot="radio-group-control"
-          prop:type={() => 'radio'}
-          prop:checked={() => isChecked()}
+          type="radio"
+          prop:checked={isChecked()}
           name={group.getName()}
           value={props.value}
           disabled={isDisabled()}

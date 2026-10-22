@@ -99,16 +99,16 @@ function setup(
           id={props.id}
           part="control"
           data-slot="textarea"
-          prop:value={() => resolveTextareaValue(props)}
+          prop:value={resolveTextareaValue(props)}
           placeholder={props.placeholder}
           disabled={Boolean(props.disabled)}
-          prop:readOnly={() => Boolean(props.readonly)}
+          prop:readOnly={Boolean(props.readonly)}
           required={Boolean(props.required)}
           name={props.name}
           rows={props.rows}
           cols={props.cols}
-          prop:minLength={() => props.minlength}
-          prop:maxLength={() => props.maxlength}
+          minlength={props.minlength}
+          maxlength={props.maxlength}
           aria-label={props.ariaLabel}
           aria-describedby={props.ariaDescribedby}
           aria-errormessage={props.ariaErrormessage}

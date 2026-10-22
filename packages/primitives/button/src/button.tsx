@@ -84,7 +84,7 @@ function setup(
         }}
         part="button"
         data-slot="button"
-        prop:type={() => props.type || 'button'}
+        prop:type={props.type || 'button'}
         disabled={isDisabled()}
         aria-label={props.ariaLabel}
         aria-disabled={isDisabled() ? 'true' : undefined}

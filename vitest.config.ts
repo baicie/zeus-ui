@@ -179,6 +179,10 @@ export default defineConfig({
             // Independently loaded Web Component entries require DOM globals.
             'packages/primitives/accordion/__tests__/accordion-runtime.spec.ts',
             'packages/primitives/tabs/__tests__/tabs-runtime.spec.ts',
+            'packages/primitives/checkbox/__tests__/checkbox-runtime.spec.ts',
+            'packages/primitives/switch/__tests__/switch-runtime.spec.ts',
+            'packages/primitives/textarea/__tests__/textarea-runtime.spec.ts',
+            'packages/advanced/chat/__tests__/chat-composer-runtime.spec.ts',
           ],
         },
       },

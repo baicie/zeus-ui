@@ -88,9 +88,9 @@ function setup(
           }}
           part="control"
           data-slot="checkbox-control"
-          prop:type={() => 'checkbox'}
-          prop:checked={() => resolveChecked(props)}
-          prop:indeterminate={() => Boolean(props.indeterminate)}
+          type="checkbox"
+          prop:checked={resolveChecked(props)}
+          prop:indeterminate={Boolean(props.indeterminate)}
           disabled={Boolean(props.disabled)}
           required={Boolean(props.required)}
           name={props.name}

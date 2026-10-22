@@ -291,7 +291,7 @@ function setupDialogTrigger(
           }
         }}
         part="trigger"
-        prop:type={() => 'button'}
+        type="button"
         disabled={Boolean(props.disabled)}
         aria-haspopup="dialog"
         aria-controls={dialog?.getContentId()}
@@ -478,7 +478,7 @@ function setupDialogClose(
           if (element) control = element
         }}
         part="close"
-        prop:type={() => 'button'}
+        type="button"
         disabled={Boolean(props.disabled)}
         onClick={(nativeEvent: MouseEvent) => {
           if (!props.disabled) {

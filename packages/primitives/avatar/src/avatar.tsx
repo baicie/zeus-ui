@@ -113,7 +113,7 @@ function setupAvatarImage(
         src={props.src}
         alt={props.alt || ''}
         loading={props.loading}
-        prop:referrerPolicy={() => props.referrerPolicy}
+        prop:referrerPolicy={props.referrerPolicy}
         onLoad={(nativeEvent: Event) => {
           avatar?.setImageStatus('loaded')
           ctx.emit.imageLoad({ nativeEvent })

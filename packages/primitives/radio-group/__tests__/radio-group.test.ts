@@ -79,6 +79,7 @@ describe('radio-group primitive', () => {
 
     const control = item.querySelector<HTMLInputElement>('input')
 
+    expect(control?.type).toBe('radio')
     expect(control?.name).toBe('plan')
     expect(control?.checked).toBe(true)
     expect(control?.disabled).toBe(true)

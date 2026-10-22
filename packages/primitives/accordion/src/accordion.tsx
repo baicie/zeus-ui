@@ -238,7 +238,7 @@ function setupAccordionTrigger(
           if (e) control = e
         }}
         data-slot="accordion-trigger-button"
-        prop:type={() => 'button'}
+        type="button"
         disabled={isDisabled()}
         id={value() ? accordion?.getTriggerId(value()!) : undefined}
         aria-expanded={String(Boolean(isOpen()))}
