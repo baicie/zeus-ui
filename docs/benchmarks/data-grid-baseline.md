@@ -4,6 +4,8 @@ U-005 的基准线清单位于 [`baseline-manifest.json`](../../packages/advance
 
 基准线分为两类：渲染单元格数、可见行列范围等结构预算是 CI 必须保持的约束；首次渲染、滚动帧延迟、FPS、更新耗时和内存变化是同一设备上的趋势数据。后者会受 Node、浏览器模拟环境和机器负载影响，因此不会被写成跨设备的绝对失败阈值。
 
+manifest 为每个场景分别记录 render、scroll 和 update 阶段的 `heapUsedDelta` 与 `rssDelta`。这些有符号差值保留运行时回收带来的负值，也只用于同一设备和 Node 版本之间的趋势比较。
+
 本地运行：
 
 ```sh

@@ -9,6 +9,9 @@ interface BenchmarkBaselineScenario {
   rowCount: number
   columnCount: number
   observed: Record<string, number>
+  memoryTrend: Partial<
+    Record<'render' | 'scroll' | 'update', Record<string, number>>
+  >
 }
 
 interface BenchmarkBaselineManifest {
@@ -116,6 +119,23 @@ function assertScenarioShape(
       Number.isFinite(value) && value >= 0,
       `${scenario.name}: ${metric} must be a non-negative number`,
     )
+  }
+  for (const phase of ['render', 'scroll', 'update'] as const) {
+    const memory = scenario.memoryTrend?.[phase]
+    assert(
+      memory !== undefined,
+      `${scenario.name}: missing ${phase} memoryTrend`,
+    )
+    assert(
+      Object.keys(memory).sort().join(',') === 'heapUsedDelta,rssDelta',
+      `${scenario.name}: ${phase} memoryTrend must include heapUsedDelta and rssDelta`,
+    )
+    for (const [metric, value] of Object.entries(memory)) {
+      assert(
+        Number.isFinite(value),
+        `${scenario.name}: ${phase} ${metric} must be finite`,
+      )
+    }
   }
   for (const metric of [
     'firstRenderMs',
