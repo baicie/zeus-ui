@@ -29,7 +29,7 @@
     "dev": "tsup src/index.ts --format esm --dts --clean --watch",
     "build": "tsup src/index.ts --format esm --dts --clean",
     "check": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest --root ../.. --project unit packages/headless/__tests__/headless.spec.ts"
+    "test": "vitest --root ../.. --project unit packages/headless/__tests__/headless.spec.ts packages/headless/__tests__/headless-types.spec.ts"
   },
   "dependencies": {
     "@zeus-web/accordion": "workspace:*",

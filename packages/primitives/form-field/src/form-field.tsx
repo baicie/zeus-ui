@@ -357,7 +357,9 @@ function setupLabel(_props: object, ctx: DefineElementContext<HTMLElement>) {
   )
 }
 
-export const FormFieldLabel = defineElement<object, HTMLElement>(
+export interface FormFieldLabelElement extends HTMLElement {}
+
+export const FormFieldLabel = defineElement<object, FormFieldLabelElement>(
   'zw-form-field-label',
   {
     shadow: false,
@@ -378,7 +380,12 @@ function setupDescription(
   )
 }
 
-export const FormFieldDescription = defineElement<object, HTMLElement>(
+export interface FormFieldDescriptionElement extends HTMLElement {}
+
+export const FormFieldDescription = defineElement<
+  object,
+  FormFieldDescriptionElement
+>(
   'zw-form-field-description',
   {
     shadow: false,
@@ -401,7 +408,9 @@ function setupMessage(_props: object, ctx: DefineElementContext<HTMLElement>) {
   )
 }
 
-export const FormFieldMessage = defineElement<object, HTMLElement>(
+export interface FormFieldMessageElement extends HTMLElement {}
+
+export const FormFieldMessage = defineElement<object, FormFieldMessageElement>(
   'zw-form-field-message',
   {
     shadow: false,

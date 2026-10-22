@@ -205,7 +205,9 @@ function setupTrigger(_props: object, ctx: DefineElementContext<HTMLElement>) {
     </Host>
   )
 }
-export const PopoverTrigger = defineElement<object, HTMLElement>(
+export interface PopoverTriggerElement extends HTMLElement {}
+
+export const PopoverTrigger = defineElement<object, PopoverTriggerElement>(
   'zw-popover-trigger',
   { shadow: false, meta: { description: 'Popover trigger.' } },
   setupTrigger,
@@ -214,9 +216,11 @@ export const PopoverTrigger = defineElement<object, HTMLElement>(
 export interface PopoverContentProps {
   forceMount?: boolean
 }
+export interface PopoverContentElement
+  extends HTMLElement, PopoverContentProps {}
 function setupContent(
   props: PopoverContentProps,
-  ctx: DefineElementContext<HTMLElement>,
+  ctx: DefineElementContext<PopoverContentElement>,
 ) {
   const popover = usePopoverContext(ctx.host)
   let content: HTMLElement | undefined
@@ -251,7 +255,10 @@ function setupContent(
     </Host>
   )
 }
-export const PopoverContent = defineElement<PopoverContentProps, HTMLElement>(
+export const PopoverContent = defineElement<
+  PopoverContentProps,
+  PopoverContentElement
+>(
   'zw-popover-content',
   {
     shadow: false,

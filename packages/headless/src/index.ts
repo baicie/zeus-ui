@@ -40,7 +40,11 @@ export type {
   AccordionTriggerElement,
 } from '@zeus-web/accordion'
 
-export type { AlertElement } from '@zeus-web/alert'
+export type {
+  AlertDescriptionElement,
+  AlertElement,
+  AlertTitleElement,
+} from '@zeus-web/alert'
 
 export type {
   AvatarElement,
@@ -52,7 +56,14 @@ export type { BadgeElement } from '@zeus-web/badge'
 
 export type { ButtonElement } from '@zeus-web/button'
 
-export type { CardElement } from '@zeus-web/card'
+export type {
+  CardContentElement,
+  CardDescriptionElement,
+  CardElement,
+  CardFooterElement,
+  CardHeaderElement,
+  CardTitleElement,
+} from '@zeus-web/card'
 
 export type { CheckboxElement } from '@zeus-web/checkbox'
 
@@ -67,22 +78,35 @@ export type {
   DialogContentElement,
   DialogDescriptionElement,
   DialogElement,
+  DialogOverlayElement,
   DialogTitleElement,
   DialogTriggerElement,
 } from '@zeus-web/dialog'
 
-export type { DropdownMenuElement } from '@zeus-web/dropdown-menu'
+export type {
+  DropdownMenuContentElement,
+  DropdownMenuElement,
+  DropdownMenuItemElement,
+  DropdownMenuTriggerElement,
+} from '@zeus-web/dropdown-menu'
 
 export type {
   FormFieldControlElement,
+  FormFieldDescriptionElement,
   FormFieldElement,
+  FormFieldLabelElement,
+  FormFieldMessageElement,
 } from '@zeus-web/form-field'
 
 export type { InputElement } from '@zeus-web/input'
 
 export type { LabelElement } from '@zeus-web/label'
 
-export type { PopoverElement } from '@zeus-web/popover'
+export type {
+  PopoverContentElement,
+  PopoverElement,
+  PopoverTriggerElement,
+} from '@zeus-web/popover'
 
 export type { ProgressElement } from '@zeus-web/progress'
 
@@ -108,6 +132,16 @@ export type {
 
 export type { TextareaElement } from '@zeus-web/textarea'
 
-export type { ToastElement } from '@zeus-web/toast'
+export type {
+  ToastCloseElement,
+  ToastDescriptionElement,
+  ToastElement,
+  ToastTitleElement,
+  ToastViewportElement,
+} from '@zeus-web/toast'
 
-export type { TooltipElement, TooltipTriggerElement } from '@zeus-web/tooltip'
+export type {
+  TooltipContentElement,
+  TooltipElement,
+  TooltipTriggerElement,
+} from '@zeus-web/tooltip'

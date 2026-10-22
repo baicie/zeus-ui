@@ -169,7 +169,9 @@ function setupTitle(_props: object, ctx: DefineElementContext<HTMLElement>) {
     </Host>
   )
 }
-export const ToastTitle = defineElement<object, HTMLElement>(
+export interface ToastTitleElement extends HTMLElement {}
+
+export const ToastTitle = defineElement<object, ToastTitleElement>(
   'zw-toast-title',
   { shadow: false, meta: { description: 'Toast title.' } },
   setupTitle,
@@ -185,7 +187,9 @@ function setupDescription(
     </Host>
   )
 }
-export const ToastDescription = defineElement<object, HTMLElement>(
+export interface ToastDescriptionElement extends HTMLElement {}
+
+export const ToastDescription = defineElement<object, ToastDescriptionElement>(
   'zw-toast-description',
   { shadow: false, meta: { description: 'Toast description.' } },
   setupDescription,
@@ -204,7 +208,9 @@ function setupClose(_props: object, ctx: DefineElementContext<HTMLElement>) {
     </Host>
   )
 }
-export const ToastClose = defineElement<object, HTMLElement>(
+export interface ToastCloseElement extends HTMLElement {}
+
+export const ToastClose = defineElement<object, ToastCloseElement>(
   'zw-toast-close',
   { shadow: false, meta: { description: 'Toast dismiss button.' } },
   setupClose,
@@ -219,7 +225,9 @@ function setupViewport(
     </Host>
   )
 }
-export const ToastViewport = defineElement<object, HTMLElement>(
+export interface ToastViewportElement extends HTMLElement {}
+
+export const ToastViewport = defineElement<object, ToastViewportElement>(
   'zw-toast-viewport',
   { shadow: false, meta: { description: 'Toast viewport landmark.' } },
   setupViewport,

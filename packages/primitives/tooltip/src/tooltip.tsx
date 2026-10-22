@@ -191,7 +191,8 @@ export interface TooltipContentProps {
   side?: TooltipSide
   forceMount?: boolean
 }
-export interface TooltipContentElement extends HTMLElement {}
+export interface TooltipContentElement
+  extends HTMLElement, TooltipContentProps {}
 
 function setupTooltipContent(
   props: TooltipContentProps,

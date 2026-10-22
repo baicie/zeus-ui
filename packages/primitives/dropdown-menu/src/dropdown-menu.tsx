@@ -265,7 +265,12 @@ function setupTrigger(_props: object, ctx: DefineElementContext<HTMLElement>) {
     </Host>
   )
 }
-export const DropdownMenuTrigger = defineElement<object, HTMLElement>(
+export interface DropdownMenuTriggerElement extends HTMLElement {}
+
+export const DropdownMenuTrigger = defineElement<
+  object,
+  DropdownMenuTriggerElement
+>(
   'zw-dropdown-menu-trigger',
   { shadow: false, meta: { description: 'Dropdown menu trigger.' } },
   setupTrigger,
@@ -335,7 +340,12 @@ function setupContent(_props: object, ctx: DefineElementContext<HTMLElement>) {
     </Host>
   )
 }
-export const DropdownMenuContent = defineElement<object, HTMLElement>(
+export interface DropdownMenuContentElement extends HTMLElement {}
+
+export const DropdownMenuContent = defineElement<
+  object,
+  DropdownMenuContentElement
+>(
   'zw-dropdown-menu-content',
   {
     shadow: false,
@@ -348,9 +358,11 @@ export interface DropdownMenuItemProps {
   value?: string
   disabled?: boolean
 }
+export interface DropdownMenuItemElement
+  extends HTMLElement, DropdownMenuItemProps {}
 function setupItem(
   props: DropdownMenuItemProps,
-  ctx: DefineElementContext<HTMLElement>,
+  ctx: DefineElementContext<DropdownMenuItemElement>,
 ) {
   const menu = useDropdownMenuContext(ctx.host)
   const handleKeyDown = (nativeEvent: KeyboardEvent) => {
@@ -396,7 +408,7 @@ function setupItem(
 }
 export const DropdownMenuItem = defineElement<
   DropdownMenuItemProps,
-  HTMLElement
+  DropdownMenuItemElement
 >(
   'zw-dropdown-menu-item',
   {
