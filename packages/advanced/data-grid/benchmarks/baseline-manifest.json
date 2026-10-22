@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "baselineId": "u005-data-grid-2026-10-21",
-  "recordedAt": "2026-10-21",
-  "commit": "969f976185a9cf6b2eace4c651e04c73a6f1499b",
+  "baselineId": "u005-data-grid-2026-10-23",
+  "recordedAt": "2026-10-23",
+  "commit": "74fe9ea33f7a51eb8551debe9992cebfc1a0ebe7",
   "packageVersion": "0.1.0-beta.33",
   "dataMode": "sparse",
   "command": "node_modules/.bin/vitest --root . --project data-grid-benchmark --run --reporter=verbose",
   "environment": {
-    "os": "Linux",
-    "architecture": "x86_64",
-    "node": "v24.21.0",
+    "os": "Darwin 24.6.0",
+    "architecture": "arm64",
+    "node": "v26.9.0",
     "viewport": "640x480"
   },
   "budgetPolicy": {
@@ -23,11 +23,14 @@
       "rowCount": 10000,
       "columnCount": 20,
       "observed": {
-        "firstRenderMs": 125.39058499999993,
-        "averageFrameLatencyMs": 21.44378608333334,
-        "framesPerSecond": 46.63355603874568,
-        "rowsUpdateMs": 31.668620999999916,
-        "columnsUpdateMs": 68.78681300000005
+        "firstRenderMs": 116.76583299999993,
+        "averageFrameLatencyMs": 25.330463875000007,
+        "framesPerSecond": 39.47815582591654,
+        "rowsUpdateMs": 35.88562499999989,
+        "columnsUpdateMs": 61.513374999999996,
+        "renderedCells": 147,
+        "totalElements": 195,
+        "renderedCellsMax": 210
       }
     },
     {
@@ -35,11 +38,14 @@
       "rowCount": 100000,
       "columnCount": 20,
       "observed": {
-        "firstRenderMs": 91.26935700000001,
-        "averageFrameLatencyMs": 22.032081166666693,
-        "framesPerSecond": 45.38835856836548,
-        "rowsUpdateMs": 38.44201299999986,
-        "columnsUpdateMs": 55.559340999999904
+        "firstRenderMs": 88.37329199999999,
+        "averageFrameLatencyMs": 24.136556574999993,
+        "framesPerSecond": 41.43093058418174,
+        "rowsUpdateMs": 63.00675000000001,
+        "columnsUpdateMs": 46.564750000000004,
+        "renderedCells": 147,
+        "totalElements": 195,
+        "renderedCellsMax": 210
       }
     },
     {
@@ -47,11 +53,14 @@
       "rowCount": 100000,
       "columnCount": 100,
       "observed": {
-        "firstRenderMs": 77.33318500000007,
-        "averageFrameLatencyMs": 22.811401675000017,
-        "framesPerSecond": 43.83772703875284,
-        "rowsUpdateMs": 38.15118899999993,
-        "columnsUpdateMs": 50.811149000000114
+        "firstRenderMs": 80.73966599999994,
+        "averageFrameLatencyMs": 27.225076391666562,
+        "framesPerSecond": 36.73084275738136,
+        "rowsUpdateMs": 121.23750000000018,
+        "columnsUpdateMs": 40.42950000000019,
+        "renderedCells": 147,
+        "totalElements": 195,
+        "renderedCellsMax": 210
       }
     },
     {
@@ -59,11 +68,14 @@
       "rowCount": 100000,
       "columnCount": 1000,
       "observed": {
-        "firstRenderMs": 70.760084,
-        "averageFrameLatencyMs": 23.29014560833334,
-        "framesPerSecond": 42.936614343973645,
-        "rowsUpdateMs": 34.44498599999997,
-        "columnsUpdateMs": 41.67600799999991
+        "firstRenderMs": 76.57287500000007,
+        "averageFrameLatencyMs": 31.459961499999977,
+        "framesPerSecond": 31.786434322241643,
+        "rowsUpdateMs": 76.91804199999979,
+        "columnsUpdateMs": 39.78895899999998,
+        "renderedCells": 147,
+        "totalElements": 195,
+        "renderedCellsMax": 210
       }
     }
   ]
