@@ -104,7 +104,6 @@ import '@zeus-web/popover/wc/auto'
 | `defaultOpen` | `boolean` | -      | 非受控模式的初始打开状态。 |
 | `modal`       | `boolean` | -      | 在外部指针交互时关闭。     |
 | `disabled`    | `boolean` | -      | 禁用触发器。               |
-| `forceMount`  | `boolean` | -      | 关闭时仍保持内容挂载。     |
 
 ## 事件
 
@@ -160,6 +159,7 @@ Registry 依赖：
 建议：
 
 - 应用界面需要样式时，使用复制到项目中的 Registry 包装器。
+- 在 PopoverContent 上设置 forceMount，以在关闭时保持内容挂载。
 
 避免：
 

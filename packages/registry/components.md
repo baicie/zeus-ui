@@ -88,7 +88,6 @@ Primitive: `@zeus-web/popover`
 | Prop  | `defaultOpen` | `boolean`                                             | `false` | react, vue | Initial uncontrolled open state.             |
 | Prop  | `modal`       | `boolean`                                             | `true`  | react, vue | Dismisses on outside pointer input.          |
 | Prop  | `disabled`    | `boolean`                                             | `false` | react, vue | Disables the trigger.                        |
-| Prop  | `forceMount`  | `boolean`                                             | `false` | react, vue | Keeps popover content mounted while closed.  |
 | Prop  | `className`   | `string`                                              | -       | react      | Additional React class name.                 |
 | Prop  | `class`       | `string`                                              | -       | vue        | Additional Vue class name.                   |
 | Event | `open-change` | `CustomEvent<{ open: boolean; nativeEvent?: Event }>` | -       | react, vue | Emitted when the popover open state changes. |

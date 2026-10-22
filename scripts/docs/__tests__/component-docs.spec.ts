@@ -164,6 +164,36 @@ describe('component docs generator', () => {
     }
   })
 
+  it('documents forceMount on PopoverContent without a Popover root prop', () => {
+    const context = createComponentDocsContext()
+    const component = context.metadata.components.find(
+      item => item.name === 'popover',
+    )
+    const registryItem = context.registry.items.find(
+      item => item.name === 'popover',
+    )
+
+    expect(component).toBeDefined()
+
+    const english = renderComponentDoc(component!, registryItem)
+    const chinese = renderComponentDoc(
+      component!,
+      registryItem,
+      process.cwd(),
+      'zh',
+    )
+
+    for (const source of [english, chinese]) {
+      expect(source).not.toMatch(/^\|\s*`forceMount`\s*\|/m)
+    }
+    expect(english).toContain(
+      'Set forceMount on PopoverContent to keep content mounted while closed.',
+    )
+    expect(chinese).toContain(
+      '在 PopoverContent 上设置 forceMount，以在关闭时保持内容挂载。',
+    )
+  })
+
   it('derives package-only examples from the Registry manifest', () => {
     const context = createComponentDocsContext()
     const registryNames = new Set(

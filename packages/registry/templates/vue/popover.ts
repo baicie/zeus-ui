@@ -15,7 +15,6 @@ export interface PopoverRegistryProps {
   defaultOpen?: boolean
   modal?: boolean
   disabled?: boolean
-  forceMount?: boolean
   class?: string
 }
 export interface PopoverRegistryEvents {

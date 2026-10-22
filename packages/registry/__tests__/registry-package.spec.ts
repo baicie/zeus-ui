@@ -191,6 +191,13 @@ describe('@zeus-web/registry package contract', () => {
     )
   })
 
+  it('keeps content-only props out of the Popover root contract', () => {
+    const popover = getRegistryComponentSchema(readComponentSchema(), 'popover')
+
+    expect(popover).toBeDefined()
+    expect(popover!.props.map(prop => prop.name)).not.toContain('forceMount')
+  })
+
   it('resolves item dependencies', () => {
     const manifest = readManifest()
     const button = findRegistryItem(manifest, 'button')

@@ -16,7 +16,6 @@ export interface PopoverRegistryProps {
   defaultOpen?: boolean
   modal?: boolean
   disabled?: boolean
-  forceMount?: boolean
   className?: string
 }
 export interface PopoverRegistryEvents {
@@ -35,7 +34,6 @@ const popoverRegistryDefaults = {
   defaultOpen: false,
   modal: true,
   disabled: false,
-  forceMount: false,
 } as const
 export type PopoverProps = Omit<
   React.ComponentProps<typeof PopoverPrimitive>,

@@ -106,6 +106,16 @@ describe('@zeus-web/ai metadata', () => {
     }
   })
 
+  it('scopes forceMount guidance to PopoverContent', () => {
+    const popover = aiMetadata.components.find(item => item.name === 'popover')
+
+    expect(popover).toBeDefined()
+    expect(popover!.props.map(prop => prop.name)).not.toContain('forceMount')
+    expect(popover!.aiRules.do).toContain(
+      'Set forceMount on PopoverContent to keep content mounted while closed.',
+    )
+  })
+
   it('renders markdown guide', () => {
     const markdown = renderAiMarkdown(aiMetadata)
 

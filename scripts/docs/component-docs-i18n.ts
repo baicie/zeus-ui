@@ -233,8 +233,8 @@ const chineseMetadataText: Record<string, string> = {
   'Initial uncontrolled open state.': '非受控模式的初始打开状态。',
   'Dismisses on outside pointer input.': '在外部指针交互时关闭。',
   'Disables the trigger.': '禁用触发器。',
-  'Keeps popover content mounted while closed.': '关闭时仍保持浮层内容挂载。',
-  'Keeps content mounted while closed.': '关闭时仍保持内容挂载。',
+  'Set forceMount on PopoverContent to keep content mounted while closed.':
+    '在 PopoverContent 上设置 forceMount，以在关闭时保持内容挂载。',
   'Disables the trigger and items.': '禁用触发器和菜单项。',
   'Item selection value.': '菜单项的选择值。',
   'Emitted when the popover open state changes.': '浮层打开状态改变时触发。',

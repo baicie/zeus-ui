@@ -104,7 +104,6 @@ import '@zeus-web/popover/wc/auto'
 | `defaultOpen` | `boolean` | -       | Initial uncontrolled open state.    |
 | `modal`       | `boolean` | -       | Dismisses on outside pointer input. |
 | `disabled`    | `boolean` | -       | Disables the trigger.               |
-| `forceMount`  | `boolean` | -       | Keeps content mounted while closed. |
 
 ## Events
 
@@ -160,6 +159,7 @@ Files:
 Do:
 
 - Use the copied Registry wrapper for styled application UI.
+- Set forceMount on PopoverContent to keep content mounted while closed.
 
 Do not:
 

@@ -390,12 +390,6 @@
           "description": "Disables the trigger."
         },
         {
-          "name": "forceMount",
-          "type": "boolean",
-          "default": false,
-          "description": "Keeps popover content mounted while closed."
-        },
-        {
           "name": "className",
           "type": "string",
           "frameworks": ["react"],

@@ -126,12 +126,13 @@ function createPhase11RegistryMetadata(
           type: 'boolean',
           description: 'Disables the trigger.',
         },
-        {
-          name: 'forceMount',
-          type: 'boolean',
-          description: 'Keeps content mounted while closed.',
-        },
       ],
+      aiRules: {
+        do: shared.aiRules.do.concat(
+          'Set forceMount on PopoverContent to keep content mounted while closed.',
+        ),
+        dont: shared.aiRules.dont,
+      },
       events: [
         {
           name: 'open-change',

@@ -161,6 +161,21 @@ function verifyFramework(framework: 'react' | 'vue'): void {
     assert.match(aiGuide, /## Icons/)
     assert.match(aiGuide, /zweb add button/)
     run(['add', '--all', '--skip-deps'])
+    writeFileSync(
+      join(cwd, `src/popover-contract.${framework === 'react' ? 'tsx' : 'ts'}`),
+      framework === 'react'
+        ? [
+            "import { Popover, PopoverContent } from '@/components/ui/popover'",
+            'export const content = <PopoverContent forceMount />',
+            '// @ts-expect-error forceMount belongs to PopoverContent',
+            'export const root = <Popover forceMount />',
+          ].join('\n')
+        : [
+            "import type { PopoverRegistryProps } from '@/components/ui/popover'",
+            '// @ts-expect-error forceMount belongs to PopoverContent',
+            'export const root: PopoverRegistryProps = { forceMount: true }',
+          ].join('\n'),
+    )
     const typecheck = spawnSync(
       process.execPath,
       [resolve(root, 'node_modules/typescript/bin/tsc'), '-p', cwd],
