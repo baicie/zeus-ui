@@ -133,7 +133,7 @@ function setupToast(
       onMouseEnter={() => {
         if (timer) clearTimeout(timer)
       }}
-      onMouseLeave={schedule}
+      onMouseLeave={() => schedule()}
     >
       <Slot />
     </Host>

@@ -274,6 +274,11 @@ export const DropdownMenuTrigger = defineElement<object, HTMLElement>(
 function setupContent(_props: object, ctx: DefineElementContext<HTMLElement>) {
   const menu = useDropdownMenuContext(ctx.host)
   const handleKeyDown = (nativeEvent: KeyboardEvent) => {
+    if (nativeEvent.key === 'Tab') {
+      menu()?.close(nativeEvent)
+      return
+    }
+
     if (nativeEvent.key === 'Escape') {
       nativeEvent.preventDefault()
       menu()?.close(nativeEvent, true)

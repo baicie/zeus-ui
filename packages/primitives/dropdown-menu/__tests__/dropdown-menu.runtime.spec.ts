@@ -289,4 +289,36 @@ describe('dropdown menu keyboard behavior', () => {
     expect(menu.open).toBe(false)
     expect(document.activeElement).toBe(trigger)
   })
+
+  it.each([false, true])(
+    'closes on Tab without intercepting navigation (shift: %s)',
+    async shiftKey => {
+      const menu = await createMenu()
+      const outside = document.createElement('button')
+      outside.textContent = 'Outside'
+      if (shiftKey) menu.before(outside)
+      else menu.after(outside)
+
+      getTrigger(menu).click()
+      await nextRender()
+      const first = getItem(menu, 'first')
+      expect(document.activeElement).toBe(first)
+
+      const tab = new KeyboardEvent('keydown', {
+        key: 'Tab',
+        shiftKey,
+        bubbles: true,
+        cancelable: true,
+      })
+      first.dispatchEvent(tab)
+      expect(tab.defaultPrevented).toBe(false)
+      // jsdom does not perform the browser's default Tab focus navigation.
+      outside.focus()
+      await nextRender()
+
+      expect(menu.open).toBe(false)
+      expect(menu.querySelector('[role="menu"]')).toHaveAttribute('hidden')
+      expect(document.activeElement).toBe(outside)
+    },
+  )
 })

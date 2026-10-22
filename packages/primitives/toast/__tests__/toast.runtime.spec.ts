@@ -113,6 +113,31 @@ describe('toast runtime', () => {
     }
   })
 
+  it.each([50, 0])(
+    'preserves duration %i when the pointer leaves a paused toast',
+    async duration => {
+      vi.useFakeTimers()
+      try {
+        const toastPromise = createToast(duration)
+        await vi.advanceTimersByTimeAsync(0)
+        const toast = await toastPromise
+
+        toast.dispatchEvent(new MouseEvent('mouseenter'))
+        await vi.advanceTimersByTimeAsync(100)
+        expect(toast).not.toHaveAttribute('hidden')
+
+        toast.dispatchEvent(new MouseEvent('mouseleave'))
+        await vi.advanceTimersByTimeAsync(1)
+        expect(toast).not.toHaveAttribute('hidden')
+
+        await vi.advanceTimersByTimeAsync(duration || 100)
+        expect(toast.hasAttribute('hidden')).toBe(duration !== 0)
+      } finally {
+        vi.useRealTimers()
+      }
+    },
+  )
+
   it('starts auto-dismiss when a controlled toast opens externally', async () => {
     vi.useFakeTimers()
     try {

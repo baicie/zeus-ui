@@ -92,6 +92,9 @@ export const FormField = defineElement<FormFieldProps, FormFieldElement>(
 
 export interface FormFieldControlElement extends HTMLElement {}
 
+type ReleaseControl = () => void
+const controlOwners = new WeakMap<HTMLElement, ReleaseControl>()
+
 function setupControl(
   _props: object,
   ctx: DefineElementContext<FormFieldControlElement>,
@@ -104,29 +107,17 @@ function setupControl(
     lastAriaInvalid: string | null | undefined
     lastAriaRequired: string | null | undefined
     lastDisabled: boolean | undefined
+    generatedId?: string
+    describedByIds: string[]
   }
-  const managedControls = new WeakMap<HTMLElement, ManagedControlState>()
+  const managedControls = new Map<HTMLElement, ManagedControlState>()
+  let disposed = false
   const controls = () =>
     Array.from(
       ctx.host.querySelectorAll<HTMLElement>(
         'input, textarea, select, [role="combobox"]',
       ),
-    )
-
-  const getManagedState = (control: HTMLElement): ManagedControlState => {
-    const existing = managedControls.get(control)
-    if (existing) return existing
-    const state: ManagedControlState = {
-      originalAriaInvalid: control.getAttribute('aria-invalid'),
-      originalAriaRequired: control.getAttribute('aria-required'),
-      originalDisabled: control.hasAttribute('disabled'),
-      lastAriaInvalid: undefined,
-      lastAriaRequired: undefined,
-      lastDisabled: undefined,
-    }
-    managedControls.set(control, state)
-    return state
-  }
+    ).filter(control => control.closest('zw-form-field-control') === ctx.host)
 
   const syncManagedAttribute = (
     control: HTMLElement,
@@ -144,6 +135,10 @@ function setupControl(
     const current = control.getAttribute(name)
 
     if (enabled) {
+      if (last === undefined) {
+        if (name === 'aria-invalid') state.originalAriaInvalid = current
+        else state.originalAriaRequired = current
+      }
       control.setAttribute(name, value)
       if (name === 'aria-invalid') state.lastAriaInvalid = value
       else state.lastAriaRequired = value
@@ -158,9 +153,76 @@ function setupControl(
     else state.lastAriaRequired = undefined
   }
 
+  const syncDisabled = (
+    control: HTMLElement,
+    state: ManagedControlState,
+    disabled: boolean,
+  ) => {
+    if (disabled) {
+      if (state.lastDisabled === undefined)
+        state.originalDisabled = control.hasAttribute('disabled')
+      control.setAttribute('disabled', '')
+      state.lastDisabled = true
+      return
+    }
+    if (
+      state.lastDisabled !== undefined &&
+      control.hasAttribute('disabled') === state.lastDisabled
+    ) {
+      if (state.originalDisabled) control.setAttribute('disabled', '')
+      else control.removeAttribute('disabled')
+    }
+    state.lastDisabled = undefined
+  }
+
+  const restoreControl = (control: HTMLElement, state: ManagedControlState) => {
+    syncManagedAttribute(control, state, 'aria-invalid', false, 'true')
+    syncManagedAttribute(control, state, 'aria-required', false, 'true')
+    syncDisabled(control, state, false)
+    if (state.generatedId && control.id === state.generatedId)
+      control.removeAttribute('id')
+    const describedBy = (control.getAttribute('aria-describedby') || '')
+      .split(/\s+/)
+      .filter(id => Boolean(id) && !state.describedByIds.includes(id))
+      .join(' ')
+    if (describedBy) control.setAttribute('aria-describedby', describedBy)
+    else control.removeAttribute('aria-describedby')
+  }
+
+  const releaseControl = (control: HTMLElement, state: ManagedControlState) => {
+    if (managedControls.get(control) !== state) return
+    restoreControl(control, state)
+    managedControls.delete(control)
+    controlOwners.delete(control)
+  }
+
+  const getManagedState = (control: HTMLElement): ManagedControlState => {
+    const existing = managedControls.get(control)
+    if (existing) return existing
+    controlOwners.get(control)?.()
+    const state: ManagedControlState = {
+      originalAriaInvalid: control.getAttribute('aria-invalid'),
+      originalAriaRequired: control.getAttribute('aria-required'),
+      originalDisabled: control.hasAttribute('disabled'),
+      lastAriaInvalid: undefined,
+      lastAriaRequired: undefined,
+      lastDisabled: undefined,
+      describedByIds: [],
+    }
+    managedControls.set(control, state)
+    controlOwners.set(control, () => releaseControl(control, state))
+    return state
+  }
+
   const syncControls = () => {
+    if (disposed) return
     const value = field()
-    for (const [index, control] of controls().entries()) {
+    const currentControls = controls()
+    const currentSet = new Set(currentControls)
+    for (const [control, state] of managedControls) {
+      if (!currentSet.has(control)) releaseControl(control, state)
+    }
+    for (const [index, control] of currentControls.entries()) {
       if (value) {
         const state = getManagedState(control)
         if (control.id) {
@@ -171,6 +233,7 @@ function setupControl(
               ? value.getControlId()
               : `${value.getControlId()}-${index + 1}`
           control.id = controlId
+          state.generatedId = controlId
           if (index === 0) value.setControlId(controlId)
         }
         syncManagedAttribute(
@@ -187,31 +250,18 @@ function setupControl(
           value.isRequired(),
           'true',
         )
-        const disabled = value.isDisabled()
-        const currentDisabled = control.hasAttribute('disabled')
-        if (disabled) {
-          control.setAttribute('disabled', '')
-          state.lastDisabled = true
-        } else if (
-          state.lastDisabled !== undefined &&
-          currentDisabled === state.lastDisabled
-        ) {
-          if (state.originalDisabled) control.setAttribute('disabled', '')
-          else control.removeAttribute('disabled')
-          state.lastDisabled = undefined
-        } else {
-          state.lastDisabled = undefined
-        }
-        const managedIds = [value.getDescriptionId(), value.getMessageId()]
+        syncDisabled(control, state, value.isDisabled())
         const current = (control.getAttribute('aria-describedby') || '')
           .split(/\s+/)
-          .filter(id => Boolean(id) && !managedIds.includes(id))
-        const describedBy = [
-          ...current,
+          .filter(id => Boolean(id) && !state.describedByIds.includes(id))
+        const fieldIds = [
           value.getDescriptionId(),
           ...(value.isInvalid() ? [value.getMessageId()] : []),
         ]
-        const describedByValue = Array.from(new Set(describedBy)).join(' ')
+        state.describedByIds = fieldIds.filter(id => !current.includes(id))
+        const describedByValue = Array.from(
+          new Set([...current, ...fieldIds]),
+        ).join(' ')
         if (describedByValue)
           control.setAttribute('aria-describedby', describedByValue)
         else control.removeAttribute('aria-describedby')
@@ -230,10 +280,14 @@ function setupControl(
     <Host
       ref={(element: HTMLElement | null) => {
         if (!element) {
+          disposed = true
           observer?.disconnect()
           observer = undefined
+          for (const [control, state] of managedControls)
+            releaseControl(control, state)
           return
         }
+        disposed = false
         syncControls()
         observer = new MutationObserver(syncControls)
         observer.observe(element, { childList: true, subtree: true })
