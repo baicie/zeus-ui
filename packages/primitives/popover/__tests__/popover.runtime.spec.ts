@@ -71,4 +71,45 @@ describe('popover runtime', () => {
     await tick()
     expect(popover).not.toHaveAttribute('open')
   })
+
+  it('opens from default-open and closes again from its trigger', async () => {
+    const popover = document.createElement('zw-popover') as RuntimeElement
+    popover.setAttribute('default-open', '')
+    popover.innerHTML =
+      '<zw-popover-trigger>Open</zw-popover-trigger><zw-popover-content>Content</zw-popover-content>'
+    document.body.append(popover)
+    await popover.componentOnReady?.()
+    await Promise.all(
+      [...popover.querySelectorAll<RuntimeElement>('*')].map(element =>
+        element.componentOnReady?.(),
+      ),
+    )
+    await tick()
+
+    const trigger = popover.querySelector('button')
+    expect(popover).not.toHaveAttribute('open')
+    expect(popover.querySelector('[role="dialog"]')).not.toHaveAttribute(
+      'hidden',
+    )
+    trigger?.click()
+    await tick()
+    expect(popover.querySelector('[role="dialog"]')).toHaveAttribute('hidden')
+  })
+
+  it('keeps an explicitly closed popover closed when default-open is also set', async () => {
+    const popover = document.createElement('zw-popover') as RuntimeElement
+    ;(popover as RuntimeElement & { open?: boolean }).open = false
+    popover.setAttribute('default-open', '')
+    popover.innerHTML = '<zw-popover-content>Content</zw-popover-content>'
+    document.body.append(popover)
+    await popover.componentOnReady?.()
+    await Promise.all(
+      [...popover.querySelectorAll<RuntimeElement>('*')].map(element =>
+        element.componentOnReady?.(),
+      ),
+    )
+    await tick()
+
+    expect(popover.querySelector('[role="dialog"]')).toHaveAttribute('hidden')
+  })
 })

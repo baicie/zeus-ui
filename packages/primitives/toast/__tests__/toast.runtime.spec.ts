@@ -8,6 +8,7 @@ const root = existsSync(resolve(process.cwd(), 'pnpm-workspace.yaml'))
   : resolve(process.cwd(), '../../..')
 
 interface RuntimeToast extends HTMLElement {
+  open?: boolean
   componentOnReady?: () => Promise<unknown>
 }
 
@@ -48,6 +49,50 @@ describe('toast runtime', () => {
 
     toast.querySelector('button')?.click()
     await tick()
+    expect(toast).toHaveAttribute('hidden')
+  })
+
+  it('opens from default-open and wires title and description ids', async () => {
+    const toast = await createToast(0)
+    expect(toast).not.toHaveAttribute('hidden')
+    expect(toast.querySelector('zw-toast-title')).toHaveAttribute(
+      'id',
+      expect.stringContaining('zw-toast-'),
+    )
+    expect(toast.querySelector('zw-toast-description')).toHaveAttribute(
+      'id',
+      expect.stringContaining('zw-toast-'),
+    )
+  })
+
+  it('closes a controlled toast when its close control is activated', async () => {
+    const toast = document.createElement('zw-toast') as RuntimeToast
+    toast.open = true
+    toast.setAttribute('duration', '0')
+    toast.innerHTML = '<zw-toast-close>Close</zw-toast-close>'
+    document.body.append(toast)
+    await toast.componentOnReady?.()
+    await Promise.all(
+      [...toast.querySelectorAll<RuntimeToast>('*')].map(element =>
+        element.componentOnReady?.(),
+      ),
+    )
+    await tick()
+
+    toast.querySelector('button')?.click()
+    await tick()
+    expect(toast).toHaveAttribute('hidden')
+    expect(toast).not.toHaveAttribute('open')
+  })
+
+  it('keeps an explicitly closed toast closed when default-open is also set', async () => {
+    const toast = document.createElement('zw-toast') as RuntimeToast
+    toast.open = false
+    toast.setAttribute('default-open', '')
+    document.body.append(toast)
+    await toast.componentOnReady?.()
+    await tick()
+
     expect(toast).toHaveAttribute('hidden')
   })
 

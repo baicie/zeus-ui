@@ -130,6 +130,50 @@ describe('dropdown menu keyboard behavior', () => {
     expect(document.activeElement).toBe(first)
   })
 
+  it('opens from default-open and closes again from its trigger', async () => {
+    const menu = document.createElement(
+      'zw-dropdown-menu',
+    ) as RuntimeDropdownMenu
+    menu.setAttribute('default-open', '')
+    menu.innerHTML = [
+      '<zw-dropdown-menu-trigger>Open menu</zw-dropdown-menu-trigger>',
+      '<zw-dropdown-menu-content><zw-dropdown-menu-item value="first">First</zw-dropdown-menu-item></zw-dropdown-menu-content>',
+    ].join('')
+    document.body.append(menu)
+    await menu.componentOnReady?.()
+    await Promise.all(
+      [...menu.querySelectorAll<RuntimeElement>('*')].map(element =>
+        element.componentOnReady?.(),
+      ),
+    )
+    await nextRender()
+
+    expect(menu.querySelector('[role="menu"]')).not.toHaveAttribute('hidden')
+    getTrigger(menu).click()
+    await nextRender()
+    expect(menu.querySelector('[role="menu"]')).toHaveAttribute('hidden')
+  })
+
+  it('keeps an explicitly closed menu closed when default-open is also set', async () => {
+    const menu = document.createElement(
+      'zw-dropdown-menu',
+    ) as RuntimeDropdownMenu
+    menu.open = false
+    menu.setAttribute('default-open', '')
+    menu.innerHTML =
+      '<zw-dropdown-menu-content>Content</zw-dropdown-menu-content>'
+    document.body.append(menu)
+    await menu.componentOnReady?.()
+    await Promise.all(
+      [...menu.querySelectorAll<RuntimeElement>('*')].map(element =>
+        element.componentOnReady?.(),
+      ),
+    )
+    await nextRender()
+
+    expect(menu.querySelector('[role="menu"]')).toHaveAttribute('hidden')
+  })
+
   it('opens from trigger arrow keys and focuses the matching edge item', async () => {
     const menu = await createMenu()
     const trigger = getTrigger(menu)

@@ -55,6 +55,18 @@ function setupMenu(
   ctx: DefineElementContext<DropdownMenuElement, DropdownMenuEmits>,
 ) {
   const contentId = `zw-dropdown-menu-${++dropdownId}`
+  const [open, setOpenState] = createSignal(
+    props.open !== undefined ? Boolean(props.open) : Boolean(props.defaultOpen),
+  )
+  let initialOpenSync = true
+  createEffect(() => {
+    const propOpen = Boolean(props.open)
+    if (initialOpenSync) {
+      initialOpenSync = false
+      return
+    }
+    setOpenState(propOpen)
+  })
   let trigger: HTMLElement | undefined
   let content: HTMLElement | undefined
   const getEnabledItems = () =>
@@ -69,10 +81,7 @@ function setupMenu(
     )
   let focusRequest = 0
   const value: DropdownMenuContextValue = {
-    getOpen: () =>
-      props.open !== undefined
-        ? Boolean(props.open)
-        : Boolean(props.defaultOpen),
+    getOpen: () => open(),
     isDisabled: () => Boolean(props.disabled),
     getContentId: () => contentId,
     getEnabledItems,
@@ -109,6 +118,7 @@ function setupMenu(
     focusTrigger: () => trigger?.focus(),
     setOpen: (open, nativeEvent) => {
       if (!props.disabled) {
+        setOpenState(open)
         ctx.host.open = open
         ctx.emit.openChange({ open, nativeEvent })
       }
@@ -160,7 +170,11 @@ export const DropdownMenu = defineElement<
   {
     shadow: false,
     props: {
-      open: prop(Boolean, { reflect: true }),
+      open: {
+        type: Boolean,
+        reflect: true,
+        default: () => undefined as unknown as boolean,
+      },
       defaultOpen: prop(Boolean, { attr: 'default-open' }),
       disabled: prop(Boolean),
     },

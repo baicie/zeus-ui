@@ -1,8 +1,8 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
-import type { DOMContext } from '@zeus-web/zeus-compat'
+import type { ToastContextValue } from './toast-context'
 import {
-  createContext,
   createEffect,
+  createSignal,
   defineElement,
   event,
   Host,
@@ -10,6 +10,7 @@ import {
   Slot,
 } from '@zeus-js/zeus'
 import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
+import { ToastContext } from './toast-context'
 
 export type ToastStatus = 'foreground' | 'background'
 export interface ToastProps {
@@ -30,14 +31,6 @@ export interface ToastOpenChangeDetail {
 interface ToastEmits extends Record<string, EventDefinition<unknown>> {
   openChange: EventDefinition<ToastOpenChangeDetail>
 }
-interface ToastContextValue {
-  getOpen: () => boolean
-  setOpen: (open: boolean, event?: Event) => void
-  getTitleId: () => string
-  getDescriptionId: () => string
-}
-const ToastContext =
-  createContext<ToastContextValue>() as DOMContext<ToastContextValue>
 let toastId = 0
 function setupToast(
   props: ToastProps,
@@ -45,10 +38,22 @@ function setupToast(
 ) {
   const id = `zw-toast-${++toastId}`
   let timer: ReturnType<typeof setTimeout> | undefined
-  const getOpen = () =>
-    props.open !== undefined ? Boolean(props.open) : Boolean(props.defaultOpen)
+  const [open, setOpenState] = createSignal(
+    props.open !== undefined ? Boolean(props.open) : Boolean(props.defaultOpen),
+  )
+  let initialOpenSync = true
+  createEffect(() => {
+    const propOpen = Boolean(props.open)
+    if (initialOpenSync) {
+      initialOpenSync = false
+      return
+    }
+    setOpenState(propOpen)
+  })
+  const getOpen = () => open()
   let schedule = (_duration?: number) => {}
   const setOpen = (open: boolean, nativeEvent?: Event) => {
+    setOpenState(open)
     ctx.host.open = open
     ctx.emit.openChange({ open, nativeEvent })
     if (open) {
@@ -114,7 +119,11 @@ export const Toast = defineElement<ToastProps, ToastElement, ToastEmits>(
   {
     shadow: false,
     props: {
-      open: prop(Boolean, { reflect: true }),
+      open: {
+        type: Boolean,
+        reflect: true,
+        default: () => undefined as unknown as boolean,
+      },
       defaultOpen: prop(Boolean, { attr: 'default-open' }),
       duration: prop(Number, { default: 5000 }),
       status: prop(['foreground', 'background'], { default: 'foreground' }),

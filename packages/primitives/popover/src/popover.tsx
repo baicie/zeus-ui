@@ -31,11 +31,6 @@ interface PopoverEmits extends Record<string, EventDefinition<unknown>> {
   openChange: EventDefinition<PopoverOpenChangeDetail>
 }
 let popoverId = 0
-function resolveOpen(props: PopoverProps): boolean {
-  return props.open !== undefined
-    ? Boolean(props.open)
-    : Boolean(props.defaultOpen)
-}
 
 function usePopoverContext(host: HTMLElement) {
   const [popover, setPopover] = createSignal<PopoverContextValue | undefined>(
@@ -61,10 +56,22 @@ function setupPopover(
   ctx: DefineElementContext<PopoverElement, PopoverEmits>,
 ) {
   const contentId = `zw-popover-content-${++popoverId}`
+  const [open, setOpenState] = createSignal(
+    props.open !== undefined ? Boolean(props.open) : Boolean(props.defaultOpen),
+  )
+  let initialOpenSync = true
+  createEffect(() => {
+    const propOpen = Boolean(props.open)
+    if (initialOpenSync) {
+      initialOpenSync = false
+      return
+    }
+    setOpenState(propOpen)
+  })
   let trigger: HTMLElement | undefined
   let content: HTMLElement | undefined
   const value: PopoverContextValue = {
-    getOpen: () => resolveOpen(props),
+    getOpen: () => open(),
     isDisabled: () => Boolean(props.disabled),
     getContentId: () => contentId,
     registerTrigger: element => {
@@ -77,6 +84,7 @@ function setupPopover(
     focusContent: () => content?.focus(),
     setOpen: (open, nativeEvent) => {
       if (props.disabled) return
+      setOpenState(open)
       ctx.host.open = open
       ctx.emit.openChange({ open, nativeEvent })
       if (open) {
@@ -122,7 +130,11 @@ export const Popover = defineElement<
   {
     shadow: false,
     props: {
-      open: prop(Boolean, { reflect: true }),
+      open: {
+        type: Boolean,
+        reflect: true,
+        default: () => undefined as unknown as boolean,
+      },
       defaultOpen: prop(Boolean, { attr: 'default-open' }),
       modal: prop(Boolean, { default: true }),
       disabled: prop(Boolean),
