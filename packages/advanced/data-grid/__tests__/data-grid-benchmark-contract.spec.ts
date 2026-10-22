@@ -34,6 +34,10 @@ interface BenchmarkBaselineManifest {
     rowCount: number
     columnCount: number
     observed: Record<string, number>
+    memoryTrend: Record<
+      'render' | 'scroll' | 'update',
+      { heapUsedDelta: number; rssDelta: number }
+    >
   }>
 }
 
@@ -134,6 +138,19 @@ describe('data-grid benchmark contract', () => {
     expect(manifest.scenarios).toHaveLength(
       DATA_GRID_BENCHMARK_SCENARIOS.length,
     )
+    for (const scenario of manifest.scenarios) {
+      expect(Object.keys(scenario.memoryTrend).sort()).toEqual([
+        'render',
+        'scroll',
+        'update',
+      ])
+      for (const phase of ['render', 'scroll', 'update'] as const) {
+        expect(Number.isFinite(scenario.memoryTrend[phase].heapUsedDelta)).toBe(
+          true,
+        )
+        expect(Number.isFinite(scenario.memoryTrend[phase].rssDelta)).toBe(true)
+      }
+    }
     expect(pkg.scripts?.['check:data-grid-benchmark-baseline']).toBe(
       'tsx scripts/checks/data-grid/check-benchmark-baseline.ts',
     )

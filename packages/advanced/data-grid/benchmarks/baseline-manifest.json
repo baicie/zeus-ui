@@ -31,6 +31,20 @@
         "renderedCells": 147,
         "totalElements": 195,
         "renderedCellsMax": 210
+      },
+      "memoryTrend": {
+        "render": {
+          "heapUsedDelta": 12116736,
+          "rssDelta": 4440064
+        },
+        "scroll": {
+          "heapUsedDelta": 36594280,
+          "rssDelta": 1376256
+        },
+        "update": {
+          "heapUsedDelta": 25396048,
+          "rssDelta": 9093120
+        }
       }
     },
     {
@@ -46,6 +60,20 @@
         "renderedCells": 147,
         "totalElements": 195,
         "renderedCellsMax": 210
+      },
+      "memoryTrend": {
+        "render": {
+          "heapUsedDelta": 16838376,
+          "rssDelta": 23101440
+        },
+        "scroll": {
+          "heapUsedDelta": 38818424,
+          "rssDelta": -102416384
+        },
+        "update": {
+          "heapUsedDelta": 11527832,
+          "rssDelta": 43696128
+        }
       }
     },
     {
@@ -61,6 +89,20 @@
         "renderedCells": 147,
         "totalElements": 195,
         "renderedCellsMax": 210
+      },
+      "memoryTrend": {
+        "render": {
+          "heapUsedDelta": -11158712,
+          "rssDelta": 21594112
+        },
+        "scroll": {
+          "heapUsedDelta": -43008696,
+          "rssDelta": 36175872
+        },
+        "update": {
+          "heapUsedDelta": 9436672,
+          "rssDelta": -18055168
+        }
       }
     },
     {
@@ -76,6 +118,20 @@
         "renderedCells": 147,
         "totalElements": 195,
         "renderedCellsMax": 210
+      },
+      "memoryTrend": {
+        "render": {
+          "heapUsedDelta": -4343544,
+          "rssDelta": 16367616
+        },
+        "scroll": {
+          "heapUsedDelta": 61149776,
+          "rssDelta": -77381632
+        },
+        "update": {
+          "heapUsedDelta": -42895160,
+          "rssDelta": 27869184
+        }
       }
     }
   ]
