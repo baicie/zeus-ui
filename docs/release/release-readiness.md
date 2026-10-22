@@ -151,6 +151,10 @@ Before npm publication, capture each package's current `latest` dist-tag:
 pnpm release:capture:latest --output <latest-baseline.json>
 ```
 
+Each snapshot entry records `published` and `latest`. Only an HTTP 404 records
+`published: false`; an existing package with no `latest` records
+`published: true` and `latest: null`.
+
 After npm publication, run the verifier against the immutable version, its
 release channel and that pre-publication snapshot:
 
@@ -167,7 +171,9 @@ For every package, this verifies:
 - the exact version exists
 - the requested `beta` dist-tag points to `<version>`
 - each existing package's `latest` still matches its pre-publication snapshot;
-  a newly published package may acquire its first `latest` at `<version>`
+  this also preserves an existing package's absent `latest`. Only a package
+  that returned HTTP 404 before publication may have no `latest` or acquire its
+  first `latest` at exactly `<version>`; every other value fails
 - the decoded SLSA provenance v1 subject uses the package npm purl and a
   `sha512` digest equal to the package's `dist.integrity`
 - the provenance workflow repository is `https://github.com/baicie/zeus-ui`,

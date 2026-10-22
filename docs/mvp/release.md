@@ -196,7 +196,7 @@ dispatch-publish:
 
 真实 publish 按仓库和 npm dist-tag 串行执行，使用 frozen lockfile 安装依赖，checkout 不持久化 Git 凭据，并在 fresh build 与 tarball 校验通过后发布，避免并发完成顺序回退 dist-tag 或发布缺失产物。正式触发前，`Release` environment 必须配置 required reviewer，且启用的 `refs/tags/v*` tag ruleset 必须禁止更新和删除版本 tag；workflow 内的发布前复核用于缩短竞态窗口，ruleset 才是 tag 不可变性的仓库级保证。
 
-publish workflow 在发布前会用 `pnpm release:capture:latest` 快照每个包的 `latest`，发布后以 `--latest-baseline` 将快照文件传给 published verifier，确保 beta 只推进 `beta` 而不漂移已有包的 `latest`。稳定版使用 `latest` 通道时，期望的 `latest` 就是当前发布版本。
+publish workflow 在发布前会用 `pnpm release:capture:latest` 快照每个包的发布状态与 `latest`，发布后以 `--latest-baseline` 将快照文件传给 published verifier，确保 beta 只推进 `beta` 而不漂移已有包的 `latest`。只有快照时 registry 返回 404 的新包，才允许首次 `latest` 缺失或精确指向本次版本。稳定版使用 `latest` 通道时，期望的 `latest` 就是当前发布版本。
 
 ---
 
@@ -317,9 +317,9 @@ pnpm ci-publish --version 0.1.0 --tag latest --no-skip-existing
 
 ### 首次预发布同时产生 `latest`
 
-npm registry 要求每个包始终存在 `latest`。首次使用 `beta` 发布包时，registry 可能让 `beta` 和 `latest` 同时指向该首个预发布版本；不得删除 `latest`、unpublish 或发布占位稳定版。后续 beta 只推进 `beta`，`latest` 保持原值，直到首个稳定版使用 `latest` 发布。
+首次使用 `beta` 发布包时，registry 可能让 `beta` 和 `latest` 同时指向该首个预发布版本。这是首次发布的允许状态，不代表 npm 保证所有包必须始终存在 `latest`。本项目不得通过删除 `latest`、unpublish 或发布占位稳定版处理该状态。后续 beta 只推进 `beta`，`latest` 保持原值，直到首个稳定版使用 `latest` 发布。
 
-因此每次 beta 发布后的预期是 `beta` 指向目标版本，已有包的 `latest` 与发布前逐包快照一致。首次发布的新包允许 `latest` 指向本次版本。已经发布的版本必须保持不可变，不得覆盖、删除或重新发布。
+因此每次 beta 发布后的预期是 `beta` 指向目标版本，已有包的 `latest` 与发布前逐包快照一致，包括原先缺失 `latest` 的包。只有快照时 registry 返回 404 的新包，才允许首次 `latest` 缺失或精确指向本次版本；其他值一律失败。已经发布的版本必须保持不可变，不得覆盖、删除或重新发布。
 
 ### dry-run 后本地有改动
 
