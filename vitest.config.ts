@@ -176,6 +176,9 @@ export default defineConfig({
             // Popover and Toast runtime tests require DOM globals.
             'packages/primitives/popover/__tests__/popover.runtime.spec.ts',
             'packages/primitives/toast/__tests__/toast.runtime.spec.ts',
+            // Independently loaded Web Component entries require DOM globals.
+            'packages/primitives/accordion/__tests__/accordion-runtime.spec.ts',
+            'packages/primitives/tabs/__tests__/tabs-runtime.spec.ts',
           ],
         },
       },
