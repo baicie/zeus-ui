@@ -472,9 +472,12 @@ function setup(
     })
   }
 
-  const syncBooleanAttributeProps = () => {
-    for (const name of SELECT_BOOLEAN_ATTRIBUTES) {
-      ctx.host[name] = ctx.host.hasAttribute(name)
+  const syncBooleanAttributeProps = (
+    names: readonly (typeof SELECT_BOOLEAN_ATTRIBUTES)[number][],
+  ) => {
+    for (const name of names) {
+      const value = ctx.host.hasAttribute(name)
+      if (Boolean(ctx.host[name]) !== value) ctx.host[name] = value
     }
   }
 
@@ -707,9 +710,15 @@ function setup(
                 setHostValues(ctx.host, selectedValues, Boolean(props.multiple))
               }
 
-              if (records.some(record => record.target === ctx.host)) {
-                syncBooleanAttributeProps()
-              }
+              syncBooleanAttributeProps(
+                SELECT_BOOLEAN_ATTRIBUTES.filter(name =>
+                  records.some(
+                    record =>
+                      record.target === ctx.host &&
+                      record.attributeName === name,
+                  ),
+                ),
+              )
               queueSync()
             })
             observer.observe(control, {
@@ -722,7 +731,11 @@ function setup(
               attributes: true,
               attributeFilter: SELECT_BOOLEAN_ATTRIBUTES.slice(),
             })
-            syncBooleanAttributeProps()
+            syncBooleanAttributeProps(
+              SELECT_BOOLEAN_ATTRIBUTES.filter(name =>
+                ctx.host.hasAttribute(name),
+              ),
+            )
             queueSync()
           }}
           part="native"
