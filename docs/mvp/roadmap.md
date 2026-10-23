@@ -848,8 +848,9 @@ provenance verifier、`release:final` 与上述 Phase 15 本地/CI 测试已实�
 当前剩余工作的依赖顺序是：
 
 ```txt
-1. Phase 15：完成 0.1.0 稳定版发布。
-2. 发布后复核 registry package、消费者安装和 npm provenance。
+1. 保持在 Phase 15 发布前：不要执行 stable publish、`v0.1.0` tag 或发布后复核。
+2. 用户决定恢复发布并配置 Release 审核流程后，再发布 0.1.0 并验证独立
+   registry consumer/provenance。
 ```
 
 ```txt
