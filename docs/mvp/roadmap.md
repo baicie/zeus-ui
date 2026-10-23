@@ -802,6 +802,15 @@ provenance verifier、`release:final` 与上述 Phase 15 本地/CI 测试已实�
 `0.1.0-beta.33`。尚未完成路线图要求的 `0.1.0` 稳定版发布及发布后 registry、provenance
 和独立消费者复核，因此本阶段仍未完成。
 
+## 2026-10-23 发布前复核
+
+- UI Phase 15 的发布前验证已完成，包含 `release:final 0.1.0`、strict readiness、113
+  项测试和 40 包 tarball dry-run；beta.33 的独立 Golden 消费者验收证据已持久化在
+  Zeus 主仓库的 `docs/internal/golden-components-acceptance-2026-10-23/report.json`。
+- 稳定版 publish、`v0.1.0` tag、稳定 registry/provenance 和独立消费者的发布后复核
+  尚未执行；`Release` environment 当前没有 required reviewer。按项目决定暂不配置
+  审核人，路线图停在发布前，不以 dry-run 结果替代真实发布后的证据。
+
 ---
 
 # 版本节奏建议
