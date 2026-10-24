@@ -194,7 +194,7 @@ dispatch-publish:
           --raw-field release_sha="$RELEASE_SHA"
 ```
 
-真实 publish 按仓库和 npm dist-tag 串行执行，使用 frozen lockfile 安装依赖，checkout 不持久化 Git 凭据，并在 fresh build 与 tarball 校验通过后发布，避免并发完成顺序回退 dist-tag 或发布缺失产物。正式触发前，`Release` environment 必须配置 required reviewer，且启用的 `refs/tags/v*` tag ruleset 必须禁止更新和删除版本 tag；workflow 内的发布前复核用于缩短竞态窗口，ruleset 才是 tag 不可变性的仓库级保证。
+真实 publish 按仓库和 npm dist-tag 串行执行，使用 frozen lockfile 安装依赖，checkout 不持久化 Git 凭据，并在 fresh build 与 tarball 校验通过后发布，避免并发完成顺序回退 dist-tag 或发布缺失产物。正式触发前，启用的 `refs/tags/v*` tag ruleset 必须禁止更新和删除版本 tag；workflow 内的发布前复核用于缩短竞态窗口，ruleset 是 tag 不可变性的仓库级保证。当前发布策略不配置 `Release` environment required reviewer。
 
 publish workflow 在发布前会用 `pnpm release:capture:latest` 快照每个包的发布状态与 `latest`，发布后以 `--latest-baseline` 将快照文件传给 published verifier，确保 beta 只推进 `beta` 而不漂移已有包的 `latest`。只有快照时 registry 返回 404 的新包，才允许首次 `latest` 缺失或精确指向本次版本。稳定版使用 `latest` 通道时，期望的 `latest` 就是当前发布版本。
 
@@ -295,7 +295,7 @@ pnpm ci-publish --version <version> --tag beta --dry-run
 
 ### npm 401 Unauthorized
 
-确保仓库 Actions secret 中设置了 `NPM_PUBLISH_TOKEN`，workflow 使用的 `Release` environment 至少配置一名 required reviewer，并启用禁止更新或删除 `refs/tags/v*` 的 tag ruleset。release workflow 不接收 npm token；独立 publish run 只读取 `NPM_PUBLISH_TOKEN`。其他 workflow 通过 reusable `workflow_call` 调用时也必须显式映射该 secret。
+确保仓库 Actions secret 中设置了 `NPM_PUBLISH_TOKEN`，并启用禁止更新或删除 `refs/tags/v*` 的 tag ruleset。当前发布 workflow 不使用 `Release` environment reviewer gate。release workflow 不接收 npm token；独立 publish run 只读取 `NPM_PUBLISH_TOKEN`。其他 workflow 通过 reusable `workflow_call` 调用时也必须显式映射该 secret。
 
 ### npm provenance 失败
 
