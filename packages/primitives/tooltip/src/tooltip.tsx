@@ -99,7 +99,11 @@ export const Tooltip = defineElement<
   {
     shadow: false,
     props: {
-      open: prop(Boolean, { reflect: true }),
+      open: {
+        type: Boolean,
+        reflect: true,
+        default: () => undefined as unknown as boolean,
+      },
       defaultOpen: prop(Boolean, { attr: 'default-open' }),
       disabled: prop(Boolean),
       delayDuration: prop(Number, { attr: 'delay-duration', default: 300 }),

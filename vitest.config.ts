@@ -179,6 +179,7 @@ export default defineConfig({
             'packages/primitives/tabs/__tests__/tabs-runtime.spec.ts',
             'packages/primitives/checkbox/__tests__/checkbox-runtime.spec.ts',
             'packages/primitives/switch/__tests__/switch-runtime.spec.ts',
+            'packages/primitives/__tests__/*-runtime.spec.ts',
             'packages/primitives/textarea/__tests__/textarea-runtime.spec.ts',
             'packages/advanced/chat/__tests__/chat-composer-runtime.spec.ts',
           ],
