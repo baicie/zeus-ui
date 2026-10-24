@@ -27,7 +27,6 @@ describe('switch primitive protocol', () => {
       props: {
         checked: {
           type: 'boolean',
-          default: false,
           reflect: true,
         },
         size: {

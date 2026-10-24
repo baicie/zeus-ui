@@ -798,8 +798,8 @@ Chat 与 Data Grid 为 64 KiB。该检查不替代发布后的隔离 npm consume
 ```
 
 状态：**进行中**。测试矩阵、发布前 readiness/strict/tarball gate、CI、registry
-provenance verifier、`release:final` 与上述 Phase 15 本地/CI 测试已实现；当前仓库版本为
-`0.1.0-beta.33`。尚未完成路线图要求的 `0.1.0` 稳定版发布及发布后 registry、provenance
+provenance verifier、`release:final` 与上述 Phase 15 本地/CI 测试已实现；当前仓库已准备
+`0.1.0`。尚未完成路线图要求的 `0.1.0` 稳定版发布及发布后 registry、provenance
 和独立消费者复核，因此本阶段仍未完成。
 
 ## 2026-10-23 发布前复核
@@ -808,8 +808,8 @@ provenance verifier、`release:final` 与上述 Phase 15 本地/CI 测试已实�
   项测试和 40 包 tarball dry-run；beta.33 的独立 Golden 消费者验收证据已持久化在
   Zeus 主仓库的 `docs/internal/golden-components-acceptance-2026-10-23/report.json`。
 - 稳定版 publish、`v0.1.0` tag、稳定 registry/provenance 和独立消费者的发布后复核
-  尚未执行；`Release` environment 当前没有 required reviewer。按项目决定暂不配置
-  审核人，路线图停在发布前，不以 dry-run 结果替代真实发布后的证据。
+  尚未执行。当前直接发布策略不依赖 `Release` environment reviewer；仍需完成真实发布
+  后的证据复核，不以 dry-run 结果替代发布后的证据。
 
 ---
 
@@ -848,9 +848,8 @@ provenance verifier、`release:final` 与上述 Phase 15 本地/CI 测试已实�
 当前剩余工作的依赖顺序是：
 
 ```txt
-1. 保持在 Phase 15 发布前：不要执行 stable publish、`v0.1.0` tag 或发布后复核。
-2. 用户决定恢复发布并配置 Release 审核流程后，再发布 0.1.0 并验证独立
-   registry consumer/provenance。
+1. 完成版本 PR 合并后，从 `main` 执行 stable publish、`v0.1.0` tag 和发布后复核。
+2. 验证独立 registry consumer/provenance，并将运行记录回填到 Phase 15。
 ```
 
 ```txt

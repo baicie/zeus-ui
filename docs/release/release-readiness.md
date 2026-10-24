@@ -223,9 +223,8 @@ release version must still be a valid, non-zero semver version.
 4. Run `pnpm release:plan --tag <tag>` and review every version change.
 5. Commit the prepared version files, open a pull request, wait for all required
    checks and merge it into `main`.
-6. Ensure the repository Actions secret `NPM_PUBLISH_TOKEN` is configured, the
-   `Release` environment has a required reviewer, and an active tag ruleset
-   blocks updates and deletions for `refs/tags/v*`.
+6. Ensure the repository Actions secret `NPM_PUBLISH_TOKEN` is configured and
+   an active tag ruleset blocks updates and deletions for `refs/tags/v*`.
 7. Dispatch the release workflow from `main`, after confirming that it contains
    the merged version pull request.
 
@@ -253,7 +252,7 @@ The release job exports the tag commit as `release_sha`, then a narrowly scoped
 with `v<version>` as its workflow ref. This separate tag-scoped event is
 required so npm provenance receives the actual release `GITHUB_REF` and `GITHUB_SHA`,
 rather than the earlier release-dispatch commit.
-After any `Release` environment approval, publish explicitly fails unless its
+The `Release` environment has no required reviewer. Publish explicitly fails unless its
 event ref/SHA matches version and `release_sha`. It checks out that immutable
 SHA with credential persistence disabled, verifies that `v<version>` resolves
 to it, refreshes the fixed remote `main` refspec, and runs
@@ -265,7 +264,7 @@ so publish runs
 access. It receives only `NPM_PUBLISH_TOKEN` and serializes publication
 per npm dist-tag. The reusable `workflow_call` entry is subject to the same
 tag/SHA checks. All third-party Actions in these privileged workflows are
-pinned to a full commit SHA. The required environment review is the human gate;
+pinned to a full commit SHA. Version pull requests and CI checks gate publication;
 the active tag ruleset is the repository-level guarantee that release tags
 cannot be updated or deleted during the workflow.
 

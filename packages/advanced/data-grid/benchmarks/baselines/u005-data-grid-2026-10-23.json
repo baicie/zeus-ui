@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "baselineId": "u005-data-grid-2026-10-23",
+  "recordedAt": "2026-10-23",
+  "commit": "74fe9ea33f7a51eb8551debe9992cebfc1a0ebe7",
+  "packageVersion": "0.1.0-beta.33",
+  "dataMode": "sparse",
+  "command": "node_modules/.bin/vitest --root . --project data-grid-benchmark --run --reporter=verbose",
+  "environment": {
+    "os": "Darwin 24.6.0",
+    "architecture": "arm64",
+    "node": "v26.9.0",
+    "viewport": "640x480"
+  },
+  "budgetPolicy": {
+    "maxRenderedCells": 600,
+    "timing": "informational trend; compare repeated runs on the same device",
+    "memory": "informational trend; compare repeated runs on the same device"
+  },
+  "scenarios": [
+    {
+      "name": "10k rows x 20 columns",
+      "rowCount": 10000,
+      "columnCount": 20,
+      "observed": {
+        "firstRenderMs": 116.76583299999993,
+        "averageFrameLatencyMs": 25.330463875000007,
+        "framesPerSecond": 39.47815582591654,
+        "rowsUpdateMs": 35.88562499999989,
+        "columnsUpdateMs": 61.513374999999996,
+        "renderedCells": 147,
+        "totalElements": 195,
+        "renderedCellsMax": 210
+      },
+      "memoryTrend": {
+        "render": {
+          "heapUsedDelta": 12116736,
+          "rssDelta": 4440064
+        },
+        "scroll": {
+          "heapUsedDelta": 36594280,
+          "rssDelta": 1376256
+        },
+        "update": {
+          "heapUsedDelta": 25396048,
+          "rssDelta": 9093120
+        }
+      }
+    },
+    {
+      "name": "100k rows x 20 columns",
+      "rowCount": 100000,
+      "columnCount": 20,
+      "observed": {
+        "firstRenderMs": 88.37329199999999,
+        "averageFrameLatencyMs": 24.136556574999993,
+        "framesPerSecond": 41.43093058418174,
+        "rowsUpdateMs": 63.00675000000001,
+        "columnsUpdateMs": 46.564750000000004,
+        "renderedCells": 147,
+        "totalElements": 195,
+        "renderedCellsMax": 210
+      },
+      "memoryTrend": {
+        "render": {
+          "heapUsedDelta": 16838376,
+          "rssDelta": 23101440
+        },
+        "scroll": {
+          "heapUsedDelta": 38818424,
+          "rssDelta": -102416384
+        },
+        "update": {
+          "heapUsedDelta": 11527832,
+          "rssDelta": 43696128
+        }
+      }
+    },
+    {
+      "name": "100k rows x 100 columns",
+      "rowCount": 100000,
+      "columnCount": 100,
+      "observed": {
+        "firstRenderMs": 80.73966599999994,
+        "averageFrameLatencyMs": 27.225076391666562,
+        "framesPerSecond": 36.73084275738136,
+        "rowsUpdateMs": 121.23750000000018,
+        "columnsUpdateMs": 40.42950000000019,
+        "renderedCells": 147,
+        "totalElements": 195,
+        "renderedCellsMax": 210
+      },
+      "memoryTrend": {
+        "render": {
+          "heapUsedDelta": -11158712,
+          "rssDelta": 21594112
+        },
+        "scroll": {
+          "heapUsedDelta": -43008696,
+          "rssDelta": 36175872
+        },
+        "update": {
+          "heapUsedDelta": 9436672,
+          "rssDelta": -18055168
+        }
+      }
+    },
+    {
+      "name": "100k rows x 1k columns",
+      "rowCount": 100000,
+      "columnCount": 1000,
+      "observed": {
+        "firstRenderMs": 76.57287500000007,
+        "averageFrameLatencyMs": 31.459961499999977,
+        "framesPerSecond": 31.786434322241643,
+        "rowsUpdateMs": 76.91804199999979,
+        "columnsUpdateMs": 39.78895899999998,
+        "renderedCells": 147,
+        "totalElements": 195,
+        "renderedCellsMax": 210
+      },
+      "memoryTrend": {
+        "render": {
+          "heapUsedDelta": -4343544,
+          "rssDelta": 16367616
+        },
+        "scroll": {
+          "heapUsedDelta": 61149776,
+          "rssDelta": -77381632
+        },
+        "update": {
+          "heapUsedDelta": -42895160,
+          "rssDelta": 27869184
+        }
+      }
+    }
+  ]
+}

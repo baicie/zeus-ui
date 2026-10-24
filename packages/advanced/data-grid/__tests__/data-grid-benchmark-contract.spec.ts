@@ -18,6 +18,7 @@ interface BenchmarkTsconfig {
 }
 
 interface DataGridPackageJson {
+  version: string
   scripts?: Record<string, string>
 }
 
@@ -128,11 +129,14 @@ describe('data-grid benchmark contract', () => {
       'packages/advanced/data-grid/benchmarks/baseline-manifest.json',
     )
     const pkg = readWorkspaceJson<DataGridPackageJson>('package.json')
+    const dataGridPackage = readWorkspaceJson<DataGridPackageJson>(
+      'packages/advanced/data-grid/package.json',
+    )
     const workflow = readWorkspaceFile('.github/workflows/test.yml')
 
     expect(manifest.schemaVersion).toBe(1)
     expect(manifest.baselineId).toMatch(/^u005-data-grid-\d{4}-\d{2}-\d{2}$/)
-    expect(manifest.packageVersion).toBe('0.1.0-beta.33')
+    expect(manifest.packageVersion).toBe(dataGridPackage.version)
     expect(manifest.dataMode).toBe('sparse')
     expect(manifest.budgetPolicy.maxRenderedCells).toBe(600)
     expect(manifest.scenarios).toHaveLength(

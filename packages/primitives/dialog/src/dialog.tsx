@@ -227,9 +227,11 @@ export const Dialog = defineElement<DialogProps, DialogElement, DialogEmits>(
   {
     shadow: false,
     props: {
-      open: prop(Boolean, {
+      open: {
+        type: Boolean,
         reflect: true,
-      }),
+        default: () => undefined as unknown as boolean,
+      },
       defaultOpen: prop(Boolean, {
         attr: 'default-open',
       }),

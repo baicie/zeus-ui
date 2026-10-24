@@ -132,9 +132,11 @@ export const Checkbox = defineElement<
   {
     shadow: false,
     props: {
-      checked: prop(Boolean, {
+      checked: {
+        type: Boolean,
         reflect: true,
-      }),
+        default: () => undefined as unknown as boolean,
+      },
       defaultChecked: prop(Boolean, {
         attr: 'default-checked',
       }),
