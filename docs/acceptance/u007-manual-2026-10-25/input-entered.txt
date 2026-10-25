@@ -1,0 +1,24 @@
+text Live Web Component preview
+						164 heading Input, Value: 2
+							165 text Input
+						166 text Theme
+						167 pop up button (collapsed, settable) Theme, Value: Light, Secondary Actions: Expand
+							168 menu
+								169 (selected) Light
+								170 Dark
+						171 text Density
+						172 pop up button (collapsed, settable) Density, Value: Default, Secondary Actions: Expand
+							173 menu
+								174 Compact
+								175 (selected) Default
+								176 Large
+					177 container Email address
+						178 text field (settable) Description: Email address, Value: <redacted>
+					179 container Invalid email
+						180 text field (settable) Description: Invalid email, Value: <redacted>
+					181 container Disabled input
+						466 text field (disabled) Disabled input
+					182 container
+						183 text Current value:  hello@example.com
+					184 
+The focused UI element is 178 text field (settable) Description: Email address, Value: <redacted>

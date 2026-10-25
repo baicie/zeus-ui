@@ -1,0 +1,28 @@
+text Live Web Component preview
+						164 heading Radio Group, Value: 2
+							165 text Radio Group
+						166 text Theme
+						167 pop up button (collapsed, settable) Theme, Value: Light, Secondary Actions: Expand
+							168 menu
+								169 (selected) Light
+								170 Dark
+						171 text Density
+						172 pop up button (collapsed, settable) Density, Value: Default, Secondary Actions: Expand
+							173 menu
+								174 Compact
+								175 (selected) Default
+								176 Large
+					177 Performance profile
+						178 container
+							179 radio button (settable, integer) Description: Efficient, Value: 0
+							402 text Efficient
+						180 container
+							181 radio button (settable, integer) Description: Balanced, Value: 0
+							403 text Balanced
+						182 container
+							183 radio button (settable, integer) Description: Performance, Value: 1
+							404 text Performance
+					184 container
+						185 text Selected profile:  Performance
+					186 
+The focused UI element is 183 radio button (settable, integer) Description: Performance, Value: 1

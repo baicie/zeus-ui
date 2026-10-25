@@ -10,6 +10,8 @@ Zeus UI 的组件可访问性验收分为两层：组件单元契约和真实浏
 
 键盘与焦点路径由 `e2e/showcase/interaction-keyboard.spec.ts` 覆盖，包含 Dialog 的 Escape 关闭与焦点回退、Tabs 的方向键/Home/End 导航、Select 的选项提交，以及 Data Grid 的 active descendant 导航。
 
+发布验收还包含逐步操作的[手工关键路径记录](../acceptance/u007-manual-2026-10-25/report.md)，覆盖上述九类控件，并记录初始状态、可见焦点、禁用项跳过和状态反馈。该记录明确执行者与实际检查范围。
+
 本地验收：
 
 ```bash

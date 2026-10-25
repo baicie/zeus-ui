@@ -1,0 +1,7 @@
+Browser tab: 1, Title: "Data Grid | Zeus Web", URL: "http://localhost:5413/components/data-grid.html#playground".
+The following is a diff from the previous accessibility tree with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.
+Removed element IDs: 716
+~								715 cell (selectable) Value: 1, ID: zg-cell-row-1-column-2
+~								726 cell (selected) zg-cell-row-2-column-2
++									924 text 2
+The focused UI element is 726 cell (selected) zg-cell-row-2-column-2
