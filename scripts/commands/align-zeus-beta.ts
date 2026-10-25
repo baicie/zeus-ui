@@ -1,7 +1,7 @@
-import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
+import { listZeusDependencyManifests } from '../release/zeus-dependency-manifests'
 import { createZeusPeerRequirement } from '../release/zeus-peer-requirement'
 
 const DEFAULT_VERSION = '0.1.1-beta.18'
@@ -41,7 +41,7 @@ export function alignZeusBeta(
   const root = options.root ?? process.cwd()
   const version = options.version ?? DEFAULT_VERSION
   const peerRange = createExpectedPeerRange(version)
-  const packageJsonFiles = discoverPackageJsonFiles(root)
+  const packageJsonFiles = listZeusDependencyManifests(root)
   const changedFiles: string[] = []
 
   for (const file of packageJsonFiles) {
@@ -104,44 +104,6 @@ export function alignZeusBeta(
     peerRange,
     changedFiles,
   }
-}
-
-function discoverPackageJsonFiles(root: string): string[] {
-  const files: string[] = []
-  walk(root, root, files)
-  return files.sort()
-}
-
-function walk(root: string, dir: string, files: string[]): void {
-  for (const name of readdirSync(dir)) {
-    const absolute = join(dir, name)
-    const stat = statSync(absolute)
-
-    if (stat.isDirectory()) {
-      if (shouldSkipDirectory(name)) {
-        continue
-      }
-
-      walk(root, absolute, files)
-      continue
-    }
-
-    if (name === 'package.json') {
-      files.push(absolute)
-    }
-  }
-}
-
-function shouldSkipDirectory(name: string): boolean {
-  return (
-    name === 'node_modules' ||
-    name === 'dist' ||
-    name === '.git' ||
-    name === '.turbo' ||
-    name === '.vitepress' ||
-    name === '.next' ||
-    name === 'coverage'
-  )
 }
 
 function createExpectedPeerRange(version: string): string {
