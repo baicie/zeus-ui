@@ -6,6 +6,12 @@ U-005 的基准线清单位于 [`baseline-manifest.json`](../../packages/advance
 
 manifest 为每个场景分别记录 render、scroll 和 update 阶段的 `heapUsedDelta` 与 `rssDelta`。这些有符号差值保留运行时回收带来的负值，也只用于同一设备和 Node 版本之间的趋势比较。
 
+当前基线为 `u005-data-grid-2026-10-24`，采集自提交 `d28d8a0047742d507d69f6f1c629231ddeca133e` 的 `@zeus-web/data-grid@0.1.0`。4 个规模场景的 render、scroll、update 共 12 项实测通过，归一化结果保存在 [`u005-data-grid-2026-10-24-report.json`](../../packages/advanced/data-grid/benchmarks/baselines/u005-data-grid-2026-10-24-report.json)。manifest 的指标直接取自该报告，结构预算仍为最多 600 个渲染单元格。
+
+采集设备为 Apple M1（8 个逻辑核）、Darwin 24.6.0、arm64、Node v26.9.0，视口为 640×480。运行时有 `release:final` 构建和示例测试、短暂的 benchmark 合同测试及系统安全服务并行，开始采样前的 1/5/15 分钟系统负载为 9.889/9.552/8.639。耗时与内存比较需要在相同设备和负载条件下复测；完整环境记录保留在 manifest 中。
+
+原 beta.33 基线已归档为 [`u005-data-grid-2026-10-23.json`](../../packages/advanced/data-grid/benchmarks/baselines/u005-data-grid-2026-10-23.json)。发布新的包版本时应重新采集并更新当前 manifest，同时保留之前的日期化记录和新运行报告。
+
 本地运行：
 
 ```sh

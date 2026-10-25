@@ -36,7 +36,6 @@ describe('dialog primitive protocol', () => {
       props: {
         open: {
           type: 'boolean',
-          default: false,
           reflect: true,
         },
         modal: {

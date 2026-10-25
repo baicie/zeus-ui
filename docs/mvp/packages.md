@@ -1055,11 +1055,11 @@ export interface CheckboxElement extends HTMLElement {
 
 #### props
 
-| prop            | type                   | default | reflect |
-| --------------- | ---------------------- | ------- | ------- |
-| `checked`       | `boolean`              | `false` | yes     |
-| `indeterminate` | `boolean`              | `false` | yes     |
-| `size`          | `'sm' \| 'md' \| 'lg'` | `'md'`  | yes     |
+| prop            | type                   | default     | reflect |
+| --------------- | ---------------------- | ----------- | ------- |
+| `checked`       | `boolean`              | `undefined` | yes     |
+| `indeterminate` | `boolean`              | `false`     | yes     |
+| `size`          | `'sm' \| 'md' \| 'lg'` | `'md'`      | yes     |
 
 #### emits
 
@@ -1133,10 +1133,10 @@ export interface SwitchElement extends HTMLElement {
 
 #### props
 
-| prop      | type                   | default | reflect |
-| --------- | ---------------------- | ------- | ------- |
-| `checked` | `boolean`              | `false` | yes     |
-| `size`    | `'sm' \| 'md' \| 'lg'` | `'md'`  | yes     |
+| prop      | type                   | default     | reflect |
+| --------- | ---------------------- | ----------- | ------- |
+| `checked` | `boolean`              | `undefined` | yes     |
+| `size`    | `'sm' \| 'md' \| 'lg'` | `'md'`      | yes     |
 
 #### emits
 
@@ -1332,10 +1332,10 @@ export interface DialogDescriptionElement extends HTMLElement {}
 
 #### Dialog root props
 
-| prop    | type      | default | reflect |
-| ------- | --------- | ------- | ------- |
-| `open`  | `boolean` | `false` | yes     |
-| `modal` | `boolean` | `true`  | yes     |
+| prop    | type      | default     | reflect |
+| ------- | --------- | ----------- | ------- |
+| `open`  | `boolean` | `undefined` | yes     |
+| `modal` | `boolean` | `true`      | yes     |
 
 #### Dialog root emits
 

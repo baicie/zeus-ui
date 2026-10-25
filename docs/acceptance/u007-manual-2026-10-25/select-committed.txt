@@ -1,0 +1,21 @@
+text Live Web Component preview
+						164 heading Select, Value: 2
+							165 text Select
+						166 text Theme
+						167 pop up button (collapsed, settable) Theme, Value: Light, Secondary Actions: Expand
+							168 menu
+								169 (selected) Light
+								170 Dark
+						171 text Density
+						172 pop up button (collapsed, settable) Density, Value: Default, Secondary Actions: Expand
+							173 menu
+								174 Compact
+								175 (selected) Default
+								176 Large
+					177 container Deployment environment
+						535 combo box (collapsed) Description: Deployment environment, Value: Production, ID: zw-select-1-trigger, Secondary Actions: Expand
+							536 text Production
+					533 container
+						534 text Deploy to:  Production
+					179 
+The focused UI element is 535 combo box (collapsed) Description: Deployment environment, Value: Production, ID: zw-select-1-trigger, Secondary Actions: Expand

@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "source": "zeus-ui-data-grid-0.1.0-2026-10-24.log",
+  "generatedAt": "2026-10-24T09:33:00.146Z",
+  "runCount": 12,
+  "runs": [
+    {
+      "kind": "scroll",
+      "scenario": "10k rows x 20 columns",
+      "metrics": {
+        "averageFrameLatencyMs": 44.45045414999999,
+        "framesPerSecond": 22.496957997897084,
+        "renderedCellsMax": 210,
+        "heapUsedDelta": 36513496,
+        "rssDelta": -60735488
+      }
+    },
+    {
+      "kind": "scroll",
+      "scenario": "100k rows x 20 columns",
+      "metrics": {
+        "averageFrameLatencyMs": 48.86807223333332,
+        "framesPerSecond": 20.463258612397066,
+        "renderedCellsMax": 210,
+        "heapUsedDelta": 38897624,
+        "rssDelta": -50610176
+      }
+    },
+    {
+      "kind": "scroll",
+      "scenario": "100k rows x 100 columns",
+      "metrics": {
+        "averageFrameLatencyMs": 49.8047524416667,
+        "framesPerSecond": 20.078405191778426,
+        "renderedCellsMax": 210,
+        "heapUsedDelta": -45826728,
+        "rssDelta": -77725696
+      }
+    },
+    {
+      "kind": "scroll",
+      "scenario": "100k rows x 1k columns",
+      "metrics": {
+        "averageFrameLatencyMs": 41.816193425000044,
+        "framesPerSecond": 23.91418056245513,
+        "renderedCellsMax": 210,
+        "heapUsedDelta": -25838096,
+        "rssDelta": 16285696
+      }
+    },
+    {
+      "kind": "update",
+      "scenario": "10k rows x 20 columns",
+      "metrics": {
+        "rowsUpdateMs": 79.59237500000017,
+        "columnsUpdateMs": 137.25045800000044,
+        "heapUsedDelta": 25189424,
+        "rssDelta": 27213824
+      }
+    },
+    {
+      "kind": "update",
+      "scenario": "100k rows x 20 columns",
+      "metrics": {
+        "rowsUpdateMs": 152.39037499999995,
+        "columnsUpdateMs": 140.7569169999997,
+        "heapUsedDelta": 13008960,
+        "rssDelta": 3276800
+      }
+    },
+    {
+      "kind": "update",
+      "scenario": "100k rows x 100 columns",
+      "metrics": {
+        "rowsUpdateMs": 95.7216670000007,
+        "columnsUpdateMs": 198.80258400000002,
+        "heapUsedDelta": 10772096,
+        "rssDelta": 1753088
+      }
+    },
+    {
+      "kind": "update",
+      "scenario": "100k rows x 1k columns",
+      "metrics": {
+        "rowsUpdateMs": 97.76287500000035,
+        "columnsUpdateMs": 125.57304199999999,
+        "heapUsedDelta": -55962328,
+        "rssDelta": 19103744
+      }
+    },
+    {
+      "kind": "render",
+      "scenario": "10k rows x 20 columns",
+      "metrics": {
+        "firstRenderMs": 271.12758399999984,
+        "renderedCells": 147,
+        "totalElements": 195,
+        "heapUsedDelta": 11788920,
+        "rssDelta": 25001984
+      }
+    },
+    {
+      "kind": "render",
+      "scenario": "100k rows x 20 columns",
+      "metrics": {
+        "firstRenderMs": 173.60083300000042,
+        "renderedCells": 147,
+        "totalElements": 195,
+        "heapUsedDelta": 17303744,
+        "rssDelta": 13811712
+      }
+    },
+    {
+      "kind": "render",
+      "scenario": "100k rows x 100 columns",
+      "metrics": {
+        "firstRenderMs": 138.22141699999975,
+        "renderedCells": 147,
+        "totalElements": 195,
+        "heapUsedDelta": -9495528,
+        "rssDelta": 19775488
+      }
+    },
+    {
+      "kind": "render",
+      "scenario": "100k rows x 1k columns",
+      "metrics": {
+        "firstRenderMs": 130.1221660000001,
+        "renderedCells": 147,
+        "totalElements": 195,
+        "heapUsedDelta": -7015680,
+        "rssDelta": 6684672
+      }
+    }
+  ]
+}

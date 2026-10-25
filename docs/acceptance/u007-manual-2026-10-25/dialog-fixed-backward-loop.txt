@@ -1,0 +1,25 @@
+text Live Web Component preview
+						164 heading Dialog, Value: 2
+							165 text Dialog
+						166 text Theme
+						167 pop up button (collapsed, settable) Theme, Value: Light, Secondary Actions: Expand
+							168 menu
+								169 (selected) Light
+								170 Dark
+						171 text Density
+						172 pop up button (collapsed, settable) Density, Value: Default, Secondary Actions: Expand
+							173 menu
+								174 Compact
+								175 (selected) Default
+								176 Large
+					177 container
+						178 pop up button (expanded) Open project dialog, Secondary Actions: Collapse
+						179 container Create project, ID: zw-dialog-content-1
+							180 text Create project
+							181 text Start a new workspace with the default Zeus Web configuration.
+							182 button Cancel
+							183 button Create project
+					184 container
+						185 text Open the dialog, use  Tab  to move focus, or press  Escape  to close it.
+					186 
+The focused UI element is 183 button Create project

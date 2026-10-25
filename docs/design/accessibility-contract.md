@@ -10,6 +10,8 @@ Zeus UI 的组件可访问性验收分为两层：组件单元契约和真实浏
 
 键盘与焦点路径由 `e2e/showcase/interaction-keyboard.spec.ts` 覆盖，包含 Dialog 的 Escape 关闭与焦点回退、Tabs 的方向键/Home/End 导航、Select 的选项提交，以及 Data Grid 的 active descendant 导航。
 
+发布验收还包含逐步操作的[手工关键路径记录](../acceptance/u007-manual-2026-10-25/report.md)，覆盖上述九类控件，并记录初始状态、可见焦点、禁用项跳过和状态反馈。该记录明确执行者与实际检查范围。
+
 本地验收：
 
 ```bash
@@ -19,3 +21,17 @@ pnpm exec vitest --project showcase-e2e --run e2e/showcase/interaction-keyboard.
 ```
 
 新增组件或改变组件的交互语义时，必须为对应 playground 增加 axe scope，并为键盘、焦点或 ARIA 状态变化补充浏览器断言。CI 的 `showcase` workflow 会在构建和单元测试通过后运行这些 gate。
+
+## 布尔状态的初始值与交互值
+
+Checkbox / Switch 的 `checked` 与 Dialog / Collapsible / Tooltip 的 `open`
+在未传入时保持 `undefined`，以便初始状态采用 `defaultChecked` / `defaultOpen`
+（HTML 对应 `default-checked` / `default-open`）。两者均未传入时，控件显示未选中或关闭。
+显式传入的 `false` 优先于默认值 `true`。
+
+用户交互或 `show()` / `hide()` 会写入实际状态并发出变化事件；关闭后的 `false`
+不能重新回退到初始默认值。原生输入、ARIA 状态、宿主 `data-state` 与显示内容必须一致。
+这项约定同样适用于 React / Vue wrapper。Popover / DropdownMenu / Toast 已采用相同的
+可选 `open` 约定。该状态协议不承诺 React 事件后的严格受控值回滚。
+
+构建产物回归：`packages/primitives/__tests__/boolean-default-state-runtime.spec.ts`。

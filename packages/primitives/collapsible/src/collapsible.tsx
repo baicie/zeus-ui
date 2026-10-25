@@ -102,7 +102,11 @@ export const Collapsible = defineElement<
   {
     shadow: false,
     props: {
-      open: prop(Boolean, { reflect: true }),
+      open: {
+        type: Boolean,
+        reflect: true,
+        default: () => undefined as unknown as boolean,
+      },
       defaultOpen: prop(Boolean, { attr: 'default-open' }),
       disabled: prop(Boolean),
     },

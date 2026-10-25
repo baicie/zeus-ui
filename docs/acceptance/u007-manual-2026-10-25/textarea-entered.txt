@@ -1,0 +1,21 @@
+text Live Web Component preview
+						164 heading Textarea, Value: 2
+							165 text Textarea
+						166 text Theme
+						167 pop up button (collapsed, settable) Theme, Value: Light, Secondary Actions: Expand
+							168 menu
+								169 (selected) Light
+								170 Dark
+						171 text Density
+						172 pop up button (collapsed, settable) Density, Value: Default, Secondary Actions: Expand
+							173 menu
+								174 Compact
+								175 (selected) Default
+								176 Large
+					177 container Release notes
+						178 text entry area (settable) Description: Release notes, Value: Ship the new component playground.
+Keyboard review passed.
+					428 text 58 / 160 characters
+					180 
+The focused UI element is 178 text entry area (settable) Description: Release notes, Value: Ship the new component playground.
+Keyboard review passed.

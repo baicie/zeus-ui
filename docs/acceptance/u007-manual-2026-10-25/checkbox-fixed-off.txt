@@ -1,0 +1,27 @@
+text Live Web Component preview
+						164 heading Checkbox, Value: 2
+							165 text Checkbox
+						166 text Theme
+						167 pop up button (collapsed, settable) Theme, Value: Light, Secondary Actions: Expand
+							168 menu
+								169 (selected) Light
+								170 Dark
+						171 text Density
+						172 pop up button (collapsed, settable) Density, Value: Default, Secondary Actions: Expand
+							173 menu
+								174 Compact
+								175 (selected) Default
+								176 Large
+					177 container
+						178 checkbox (settable, integer) Description: Email notifications, Value: 0
+						179 text Email notifications
+					180 container
+						181 checkbox (settable, integer) Description: Partially selected, Value: 2
+						182 text Partially selected
+					183 container
+						184 checkbox (disabled, settable, integer) Description: Unavailable option, Value: 0
+						185 text Unavailable option
+					186 container
+						187 text Notifications:  disabled
+					188 
+The focused UI element is 178 checkbox (settable, integer) Description: Email notifications, Value: 0
