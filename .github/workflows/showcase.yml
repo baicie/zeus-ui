@@ -130,7 +130,7 @@ jobs:
           PLAYWRIGHT_VERSION="$(node -p "require('./node_modules/@playwright/test/package.json').version")"
           echo "PLAYWRIGHT_VERSION=$PLAYWRIGHT_VERSION" >> "$GITHUB_ENV"
 
-      - name: Cache Playwright Chromium
+      - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
           key: ${{ runner.os }}-playwright-bin-v1-${{ env.PLAYWRIGHT_VERSION }}
@@ -138,14 +138,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-playwright-bin-v1-
 
-      - name: Install Playwright Chromium
-        run: pnpm exec playwright install --with-deps chromium
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
 
       - name: Prepare showcase E2E artifacts directory
         run: mkdir -p e2e/showcase/.artifacts
 
       - name: Build showcase E2E dependencies
         run: pnpm showcase:e2e:deps 2>&1 | tee e2e/showcase/.artifacts/deps.log
+
+      - name: Verify real component eager and lazy lifecycle parity
+        run: pnpm check:component-mode-parity
 
       - name: Run showcase browser E2E
         env:
@@ -159,5 +162,6 @@ jobs:
           name: showcase-e2e-artifacts
           path: |
             e2e/showcase/.artifacts
+            temp/component-mode-parity/report.json
           if-no-files-found: ignore
           retention-days: 7
