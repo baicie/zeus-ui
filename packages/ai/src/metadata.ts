@@ -139,6 +139,7 @@ function createPhase11RegistryMetadata(
           reactName: 'onOpenChange',
           description: 'Emitted when open state changes.',
           detail: { open: 'boolean', nativeEvent: 'Event' },
+          detailOptional: ['nativeEvent'],
         },
       ],
       slots: [{ name: 'default', description: 'Popover trigger and content.' }],
@@ -179,12 +180,14 @@ function createPhase11RegistryMetadata(
           reactName: 'onOpenChange',
           description: 'Emitted when open state changes.',
           detail: { open: 'boolean', nativeEvent: 'Event' },
+          detailOptional: ['nativeEvent'],
         },
         {
           name: 'select',
           reactName: 'onSelect',
           description: 'Emitted when an enabled item is selected.',
           detail: { value: 'string | undefined', nativeEvent: 'Event' },
+          detailOptional: ['value'],
         },
       ],
       slots: [
@@ -227,6 +230,7 @@ function createPhase11RegistryMetadata(
         reactName: 'onOpenChange',
         description: 'Emitted when open state changes.',
         detail: { open: 'boolean', nativeEvent: 'Event' },
+        detailOptional: ['nativeEvent'],
       },
     ],
     slots: [
@@ -850,6 +854,7 @@ const rawAiMetadata: ZeusWebAiMetadata = {
             value: 'string',
             nativeEvent: 'Event',
           },
+          detailOptional: ['nativeEvent'],
         },
       ],
       slots: [
@@ -937,6 +942,7 @@ const rawAiMetadata: ZeusWebAiMetadata = {
             open: 'boolean',
             nativeEvent: 'Event',
           },
+          detailOptional: ['nativeEvent'],
         },
       ],
       slots: [
@@ -1709,6 +1715,7 @@ const rawAiMetadata: ZeusWebAiMetadata = {
           reactName: 'onOpenChange',
           description: 'Emitted when open state changes.',
           detail: { open: 'boolean', nativeEvent: 'Event' },
+          detailOptional: ['nativeEvent'],
         },
       ],
       slots: [
@@ -1793,6 +1800,7 @@ const rawAiMetadata: ZeusWebAiMetadata = {
           reactName: 'onValueChange',
           description: 'Emitted when open item values change.',
           detail: { value: 'string', values: 'string[]', nativeEvent: 'Event' },
+          detailOptional: ['nativeEvent'],
         },
       ],
       slots: [{ name: 'default', description: 'AccordionItem children.' }],
@@ -1873,6 +1881,7 @@ const rawAiMetadata: ZeusWebAiMetadata = {
           reactName: 'onOpenChange',
           description: 'Emitted when open state changes.',
           detail: { open: 'boolean', nativeEvent: 'Event' },
+          detailOptional: ['nativeEvent'],
         },
       ],
       slots: [{ name: 'default', description: 'Tooltip trigger and content.' }],

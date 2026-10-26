@@ -51,6 +51,7 @@ export interface ZeusWebAiEvent {
   reactName: string
   description: string
   detail: Record<string, string>
+  detailOptional?: string[]
 }
 
 export interface ZeusWebAiSlot {

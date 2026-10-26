@@ -114,9 +114,9 @@ import '@zeus-web/tooltip/wc/auto'
 
 ## Events
 
-| Event         | React prop     | Detail                              | Description                      |
-| ------------- | -------------- | ----------------------------------- | -------------------------------- |
-| `open-change` | `onOpenChange` | `open: boolean, nativeEvent: Event` | Emitted when open state changes. |
+| Event         | React prop     | Detail                               | Description                      |
+| ------------- | -------------- | ------------------------------------ | -------------------------------- |
+| `open-change` | `onOpenChange` | `open: boolean, nativeEvent?: Event` | Emitted when open state changes. |
 
 ## Slots
 

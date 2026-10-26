@@ -129,7 +129,7 @@ describe('release script contract', () => {
     const overrides = getObject(workspace, 'overrides')
 
     expect(packageJson.devDependencies.sigstore).toBe('4.1.1')
-    expect(packageJson.engines.node).toBe('^20.19.0 || ^22.13.0 || >=24.0.0')
+    expect(packageJson.engines.node).toBe('^22.18.0 || >=24.11.0')
     expect(overrides).not.toHaveProperty('@sigstore/protobuf-specs')
   })
 

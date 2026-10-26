@@ -1,10 +1,11 @@
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import { listZeusDependencyManifests } from '../../release/zeus-dependency-manifests'
 import { createZeusPeerRequirement } from '../../release/zeus-peer-requirement'
 
-const DEFAULT_EXPECTED_ZEUS_VERSION = '0.1.1-beta.18'
+const DEFAULT_EXPECTED_ZEUS_VERSION = '0.1.1-beta.20'
 const ZEUS_SCOPE = '@zeus-js/'
 
 const DEP_FIELDS = [
@@ -61,7 +62,7 @@ export function checkZeusBetaAlignment(
     options.expectedVersion ?? DEFAULT_EXPECTED_ZEUS_VERSION
   const expectedPeerRange = createExpectedPeerRange(expectedVersion)
   const packageJsonFiles =
-    options.packageJsonFiles ?? discoverPackageJsonFiles(root)
+    options.packageJsonFiles ?? listZeusDependencyManifests(root)
   const primitiveRolldownConfig =
     options.primitiveRolldownConfig ??
     join(root, 'scripts/rolldown/createPrimitiveRolldownConfig.ts')
@@ -228,46 +229,6 @@ function checkNoLocalWcDtsPatch(options: {
       expected: 'remove local WC d.ts patch and rely on @zeus-js/component-dts',
     })
   }
-}
-
-function discoverPackageJsonFiles(root: string): string[] {
-  const files: string[] = []
-
-  walk(root, root, files)
-
-  return files.sort()
-}
-
-function walk(root: string, dir: string, files: string[]): void {
-  for (const name of readdirSync(dir)) {
-    const absolute = join(dir, name)
-    const stat = statSync(absolute)
-
-    if (stat.isDirectory()) {
-      if (shouldSkipDirectory(name)) {
-        continue
-      }
-
-      walk(root, absolute, files)
-      continue
-    }
-
-    if (name === 'package.json') {
-      files.push(absolute)
-    }
-  }
-}
-
-function shouldSkipDirectory(name: string): boolean {
-  return (
-    name === 'node_modules' ||
-    name === 'dist' ||
-    name === '.git' ||
-    name === '.turbo' ||
-    name === '.vitepress' ||
-    name === '.next' ||
-    name === 'coverage'
-  )
 }
 
 function readPackageJson(file: string): PackageJson {

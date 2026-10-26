@@ -4,6 +4,8 @@ import type {
   ZeusWebAiMetadata,
 } from './types'
 
+import { formatEventDetail } from './event-detail'
+
 function renderList(items: string[]): string {
   return items.map(item => `- ${item}`).join('\n')
 }
@@ -65,11 +67,7 @@ function renderComponent(component: ZeusWebAiComponent): string {
   const events = component.events.length
     ? component.events
         .map(event => {
-          const detailParts: string[] = []
-          for (const key of Object.keys(event.detail)) {
-            detailParts.push(`${key}: ${event.detail[key]}`)
-          }
-          const detail = detailParts.join(', ')
+          const detail = formatEventDetail(event)
 
           return `- \`${event.name}\` / React \`${event.reactName}\`: ${event.description}. Detail: ${detail}`
         })

@@ -2,13 +2,13 @@
 
 ## 项目背景
 
-Zeus 是一个响应式前端框架 monorepo 项目，使用 pnpm workspace 管理多个 TypeScript 包。
+Zeus Web 是基于 Zeus 框架的组件库 monorepo 项目，使用 pnpm workspace 管理多个 TypeScript 包。
 
 - 使用 TypeScript 开发，编译目标为 ES2016
 - 使用 pnpm 作为包管理器
 - 使用 Vitest 进行单元测试和 E2E 测试
 - 使用 ESLint 和 Prettier 进行代码质量检查（基于 @antfu/eslint-config）
-- 核心包括响应式系统（`@zeus-js/signal`）、DOM Runtime（`@zeus-js/runtime-dom`）、JSX 编译器（`@zeus-js/compiler`）和 Web Component 输出工具链
+- 本仓库包括基础组件、进阶组件、主题、registry、CLI 和文档；Zeus 响应式运行时、DOM runtime、Rust Native 编译器和 Web Component 输出工具链由已发布的 `@zeus-js/*` 包提供
 - 所有包的公共 API 必须参考 [docs/internal/packages.md](docs/internal/packages.md)，该文档为 API 唯一权威来源
 
 ## 项目阶段
@@ -27,7 +27,7 @@ Zeus 是一个响应式前端框架 monorepo 项目，使用 pnpm workspace 管�
 
 ### 开发环境要求
 
-- Node.js 版本 `^20.19.0 || ^22.13.0 || >=24.0.0`
+- Node.js 版本 `^22.18.0 || >=24.11.0`（与所依赖的 Zeus Native 编译工具链一致）
 - 使用 pnpm 作为包管理器（版本 >= 10.19.0）
 - 推荐使用支持 TypeScript 的编辑器（如 VS Code）
 
@@ -104,7 +104,7 @@ pnpm test-coverage # 生成测试覆盖率报告
 
 - 使用 `import type` 导入类型
 - 导入顺序：外部依赖 → 内部包 → 相对路径
-- 使用路径别名（如 `@zeus-js/*`）引用内部包
+- 使用路径别名（如 `@zeus-web/*`）引用内部包
 - 禁止使用 Node.js 内置模块的直接导入，应使用 `node:` 前缀（如 `node:fs`）
 
 ### 类型定义
@@ -128,24 +128,26 @@ pnpm test-coverage # 生成测试覆盖率报告
 
 ## 项目包 API 参考
 
-> **重要**：所有 `@zeus-js/*` 包的公共 API 详情（包括函数签名、类型定义、使用示例）必须参考 [docs/internal/packages.md](docs/internal/packages.md)。该文档由 AI 优先维护，是 Zeus 包 API 的唯一权威来源，AGENTS.md 中的 API 描述如与该文档冲突，以 `docs/internal/packages.md` 为准。
+> **重要**：本仓库 `@zeus-web/*` 包的公共 API 详情（包括函数签名、类型定义、使用示例）必须参考 [docs/internal/packages.md](docs/internal/packages.md)。该文档由 AI 优先维护，是本仓库包 API 的唯一权威来源，AGENTS.md 中的 API 描述如与该文档冲突，以 `docs/internal/packages.md` 为准。外部 `@zeus-js/*` API 以所安装发布包的公共导出、类型和 Zeus 框架文档为准。
 
 ### 包总览
 
-| 包名                                | 路径                                      | 类型     | 说明                              |
-| ----------------------------------- | ----------------------------------------- | -------- | --------------------------------- |
-| `@zeus-js/zeus`                     | `packages/core/zeus`                      | core     | 统一入口，导出所有公共 API        |
-| `@zeus-js/signal`                   | `packages/core/signal`                    | core     | 响应式核心，基于 alien-signals    |
-| `@zeus-js/runtime-dom`              | `packages/core/runtime-dom`               | core     | DOM runtime helpers               |
-| `@zeus-js/compiler`                 | `packages/core/compiler`                  | core     | Babel JSX 编译器插件              |
-| `@zeus-js/shared`                   | `packages/core/shared`                    | core     | 内部工具函数，无外部依赖          |
-| `@zeus-js/vite-plugin`              | `packages/devtools/vite-plugin`           | devtools | Vite 集成插件                     |
-| `@zeus-js/output-wc`                | `packages/web-c/output-wc`                | web-c    | Web Component 输出插件            |
-| `@zeus-js/component-analyzer`       | `packages/web-c/component-analyzer`       | web-c    | 组件分析器（解析 JSX）            |
-| `@zeus-js/bundler-plugin`           | `packages/web-c/bundler-plugin`           | web-c    | bundler 插件宿主（Vite / Rollup） |
-| `@zeus-js/preset-component-library` | `packages/web-c/preset-component-library` | web-c    | 组件库预设（一键集成）            |
-| `@zeus-ui/registry`                 | `packages/create/registry`                | create   | UI 组件注册表（copyable 源码）    |
-| `zeus-ui`                           | `packages/create/zeus-ui`                 | create   | CLI 工具添加 UI 组件到项目        |
+| 包名                    | 路径                    | 类型      | 说明                                |
+| ----------------------- | ----------------------- | --------- | ----------------------------------- |
+| `@zeus-web/zeus-compat` | `packages/zeus-compat`  | framework | 转发 Zeus 公共 API，校验框架能力    |
+| `@zeus-web/*` 基础组件  | `packages/primitives/*` | primitive | 基础组件与 WC / React / Vue 入口    |
+| `@zeus-web/*` 进阶组件  | `packages/advanced/*`   | advanced  | Chat、DataGrid、AgentConsole 等组件 |
+| `@zeus-web/registry`    | `packages/registry`     | registry  | 可复制到用户项目的组件源码与元数据  |
+| `@zeus-web/cli`         | `packages/cli`          | cli       | `zweb` 命令行工具                   |
+| `@zeus-web/ai`          | `packages/ai`           | ai        | AI 元数据与使用指南                 |
+| `@zeus-web/icons`       | `packages/icons`        | icons     | 图标组件与各框架输出                |
+| `@zeus-web/themes`      | `packages/themes`       | themes    | 主题 token 与样式                   |
+
+`@zeus-js/zeus`、`@zeus-js/signal`、`@zeus-js/runtime-dom` 以及编译输出工具链均为
+外部 npm 依赖，不在本仓库内实现。`@zeus-js/compiler` 提供 Rust Native transform
+契约并依赖 `@zeus-js/compiler-native`；组件构建由 `@zeus-js/bundler-plugin` 集成，
+分析与声明输出使用已发布的 `@zeus-js/component-analyzer`、`@zeus-js/component-dts`
+及 `@zeus-js/output-*` 包。
 
 详细 API 文档见 [docs/internal/packages.md](docs/internal/packages.md)。
 
@@ -154,8 +156,8 @@ pnpm test-coverage # 生成测试覆盖率报告
 ### 包管理
 
 - 所有包位于 `packages/` 目录下，通过 pnpm workspace 管理
-- `@zeus-js/*` 包为 Zeus 核心运行时和工具链包，`@zeus-ui/*` 包为 Zeus 生态工具包
-- 包之间的依赖通过 pnpm workspace 协议声明（如 `@zeus-js/signal`）
+- 本仓库的组件与工具包使用 `@zeus-web/*` 名称；`@zeus-js/*` 是外部 Zeus 框架运行时和工具链包
+- 本仓库包之间使用 `workspace:*`；外部 `@zeus-js/*` 使用根 `package.json` 协调的已发布精确版本，Zeus beta peer 同样精确对齐
 
 ### 构建和发布
 
@@ -163,14 +165,14 @@ pnpm test-coverage # 生成测试覆盖率报告
 - 构建产物应放在 `packages/{package-name}/dist/` 目录
 - 使用统一的构建配置确保一致性
 - 发布前确保所有包的类型检查通过
-- `@zeus-js/*` 包为核心运行时和工具链包，`@zeus-js/output-*` 包为组件库编译输出包，`@zeus-ui/*` 包为生态工具包
+- 本仓库构建和发布 `@zeus-web/*` 包；`@zeus-js/*` 运行时、编译器和 `@zeus-js/output-*` 输出工具链由 npm 安装
 
 ### 路径别名
 
-项目配置了路径别名以便于包之间的引用：
+本地源码别名由 `scripts/config/aliases.ts` 提供给 Vitest 和构建工具：
 
-- `@zeus-js/*` 映射到 `packages/*/src`
-- `@zeus-ui/*` 映射到 `packages/*/src`
+- `@zeus-web/*` 映射到 `packages/*/src`、`packages/primitives/*/src` 或 `packages/advanced/*/src` 对应入口；部分 headless 入口单独映射
+- `@zeus-js/*` 从已安装发布包解析；部分 Vitest 项目将框架入口指定到这些发布包的 ESM `dist`，不映射到相邻 Zeus 仓库源码
 
 ## 测试指南
 
@@ -424,4 +426,4 @@ refactor(parser): simplify AST node creation
 ## 特别说明
 
 - 如果使用 AI 编程助手（如 Cursor）进行开发，请在提交 PR 时在末尾标注：`> Submitted by Cursor`
-- 所有 `@zeus-js/*` 包的 API 必须以 [docs/internal/packages.md](docs/internal/packages.md) 为准，该文档详细列出了每个包的导出函数、类型签名和使用示例
+- 本仓库 `@zeus-web/*` 包的 API 必须以 [docs/internal/packages.md](docs/internal/packages.md) 为准，该文档详细列出了已覆盖包的导出函数、类型签名和使用示例

@@ -25,19 +25,19 @@ describe('checkZeusBetaAlignment', () => {
       name: 'zeus-ui-workspace',
       private: true,
       devDependencies: {
-        '@zeus-js/zeus': '0.1.1-beta.18',
-        '@zeus-js/runtime-dom': '0.1.1-beta.18',
+        '@zeus-js/zeus': '0.1.1-beta.20',
+        '@zeus-js/runtime-dom': '0.1.1-beta.20',
       },
     })
 
     writePackage(root, 'packages/advanced/data-grid/package.json', {
       name: '@zeus-web/data-grid',
       peerDependencies: {
-        '@zeus-js/zeus': '0.1.1-beta.18',
+        '@zeus-js/zeus': '0.1.1-beta.20',
       },
       dependencies: {
-        '@zeus-js/runtime-dom': '0.1.1-beta.18',
-        '@zeus-js/web-c-runtime': '0.1.1-beta.18',
+        '@zeus-js/runtime-dom': '0.1.1-beta.20',
+        '@zeus-js/web-c-runtime': '0.1.1-beta.20',
       },
     })
 
@@ -59,8 +59,8 @@ export function createPrimitiveRolldownConfig() {
 
     expect(result).toEqual({
       ok: true,
-      expectedVersion: '0.1.1-beta.18',
-      expectedPeerRange: '0.1.1-beta.18',
+      expectedVersion: '0.1.1-beta.20',
+      expectedPeerRange: '0.1.1-beta.20',
       problems: [],
     })
   })
@@ -235,6 +235,46 @@ function fixWcEventListenerDts() {
       expected: 'remove local WC d.ts patch and rely on @zeus-js/component-dts',
     })
   })
+
+  it('checks workspace packages without treating isolated consumers as the release baseline', () => {
+    const root = createTempRoot()
+    writePackage(root, 'package.json', {
+      name: 'zeus-ui-workspace',
+      devDependencies: { '@zeus-js/zeus': '0.1.0-beta.8' },
+    })
+    for (const file of [
+      'temp/consumer/package.json',
+      'packages/button/__tests__/fixtures/consumer/package.json',
+      'examples/react/fixture/package.json',
+      'docs/sample/package.json',
+    ]) {
+      writePackage(root, file, {
+        name: file,
+        dependencies: { '@zeus-js/zeus': '0.1.0-beta.5' },
+      })
+    }
+    writePackage(root, 'examples/react/package.json', {
+      name: '@zeus-web/example-react',
+      dependencies: { '@zeus-js/zeus': '0.1.0-beta.5' },
+    })
+
+    const result = checkZeusBetaAlignment({
+      root,
+      expectedVersion: '0.1.0-beta.8',
+    })
+
+    expect(result.problems).toEqual([
+      {
+        type: 'zeus-version-mismatch',
+        file: 'examples/react/package.json',
+        packageName: '@zeus-web/example-react',
+        field: 'dependencies',
+        dependencyName: '@zeus-js/zeus',
+        actual: '0.1.0-beta.5',
+        expected: '0.1.0-beta.8',
+      },
+    ])
+  })
 })
 
 function createTempRoot(): string {
@@ -248,6 +288,10 @@ function createTempRoot(): string {
   mkdirSync(root, {
     recursive: true,
   })
+  writeFileSync(
+    join(root, 'pnpm-workspace.yaml'),
+    'packages:\n  - packages/*\n  - packages/primitives/*\n  - packages/advanced/*\n  - apps/*\n  - examples/*\n  - benchmarks/*\n',
+  )
 
   tempRoots.push(root)
 

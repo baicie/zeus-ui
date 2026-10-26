@@ -46,14 +46,14 @@ describe('alignZeusBeta', () => {
 
     const result = alignZeusBeta({ root })
 
-    expect(result.version).toBe('0.1.1-beta.18')
-    expect(result.peerRange).toBe('0.1.1-beta.18')
+    expect(result.version).toBe('0.1.1-beta.20')
+    expect(result.peerRange).toBe('0.1.1-beta.20')
     expect(result.changedFiles).toHaveLength(2)
 
     expect(readPackage(root, 'package.json')).toMatchObject({
       devDependencies: {
-        '@zeus-js/zeus': '0.1.1-beta.18',
-        '@zeus-js/runtime-dom': '0.1.1-beta.18',
+        '@zeus-js/zeus': '0.1.1-beta.20',
+        '@zeus-js/runtime-dom': '0.1.1-beta.20',
         typescript: '^6.0.3',
       },
     })
@@ -62,12 +62,12 @@ describe('alignZeusBeta', () => {
       readPackage(root, 'packages/advanced/data-grid/package.json'),
     ).toMatchObject({
       peerDependencies: {
-        '@zeus-js/zeus': '0.1.1-beta.18',
+        '@zeus-js/zeus': '0.1.1-beta.20',
         react: '>=18 || >=19',
       },
       dependencies: {
-        '@zeus-js/runtime-dom': '0.1.1-beta.18',
-        '@zeus-js/web-c-runtime': '0.1.1-beta.18',
+        '@zeus-js/runtime-dom': '0.1.1-beta.20',
+        '@zeus-js/web-c-runtime': '0.1.1-beta.20',
         '@zeus-web/virtual': 'workspace:*',
       },
     })
@@ -229,6 +229,48 @@ describe('alignZeusBeta', () => {
       },
     })
   })
+
+  it('only updates root and declared workspace manifests, preserving consumer fixtures', () => {
+    const root = createTempRoot()
+    const workspaceFiles = [
+      'package.json',
+      'packages/button/package.json',
+      'packages/primitives/input/package.json',
+      'packages/advanced/data-grid/package.json',
+      'apps/docs/package.json',
+      'examples/react/package.json',
+      'benchmarks/grid/package.json',
+      'tools/new-workspace/package.json',
+    ]
+    const fixtureFiles = [
+      'temp/consumer/package.json',
+      'packages/button/__tests__/fixtures/consumer/package.json',
+      'examples/react/fixture/package.json',
+      'docs/sample/package.json',
+      'tools/excluded/package.json',
+    ]
+    writeFileSync(
+      join(root, 'pnpm-workspace.yaml'),
+      `packages:\n  - packages/*\n  - packages/primitives/*\n  - packages/advanced/*\n  - apps/*\n  - examples/*\n  - benchmarks/*\n  - tools/*\n  - '!tools/excluded'\n`,
+    )
+    for (const file of workspaceFiles.concat(fixtureFiles)) {
+      writePackage(root, file, {
+        name: file,
+        dependencies: { '@zeus-js/zeus': '0.1.0-beta.5' },
+      })
+    }
+
+    const result = alignZeusBeta({ root, version: '0.1.0-beta.8' })
+
+    expect(result.changedFiles).toEqual(
+      workspaceFiles.map(file => join(root, file)).sort(),
+    )
+    for (const file of fixtureFiles) {
+      expect(readPackage(root, file)).toMatchObject({
+        dependencies: { '@zeus-js/zeus': '0.1.0-beta.5' },
+      })
+    }
+  })
 })
 
 function createTempRoot(): string {
@@ -242,6 +284,10 @@ function createTempRoot(): string {
   mkdirSync(root, {
     recursive: true,
   })
+  writeFileSync(
+    join(root, 'pnpm-workspace.yaml'),
+    'packages:\n  - packages/*\n  - packages/primitives/*\n  - packages/advanced/*\n  - apps/*\n  - examples/*\n  - benchmarks/*\n',
+  )
 
   tempRoots.push(root)
 
