@@ -1,13 +1,31 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { execFileSync } from 'node:child_process'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
+import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
+import { dirname, join, resolve } from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { DATA_GRID_BENCHMARK_SCENARIOS } from '../benchmarks/benchmark-data'
 
 const workspaceRoot = existsSync(resolve(process.cwd(), 'pnpm-workspace.yaml'))
   ? process.cwd()
   : resolve(process.cwd(), '../../..')
+const tsxCli = createRequire(import.meta.url).resolve('tsx/cli')
+const tempRoots: string[] = []
+
+afterEach(() => {
+  for (const root of tempRoots.splice(0)) {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
 
 interface BenchmarkTsconfig {
   include?: string[]
@@ -25,6 +43,8 @@ interface DataGridPackageJson {
 interface BenchmarkBaselineManifest {
   schemaVersion: number
   baselineId: string
+  recordedAt: string
+  commit: string
   packageVersion: string
   dataMode: string
   budgetPolicy: {
@@ -129,14 +149,13 @@ describe('data-grid benchmark contract', () => {
       'packages/advanced/data-grid/benchmarks/baseline-manifest.json',
     )
     const pkg = readWorkspaceJson<DataGridPackageJson>('package.json')
-    const dataGridPackage = readWorkspaceJson<DataGridPackageJson>(
-      'packages/advanced/data-grid/package.json',
-    )
     const workflow = readWorkspaceFile('.github/workflows/test.yml')
 
     expect(manifest.schemaVersion).toBe(1)
     expect(manifest.baselineId).toMatch(/^u005-data-grid-\d{4}-\d{2}-\d{2}$/)
-    expect(manifest.packageVersion).toBe(dataGridPackage.version)
+    expect(manifest.packageVersion).toMatch(
+      /^\d+\.\d+\.\d+(?:-[\da-z.-]+)?(?:\+[\da-z.-]+)?$/i,
+    )
     expect(manifest.dataMode).toBe('sparse')
     expect(manifest.budgetPolicy.maxRenderedCells).toBe(600)
     expect(manifest.scenarios).toHaveLength(
@@ -167,6 +186,41 @@ describe('data-grid benchmark contract', () => {
     expect(workflow).toContain('.artifacts/data-grid-benchmark/report.json')
     expect(workflow).toContain('set -o pipefail')
   })
+
+  it('preserves the recorded source of the 2026-10-24 baseline', () => {
+    const manifest = readWorkspaceJson<BenchmarkBaselineManifest>(
+      'packages/advanced/data-grid/benchmarks/baseline-manifest.json',
+    )
+    const report = readWorkspaceJson<{ source: string }>(
+      'packages/advanced/data-grid/benchmarks/baselines/u005-data-grid-2026-10-24-report.json',
+    )
+
+    expect(manifest).toMatchObject({
+      baselineId: 'u005-data-grid-2026-10-24',
+      recordedAt: '2026-10-24',
+      commit: 'd28d8a0047742d507d69f6f1c629231ddeca133e',
+      packageVersion: '0.1.0',
+    })
+    expect(report.source).toBe('zeus-ui-data-grid-0.1.0-2026-10-24.log')
+  })
+
+  it.each(['0.1.0', '0.1.0-beta.34', '0.1.0+benchmark.1'])(
+    'accepts valid SemVer %s in a synthetic fixture after the package advances',
+    recordedVersion => {
+      expect(runBaselineCheck(recordedVersion, '0.2.0')).toContain(
+        'Data Grid benchmark baseline check passed',
+      )
+    },
+  )
+
+  it.each(['', 'latest', '^0.1.0', '01.2.3', '0.1.0-beta.01', '0.1.0-'])(
+    'rejects invalid recorded baseline version %j',
+    recordedVersion => {
+      expect(() => runBaselineCheck(recordedVersion, '0.2.0')).toThrow(
+        'packageVersion must be a valid recorded semver version',
+      )
+    },
+  )
 
   it('measures the real element and rendered DOM', () => {
     const metrics = readWorkspaceFile(
@@ -268,3 +322,36 @@ describe('data-grid benchmark contract', () => {
     )
   })
 })
+
+function runBaselineCheck(
+  recordedVersion: string,
+  currentVersion: string,
+): string {
+  const root = mkdtempSync(join(tmpdir(), 'zeus-data-grid-baseline-'))
+  tempRoots.push(root)
+  const manifest = readWorkspaceJson<BenchmarkBaselineManifest>(
+    'packages/advanced/data-grid/benchmarks/baseline-manifest.json',
+  )
+  manifest.packageVersion = recordedVersion
+  const manifestPath = resolve(
+    root,
+    'packages/advanced/data-grid/benchmarks/baseline-manifest.json',
+  )
+  mkdirSync(dirname(manifestPath), { recursive: true })
+  writeFileSync(manifestPath, JSON.stringify(manifest))
+  writeFileSync(
+    resolve(root, 'packages/advanced/data-grid/package.json'),
+    JSON.stringify({ version: currentVersion }),
+  )
+  return execFileSync(
+    process.execPath,
+    [
+      tsxCli,
+      resolve(
+        workspaceRoot,
+        'scripts/checks/data-grid/check-benchmark-baseline.ts',
+      ),
+    ],
+    { cwd: root, encoding: 'utf8', stdio: 'pipe', timeout: 10_000 },
+  )
+}

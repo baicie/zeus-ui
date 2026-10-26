@@ -36,9 +36,7 @@ const manifestPath = resolve(
   root,
   'packages/advanced/data-grid/benchmarks/baseline-manifest.json',
 )
-const packagePath = resolve(root, 'packages/advanced/data-grid/package.json')
 const manifest = readJson<BenchmarkBaselineManifest>(manifestPath)
-const packageJson = readJson<{ version?: string }>(packagePath)
 
 assert(manifest.schemaVersion === 1, 'schemaVersion must be 1')
 assert(
@@ -50,9 +48,10 @@ assert(
   'recordedAt must be an ISO date',
 )
 assert(/^[0-9a-f]{40}$/.test(manifest.commit), 'commit must be a full git SHA')
+// This is the recorded commit's version, independent of subsequent releases.
 assert(
-  manifest.packageVersion === packageJson.version,
-  'manifest packageVersion must match the package',
+  isRecordedPackageVersion(manifest.packageVersion),
+  'packageVersion must be a valid recorded semver version',
 )
 assert(
   manifest.dataMode === 'sparse',
@@ -153,6 +152,27 @@ function assertScenarioShape(
 
 function readJson<T>(path: string): T {
   return JSON.parse(readFileSync(path, 'utf8')) as T
+}
+
+function isRecordedPackageVersion(value: unknown): boolean {
+  if (typeof value !== 'string') return false
+  const match =
+    /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-([\da-z-]+(?:\.[\da-z-]+)*))?(?:\+[\da-z-]+(?:\.[\da-z-]+)*)?$/i.exec(
+      value,
+    )
+  if (!match || match[0] !== value) return false
+  const prerelease = match[1]
+  return (
+    !prerelease ||
+    prerelease
+      .split('.')
+      .every(
+        identifier =>
+          !/^\d+$/.test(identifier) ||
+          identifier === '0' ||
+          !identifier.startsWith('0'),
+      )
+  )
 }
 
 function assert(condition: boolean, message: string): asserts condition {
