@@ -58,6 +58,42 @@ describe('@zeus-web/ai metadata', () => {
     expect(result.valid).toBe(true)
   })
 
+  it.each([
+    'nativeEvent',
+    null,
+    [42],
+    ['missing'],
+    ['nativeEvent', 'nativeEvent'],
+    Array.from({ length: 1 }),
+  ])('rejects invalid optional event fields: %j', detailOptional => {
+    const metadata = structuredClone(aiMetadata)
+    const dialog = metadata.components.find(item => item.name === 'dialog')!
+    Object.assign(dialog.events[0], { detailOptional })
+
+    const result = validateAiMetadata(metadata)
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain(
+      'dialog: open-change.detailOptional must contain unique names from detail',
+    )
+  })
+
+  it('preserves optional event fields in JSON and Markdown guides', () => {
+    const parsed = JSON.parse(renderAiJson(aiMetadata))
+    const dialog = parsed.components.find(
+      (component: { name: string }) => component.name === 'dialog',
+    )
+    expect(dialog.events[0].detailOptional).toEqual(['nativeEvent'])
+    expect(dialog.events[0].detail.open).toBe('boolean')
+
+    const markdown = renderAiMarkdown(aiMetadata)
+    expect(markdown).toContain('Detail: open: boolean, nativeEvent?: Event')
+    expect(markdown).toContain(
+      'Detail: value?: string | undefined, nativeEvent: Event',
+    )
+    expect(markdown).toContain('Detail: value: string, nativeEvent: Event')
+  })
+
   it('uses per-component primitive packages', () => {
     for (const component of aiMetadata.components) {
       expect(component.primitivePackage).toBe(`@zeus-web/${component.name}`)

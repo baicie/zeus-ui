@@ -1,14 +1,46 @@
 # Zeus 包公共 API
 
 本文件是 Zeus 包公共 API 的唯一权威来源。当前覆盖 `@zeus-web/zeus-compat`、
-`@zeus-web/chat`、`@zeus-web/agent-console` 与 `@zeus-web/data-grid`；尚未迁移到本文件的包
+`@zeus-web/chat`、`@zeus-web/agent-console`、`@zeus-web/data-grid` 与 `@zeus-web/ai`；尚未迁移到本文件的包
 继续保持现有发布出口，后续变更公共 API 时必须补充对应章节。
+
+## `@zeus-web/ai`
+
+状态：`0.1.0` 发布准备，MVP 阶段，不承诺向后兼容。
+
+根入口导出 `aiMetadata`、`renderAiJson`、`renderAiMarkdown` 与
+`validateAiMetadata`。`./metadata.json` 提供相同元数据的 JSON 产物。
+
+公共类型：`ZeusWebAiComponent`、`ZeusWebAiComponentName`、`ZeusWebAiEvent`、
+`ZeusWebAiExample`、`ZeusWebAiIcons`、`ZeusWebAiMetadata`、`ZeusWebAiProp`、
+`ZeusWebAiSlot`、`ZeusWebAiThemeName`、`ZeusWebAiValidationResult`。
+
+```ts
+interface ZeusWebAiEvent {
+  name: string
+  reactName: string
+  description: string
+  detail: Record<string, string>
+  detailOptional?: string[]
+}
+
+function renderAiJson(metadata: ZeusWebAiMetadata): string
+function renderAiMarkdown(metadata: ZeusWebAiMetadata): string
+function validateAiMetadata(
+  metadata: ZeusWebAiMetadata,
+): ZeusWebAiValidationResult
+```
+
+`detail` 保存 payload 字段的类型。字段默认必填，`detailOptional` 列出可以省略的字段名；
+该列表不得重复或引用 `detail` 中不存在的字段。JSON 保留该列表，Markdown 和组件文档
+以 `nativeEvent?: Event` 等形式展示。`string | undefined` 表示字段值的类型，不自动表示
+字段可以省略。元数据的可选性必须与组件源码和已安装的 Zeus Analyzer 解析结果一致。
 
 ## `@zeus-web/zeus-compat`
 
-状态：`0.1.0-beta.5`，MVP 阶段，不承诺向后兼容。
+状态：`0.1.0` 发布准备，MVP 阶段，不承诺向后兼容。
 
-Zeus 兼容基线：`0.1.1-beta.2`。该包只转发 Zeus 当前公共 API，不暴露 Zeus 内部实现。
+Zeus 兼容基线：`0.1.1-beta.18`。该包只转发 Zeus 当前公共 API，不暴露 Zeus 内部实现。
 
 入口：
 
@@ -57,7 +89,7 @@ function assertZeusCompatRequirements(): void
 
 ## 所有组件包共享契约
 
-状态：`0.1.0-beta.5`，MVP 阶段，不承诺向后兼容。
+状态：`0.1.0` 发布准备，MVP 阶段，不承诺向后兼容。
 
 本节适用于 `packages/primitives/*` 和 `packages/advanced/*` 的 29 个公开组件包。
 每个组件包都必须提供以下入口：
@@ -86,7 +118,7 @@ React 类型会产生重复属性，wrapper runtime 也会截获本应传给自�
 
 ## `@zeus-web/chat`
 
-状态：`0.1.0-beta.5`，MVP 阶段，不承诺向后兼容。
+状态：`0.1.0` 发布准备，MVP 阶段，不承诺向后兼容。
 
 入口：
 
@@ -244,7 +276,7 @@ function createChatThreadVirtualizer(
 
 ## `@zeus-web/agent-console`
 
-状态：`0.1.0-beta.5`，MVP 阶段，不承诺向后兼容。
+状态：`0.1.0` 发布准备，MVP 阶段，不承诺向后兼容。
 
 入口：
 
@@ -504,7 +536,7 @@ function createReplayAgentProvider(
 
 ## `@zeus-web/data-grid`
 
-状态：`0.1.0-beta.5`，MVP 阶段，不承诺向后兼容。
+状态：`0.1.0` 发布准备，MVP 阶段，不承诺向后兼容。
 
 入口：
 

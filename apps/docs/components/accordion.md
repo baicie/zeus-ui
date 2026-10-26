@@ -129,9 +129,9 @@ import '@zeus-web/accordion/wc/auto'
 
 ## Events
 
-| Event          | React prop      | Detail                                                | Description                           |
-| -------------- | --------------- | ----------------------------------------------------- | ------------------------------------- |
-| `value-change` | `onValueChange` | `value: string, values: string[], nativeEvent: Event` | Emitted when open item values change. |
+| Event          | React prop      | Detail                                                 | Description                           |
+| -------------- | --------------- | ------------------------------------------------------ | ------------------------------------- |
+| `value-change` | `onValueChange` | `value: string, values: string[], nativeEvent?: Event` | Emitted when open item values change. |
 
 ## Slots
 

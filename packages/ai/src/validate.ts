@@ -181,6 +181,27 @@ export function validateAiMetadata(
       )
     }
 
+    for (const event of component.events) {
+      const optional = event.detailOptional
+      if (optional === undefined) continue
+      if (
+        !Array.isArray(optional) ||
+        !event.detail ||
+        typeof event.detail !== 'object' ||
+        Array.isArray(event.detail) ||
+        [...optional].some(
+          name =>
+            typeof name !== 'string' ||
+            !Object.keys(event.detail).includes(name),
+        ) ||
+        new Set(optional).size !== optional.length
+      ) {
+        errors.push(
+          `${component.name}: ${event.name}.detailOptional must contain unique names from detail`,
+        )
+      }
+    }
+
     if (component.examples.length === 0) {
       errors.push(`${component.name}: examples are required`)
     }

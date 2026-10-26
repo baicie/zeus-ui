@@ -115,9 +115,9 @@ import '@zeus-web/tabs/wc/auto'
 
 ## Events
 
-| Event          | React prop      | Detail                              | Description                      |
-| -------------- | --------------- | ----------------------------------- | -------------------------------- |
-| `value-change` | `onValueChange` | `value: string, nativeEvent: Event` | Emitted when active tab changes. |
+| Event          | React prop      | Detail                               | Description                      |
+| -------------- | --------------- | ------------------------------------ | -------------------------------- |
+| `value-change` | `onValueChange` | `value: string, nativeEvent?: Event` | Emitted when active tab changes. |
 
 ## Slots
 

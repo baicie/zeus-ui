@@ -24,6 +24,7 @@ import {
 } from '../../apps/docs/.vitepress/data/docs-i18n'
 import { playgroundSources } from '../../apps/docs/.vitepress/data/playground-sources'
 import { aiMetadata, validateAiMetadata } from '../../packages/ai/src'
+import { formatEventDetail } from '../../packages/ai/src/event-detail'
 import {
   getAdvancedDocsTranslation,
   getComponentDocsMessages,
@@ -264,9 +265,7 @@ function renderEventsTable(
     `| ${eventHeader} | ${reactHeader} | ${detailHeader} | ${descriptionHeader} |`,
     '| --- | --- | --- | --- |',
     ...component.events.map(event => {
-      const detail = Object.entries(event.detail)
-        .map(([key, value]) => `${key}: ${value}`)
-        .join(', ')
+      const detail = formatEventDetail(event)
 
       const description = mdTableText(
         translatePrimitiveDocsText(event.description, locale),

@@ -123,10 +123,10 @@ import '@zeus-web/dropdown-menu/wc/auto'
 
 ## Events
 
-| Event         | React prop     | Detail                                                          | Description                               |
-| ------------- | -------------- | --------------------------------------------------------------- | ----------------------------------------- |
-| `open-change` | `onOpenChange` | `open: boolean, nativeEvent: Event`                             | Emitted when open state changes.          |
-| `select`      | `onSelect`     | <code>value: string &#124; undefined, nativeEvent: Event</code> | Emitted when an enabled item is selected. |
+| Event         | React prop     | Detail                                                           | Description                               |
+| ------------- | -------------- | ---------------------------------------------------------------- | ----------------------------------------- |
+| `open-change` | `onOpenChange` | `open: boolean, nativeEvent?: Event`                             | Emitted when open state changes.          |
+| `select`      | `onSelect`     | <code>value?: string &#124; undefined, nativeEvent: Event</code> | Emitted when an enabled item is selected. |
 
 ## Slots
 

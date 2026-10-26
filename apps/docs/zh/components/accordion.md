@@ -129,9 +129,9 @@ import '@zeus-web/accordion/wc/auto'
 
 ## 事件
 
-| 事件           | React 属性      | 详情                                                  | 说明                   |
-| -------------- | --------------- | ----------------------------------------------------- | ---------------------- |
-| `value-change` | `onValueChange` | `value: string, values: string[], nativeEvent: Event` | 打开项的值变化时触发。 |
+| 事件           | React 属性      | 详情                                                   | 说明                   |
+| -------------- | --------------- | ------------------------------------------------------ | ---------------------- |
+| `value-change` | `onValueChange` | `value: string, values: string[], nativeEvent?: Event` | 打开项的值变化时触发。 |
 
 ## 插槽
 

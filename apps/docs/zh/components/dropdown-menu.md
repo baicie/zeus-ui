@@ -123,10 +123,10 @@ import '@zeus-web/dropdown-menu/wc/auto'
 
 ## 事件
 
-| 事件          | React 属性     | 详情                                                            | 说明                       |
-| ------------- | -------------- | --------------------------------------------------------------- | -------------------------- |
-| `open-change` | `onOpenChange` | `open: boolean, nativeEvent: Event`                             | 打开状态变化时触发。       |
-| `select`      | `onSelect`     | <code>value: string &#124; undefined, nativeEvent: Event</code> | 选中未禁用的菜单项时触发。 |
+| 事件          | React 属性     | 详情                                                             | 说明                       |
+| ------------- | -------------- | ---------------------------------------------------------------- | -------------------------- |
+| `open-change` | `onOpenChange` | `open: boolean, nativeEvent?: Event`                             | 打开状态变化时触发。       |
+| `select`      | `onSelect`     | <code>value?: string &#124; undefined, nativeEvent: Event</code> | 选中未禁用的菜单项时触发。 |
 
 ## 插槽
 

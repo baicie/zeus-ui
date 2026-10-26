@@ -157,12 +157,35 @@ describe('component docs generator', () => {
       )
       const row = source
         .split('\n')
-        .find(line => line.includes('<code>value: string &#124; undefined'))
+        .find(line => line.includes('<code>value?: string &#124; undefined'))
 
       expect(row).toBeDefined()
       expect(row!.match(/\|/g)).toHaveLength(5)
     }
   })
+
+  it.each(['en', 'zh'] as const)(
+    'documents optional native events without weakening required payload fields (%s)',
+    locale => {
+      const context = createComponentDocsContext()
+      const dialog = context.metadata.components.find(
+        item => item.name === 'dialog',
+      )!
+      const registryItem = context.registry.items.find(
+        item => item.name === 'dialog',
+      )
+
+      const source = renderComponentDoc(
+        dialog,
+        registryItem,
+        process.cwd(),
+        locale,
+      )
+
+      expect(source).toContain('`open: boolean, nativeEvent?: Event`')
+      expect(source).not.toContain('`open?: boolean')
+    },
+  )
 
   it('documents forceMount on PopoverContent without a Popover root prop', () => {
     const context = createComponentDocsContext()

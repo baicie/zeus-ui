@@ -365,7 +365,7 @@ Web Component import: \`import '@zeus-web/tabs/wc/auto'\`
 
 ### Events
 
-- \`value-change\` / React \`onValueChange\`: Emitted when active tab changes.. Detail: value: string, nativeEvent: Event
+- \`value-change\` / React \`onValueChange\`: Emitted when active tab changes.. Detail: value: string, nativeEvent?: Event
 
 ### Slots
 
@@ -433,7 +433,7 @@ Web Component import: \`import '@zeus-web/dialog/wc/auto'\`
 
 ### Events
 
-- \`open-change\` / React \`onOpenChange\`: Emitted when open state changes.. Detail: open: boolean, nativeEvent: Event
+- \`open-change\` / React \`onOpenChange\`: Emitted when open state changes.. Detail: open: boolean, nativeEvent?: Event
 
 ### Slots
 
@@ -1065,7 +1065,7 @@ Web Component import: \`import '@zeus-web/collapsible/wc/auto'\`
 
 ### Events
 
-- \`open-change\` / React \`onOpenChange\`: Emitted when open state changes.. Detail: open: boolean, nativeEvent: Event
+- \`open-change\` / React \`onOpenChange\`: Emitted when open state changes.. Detail: open: boolean, nativeEvent?: Event
 
 ### Slots
 
@@ -1127,7 +1127,7 @@ Web Component import: \`import '@zeus-web/accordion/wc/auto'\`
 
 ### Events
 
-- \`value-change\` / React \`onValueChange\`: Emitted when open item values change.. Detail: value: string, values: string[], nativeEvent: Event
+- \`value-change\` / React \`onValueChange\`: Emitted when open item values change.. Detail: value: string, values: string[], nativeEvent?: Event
 
 ### Slots
 
@@ -1193,7 +1193,7 @@ Web Component import: \`import '@zeus-web/tooltip/wc/auto'\`
 
 ### Events
 
-- \`open-change\` / React \`onOpenChange\`: Emitted when open state changes.. Detail: open: boolean, nativeEvent: Event
+- \`open-change\` / React \`onOpenChange\`: Emitted when open state changes.. Detail: open: boolean, nativeEvent?: Event
 
 ### Slots
 
@@ -1440,7 +1440,7 @@ Web Component import: \`import '@zeus-web/popover/wc/auto'\`
 
 ### Events
 
-- \`open-change\` / React \`onOpenChange\`: Emitted when open state changes.. Detail: open: boolean, nativeEvent: Event
+- \`open-change\` / React \`onOpenChange\`: Emitted when open state changes.. Detail: open: boolean, nativeEvent?: Event
 
 ### Slots
 
@@ -1504,8 +1504,8 @@ Web Component import: \`import '@zeus-web/dropdown-menu/wc/auto'\`
 
 ### Events
 
-- \`open-change\` / React \`onOpenChange\`: Emitted when open state changes.. Detail: open: boolean, nativeEvent: Event
-- \`select\` / React \`onSelect\`: Emitted when an enabled item is selected.. Detail: value: string | undefined, nativeEvent: Event
+- \`open-change\` / React \`onOpenChange\`: Emitted when open state changes.. Detail: open: boolean, nativeEvent?: Event
+- \`select\` / React \`onSelect\`: Emitted when an enabled item is selected.. Detail: value?: string | undefined, nativeEvent: Event
 
 ### Slots
 
@@ -1568,7 +1568,7 @@ Web Component import: \`import '@zeus-web/toast/wc/auto'\`
 
 ### Events
 
-- \`open-change\` / React \`onOpenChange\`: Emitted when open state changes.. Detail: open: boolean, nativeEvent: Event
+- \`open-change\` / React \`onOpenChange\`: Emitted when open state changes.. Detail: open: boolean, nativeEvent?: Event
 
 ### Slots
 

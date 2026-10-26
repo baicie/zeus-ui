@@ -115,9 +115,9 @@ import '@zeus-web/tabs/wc/auto'
 
 ## 事件
 
-| 事件           | React 属性      | 详情                                | 说明                 |
-| -------------- | --------------- | ----------------------------------- | -------------------- |
-| `value-change` | `onValueChange` | `value: string, nativeEvent: Event` | 活动标签变化时触发。 |
+| 事件           | React 属性      | 详情                                 | 说明                 |
+| -------------- | --------------- | ------------------------------------ | -------------------- |
+| `value-change` | `onValueChange` | `value: string, nativeEvent?: Event` | 活动标签变化时触发。 |
 
 ## 插槽
 
