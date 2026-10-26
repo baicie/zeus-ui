@@ -16,11 +16,18 @@ export function listZeusDependencyManifests(root: string): string[] {
     { cwd: root },
   )
   const packages = JSON.parse(stdout) as ListedWorkspacePackage[]
-  const canonicalRoot = realpathSync(root)
+  // Windows reports the same directory in both long and 8.3 short form
+  // depending on the caller, and `relative()` then walks out of the worktree.
+  // Canonicalise through the native resolver on both sides before diffing.
+  const canonicalRoot = realpathSync.native(root)
   return Array.from(
     new Set(
       packages.map(pkg =>
-        join(root, relative(canonicalRoot, pkg.path), 'package.json'),
+        join(
+          root,
+          relative(canonicalRoot, realpathSync.native(pkg.path)),
+          'package.json',
+        ),
       ),
     ),
   ).sort()
