@@ -4,7 +4,8 @@
 
 当前仓库已实现 MVP 与 Phase 10–14 的路线图交付。CLI 包含
 `init / add / list / remove / diff / update / doctor / theme / icon / ai`；Phase 11、
-Phase 13 已完成。Phase 15 的发布前检查和 CI 已就绪，稳定版发布与发布后验证仍待执行。
+Phase 13 已完成。Phase 15 已完成 beta.34 的真实发布和 40 包发布后验证；按用户决定继续
+beta 版本线，`0.1.0` stable 后置。当前跨框架 Golden 复核使用 UI beta.34 / Zeus beta.20。
 
 ---
 
@@ -797,10 +798,27 @@ Chat 与 Data Grid 为 64 KiB。该检查不替代发布后的隔离 npm consume
 10. CI 全绿。
 ```
 
-状态：**进行中**。测试矩阵、发布前 readiness/strict/tarball gate、CI、registry
-provenance verifier、`release:final` 与上述 Phase 15 本地/CI 测试已实现；当前仓库已准备
-`0.1.0`。尚未完成路线图要求的 `0.1.0` 稳定版发布及发布后 registry、provenance
-和独立消费者复核，因此本阶段仍未完成。
+状态：**beta 发布已完成，stable 后置**。测试矩阵、发布前 readiness/strict/tarball gate、CI、
+registry provenance verifier 与 `release:final` 已实现。实际发布版本为 `0.1.0-beta.34`，
+40 包的 registry、Sigstore provenance、来源及隔离 consumer smoke 已通过发布工作流验证。
+按用户决定继续 beta，不把这一结果表述为 `0.1.0` stable 已发布。
+
+## 2026-10-26 beta.34 发布后复核
+
+- UI PR [#116](https://github.com/baicie/zeus-ui/pull/116) 将实际 workspace 与 peer 对齐到
+  Zeus `0.1.1-beta.20`；PR [#117](https://github.com/baicie/zeus-ui/pull/117) 准备 beta.34。
+- 不可变 tag `v0.1.0-beta.34` 指向 `a8826dd1f81560aaf6459d8d40a3e599f705f6e0`。
+  最终 [Publish run 40326776158](https://github.com/baicie/zeus-ui/actions/runs/40326776158)
+  的 `Verify published packages` 通过，结尾明确为 40 包 smoke 成功；该步骤同时检查 beta tag、
+  发布前 latest 基线、`dist.integrity` 与签名 subject 的 SHA-512 一致性、签名 provenance、
+  release SHA 与隔离 consumer。
+- 两仓 `Release` environment 均无 protection rules，不再要求 reviewer；保留 environment
+  供 secrets 使用。历史 native npm `latest` 清理已经用户决定放弃。
+- 全仓 beta.20 对齐后的真实四组件生命周期门禁在 Chromium/Firefox/WebKit 的 eager/lazy
+  六组合通过，七阶段差异为零；合并前源码候选与发布后 tarball Golden 分开记录。
+- 发布期间发生重复 dispatch，以及首次 publish 在 registry 传播窗口中验证失败；最终 run
+  成功。上述失败保留为历史执行结果，没有用 dry-run 或候选测试替代实际发布。
+- 当前 Golden 按 beta.34/beta.20 重跑并回填 Zeus 主仓库；stable 待后续另行决定。
 
 ## 2026-10-23 发布前复核
 
@@ -848,8 +866,8 @@ provenance verifier、`release:final` 与上述 Phase 15 本地/CI 测试已实�
 当前剩余工作的依赖顺序是：
 
 ```txt
-1. 完成版本 PR 合并后，从 `main` 执行 stable publish、`v0.1.0` tag 和发布后复核。
-2. 验证独立 registry consumer/provenance，并将运行记录回填到 Phase 15。
+1. 将 beta.34 / Zeus beta.20 的四组件 Golden 完整矩阵及来源报告回填到两仓路线图。
+2. 收敛已记录的测试与性能测量抖动，继续 beta 线；stable 不作为本轮发布动作。
 ```
 
 ```txt

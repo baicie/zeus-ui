@@ -3,7 +3,7 @@
   "baselineId": "u005-data-grid-2026-10-24",
   "recordedAt": "2026-10-24",
   "commit": "d28d8a0047742d507d69f6f1c629231ddeca133e",
-  "packageVersion": "0.1.0-beta.34",
+  "packageVersion": "0.1.0",
   "dataMode": "sparse",
   "command": "ZEUS_DATA_GRID_BENCH_DENSE=0 node_modules/.bin/vitest --root . --project data-grid-benchmark --run --reporter=verbose",
   "environment": {
