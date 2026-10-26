@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url'
 import { listZeusDependencyManifests } from '../../release/zeus-dependency-manifests'
 import { createZeusPeerRequirement } from '../../release/zeus-peer-requirement'
 
-const DEFAULT_EXPECTED_ZEUS_VERSION = '0.1.1-beta.18'
+const DEFAULT_EXPECTED_ZEUS_VERSION = '0.1.1-beta.20'
 const ZEUS_SCOPE = '@zeus-js/'
 
 const DEP_FIELDS = [

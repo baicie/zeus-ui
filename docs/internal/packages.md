@@ -40,7 +40,7 @@ function validateAiMetadata(
 
 状态：`0.1.0` 发布准备，MVP 阶段，不承诺向后兼容。
 
-Zeus 兼容基线：`0.1.1-beta.18`。该包只转发 Zeus 当前公共 API，不暴露 Zeus 内部实现。
+Zeus 兼容基线：`0.1.1-beta.20`。该包只转发 Zeus 当前公共 API，不暴露 Zeus 内部实现。
 
 入口：
 
