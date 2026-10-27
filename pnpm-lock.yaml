@@ -982,6 +982,12 @@ importers:
 
   packages/ai-core: {}
 
+  packages/ai-primitives:
+    dependencies:
+      '@zeus-web/ai-core':
+        specifier: workspace:*
+        version: link:../ai-core
+
   packages/cli:
     dependencies:
       '@zeus-web/ai':

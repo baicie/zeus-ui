@@ -27,7 +27,11 @@ describe('release workspace discovery', () => {
         .filter(pkg => pkg.isPrivate)
         .map(pkg => pkg.name)
         .sort(),
-    ).toEqual(['@zeus-web/ai-adapters', '@zeus-web/ai-core'])
+    ).toEqual([
+      '@zeus-web/ai-adapters',
+      '@zeus-web/ai-core',
+      '@zeus-web/ai-primitives',
+    ])
     expect(packages.some(pkg => pkg.name === '@zeus-web/cli')).toBe(true)
     expect(packages.some(pkg => pkg.name === '@zeus-web/icons')).toBe(true)
     expect(packages.some(pkg => pkg.name === '@zeus-web/button')).toBe(true)
