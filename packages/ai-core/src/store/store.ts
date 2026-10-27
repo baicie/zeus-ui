@@ -29,6 +29,7 @@
  */
 
 import type { EntityId, Timestamp } from '../domain/types'
+import type { IgnorableExtensionEvent } from '../protocol/compat'
 import type { AnyDomainEvent } from '../protocol/events'
 import type { ReduceErrorCode } from './reducers'
 import type {
@@ -39,6 +40,7 @@ import type {
 import type { AiState } from './state'
 
 import { freezeClone, isRecord } from '../internal/stable'
+import { readIgnorableExtension } from '../protocol/compat'
 import { validateDomainEvent } from '../protocol/validation'
 import { reduceEvent } from './reducers'
 import {
@@ -55,6 +57,7 @@ export type AiStoreDiagnosticCode =
   | 'stream-mismatch'
   | 'stream-desynced'
   | 'listener-error'
+  | 'extension-ignored'
   | 'snapshot-available'
   | 'snapshot-loaded'
   | 'snapshot-rejected'
@@ -170,6 +173,16 @@ interface Subscription {
   listener: (value: unknown) => void
   equal: (previous: unknown, next: unknown) => boolean
   last: unknown
+}
+
+/**
+ * What occupies one seq of the stream: a domain event, or a host-declared
+ * ignorable extension that only advances the cursor (AI2-112).
+ */
+type StreamEntry = AnyDomainEvent | IgnorableExtensionEvent
+
+function isExtension(entry: StreamEntry): entry is IgnorableExtensionEvent {
+  return (entry as IgnorableExtensionEvent).kind === 'ignorable-extension'
 }
 
 type ApplyOutcome =
@@ -330,7 +343,7 @@ export function createAiStore(options: AiStoreOptions): AiStore {
   const diagnostic = options.onDiagnostic ?? ((): void => {})
 
   let state: AiState = freezeCommitted(createInitialState())
-  const pending = new Map<number, AnyDomainEvent>()
+  const pending = new Map<number, StreamEntry>()
   /** Future seqs whose event arrived unreadable; reaching one halts the stream. */
   const poisoned = new Map<number, StreamHalt>()
   const subscriptions = new Set<Subscription>()
@@ -368,7 +381,25 @@ export function createAiStore(options: AiStoreOptions): AiStore {
     }
   }
 
-  function apply(base: AiState, event: AnyDomainEvent): ApplyOutcome {
+  function apply(base: AiState, event: StreamEntry): ApplyOutcome {
+    if (isExtension(event)) {
+      diagnostic({
+        code: 'extension-ignored',
+        message: `ignorable ${event.type} acknowledged without changing state`,
+        streamId,
+        seq: event.seq,
+        detail: { type: event.type },
+      })
+
+      return {
+        ok: true,
+        state: freezeCommitted(
+          { ...base, cursors: { ...base.cursors, [streamId]: event.seq } },
+          base,
+        ),
+      }
+    }
+
     if (scope) {
       const scoped = checkEventScope(base, event, scope)
       if (scoped) return scoped
@@ -402,7 +433,7 @@ export function createAiStore(options: AiStoreOptions): AiStore {
     })
   }
 
-  function rememberPending(event: AnyDomainEvent): boolean {
+  function rememberPending(event: StreamEntry): boolean {
     if (pending.has(event.seq)) return true
     if (pending.size >= maxBufferedEvents) return false
 
@@ -538,7 +569,10 @@ export function createAiStore(options: AiStoreOptions): AiStore {
       return state
     },
     ingest(event: unknown): IngestResult {
-      const validation = validateDomainEvent(event)
+      const extension = readIgnorableExtension(event)
+      const validation = extension
+        ? ({ ok: true, event: extension } as const)
+        : validateDomainEvent(event)
 
       if (!validation.ok) {
         const futureSeq = claimsFutureSeq(event)
@@ -612,7 +646,7 @@ export function createAiStore(options: AiStoreOptions): AiStore {
       // From here on the event may be buffered or applied: keep our own copy.
       const envelope = freezeClone(received)
 
-      if (envelope.type === 'snapshot.available') {
+      if (!isExtension(envelope) && envelope.type === 'snapshot.available') {
         diagnostic({
           code: 'snapshot-available',
           message: `snapshot advertised at ${envelope.payload.uri}`,

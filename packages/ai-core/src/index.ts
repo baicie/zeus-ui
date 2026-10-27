@@ -19,6 +19,7 @@ export * from './host/host-snapshot'
 export * from './host/mock-host'
 export * from './host/replay-host'
 export * from './protocol/commands'
+export * from './protocol/compat'
 export * from './protocol/events'
 export * from './protocol/validation'
 

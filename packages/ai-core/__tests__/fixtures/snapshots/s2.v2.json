@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 2,
+  "streamId": "stream-s2",
+  "takenAt": "2026-01-01T00:00:00.000Z",
+  "cursors": {
+    "stream-s2": 13
+  },
+  "state": {
+    "conversations": {
+      "conv-s2": {
+        "id": "conv-s2",
+        "title": "清理构建产物",
+        "revision": 1
+      }
+    },
+    "messages": {
+      "msg-s2-user": {
+        "id": "msg-s2-user",
+        "conversationId": "conv-s2",
+        "author": "user",
+        "parts": [
+          {
+            "id": "msg-s2-user-text",
+            "kind": "text",
+            "revision": 1,
+            "text": "清理 dist 目录后重新构建",
+            "format": "markdown"
+          }
+        ],
+        "status": "complete",
+        "revision": 1,
+        "createdAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    "conversationMessageIds": {
+      "conv-s2": ["msg-s2-user"]
+    },
+    "executions": {
+      "exec-s2": {
+        "id": "exec-s2",
+        "kind": "agent",
+        "status": "completed",
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "revision": 5,
+        "activeStepIds": [],
+        "conversationId": "conv-s2"
+      }
+    },
+    "executionStepIds": {
+      "exec-s2": ["step-s2-plan"]
+    },
+    "steps": {
+      "step-s2-plan": {
+        "id": "step-s2-plan",
+        "executionId": "exec-s2",
+        "kind": "plan",
+        "status": "completed",
+        "label": "清理并重建",
+        "startedAt": "2026-01-01T00:00:00.000Z",
+        "completedAt": "2026-01-01T00:00:05.000Z"
+      }
+    },
+    "toolInvocations": {
+      "tool-s2-shell": {
+        "id": "tool-s2-shell",
+        "executionId": "exec-s2",
+        "stepId": "step-s2-plan",
+        "toolName": "shell",
+        "summary": "rm -rf dist && pnpm build",
+        "status": "succeeded"
+      }
+    },
+    "approvals": {
+      "approval-s2": {
+        "id": "approval-s2",
+        "executionId": "exec-s2",
+        "toolInvocationId": "tool-s2-shell",
+        "title": "删除构建目录",
+        "summary": "删除工作区 dist 后重新构建",
+        "operation": {
+          "kind": "shell",
+          "target": "workspace:ws-main/dist"
+        },
+        "scope": "once",
+        "risk": "high",
+        "expiresAt": "2026-01-01T00:10:00.000Z",
+        "status": "approved",
+        "revision": 2
+      }
+    },
+    "artifacts": {},
+    "changeSets": {},
+    "cursors": {
+      "stream-s2": 13
+    }
+  },
+  "checksum": "fnv1a:ad9614ea"
+}
