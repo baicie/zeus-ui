@@ -1023,6 +1023,15 @@ importers:
         specifier: 3.5.38
         version: 3.5.38(typescript@6.0.3)
 
+  packages/ai-wc:
+    dependencies:
+      '@zeus-web/ai-core':
+        specifier: workspace:*
+        version: link:../ai-core
+      '@zeus-web/ai-primitives':
+        specifier: workspace:*
+        version: link:../ai-primitives
+
   packages/cli:
     dependencies:
       '@zeus-web/ai':
