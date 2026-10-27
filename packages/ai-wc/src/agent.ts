@@ -98,9 +98,8 @@ export function defineAiToolInvocation(registry?: Registry): void {
         },
         view: () => {
           const session = p.session as AiSession | undefined
-          const tool = session?.store
-            .getState()
-            .toolInvocations.get(p.toolId as EntityId)
+          const state = session?.store.getState()
+          const tool = state?.toolInvocations.get(p.toolId as EntityId)
           if (!tool) return null
           return toolInvocationView(
             tool,

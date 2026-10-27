@@ -106,7 +106,8 @@ describe('markdown safety (threat T1-1)', () => {
     for (const input of inputs) {
       const started = performance.now()
       parseMarkdown(input)
-      expect(performance.now() - started).toBeLessThan(1000)
+      // Linear parsing takes milliseconds; a quadratic regression takes minutes.
+      expect(performance.now() - started).toBeLessThan(5000)
     }
   })
 

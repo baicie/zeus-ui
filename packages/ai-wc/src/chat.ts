@@ -61,8 +61,8 @@ function props(element: AiElementInstance): Props {
 }
 
 function copyText(text: string): void {
-  const clipboard = (globalThis as { navigator?: Navigator }).navigator
-    ?.clipboard
+  const host = globalThis as { navigator?: Navigator }
+  const clipboard = host.navigator?.clipboard
   if (clipboard) void clipboard.writeText(text).catch(() => {})
 }
 
@@ -212,9 +212,8 @@ export function defineAiMessage(registry?: Registry): void {
         slots: () => {
           const session = p.session as AiSession
           const renderers = p.renderers as RendererRegistry<Node> | undefined
-          const message = session.store
-            .getState()
-            .messages.get(p.messageId as EntityId)
+          const state = session.store.getState()
+          const message = state.messages.get(p.messageId as EntityId)
           const byPart = new Map(
             (message?.parts ?? []).map(part => [part.id, part]),
           )
@@ -315,12 +314,11 @@ export function defineAiMessageTimeline(registry?: Registry): void {
 
           const syncBusy = (): void => {
             const state = session.store.getState()
-            const next = conversation
-              .getSnapshot()
-              .visibleMessageIds.some(id => {
-                const status = state.messages.get(id)?.status
-                return status === 'streaming' || status === 'pending'
-              })
+            const visible = conversation.getSnapshot().visibleMessageIds
+            const next = visible.some(id => {
+              const status = state.messages.get(id)?.status
+              return status === 'streaming' || status === 'pending'
+            })
             if (next !== busy) {
               busy = next
               element.requestRender()
@@ -460,13 +458,12 @@ export function defineAiArtifactPreview(registry?: Registry): void {
         },
         slots: () => ({
           'artifact-binary': wrapper => {
-            const preview = (p.controller as ArtifactController).getSnapshot()
-              .preview
+            const controller = p.controller as ArtifactController
+            const preview = controller.getSnapshot().preview
             const session = p.session as AiSession | undefined
-            const mime =
-              preview &&
-              session?.store.getState().artifacts.get(preview.artifactId)?.asset
-                .mimeType
+            const artifacts = session?.store.getState().artifacts
+            const artifact = preview && artifacts?.get(preview.artifactId)
+            const mime = artifact ? artifact.asset.mimeType : undefined
             if (!preview?.bytes || !mime) return
             if (wrapper.dataset.artifactId === preview.artifactId) return
             wrapper.dataset.artifactId = preview.artifactId

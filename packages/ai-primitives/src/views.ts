@@ -778,11 +778,10 @@ export function diffView(
   // Comments whose hunk is gone after a new revision have no row to sit on;
   // list them so they never silently disappear.
   const hunkIds = new Set(diff.hunks.map(hunk => hunk.id))
-  const orphaned = review
-    .getSnapshot()
-    .comments.filter(
-      comment => comment.path === diff.path && !hunkIds.has(comment.hunkId),
-    )
+  const comments = review.getSnapshot().comments
+  const orphaned = comments.filter(
+    comment => comment.path === diff.path && !hunkIds.has(comment.hunkId),
+  )
   const reviewed = review.getSnapshot().reviewed
 
   return el(

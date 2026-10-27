@@ -130,9 +130,9 @@ export function createArtifactController(
   let loadToken = 0
 
   function listIds(): EntityId[] {
-    return store
-      .getState()
-      .artifacts.values()
+    const artifacts = store.getState().artifacts
+    return artifacts
+      .values()
       .filter(
         artifact =>
           options.executionId === undefined ||

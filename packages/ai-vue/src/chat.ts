@@ -6,6 +6,7 @@
 
 import type {
   AiSession,
+  AiState,
   ArtifactController,
   AssetRef,
   Citation,
@@ -334,12 +335,12 @@ export const AiMessageTimeline = defineComponent({
       props.conversation,
       value => value.visibleMessageIds,
     )
-    const busy = useAiState(session.store, state =>
+    const selectBusy = (state: AiState) =>
       visible.value.some(id => {
         const status = state.messages.get(id)?.status
         return status === 'streaming' || status === 'pending'
-      }),
-    )
+      })
+    const busy = useAiState(session.store, selectBusy)
     const scroller = shallowRef<HTMLElement | null>(null)
     let programmatic = false
     let observer: ResizeObserver | undefined

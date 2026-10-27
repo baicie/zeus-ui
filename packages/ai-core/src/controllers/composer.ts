@@ -376,11 +376,10 @@ export function createComposerController(
       return id
     },
     updateAttachment(id, patch): void {
-      const attachments = view
-        .getSnapshot()
-        .attachments.map(item =>
-          item.id === id ? { ...item, ...patch } : item,
-        )
+      const current = view.getSnapshot().attachments
+      const attachments = current.map(item =>
+        item.id === id ? { ...item, ...patch } : item,
+      )
       edit({ attachments })
     },
     removeAttachment(id: string): void {

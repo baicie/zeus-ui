@@ -26,9 +26,7 @@ import {
   AiSessionProvider,
 } from '../src'
 
-;(
-  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
-).IS_REACT_ACT_ENVIRONMENT = true
+Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 
 const T = '2026-01-01T00:00:00.000Z'
 const roots: { unmount: () => void }[] = []

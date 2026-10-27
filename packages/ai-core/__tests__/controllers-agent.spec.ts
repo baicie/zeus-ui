@@ -306,10 +306,8 @@ describe('ai2-306 · run switcher', () => {
     expect(runs.find(run => run.executionId === 'exec-1')?.unread).toBe(0)
 
     switcher.select('exec-2')
-    expect(
-      switcher.getSnapshot().runs.find(run => run.executionId === 'exec-2')
-        ?.unread,
-    ).toBe(0)
+    const runs2 = switcher.getSnapshot().runs
+    expect(runs2.find(run => run.executionId === 'exec-2')?.unread).toBe(0)
     expect(fixture.store.getState().executions.get('exec-1')!.status).toBe(
       'running',
     )

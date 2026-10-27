@@ -6,6 +6,7 @@
 
 import type {
   AiSession,
+  AiState,
   ApprovalController,
   EntityId,
   ExecutionController,
@@ -61,9 +62,8 @@ export function AiToolInvocation(
   const session = useAiSession(props.session)
   const ids = useIds()
   const [expanded, setExpanded] = useState(props.defaultExpanded ?? false)
-  const tool = useAiState(session.store, state =>
-    state.toolInvocations.get(props.toolId),
-  )
+  const selectTool = (state: AiState) => state.toolInvocations.get(props.toolId)
+  const tool = useAiState(session.store, selectTool)
   if (!tool) return null
   return renderView(
     toolInvocationView(tool, expanded, () => setExpanded(value => !value), {
@@ -83,9 +83,8 @@ export interface AiStepProps {
 export function AiStep(props: AiStepProps): ReactElement | null {
   const session = useAiSession(props.session)
   const step = useAiState(session.store, state => state.steps.get(props.stepId))
-  const tool = useAiState(session.store, state =>
-    selectStepTool(state, props.stepId),
-  )
+  const selectTool = (state: AiState) => selectStepTool(state, props.stepId)
+  const tool = useAiState(session.store, selectTool)
   if (!step) return null
 
   return createElement(
@@ -115,9 +114,9 @@ export interface AiStepListProps {
 export function AiStepList(props: AiStepListProps): ReactElement {
   const session = useAiSession(props.session)
   const ids = useIds()
-  const nodes = useAiState(session.store, state =>
-    selectStepTree(state, props.executionId),
-  )
+  const selectNodes = (state: AiState) =>
+    selectStepTree(state, props.executionId)
+  const nodes = useAiState(session.store, selectNodes)
   const roots = stepTreeNodes(nodes, props.kinds)
   const tree = useOwnedController(
     () =>

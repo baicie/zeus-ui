@@ -96,7 +96,7 @@ export function focusById(id: string): void {
 }
 
 export function defaultCopy(text: string): void {
-  const clipboard = (globalThis as { navigator?: Navigator }).navigator
-    ?.clipboard
+  const host = globalThis as { navigator?: Navigator }
+  const clipboard = host.navigator?.clipboard
   if (clipboard) void clipboard.writeText(text).catch(() => {})
 }

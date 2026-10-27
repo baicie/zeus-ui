@@ -80,9 +80,10 @@ export class EntityMap<T> {
       if (!(id in bucket)) size += 1
       bucket[id] = Object.freeze({ value: record[id], ordinal: size })
     }
-    const frozen = Array.from({ length: BUCKET_COUNT }, (_, index) =>
-      buckets[index] ? Object.freeze(buckets[index]) : undefined,
-    )
+    const frozen: (Bucket<T> | undefined)[] = []
+    for (let index = 0; index < BUCKET_COUNT; index += 1) {
+      frozen.push(buckets[index] ? Object.freeze(buckets[index]) : undefined)
+    }
     return new EntityMap<T>(Object.freeze(frozen), size, size + 1)
   }
 

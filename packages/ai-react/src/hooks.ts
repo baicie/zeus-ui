@@ -62,9 +62,9 @@ export function useOptionalController<TView, TSelected>(
   controller: Controller<TView> | undefined,
   selector: (view: Readonly<TView>) => TSelected,
 ): TSelected | undefined {
-  return useController((controller ?? ABSENT) as Controller<unknown>, view =>
-    controller ? selector(view as Readonly<TView>) : undefined,
-  )
+  const select = (view: unknown): TSelected | undefined =>
+    controller ? selector(view as Readonly<TView>) : undefined
+  return useController((controller ?? ABSENT) as Controller<unknown>, select)
 }
 
 /** Subscribe to a slice of canonical state. */

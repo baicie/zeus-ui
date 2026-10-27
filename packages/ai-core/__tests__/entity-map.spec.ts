@@ -31,12 +31,38 @@ describe('entity map', () => {
     expect(toEntityMap(map)).toBe(map)
   })
 
-  it('keeps per-update cost flat as the map grows', () => {
-    let map = EntityMap.empty<number>()
-    for (let i = 0; i < 20_000; i += 1) map = map.set(`k${i}`, i)
-    const started = performance.now()
-    for (let i = 0; i < 2000; i += 1) map = map.set(`k${i}`, -i)
-    // ~2 ms per update with plain-object copies at this size.
-    expect((performance.now() - started) / 2000).toBeLessThan(0.5)
-  })
+  it(
+    'updates far faster than copying a plain record of the same size',
+    { timeout: 30_000 },
+    () => {
+      const size = 5000
+      const updates = 100
+      let map = EntityMap.empty<number>()
+      let record: Record<string, number> = {}
+      for (let i = 0; i < size; i += 1) {
+        map = map.set(`k${i}`, i)
+        record[`k${i}`] = i
+      }
+
+      // Interleaved, best of three: machine load and GC hit both sides alike.
+      let persistent = Infinity
+      let copying = Infinity
+      for (let round = 0; round < 3; round += 1) {
+        let started = performance.now()
+        for (let i = 0; i < updates; i += 1) map = map.set(`k${i}`, -i - round)
+        persistent = Math.min(persistent, performance.now() - started)
+
+        started = performance.now()
+        for (let i = 0; i < updates; i += 1) {
+          record = { ...record, [`k${i}`]: -i - round }
+        }
+        copying = Math.min(copying, performance.now() - started)
+      }
+
+      expect(map.get('k1')).toBe(-3)
+      expect(record.k1).toBe(-3)
+      // ~40x in practice; 5x leaves room for noisy CI machines.
+      expect(persistent * 5).toBeLessThan(copying)
+    },
+  )
 })

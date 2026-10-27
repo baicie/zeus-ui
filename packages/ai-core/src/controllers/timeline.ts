@@ -165,7 +165,8 @@ export function createTimelineController(
       // Anchor at the bottom: fill one viewport upwards from the end.
       end = count
       start = count
-      for (let filled = 0; start > 0 && filled < viewport; ) {
+      let filled = 0
+      while (start > 0 && filled < viewport) {
         start -= 1
         filled += size(start)
       }
@@ -256,9 +257,8 @@ export function createTimelineController(
       const lastIndex =
         lastKnown === undefined ? -1 : itemIds.indexOf(lastKnown)
       // Only items after the previous tail are "new"; prepended history is not.
-      const appended = itemIds
-        .slice(lastIndex + 1)
-        .filter(id => !known.has(id)).length
+      const tail = itemIds.slice(lastIndex + 1)
+      const appended = tail.filter(id => !known.has(id)).length
 
       view.update({
         itemIds: [...itemIds],

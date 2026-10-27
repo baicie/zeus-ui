@@ -288,9 +288,8 @@ export function createReviewController(
       }))
     },
     submitComment(commentId): Promise<CommandAck> {
-      const comment = view
-        .getSnapshot()
-        .comments.find(entry => entry.id === commentId)
+      const comments = view.getSnapshot().comments
+      const comment = comments.find(entry => entry.id === commentId)
 
       if (
         !comment ||

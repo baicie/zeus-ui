@@ -6,6 +6,7 @@
 
 import type {
   AiSession,
+  AiState,
   ArtifactController,
   AssetRef,
   Citation,
@@ -313,12 +314,12 @@ export function AiMessageTimeline(props: AiMessageTimelineProps): ReactElement {
     props.conversation,
     value => value.visibleMessageIds,
   )
-  const busy = useAiState(session.store, state =>
+  const selectBusy = (state: AiState) =>
     visible.some(id => {
       const status = state.messages.get(id)?.status
       return status === 'streaming' || status === 'pending'
-    }),
-  )
+    })
+  const busy = useAiState(session.store, selectBusy)
   const scrollerRef = useRef<HTMLElement>(null)
   const programmatic = useRef(false)
 

@@ -47,9 +47,7 @@ import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createApp, h, nextTick } from 'vue'
 
-;(
-  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
-).IS_REACT_ACT_ENVIRONMENT = true
+Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 
 export const FRAMEWORKS = ['react', 'vue', 'wc'] as const
 export type Framework = (typeof FRAMEWORKS)[number]
