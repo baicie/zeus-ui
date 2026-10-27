@@ -69,6 +69,9 @@ interface Waiter {
   resolve: () => void
 }
 
+/** Resolve after a microtask, so callers can register the attempt first. */
+const nextMicrotask = (): Promise<void> => Promise.resolve()
+
 export function createMockHost(options: MockHostOptions = {}): MockHost {
   const streamId = options.streamId ?? 'mock-stream'
   const factory: EventFactory = createEventFactory(streamId)
@@ -88,17 +91,21 @@ export function createMockHost(options: MockHostOptions = {}): MockHost {
     if (signal?.aborted) return Promise.resolve()
 
     return new Promise<void>(resolve => {
-      const waiter: Waiter = { resolve }
-      waiters.add(waiter)
-
-      signal?.addEventListener(
-        'abort',
-        () => {
-          waiters.delete(waiter)
+      // A long subscription waits many times on one signal; drop the abort
+      // listener whichever way the wait ends so they do not pile up.
+      const waiter: Waiter = {
+        resolve: () => {
+          signal?.removeEventListener('abort', onAbort)
           resolve()
         },
-        { once: true },
-      )
+      }
+      function onAbort(): void {
+        waiters.delete(waiter)
+        resolve()
+      }
+
+      waiters.add(waiter)
+      signal?.addEventListener('abort', onAbort, { once: true })
     })
   }
 
@@ -169,20 +176,23 @@ export function createMockHost(options: MockHostOptions = {}): MockHost {
       }
 
       if (decision.kind === 'in-flight') {
-        const shared = inFlight.get(command.idempotencyKey)
-
-        if (shared) {
-          const ack = await shared
-          return { ...ack, commandId: command.commandId }
-        }
+        // `begin` and `inFlight.set` happen in the same tick, so an in-flight
+        // key always has a shared attempt to wait on.
+        const ack = await (inFlight.get(
+          command.idempotencyKey,
+        ) as Promise<CommandAck>)
+        return { ...ack, commandId: command.commandId }
       }
 
       commands.push(command)
 
-      const attempt = (async (): Promise<CommandAck> => {
+      const operationId = `op-${commands.length}`
+      // Defer the script so the attempt is registered before user code runs:
+      // a script that re-enters `execute` with the same key must share it.
+      const attempt = nextMicrotask().then(async () => {
         const scripted = await options.onExecute?.(command, host)
-        return scripted ?? createAcceptedAck(command, `op-${commands.length}`)
-      })()
+        return scripted ?? createAcceptedAck(command, operationId)
+      })
 
       inFlight.set(command.idempotencyKey, attempt)
 

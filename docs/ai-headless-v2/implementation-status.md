@@ -9,7 +9,7 @@
 
 - **M0**（AI2-001/002/003/004）：`docs/ai-headless-v2/` 下的故事、ADR、威胁模型、旧代码决策，设计原文逐字节存档于 `design-source/`。
 - **M1**（AI2-101 ~ AI2-110）：`packages/ai-core`（private、零依赖、纯 Node），含领域类型、审批/执行状态机、Command 幂等、DomainEvent 校验、规范化 Store/Reducer、seq 恢复、细粒度 Selector、Mock/Replay Host 与 S1/S2/S3 录制流。
-- 验证：`pnpm check`、`pnpm -F @zeus-web/ai-core build`（含 DTS）、`vitest --project unit` 与 `--project unit-jsdom` 下 85 项合同测试（含 2026-10-27 复审新增的 34 项回归）、`pnpm lint`、`format-check`、`release:verify`、`check:build-output`、`check:exports`、`check:product-contract`、文档门禁。
+- 验证：`pnpm check`、`pnpm -F @zeus-web/ai-core build`（含 DTS）、`vitest --project unit` 与 `--project unit-jsdom` 下 98 项合同测试（含 2026-10-27 两轮复审新增的 47 项回归）、`pnpm lint`、`format-check`、`release:verify`、`check:build-output`、`check:exports`、`check:product-contract`、文档门禁。
 
 > **2026-10-27 复审**：首轮实现的 51 项测试全绿，但复审确认 M1 Gate 有 4 条未满足（终态可复活、审批可被请求事件伪造、无法应用的事件会卡死或被静默跳过、无跨会话隔离），另有 Mock Host 不幂等、Host 快照会跳号等问题。已全部修复并补回归测试，详见 [review-2026-10-27-ai-core.md](./review-2026-10-27-ai-core.md)。下表 AI2-104 ~ AI2-110 的证据已按修复后的实现更新。
 

@@ -18,7 +18,14 @@
  * `desynced`: the cursor stays on the last good event, later events are only
  * buffered, and the store waits for a validated snapshot (`loadSnapshot` /
  * `loadHostSnapshot`). Replaying the same broken seq cannot heal it, so the
- * store says so instead of reporting a misleading gap.
+ * store says so instead of reporting a misleading gap. An unreadable event
+ * that claims a *later* seq does not stop the events before it: the seq is
+ * remembered and the stream halts only when it becomes the next one.
+ *
+ * Ownership: every accepted event and snapshot is deep-copied and frozen on
+ * the way in, and committed state is frozen, so neither the caller that
+ * handed data in nor a consumer of `getState()` can rewrite canonical state
+ * without going through a reducer.
  */
 
 import type { EntityId, Timestamp } from '../domain/types'
@@ -31,7 +38,7 @@ import type {
 } from './snapshot'
 import type { AiState } from './state'
 
-import { isRecord } from '../internal/stable'
+import { freezeClone, isRecord } from '../internal/stable'
 import { validateDomainEvent } from '../protocol/validation'
 import { reduceEvent } from './reducers'
 import {
@@ -39,7 +46,7 @@ import {
   snapshotFromHostPayload,
   validateSnapshot,
 } from './snapshot'
-import { createInitialState } from './state'
+import { AI_STATE_KEYS, createInitialState } from './state'
 
 export type AiStoreDiagnosticCode =
   | 'gap-detected'
@@ -305,14 +312,27 @@ function findOutOfScopeEntity(
   return null
 }
 
+/** Freeze the state object and the collections a commit replaced. */
+function freezeCommitted(next: AiState, base?: AiState): AiState {
+  if (Object.isFrozen(next)) return next
+
+  for (const key of AI_STATE_KEYS) {
+    if (next[key] !== base?.[key]) Object.freeze(next[key])
+  }
+
+  return Object.freeze(next)
+}
+
 export function createAiStore(options: AiStoreOptions): AiStore {
   const streamId = options.streamId
   const scope = options.scope
   const maxBufferedEvents = options.maxBufferedEvents ?? 512
   const diagnostic = options.onDiagnostic ?? ((): void => {})
 
-  let state: AiState = createInitialState()
+  let state: AiState = freezeCommitted(createInitialState())
   const pending = new Map<number, AnyDomainEvent>()
+  /** Future seqs whose event arrived unreadable; reaching one halts the stream. */
+  const poisoned = new Map<number, StreamHalt>()
   const subscriptions = new Set<Subscription>()
 
   let gapOpen = false
@@ -360,10 +380,13 @@ export function createAiStore(options: AiStoreOptions): AiStore {
 
     return {
       ok: true,
-      state: {
-        ...reduced.state,
-        cursors: { ...reduced.state.cursors, [streamId]: event.seq },
-      },
+      state: freezeCommitted(
+        {
+          ...reduced.state,
+          cursors: { ...reduced.state.cursors, [streamId]: event.seq },
+        },
+        base,
+      ),
     }
   }
 
@@ -397,6 +420,13 @@ export function createAiStore(options: AiStoreOptions): AiStore {
 
     for (;;) {
       const seq = cursorOf(nextState) + 1
+      const poison = poisoned.get(seq)
+
+      if (poison) {
+        enterDesync(poison)
+        return { state: nextState, applied, halted: poison }
+      }
+
       const buffered = pending.get(seq)
 
       if (!buffered) break
@@ -478,6 +508,9 @@ export function createAiStore(options: AiStoreOptions): AiStore {
     for (const seq of [...pending.keys()]) {
       if (seq <= nextCursor) pending.delete(seq)
     }
+    for (const seq of [...poisoned.keys()]) {
+      if (seq <= nextCursor) poisoned.delete(seq)
+    }
 
     halt = undefined
     gapOpen = false
@@ -509,7 +542,6 @@ export function createAiStore(options: AiStoreOptions): AiStore {
 
       if (!validation.ok) {
         const futureSeq = claimsFutureSeq(event)
-        const blocks = futureSeq !== undefined && halt === undefined
 
         diagnostic({
           code: validation.quarantined ? 'quarantined-event' : 'rejected-event',
@@ -519,17 +551,28 @@ export function createAiStore(options: AiStoreOptions): AiStore {
           detail: { validationCode: validation.code },
         })
 
-        if (blocks) {
-          enterDesync({
+        if (futureSeq !== undefined) {
+          const stop: StreamHalt = {
             seq: futureSeq,
             code: validation.code,
             message: validation.message,
-          })
+          }
+
+          if (!halt && futureSeq === cursorOf(state) + 1) {
+            enterDesync(stop)
+          } else if (
+            !poisoned.has(futureSeq) &&
+            poisoned.size < maxBufferedEvents
+          ) {
+            poisoned.set(futureSeq, stop)
+          }
         }
 
-        const recovery = blocks
-          ? { recovery: 'snapshot-required' as const }
-          : {}
+        // The stream cannot pass this seq without a snapshot that covers it.
+        const recovery =
+          futureSeq !== undefined
+            ? { recovery: 'snapshot-required' as const }
+            : {}
 
         return validation.quarantined
           ? {
@@ -546,25 +589,28 @@ export function createAiStore(options: AiStoreOptions): AiStore {
             }
       }
 
-      const envelope = validation.event
+      const received = validation.event
 
-      if (envelope.streamId !== streamId) {
-        const message = `event belongs to stream ${envelope.streamId}, store owns ${streamId}`
+      if (received.streamId !== streamId) {
+        const message = `event belongs to stream ${received.streamId}, store owns ${streamId}`
         diagnostic({
           code: 'stream-mismatch',
           message,
           streamId,
-          seq: envelope.seq,
-          detail: { eventStreamId: envelope.streamId },
+          seq: received.seq,
+          detail: { eventStreamId: received.streamId },
         })
         return { status: 'rejected', code: 'stream-mismatch', message }
       }
 
       const cursor = cursorOf(state)
 
-      if (envelope.seq <= cursor) {
-        return { status: 'duplicate', seq: envelope.seq }
+      if (received.seq <= cursor) {
+        return { status: 'duplicate', seq: received.seq }
       }
+
+      // From here on the event may be buffered or applied: keep our own copy.
+      const envelope = freezeClone(received)
 
       if (envelope.type === 'snapshot.available') {
         diagnostic({
@@ -616,6 +662,20 @@ export function createAiStore(options: AiStoreOptions): AiStore {
           status: pending.size === 1 ? 'gap' : 'buffered',
           expectedSeq,
           receivedSeq: envelope.seq,
+          buffered: pending.size,
+        }
+      }
+
+      const poison = poisoned.get(envelope.seq)
+
+      if (poison) {
+        // An unreadable frame already claimed this seq; a second, different
+        // frame for the same seq is not a trustworthy repair.
+        enterDesync(poison)
+        return {
+          status: 'desynced',
+          seq: envelope.seq,
+          halt: poison,
           buffered: pending.size,
         }
       }

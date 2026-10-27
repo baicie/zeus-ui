@@ -13,11 +13,13 @@
  *   (`execution.started`, `approval.requested`, `step.upserted`, ...) can not
  *   be used to jump states or revive a terminal entity (threats T7-3/T7-4).
  * - An approval is born `pending`, and only `approval.resolved` changes its
- *   status. Its target, operation and scope are immutable once requested
- *   (threats T1-4/T3-1).
+ *   status. Its target, operation, scope and risk are immutable once
+ *   requested (threats T1-4/T3-1/T3-5).
  * - Children resolve their parent inside the same aggregate: steps, tools,
- *   approvals and change sets need their execution; messages need their
- *   conversation and a parent message from the same conversation. Optional
+ *   approvals, change sets and execution-bound artifacts need their
+ *   execution; messages need their conversation and a parent message from the
+ *   same conversation; a conversation's selected leaf is one of its own
+ *   messages. Optional
  *   cross-aggregate links (message ↔ execution, execution ↔ conversation)
  *   stay optional, because those aggregates may live on different streams.
  */
@@ -26,6 +28,7 @@ import type {
   ApprovalRequest,
   Artifact,
   ChangeSet,
+  ContentPart,
   Conversation,
   Execution,
   ExecutionStep,
@@ -77,14 +80,15 @@ function unchanged(state: AiState): ReduceResult {
 
 /**
  * Replace one entry. This is a shallow copy of the record's key table, never a
- * clone of the entities themselves; entity objects keep their identity.
+ * clone of the entities themselves; entity objects keep their identity. The
+ * new table is frozen so a consumer of `getState()` cannot edit it in place.
  */
 function withEntity<T>(
   record: Readonly<Record<string, T>>,
   id: string,
   entity: T,
 ): Readonly<Record<string, T>> {
-  return { ...record, [id]: entity }
+  return Object.freeze({ ...record, [id]: entity })
 }
 
 function appendIndex(
@@ -96,7 +100,7 @@ function appendIndex(
 
   if (current.includes(id)) return index
 
-  return withEntity(index, key, [...current, id])
+  return withEntity(index, key, Object.freeze([...current, id]))
 }
 
 function immutableFieldChanged<T extends object>(
@@ -169,6 +173,25 @@ function applyConversation(state: AiState, next: Conversation): ReduceResult {
       'immutable-field',
       `conversation ${next.id} cannot move from project ${String(current.projectId)} to ${String(next.projectId)}`,
     )
+  }
+
+  // The visible branch must end on one of this conversation's own messages.
+  if (next.selectedLeafMessageId !== undefined) {
+    const leaf = state.messages[next.selectedLeafMessageId]
+
+    if (!leaf) {
+      return fail(
+        'reference-missing',
+        `conversation ${next.id} selects unknown message ${next.selectedLeafMessageId}`,
+      )
+    }
+
+    if (leaf.conversationId !== next.id) {
+      return fail(
+        'reference-mismatch',
+        `conversation ${next.id} cannot select message ${leaf.id} of conversation ${leaf.conversationId}`,
+      )
+    }
   }
 
   return {
@@ -300,14 +323,18 @@ function applyMessagePartDelta(
     : `${part.text}${payload.append as string}`
   const parts = message.parts.slice()
 
-  parts[partIndex] = { ...part, text: nextText, revision: payload.nextRevision }
+  parts[partIndex] = Object.freeze({
+    ...part,
+    text: nextText,
+    revision: payload.nextRevision,
+  })
 
-  const nextMessage: Message = {
+  const nextMessage: Message = Object.freeze({
     ...message,
-    parts,
+    parts: Object.freeze(parts) as ContentPart[],
     status: 'streaming',
     revision: message.revision + 1,
-  }
+  })
 
   return {
     ok: true,
@@ -355,11 +382,11 @@ function applyMessageCompleted(
     )
   }
 
-  const nextMessage: Message = {
+  const nextMessage: Message = Object.freeze({
     ...message,
     status: payload.status,
     revision: payload.revision,
-  }
+  })
 
   return {
     ok: true,
@@ -445,11 +472,11 @@ function applyExecutionStatus(
     )
   }
 
-  const nextExecution: Execution = {
+  const nextExecution: Execution = Object.freeze({
     ...execution,
     status: payload.to,
     revision: payload.revision,
-  }
+  })
 
   return {
     ok: true,
@@ -586,11 +613,17 @@ function applyTool(state: AiState, tool: ToolInvocation): ReduceResult {
   }
 }
 
+/**
+ * What the user is asked to authorize. `risk` is part of it: a pending request
+ * re-sent as `low` would change what the prompt shows after the user started
+ * reading it (threat T3-5). A host that reassesses issues a new approval.
+ */
 const APPROVAL_IMMUTABLE_FIELDS: readonly (keyof ApprovalRequest)[] = [
   'executionId',
   'toolInvocationId',
   'operation',
   'scope',
+  'risk',
 ]
 
 function applyApprovalRequested(
@@ -722,11 +755,11 @@ function applyApprovalResolved(
     )
   }
 
-  const nextApproval: ApprovalRequest = {
+  const nextApproval: ApprovalRequest = Object.freeze({
     ...approval,
     status: payload.decision,
     revision: payload.revision,
-  }
+  })
 
   return {
     ok: true,
@@ -738,6 +771,16 @@ function applyApprovalResolved(
 }
 
 function applyArtifact(state: AiState, artifact: Artifact): ReduceResult {
+  if (artifact.executionId !== undefined) {
+    const missing = requireExecution(
+      state,
+      'artifact',
+      artifact.id,
+      artifact.executionId,
+    )
+    if (missing) return missing
+  }
+
   const current = state.artifacts[artifact.id]
 
   if (current) {

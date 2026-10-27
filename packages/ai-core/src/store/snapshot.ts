@@ -2,9 +2,11 @@
  * Snapshot export/validation (AI2-108).
  *
  * A snapshot is only usable when its schema version is known, every canonical
- * collection is present and well-formed, its cursors agree with the state it
+ * collection is present and well-formed, every entity passes the same shape
+ * and reference rules as the event path, its cursors agree with the state it
  * carries, and its checksum matches; anything else is an explicit error,
- * never a silent partial restore.
+ * never a silent partial restore. An accepted snapshot carries a frozen copy
+ * of the state, detached from the caller's input.
  *
  * The checksum is an integrity check (FNV-1a), not an authorization
  * primitive: whether a caller may read a scope is decided by the host.
@@ -13,7 +15,13 @@
 import type { Timestamp } from '../domain/types'
 import type { AiState } from './state'
 
-import { isRecord, stableEqual, stableStringify } from '../internal/stable'
+import {
+  freezeClone,
+  isRecord,
+  stableEqual,
+  stableStringify,
+} from '../internal/stable'
+import { findStateIntegrityIssue } from './integrity'
 import { AI_STATE_KEYS, createInitialState } from './state'
 
 export const AI_SNAPSHOT_SCHEMA_VERSION = 2
@@ -143,7 +151,10 @@ export function validateSnapshot(
 
   if (shapeError) return invalid('invalid-state', shapeError)
 
-  const state = input.state as unknown as AiState
+  const state = freezeClone(input.state) as unknown as AiState
+  const integrityError = findStateIntegrityIssue(state)
+
+  if (integrityError) return invalid('invalid-state', integrityError)
 
   // The envelope cursors are not covered by the checksum, so they must agree
   // with the checksummed state instead of silently overriding it.

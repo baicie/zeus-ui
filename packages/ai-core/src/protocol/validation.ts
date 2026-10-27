@@ -403,6 +403,47 @@ const changeset = shape({
   revision,
 })
 
+/** Canonical entity collections whose members share the event payload shape. */
+export type CanonicalEntityCollection =
+  | 'conversations'
+  | 'messages'
+  | 'executions'
+  | 'steps'
+  | 'toolInvocations'
+  | 'approvals'
+  | 'artifacts'
+  | 'changeSets'
+
+const ENTITY_CHECKS: Readonly<Record<CanonicalEntityCollection, Check>> = {
+  conversations: conversation,
+  messages: message,
+  executions: execution,
+  steps: step,
+  toolInvocations: tool,
+  approvals: approval,
+  artifacts: artifact,
+  changeSets: changeset,
+}
+
+export const CANONICAL_ENTITY_COLLECTIONS = Object.keys(
+  ENTITY_CHECKS,
+) as readonly CanonicalEntityCollection[]
+
+/**
+ * Structural check for one entity outside an event (snapshot restore). Same
+ * rules as the event payloads, so a snapshot cannot smuggle in an entity an
+ * event could never carry. Returns a readable issue, or null when valid.
+ */
+export function validateCanonicalEntity(
+  collection: CanonicalEntityCollection,
+  value: unknown,
+  field: string,
+): string | null {
+  const result = ENTITY_CHECKS[collection](value, field)
+
+  return result ? `${result.field} ${result.message}` : null
+}
+
 function payloadOf(fields: Readonly<Record<string, Check>>) {
   return (payload: Record<string, unknown>): PayloadIssue | null => {
     for (const key of Object.keys(fields)) {

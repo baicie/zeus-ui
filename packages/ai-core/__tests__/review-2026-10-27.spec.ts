@@ -38,7 +38,8 @@ import {
   selectExecutionSteps,
   selectPendingApprovals,
 } from '../src/store/selectors'
-import { checksumState } from '../src/store/snapshot'
+import { checksumState, validateSnapshot } from '../src/store/snapshot'
+import { createInitialState } from '../src/store/state'
 import { createAiStore } from '../src/store/store'
 
 const T = '2026-01-01T00:00:00.000Z'
@@ -887,5 +888,318 @@ describe('review f8 · selectors stay correct and quiet', () => {
     expect(diagnostics.some(entry => entry.code === 'listener-error')).toBe(
       true,
     )
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Second pass (F13–F19): issues still present after the first round of fixes.
+// ---------------------------------------------------------------------------
+
+describe('review f13 · canonical state is owned by the store', () => {
+  it('is not rewritten when the caller mutates an ingested event', () => {
+    const { factory, store } = setup()
+    const event = factory.create('conversation.upserted', 'conv-1', {
+      conversation: { id: 'conv-1', title: 'original', revision: 1 },
+    })
+
+    store.ingest(event)
+    ;(event.payload.conversation as { title: string }).title = 'mutated'
+
+    expect(store.getState().conversations['conv-1'].title).toBe('original')
+  })
+
+  it('does not let consumers edit state or exported snapshots in place', () => {
+    const { factory, store } = setup()
+
+    store.ingest(
+      factory.create('conversation.upserted', 'conv-1', {
+        conversation: { id: 'conv-1', title: 'c', revision: 1 },
+      }),
+    )
+
+    const state = store.getState()
+    const snapshot = store.exportSnapshot(T)
+
+    expect(() => {
+      ;(state.conversations as Record<string, unknown>)['conv-1'] = null
+    }).toThrow(TypeError)
+    expect(() => {
+      ;(snapshot.state.conversations['conv-1'] as { title: string }).title = 'x'
+    }).toThrow(TypeError)
+    expect(store.getState().conversations['conv-1'].title).toBe('c')
+  })
+
+  it('detaches a loaded snapshot from the object it was loaded from', () => {
+    const source = setup()
+
+    source.store.ingest(
+      source.factory.create('conversation.upserted', 'conv-1', {
+        conversation: { id: 'conv-1', title: 'c', revision: 1 },
+      }),
+    )
+
+    const raw = JSON.parse(JSON.stringify(source.store.exportSnapshot(T)))
+    const { store } = setup()
+
+    expect(store.loadSnapshot(raw)).toMatchObject({ ok: true })
+    raw.state.conversations['conv-1'].title = 'mutated'
+    expect(store.getState().conversations['conv-1'].title).toBe('c')
+  })
+})
+
+describe('review f14 · snapshots satisfy the same invariants as events', () => {
+  function snapshotOf(state: Record<string, unknown>) {
+    const full = { ...createInitialState(), ...state } as never
+    return {
+      schemaVersion: 2,
+      streamId: 'stream-review',
+      takenAt: T,
+      state: full,
+      checksum: checksumState(full),
+    }
+  }
+
+  it('rejects malformed entities and entities stored under another id', () => {
+    expect(
+      validateSnapshot(snapshotOf({ messages: { 'msg-1': null } })),
+    ).toMatchObject({ ok: false, code: 'invalid-state' })
+
+    expect(
+      validateSnapshot(
+        snapshotOf({ executions: { 'exec-2': execution({ id: 'exec-1' }) } }),
+      ),
+    ).toMatchObject({ ok: false, code: 'invalid-state' })
+  })
+
+  it('rejects children whose parent is missing or in another aggregate', () => {
+    expect(
+      validateSnapshot(snapshotOf({ approvals: { 'approval-1': approval() } })),
+    ).toMatchObject({ ok: false, code: 'invalid-state' })
+
+    expect(
+      validateSnapshot(
+        snapshotOf({
+          conversations: {
+            'conv-1': { id: 'conv-1', title: 'a', revision: 1 },
+            'conv-2': {
+              id: 'conv-2',
+              title: 'b',
+              revision: 1,
+              selectedLeafMessageId: 'msg-1',
+            },
+          },
+          messages: { 'msg-1': message() },
+          conversationMessageIds: { 'conv-1': ['msg-1'] },
+        }),
+      ),
+    ).toMatchObject({ ok: false, code: 'invalid-state' })
+  })
+
+  it('rejects an index that would hide a message from the timeline', () => {
+    const result = validateSnapshot(
+      snapshotOf({
+        conversations: { 'conv-1': { id: 'conv-1', title: 'a', revision: 1 } },
+        messages: { 'msg-1': message() },
+        conversationMessageIds: {},
+      }),
+    )
+
+    expect(result).toMatchObject({ ok: false, code: 'invalid-state' })
+    expect(result.ok ? '' : result.message).toContain('does not list msg-1')
+  })
+
+  it('accepts every snapshot a host builds from a recorded scenario', async () => {
+    for (const scenario of SCENARIO_FIXTURES) {
+      const host = createReplayHost(scenario.events)
+      const { store } = setup({ streamId: scenario.events[0].streamId })
+      const snapshot = await host.getSnapshot({ kind: 'stream', id: 'all' })
+
+      expect(store.loadHostSnapshot(snapshot, T)).toMatchObject({ ok: true })
+    }
+  })
+})
+
+describe('review f15 · an unreadable future seq does not freeze earlier events', () => {
+  it('applies the valid prefix and halts only on reaching the bad seq', () => {
+    const { factory, store } = setup()
+    const first = factory.create('conversation.upserted', 'conv-1', {
+      conversation: { id: 'conv-1', title: 'c', revision: 1 },
+    })
+    const second = factory.create('message.created', 'msg-1', {
+      message: message(),
+    })
+    const third = factory.create('message.created', 'msg-2', {
+      message: message({ id: 'msg-2' }),
+    })
+    const fourth = factory.create('message.created', 'msg-3', {
+      message: message({ id: 'msg-3' }),
+    })
+
+    expect(
+      store.ingest({ ...third, payload: { message: null } }),
+    ).toMatchObject({ status: 'rejected', recovery: 'snapshot-required' })
+    expect(store.getSyncState().status).toBe('live')
+
+    expect(store.ingest(fourth)).toMatchObject({ status: 'gap' })
+    expect(store.ingest(first)).toMatchObject({ status: 'applied' })
+
+    // seq 2 applies, then the poisoned seq 3 halts before seq 4 is drained.
+    expect(store.ingest(second)).toMatchObject({
+      status: 'applied',
+      appliedSeqs: [2],
+      halted: { seq: 3 },
+    })
+    expect(store.getSyncState()).toMatchObject({
+      status: 'desynced',
+      cursor: 2,
+    })
+
+    // A different frame for the same seq is not accepted as a repair.
+    expect(store.ingest(third)).toMatchObject({ status: 'desynced' })
+  })
+})
+
+describe('review f16–f18 · cross-aggregate references and approval risk', () => {
+  it('refuses a selected leaf from another conversation', () => {
+    const { factory, store } = setup()
+
+    store.ingest(
+      factory.create('conversation.upserted', 'conv-1', {
+        conversation: { id: 'conv-1', title: 'a', revision: 1 },
+      }),
+    )
+    store.ingest(
+      factory.create('conversation.upserted', 'conv-2', {
+        conversation: { id: 'conv-2', title: 'b', revision: 1 },
+      }),
+    )
+    store.ingest(
+      factory.create('message.created', 'msg-2', {
+        message: message({ id: 'msg-2', conversationId: 'conv-2' }),
+      }),
+    )
+
+    expect(
+      store.ingest(
+        factory.create('conversation.upserted', 'conv-1', {
+          conversation: {
+            id: 'conv-1',
+            title: 'a',
+            revision: 2,
+            selectedLeafMessageId: 'msg-2',
+          },
+        }),
+      ),
+    ).toMatchObject({ status: 'rejected', code: 'reference-mismatch' })
+  })
+
+  it('refuses an artifact bound to an execution the stream never started', () => {
+    const { factory, store } = setup()
+
+    expect(
+      store.ingest(
+        factory.create('artifact.published', 'artifact-1', {
+          artifact: {
+            id: 'artifact-1',
+            executionId: 'ghost',
+            kind: 'file',
+            title: 'out.txt',
+            asset: { id: 'asset-1', mimeType: 'text/plain' },
+            revision: 1,
+          },
+        }),
+      ),
+    ).toMatchObject({ status: 'rejected', code: 'reference-missing' })
+  })
+
+  it('refuses a re-request that lowers the displayed risk', () => {
+    const { factory, store } = setup()
+
+    store.ingest(
+      factory.create('execution.started', 'exec-1', {
+        execution: execution(),
+      }),
+    )
+    store.ingest(
+      factory.create('approval.requested', 'approval-1', {
+        approval: approval({ risk: 'high' }),
+      }),
+    )
+
+    expect(
+      store.ingest(
+        factory.create('approval.requested', 'approval-1', {
+          approval: approval({ risk: 'low', revision: 2 }),
+        }),
+      ),
+    ).toMatchObject({ status: 'rejected', code: 'immutable-field' })
+    expect(store.getState().approvals['approval-1'].risk).toBe('high')
+  })
+})
+
+describe('review f19 · mock host executes a key once even when re-entered', () => {
+  it('shares the attempt with a script that re-sends the same key', async () => {
+    let runs = 0
+    let reentered: Promise<unknown> | undefined
+    const host = createMockHost({
+      onExecute: (command, self) => {
+        runs += 1
+        if (runs === 1) {
+          reentered = self.execute(retryCommand(command, 'cmd-retry'))
+        }
+        return undefined
+      },
+    })
+    const command = createCommand({
+      commandId: 'cmd-1',
+      idempotencyKey: 'key-1',
+      type: 'message.send',
+      target: { kind: 'conversation', id: 'conv-1' },
+      payload: { text: 'hi' },
+    })
+
+    const ack = await host.execute(command)
+
+    expect(await reentered).toMatchObject({
+      accepted: true,
+      commandId: 'cmd-retry',
+      operationId: (ack as { operationId: string }).operationId,
+    })
+    expect(runs).toBe(1)
+    expect(host.commands()).toHaveLength(1)
+  })
+
+  it('does not accumulate abort listeners while a subscription waits', async () => {
+    const host = createMockHost({ streamId: 'stream-review' })
+    const controller = new AbortController()
+    let listeners = 0
+    const add = controller.signal.addEventListener.bind(controller.signal)
+    const remove = controller.signal.removeEventListener.bind(controller.signal)
+
+    controller.signal.addEventListener = ((...args: Parameters<typeof add>) => {
+      listeners += 1
+      add(...args)
+    }) as typeof add
+    controller.signal.removeEventListener = ((
+      ...args: Parameters<typeof remove>
+    ) => {
+      listeners -= 1
+      remove(...args)
+    }) as typeof remove
+
+    const events = host.subscribe('stream-review', 0, controller.signal)
+    const iterator = events[Symbol.asyncIterator]()
+
+    for (let index = 1; index <= 5; index += 1) {
+      const next = iterator.next()
+      await Promise.resolve()
+      host.emit('conversation.upserted', 'conv-1', {
+        conversation: { id: 'conv-1', title: 'c', revision: index },
+      })
+      await next
+    }
+
+    expect(listeners).toBeLessThanOrEqual(1)
+    controller.abort()
   })
 })
