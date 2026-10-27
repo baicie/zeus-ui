@@ -4,18 +4,21 @@ Zeus AI Headless V2 的领域、协议与规范化 Store 层。**纯 TypeScript�
 
 ## 状态
 
-- 包状态：**Proposed / 实验性**，当前为 `private`，不参与发布矩阵；公开发布需等 M1 验收与 `AI2-509`。
-- 已实现：M1（AI2-101 ~ AI2-110）的领域类型、审批/执行状态机、Command/Ack 幂等、DomainEvent 校验、规范化 Store + Reducer、seq 去重/乱序缓冲/gap 与 snapshot 恢复、细粒度 Selector、Mock/Replay Host 与 S1/S2/S3 录制流。
-- 未实现：Controllers（M2/M3）、AI 原语、React/Vue/WC adapter、SSE/WebSocket adapter、安全回归 harness。
+- 包状态：**Proposed / 实验性**，`private`，未进入发布计划。完整任务状态见 [implementation-status.md](../../docs/ai-headless-v2/implementation-status.md)。
+- 内容：领域类型与状态机、Command/Ack 幂等、DomainEvent 校验与兼容策略、规范化 Store（持久化 `EntityMap` 集合）、seq 去重 / 乱序 / gap / 快照恢复、细粒度选择器与投影、全部 Headless 控制器（Session、Composer、Conversation、Streaming text、Timeline、Execution、Approval、Run switcher、Workspace、Review、ChangeSet actions、Test report、Artifacts）、Diff 解析、Mock / Replay Host 与 S1/S2/S3 fixture、V1 单向导入。
+- 渲染层在 `@zeus-web/ai-primitives` 与 `ai-react` / `ai-vue` / `ai-wc`；传输在 `@zeus-web/ai-adapters`。
 
 ## 分层
 
-| 目录           | 内容                                                                                                                              |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `src/domain`   | Conversation / Message / Part、Execution / Step / Tool、Approval、Asset / Artifact / ChangeSet / Workspace 类型；审批与执行状态机 |
-| `src/protocol` | `DomainEvent` 信封与校验、`Command` / `CommandAck`、幂等追踪                                                                      |
-| `src/store`    | 规范化 `AiState`、按事件 Reducer、Selector、seq 排序与恢复、快照                                                                  |
-| `src/host`     | `AiHostAdapter` 边界、事件工厂、Mock Host、Replay Host、S1/S2/S3 fixture                                                          |
+| 目录              | 内容                                                                                                                              |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `src/domain`      | Conversation / Message / Part、Execution / Step / Tool、Approval、Asset / Artifact / ChangeSet / Workspace 类型；审批与执行状态机 |
+| `src/protocol`    | `DomainEvent` 信封与校验、`Command` / `CommandAck`、幂等追踪                                                                      |
+| `src/store`       | 规范化 `AiState`、按事件 Reducer、Selector、seq 排序与恢复、快照                                                                  |
+| `src/host`        | `AiHostAdapter` 边界、事件工厂、Mock Host、Replay Host、S1/S2/S3 fixture                                                          |
+| `src/controllers` | Headless 控制器：统一 `getSnapshot` / `subscribe(selector)` / `dispose`，只发 Command，不直接改事实                               |
+| `src/diff`        | Unified diff 解析、稳定 hunk id、并排视图、分页                                                                                   |
+| `src/legacy`      | V1 Chat / AgentConsole 单向导入（不伪造 seq / 审批 / 工具结果）                                                                   |
 
 ## 关键约束
 
