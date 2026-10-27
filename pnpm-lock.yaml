@@ -1010,6 +1010,19 @@ importers:
         specifier: ^19.2.7
         version: 19.2.7(react@19.2.7)
 
+  packages/ai-vue:
+    dependencies:
+      '@zeus-web/ai-core':
+        specifier: workspace:*
+        version: link:../ai-core
+      '@zeus-web/ai-primitives':
+        specifier: workspace:*
+        version: link:../ai-primitives
+    devDependencies:
+      vue:
+        specifier: 3.5.38
+        version: 3.5.38(typescript@6.0.3)
+
   packages/cli:
     dependencies:
       '@zeus-web/ai':
