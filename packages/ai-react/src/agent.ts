@@ -122,8 +122,8 @@ export function AiStepList(props: AiStepListProps): ReactElement {
   const tree = useOwnedController(
     () =>
       createTreeController({
+        defaultExpanded: true,
         // Steps start expanded so progress is visible without clicking.
-        initiallyExpanded: session.store.getState().steps.keys(),
         onFocus: id => {
           focusById(ids.id(`node-${id}`))
         },

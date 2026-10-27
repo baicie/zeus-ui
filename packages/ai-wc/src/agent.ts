@@ -175,9 +175,7 @@ export function defineAiStepList(registry?: Registry): void {
     element => {
       const p = props(element)
       const tree = createTreeController({
-        initiallyExpanded: Object.keys(
-          (p.session as AiSession | undefined)?.store.getState().steps ?? {},
-        ),
+        defaultExpanded: true,
         onFocus: id =>
           element.ownerDocument
             .getElementById(element.ids.id(`node-${id}`))

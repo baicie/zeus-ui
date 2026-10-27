@@ -32,6 +32,7 @@ export interface FlatTreeNode {
 }
 
 export interface TreeViewState {
+  /** Expanded ids, or — with `defaultExpanded` — the ids the user collapsed. */
   expanded: ReadonlySet<string>
   focusedId?: string
   selectedId?: string
@@ -48,6 +49,11 @@ export interface TreeController extends Controller<TreeViewState> {
 export interface TreeOptions {
   /** Expanded on creation; default: everything collapsed. */
   initiallyExpanded?: Iterable<string>
+  /**
+   * Nodes start expanded, including ones that appear later (live step
+   * lists); the state then records what the user collapsed.
+   */
+  defaultExpanded?: boolean
   onSelect?: (id: string) => void
   /** Move DOM focus; adapters pass a function that focuses the node element. */
   onFocus?: (id: string) => void
@@ -60,8 +66,13 @@ export function createTreeController(
     expanded: new Set(options.initiallyExpanded ?? []),
   })
 
+  const inverted = options.defaultExpanded === true
+
+  function isExpanded(id: string): boolean {
+    return view.getSnapshot().expanded.has(id) !== inverted
+  }
+
   function flatten(roots: readonly TreeNode[]): FlatTreeNode[] {
-    const expanded = view.getSnapshot().expanded
     const result: FlatTreeNode[] = []
 
     function walk(
@@ -70,18 +81,18 @@ export function createTreeController(
       parentId?: string,
     ): void {
       nodes.forEach((node, index) => {
-        const isExpanded = expanded.has(node.id)
+        const open = isExpanded(node.id)
         result.push({
           id: node.id,
           label: node.label,
           level,
           parentId,
           hasChildren: node.children.length > 0,
-          expanded: isExpanded,
+          expanded: open,
           posinset: index + 1,
           setsize: nodes.length,
         })
-        if (isExpanded) walk(node.children, level + 1, node.id)
+        if (open) walk(node.children, level + 1, node.id)
       })
     }
 
@@ -90,12 +101,13 @@ export function createTreeController(
   }
 
   function toggle(id: string, value?: boolean): void {
-    const expanded = new Set(view.getSnapshot().expanded)
-    const next = value ?? !expanded.has(id)
-    if (next === expanded.has(id)) return
-    if (next) expanded.add(id)
-    else expanded.delete(id)
-    view.update({ expanded })
+    const next = value ?? !isExpanded(id)
+    if (next === isExpanded(id)) return
+    const marked = new Set(view.getSnapshot().expanded)
+    // In inverted mode the set holds collapsed ids.
+    if (next !== inverted) marked.add(id)
+    else marked.delete(id)
+    view.update({ expanded: marked })
   }
 
   function focus(id: string): void {
@@ -159,9 +171,7 @@ export function createTreeController(
           const siblings = nodes.filter(
             node => node.parentId === current.parentId && node.hasChildren,
           )
-          const expanded = new Set(view.getSnapshot().expanded)
-          for (const node of siblings) expanded.add(node.id)
-          view.update({ expanded })
+          for (const node of siblings) toggle(node.id, true)
           break
         }
         default:

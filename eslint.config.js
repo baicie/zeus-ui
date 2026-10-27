@@ -84,6 +84,7 @@ export default defineConfig(
       'packages/ai-react/__tests__/**',
       'packages/ai-vue/__tests__/**',
       'packages/ai-wc/**',
+      'examples/ai-showcase/**',
     ],
     rules: {
       'no-restricted-globals': 'off',

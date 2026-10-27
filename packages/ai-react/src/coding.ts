@@ -10,11 +10,10 @@ import type {
   TestReportController,
   WorkspaceController,
 } from '@zeus-web/ai-core'
-import type { AiLocale, DiffLayout, TreeNode } from '@zeus-web/ai-primitives'
+import type { AiLocale, DiffLayout } from '@zeus-web/ai-primitives'
 import type { ReactElement, ReactNode } from 'react'
 
 import {
-  buildFileTree,
   changeSetActionsView,
   createTreeController,
   diffView,
@@ -47,9 +46,7 @@ export function AiFileChangeTree(props: {
   const tree = useOwnedController(
     () =>
       createTreeController({
-        initiallyExpanded: directories(
-          buildFileTree(props.review.getSnapshot().changeSet?.files ?? []),
-        ),
+        defaultExpanded: true,
         onSelect: id => {
           if (!id.startsWith('dir:')) void props.review.selectFile(id)
         },
@@ -64,12 +61,6 @@ export function AiFileChangeTree(props: {
   return renderView(
     fileTreeView(view, tree, { ids, locale: props.locale }),
   ) as ReactElement
-}
-
-function directories(nodes: readonly TreeNode[]): string[] {
-  return nodes.flatMap(node =>
-    node.children.length > 0 ? [node.id, ...directories(node.children)] : [],
-  )
 }
 
 export function AiHunkComments(props: {

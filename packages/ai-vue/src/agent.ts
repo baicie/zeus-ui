@@ -143,7 +143,7 @@ export const AiStepList = defineComponent({
     )
     const tree = useOwnedController(() =>
       createTreeController({
-        initiallyExpanded: session.store.getState().steps.keys(),
+        defaultExpanded: true,
         onFocus: id => focusById(ids.id(`node-${id}`)),
       }),
     )

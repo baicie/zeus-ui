@@ -365,7 +365,13 @@ export function getRunSwitcherParts(
   },
 ): {
   root: PartProps
-  tabs: { executionId: EntityId; props: PartProps; badge?: PartProps }[]
+  tabs: {
+    executionId: EntityId
+    props: PartProps
+    /** Visually hidden status text, read as part of the tab name. */
+    notes: PartProps
+    badge?: PartProps
+  }[]
 } {
   const locale = options.locale ?? EN_LOCALE
   const ids = view.runs.map(run => run.executionId)
@@ -391,8 +397,6 @@ export function getRunSwitcherParts(
             'aria-selected': ariaBool(selected),
             tabindex: selected ? 0 : -1,
             'data-status': run.status,
-            // Visible title first, so the accessible name contains it.
-            'aria-label': [options.title(run.executionId), ...notes].join(', '),
           },
           {
             click: () => controller.select(run.executionId),
@@ -408,6 +412,15 @@ export function getRunSwitcherParts(
             },
           },
           options.title(run.executionId),
+        ),
+        notes: part(
+          {
+            'data-part': 'notes',
+            style:
+              'position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap',
+          },
+          undefined,
+          `, ${notes.join(', ')}`,
         ),
         badge:
           run.pendingApprovals > 0 || run.unread > 0

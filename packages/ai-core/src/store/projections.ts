@@ -23,6 +23,8 @@ export interface StepNode {
 
 const ROOT = ''
 const EMPTY_IDS: readonly EntityId[] = Object.freeze([])
+const EMPTY_TREE: readonly StepNode[] = Object.freeze([])
+const EMPTY_BY_PARENT: ReadonlyMap<string, readonly EntityId[]> = new Map()
 
 const childIdMemo = new WeakMap<
   readonly EntityId[],
@@ -34,7 +36,7 @@ function childIdsByParent(
   executionId: EntityId,
 ): ReadonlyMap<string, readonly EntityId[]> {
   const ids = state.executionStepIds[executionId]
-  if (!ids) return new Map()
+  if (!ids) return EMPTY_BY_PARENT
 
   const memo = childIdMemo.get(ids)
   if (memo && memo.steps === state.steps) return memo.byParent
@@ -105,7 +107,9 @@ export function selectStepTree(
   executionId: EntityId,
 ): readonly StepNode[] {
   const ids = state.executionStepIds[executionId]
-  if (!ids) return []
+  // A shared empty result keeps selector subscriptions (useSyncExternalStore)
+  // stable while an execution has no steps yet.
+  if (!ids) return EMPTY_TREE
 
   const memo = treeMemo.get(ids)
   if (

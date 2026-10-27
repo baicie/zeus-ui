@@ -131,11 +131,16 @@ export function composerView(
       }
     : parts.textarea.on
 
+  // A <textarea> may not take role="combobox" (ARIA in HTML). It stays a
+  // multi-line textbox that owns a popup listbox, as mention pickers do:
+  // aria-haspopup / aria-controls / aria-autocomplete / aria-activedescendant.
   const textareaAttrs = combobox
     ? {
         ...parts.textarea.attrs,
-        ...combobox.input.attrs,
-        'aria-label': parts.textarea.attrs['aria-label'],
+        'aria-haspopup': 'listbox',
+        'aria-autocomplete': combobox.input.attrs['aria-autocomplete'],
+        'aria-controls': combobox.input.attrs['aria-controls'],
+        'aria-activedescendant': combobox.input.attrs['aria-activedescendant'],
       }
     : parts.textarea.attrs
 
@@ -672,7 +677,7 @@ export function runSwitcherView(
       el(
         'button',
         tab.props,
-        [tab.badge && el('span', tab.badge)],
+        [el('span', tab.notes), tab.badge && el('span', tab.badge)],
         tab.executionId,
       ),
     ),
@@ -757,7 +762,10 @@ export function diffView(
   diff: FileDiff,
   layout: DiffLayout,
   review: Pick<ReviewController, 'selectHunk' | 'markReviewed'> & {
-    getSnapshot: () => Pick<ReviewViewState, 'selectedHunkId' | 'reviewed'>
+    getSnapshot: () => Pick<
+      ReviewViewState,
+      'selectedHunkId' | 'reviewed' | 'comments'
+    >
   },
   options: {
     ids: IdScope
@@ -766,6 +774,15 @@ export function diffView(
   },
 ): ViewNode {
   const parts = getDiffViewerParts(diff, layout, review, options)
+  const locale = options.locale ?? EN_LOCALE
+  // Comments whose hunk is gone after a new revision have no row to sit on;
+  // list them so they never silently disappear.
+  const hunkIds = new Set(diff.hunks.map(hunk => hunk.id))
+  const orphaned = review
+    .getSnapshot()
+    .comments.filter(
+      comment => comment.path === diff.path && !hunkIds.has(comment.hunkId),
+    )
   const reviewed = review.getSnapshot().reviewed
 
   return el(
@@ -818,7 +835,15 @@ export function diffView(
                     'data-kind': row.cells.map(cell => cell.kind).join(' '),
                   },
                 },
-                row.cells.flatMap((cell, index) => [
+                // Unified rows: two line numbers, the text once. Split rows:
+                // number + text per side.
+                (layout === 'unified'
+                  ? [
+                      { ...row.cells[0], text: undefined },
+                      { ...row.cells[1], text: row.cells[0].text },
+                    ]
+                  : row.cells
+                ).flatMap((cell, index) => [
                   el(
                     'span',
                     part(
@@ -833,22 +858,45 @@ export function diffView(
                     undefined,
                     `n${index}`,
                   ),
-                  el(
-                    'span',
-                    part(
-                      { role: 'cell', 'data-kind': cell.kind },
+                  cell.text !== undefined &&
+                    el(
+                      'span',
+                      part(
+                        { role: 'cell', 'data-kind': cell.kind },
+                        undefined,
+                        cell.text,
+                      ),
                       undefined,
-                      cell.text,
+                      `t${index}`,
                     ),
-                    undefined,
-                    `t${index}`,
-                  ),
                 ]),
                 row.id,
               ),
         ),
       ),
       parts.truncated && el('p', parts.truncated),
+      orphaned.length > 0 &&
+        el(
+          'section',
+          part({
+            'data-part': 'outdated-comments',
+            'aria-label': locale.commentOutdated,
+          }),
+          orphaned.map(comment =>
+            el(
+              'p',
+              part({ 'data-outdated': '', 'data-status': comment.status }),
+              [
+                el(
+                  'span',
+                  part({ role: 'note' }, undefined, locale.commentOutdated),
+                ),
+                text(` ${comment.body}`),
+              ],
+              comment.id,
+            ),
+          ),
+        ),
     ],
   )
 }

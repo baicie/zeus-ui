@@ -9,11 +9,10 @@ import type {
   TestReportController,
   WorkspaceController,
 } from '@zeus-web/ai-core'
-import type { AiLocale, DiffLayout, TreeNode } from '@zeus-web/ai-primitives'
+import type { AiLocale, DiffLayout } from '@zeus-web/ai-primitives'
 import type { PropType } from 'vue'
 
 import {
-  buildFileTree,
   changeSetActionsView,
   createTreeController,
   diffView,
@@ -32,12 +31,6 @@ import {
 import { renderRoot } from './render'
 
 const localeProp = { type: Object as PropType<AiLocale>, required: false }
-
-function directories(nodes: readonly TreeNode[]): string[] {
-  return nodes.flatMap(node =>
-    node.children.length > 0 ? [node.id, ...directories(node.children)] : [],
-  )
-}
 
 export const AiWorkspacePicker = defineComponent({
   name: 'AiWorkspacePicker',
@@ -72,9 +65,7 @@ export const AiFileChangeTree = defineComponent({
     const view = useController(props.review)
     const tree = useOwnedController(() =>
       createTreeController({
-        initiallyExpanded: directories(
-          buildFileTree(props.review.getSnapshot().changeSet?.files ?? []),
-        ),
+        defaultExpanded: true,
         onSelect: id => {
           if (!id.startsWith('dir:')) void props.review.selectFile(id)
         },

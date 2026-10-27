@@ -10,11 +10,10 @@ import type {
   TestReportController,
   WorkspaceController,
 } from '@zeus-web/ai-core'
-import type { DiffLayout, TreeNode } from '@zeus-web/ai-primitives'
+import type { DiffLayout } from '@zeus-web/ai-primitives'
 import type { AiElementInstance } from './element'
 
 import {
-  buildFileTree,
   changeSetActionsView,
   createTreeController,
   diffView,
@@ -55,12 +54,6 @@ function subscribeAll(
     : []
 }
 
-function directories(nodes: readonly TreeNode[]): string[] {
-  return nodes.flatMap(node =>
-    node.children.length > 0 ? [node.id, ...directories(node.children)] : [],
-  )
-}
-
 export function defineAiWorkspacePicker(registry?: Registry): void {
   defineAiElement(
     'zw-ai-workspace-picker',
@@ -92,9 +85,7 @@ export function defineAiFileChangeTree(registry?: Registry): void {
       const p = props(element)
       const review = p.review as ReviewController | undefined
       const tree = createTreeController({
-        initiallyExpanded: directories(
-          buildFileTree(review?.getSnapshot().changeSet?.files ?? []),
-        ),
+        defaultExpanded: true,
         onSelect: id => {
           if (!id.startsWith('dir:')) void review?.selectFile(id)
         },

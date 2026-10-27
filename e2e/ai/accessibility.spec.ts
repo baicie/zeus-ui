@@ -237,8 +237,12 @@ describe('keyboard patterns', () => {
       caret = 2
       typeText(textarea, '@a')
       await view.flush()
-      expect(textarea.getAttribute('role')).toBe('combobox')
-      expect(textarea.getAttribute('aria-expanded')).toBe('true')
+      const listbox = () =>
+        view.container.ownerDocument.getElementById(
+          textarea.getAttribute('aria-controls')!,
+        )!
+      expect(textarea.getAttribute('aria-haspopup')).toBe('listbox')
+      expect(listbox().hasAttribute('hidden')).toBe(false)
       const active = textarea.getAttribute('aria-activedescendant')!
       expect(
         view.container.ownerDocument.getElementById(active)?.textContent,
@@ -248,14 +252,14 @@ describe('keyboard patterns', () => {
       await view.flush()
       expect(controller.getSnapshot().text).toBe('@alpha.ts ')
       expect(world.host.commands()).toHaveLength(0)
-      expect(textarea.getAttribute('aria-expanded')).toBe('false')
+      expect(listbox().hasAttribute('hidden')).toBe(true)
 
       caret = 12
       typeText(textarea, '@alpha.ts @b')
       await view.flush()
       press(textarea, 'Escape')
       await view.flush()
-      expect(textarea.getAttribute('aria-expanded')).toBe('false')
+      expect(listbox().hasAttribute('hidden')).toBe(true)
     },
   )
 
