@@ -1,3 +1,5 @@
 dist
 pnpm-lock.yaml
 CHANGELOG*.md
+docs/ai-headless-v2/design-source
+docs/ai-headless-v2/audit-2026-10-27.md
