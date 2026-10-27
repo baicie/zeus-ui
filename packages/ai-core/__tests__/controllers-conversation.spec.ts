@@ -137,7 +137,7 @@ describe('ai2-201 · session', () => {
     session.connect()
 
     await vi.waitFor(() =>
-      expect(session.store.getState().conversations['conv-1']?.title).toBe(
+      expect(session.store.getState().conversations.get('conv-1')?.title).toBe(
         'two',
       ),
     )
@@ -380,7 +380,9 @@ describe('ai2-203 · conversation branches', () => {
       ],
     ])
     // Nothing changed locally: the original branch is intact.
-    expect(fixture.store.getState().messages.u1.parts).toEqual(message().parts)
+    expect(fixture.store.getState().messages.get('u1')!.parts).toEqual(
+      message().parts,
+    )
   })
 
   it('does not recompute the branch on token deltas', () => {
@@ -561,5 +563,54 @@ describe('ai2-205 · timeline follow and anchors', () => {
     const timeline = createTimelineController({ follow: 'never' })
     timeline.onScroll(metrics(1500), true)
     expect(timeline.getSnapshot().following).toBe(false)
+  })
+})
+
+describe('ai2-205 / ai2-508 · windowed timeline', () => {
+  const ids = Array.from({ length: 100 }, (_, i) => `m${i}`)
+  const metrics = (scrollTop: number) => ({
+    scrollTop,
+    viewportHeight: 500,
+    contentHeight: 10_000,
+  })
+
+  it('renders only the visible range plus overscan, anchored at the bottom while following', async () => {
+    const timeline = createTimelineController({
+      initialItemIds: [],
+      virtualize: { threshold: 10, estimatedItemHeight: 100, overscan: 2 },
+    })
+    timeline.setItems(ids)
+    timeline.onScroll(metrics(9500), false)
+    await Promise.resolve()
+
+    const range = timeline.getSnapshot().range!
+    expect(range.end).toBe(100)
+    expect(range.start).toBe(93)
+    expect(range.segments[0]).toEqual({ kind: 'pad', height: 9300 })
+  })
+
+  it('moves the window with the scroll position and keeps a pinned item', async () => {
+    const timeline = createTimelineController({
+      initialItemIds: [],
+      virtualize: { threshold: 10, estimatedItemHeight: 100, overscan: 2 },
+    })
+    timeline.setItems(ids)
+    timeline.pin('m95')
+    timeline.onScroll(metrics(1000), true)
+    await Promise.resolve()
+
+    const range = timeline.getSnapshot().range!
+    expect(range.start).toBe(8)
+    expect(range.end).toBe(17)
+    expect(range.segments).toContainEqual({ kind: 'items', start: 95, end: 96 })
+  })
+
+  it('stays off below the threshold', () => {
+    const timeline = createTimelineController({
+      initialItemIds: ['a', 'b'],
+      virtualize: {},
+    })
+    timeline.setItems(['a', 'b', 'c'])
+    expect(timeline.getSnapshot().range).toBeUndefined()
   })
 })

@@ -21,8 +21,13 @@ import {
   stableEqual,
   stableStringify,
 } from '../internal/stable'
+import { toEntityMap } from './entity-map'
 import { findStateIntegrityIssue } from './integrity'
-import { AI_STATE_KEYS, createInitialState } from './state'
+import {
+  AI_STATE_KEYS,
+  createInitialState,
+  ENTITY_COLLECTION_KEYS,
+} from './state'
 
 export const AI_SNAPSHOT_SCHEMA_VERSION = 2
 
@@ -151,7 +156,15 @@ export function validateSnapshot(
 
   if (shapeError) return invalid('invalid-state', shapeError)
 
-  const state = freezeClone(input.state) as unknown as AiState
+  const cloned = freezeClone(input.state) as Record<string, unknown>
+  const state = { ...cloned } as unknown as AiState
+  // Parsed JSON carries plain records; live snapshots already hold maps.
+  for (const key of ENTITY_COLLECTION_KEYS) {
+    ;(state as unknown as Record<string, unknown>)[key] = toEntityMap(
+      cloned[key],
+    )
+  }
+  Object.freeze(state)
   const integrityError = findStateIntegrityIssue(state)
 
   if (integrityError) return invalid('invalid-state', integrityError)

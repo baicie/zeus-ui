@@ -79,9 +79,8 @@ function unchanged(state: AiState): ReduceResult {
 }
 
 /**
- * Replace one entry. This is a shallow copy of the record's key table, never a
- * clone of the entities themselves; entity objects keep their identity. The
- * new table is frozen so a consumer of `getState()` cannot edit it in place.
+ * Replace one index entry. Index tables are keyed by aggregate (few keys),
+ * so a frozen shallow copy is cheap; entity collections use `EntityMap.set`.
  */
 function withEntity<T>(
   record: Readonly<Record<string, T>>,
@@ -155,7 +154,7 @@ export function reduceEvent(
 }
 
 function applyConversation(state: AiState, next: Conversation): ReduceResult {
-  const current = state.conversations[next.id]
+  const current = state.conversations.get(next.id)
 
   if (current && next.revision < current.revision) {
     return fail(
@@ -177,7 +176,7 @@ function applyConversation(state: AiState, next: Conversation): ReduceResult {
 
   // The visible branch must end on one of this conversation's own messages.
   if (next.selectedLeafMessageId !== undefined) {
-    const leaf = state.messages[next.selectedLeafMessageId]
+    const leaf = state.messages.get(next.selectedLeafMessageId)
 
     if (!leaf) {
       return fail(
@@ -198,13 +197,13 @@ function applyConversation(state: AiState, next: Conversation): ReduceResult {
     ok: true,
     state: {
       ...state,
-      conversations: withEntity(state.conversations, next.id, next),
+      conversations: state.conversations.set(next.id, next),
     },
   }
 }
 
 function applyMessageCreated(state: AiState, message: Message): ReduceResult {
-  const current = state.messages[message.id]
+  const current = state.messages.get(message.id)
 
   if (current) {
     if (current.conversationId !== message.conversationId) {
@@ -217,7 +216,7 @@ function applyMessageCreated(state: AiState, message: Message): ReduceResult {
     return unchanged(state)
   }
 
-  if (!state.conversations[message.conversationId]) {
+  if (!state.conversations.get(message.conversationId)) {
     return fail(
       'reference-missing',
       `message ${message.id} targets unknown conversation ${message.conversationId}`,
@@ -225,7 +224,7 @@ function applyMessageCreated(state: AiState, message: Message): ReduceResult {
   }
 
   if (message.parentMessageId !== undefined) {
-    const parent = state.messages[message.parentMessageId]
+    const parent = state.messages.get(message.parentMessageId)
 
     if (!parent) {
       return fail(
@@ -246,7 +245,7 @@ function applyMessageCreated(state: AiState, message: Message): ReduceResult {
     ok: true,
     state: {
       ...state,
-      messages: withEntity(state.messages, message.id, message),
+      messages: state.messages.set(message.id, message),
       conversationMessageIds: appendIndex(
         state.conversationMessageIds,
         message.conversationId,
@@ -260,7 +259,7 @@ function applyMessagePartDelta(
   state: AiState,
   payload: MessagePartDeltaPayload,
 ): ReduceResult {
-  const message = state.messages[payload.messageId]
+  const message = state.messages.get(payload.messageId)
 
   if (!message) {
     return fail(
@@ -340,7 +339,7 @@ function applyMessagePartDelta(
     ok: true,
     state: {
       ...state,
-      messages: withEntity(state.messages, message.id, nextMessage),
+      messages: state.messages.set(message.id, nextMessage),
     },
   }
 }
@@ -349,7 +348,7 @@ function applyMessageCompleted(
   state: AiState,
   payload: MessageCompletedPayload,
 ): ReduceResult {
-  const message = state.messages[payload.messageId]
+  const message = state.messages.get(payload.messageId)
 
   if (!message) {
     return fail(
@@ -392,7 +391,7 @@ function applyMessageCompleted(
     ok: true,
     state: {
       ...state,
-      messages: withEntity(state.messages, message.id, nextMessage),
+      messages: state.messages.set(message.id, nextMessage),
     },
   }
 }
@@ -401,7 +400,7 @@ function applyExecutionStarted(
   state: AiState,
   execution: Execution,
 ): ReduceResult {
-  const current = state.executions[execution.id]
+  const current = state.executions.get(execution.id)
 
   if (current) {
     if (execution.revision <= current.revision) return unchanged(state)
@@ -436,7 +435,7 @@ function applyExecutionStarted(
     ok: true,
     state: {
       ...state,
-      executions: withEntity(state.executions, execution.id, execution),
+      executions: state.executions.set(execution.id, execution),
     },
   }
 }
@@ -445,7 +444,7 @@ function applyExecutionStatus(
   state: AiState,
   payload: ExecutionStatusChangedPayload,
 ): ReduceResult {
-  const execution = state.executions[payload.id]
+  const execution = state.executions.get(payload.id)
 
   if (!execution) {
     return fail('entity-missing', `execution ${payload.id} is not in the store`)
@@ -482,7 +481,7 @@ function applyExecutionStatus(
     ok: true,
     state: {
       ...state,
-      executions: withEntity(state.executions, payload.id, nextExecution),
+      executions: state.executions.set(payload.id, nextExecution),
     },
   }
 }
@@ -493,7 +492,7 @@ function requireExecution(
   id: string,
   executionId: string,
 ): ReduceResult | undefined {
-  if (state.executions[executionId]) return undefined
+  if (state.executions.get(executionId)) return undefined
 
   return fail(
     'reference-missing',
@@ -505,7 +504,7 @@ function applyStep(state: AiState, step: ExecutionStep): ReduceResult {
   const missing = requireExecution(state, 'step', step.id, step.executionId)
   if (missing) return missing
 
-  const current = state.steps[step.id]
+  const current = state.steps.get(step.id)
 
   if (current) {
     if (stableEqual(current, step)) return unchanged(state)
@@ -526,7 +525,7 @@ function applyStep(state: AiState, step: ExecutionStep): ReduceResult {
   }
 
   if (step.parentStepId !== undefined) {
-    const parent = state.steps[step.parentStepId]
+    const parent = state.steps.get(step.parentStepId)
 
     if (!parent) {
       return fail(
@@ -547,7 +546,7 @@ function applyStep(state: AiState, step: ExecutionStep): ReduceResult {
     ok: true,
     state: {
       ...state,
-      steps: withEntity(state.steps, step.id, step),
+      steps: state.steps.set(step.id, step),
       executionStepIds: appendIndex(
         state.executionStepIds,
         step.executionId,
@@ -561,7 +560,7 @@ function applyTool(state: AiState, tool: ToolInvocation): ReduceResult {
   const missing = requireExecution(state, 'tool', tool.id, tool.executionId)
   if (missing) return missing
 
-  const current = state.toolInvocations[tool.id]
+  const current = state.toolInvocations.get(tool.id)
 
   if (current) {
     if (stableEqual(current, tool)) return unchanged(state)
@@ -587,7 +586,7 @@ function applyTool(state: AiState, tool: ToolInvocation): ReduceResult {
   }
 
   if (tool.stepId !== undefined) {
-    const step = state.steps[tool.stepId]
+    const step = state.steps.get(tool.stepId)
 
     if (!step) {
       return fail(
@@ -608,7 +607,7 @@ function applyTool(state: AiState, tool: ToolInvocation): ReduceResult {
     ok: true,
     state: {
       ...state,
-      toolInvocations: withEntity(state.toolInvocations, tool.id, tool),
+      toolInvocations: state.toolInvocations.set(tool.id, tool),
     },
   }
 }
@@ -638,7 +637,7 @@ function applyApprovalRequested(
   )
   if (missing) return missing
 
-  const current = state.approvals[approval.id]
+  const current = state.approvals.get(approval.id)
 
   if (!current) {
     // Only `approval.resolved` may record a decision. A request that arrives
@@ -651,7 +650,7 @@ function applyApprovalRequested(
     }
 
     if (approval.toolInvocationId !== undefined) {
-      const tool = state.toolInvocations[approval.toolInvocationId]
+      const tool = state.toolInvocations.get(approval.toolInvocationId)
 
       if (!tool) {
         return fail(
@@ -672,7 +671,7 @@ function applyApprovalRequested(
       ok: true,
       state: {
         ...state,
-        approvals: withEntity(state.approvals, approval.id, approval),
+        approvals: state.approvals.set(approval.id, approval),
       },
     }
   }
@@ -719,7 +718,7 @@ function applyApprovalRequested(
     ok: true,
     state: {
       ...state,
-      approvals: withEntity(state.approvals, approval.id, approval),
+      approvals: state.approvals.set(approval.id, approval),
     },
   }
 }
@@ -728,7 +727,7 @@ function applyApprovalResolved(
   state: AiState,
   payload: ApprovalResolvedPayload,
 ): ReduceResult {
-  const approval = state.approvals[payload.approvalId]
+  const approval = state.approvals.get(payload.approvalId)
 
   if (!approval) {
     return fail(
@@ -765,7 +764,7 @@ function applyApprovalResolved(
     ok: true,
     state: {
       ...state,
-      approvals: withEntity(state.approvals, approval.id, nextApproval),
+      approvals: state.approvals.set(approval.id, nextApproval),
     },
   }
 }
@@ -781,7 +780,7 @@ function applyArtifact(state: AiState, artifact: Artifact): ReduceResult {
     if (missing) return missing
   }
 
-  const current = state.artifacts[artifact.id]
+  const current = state.artifacts.get(artifact.id)
 
   if (current) {
     if (artifact.revision < current.revision) {
@@ -805,7 +804,7 @@ function applyArtifact(state: AiState, artifact: Artifact): ReduceResult {
     ok: true,
     state: {
       ...state,
-      artifacts: withEntity(state.artifacts, artifact.id, artifact),
+      artifacts: state.artifacts.set(artifact.id, artifact),
     },
   }
 }
@@ -819,7 +818,7 @@ function applyChangeSet(state: AiState, changeSet: ChangeSet): ReduceResult {
   )
   if (missing) return missing
 
-  const current = state.changeSets[changeSet.id]
+  const current = state.changeSets.get(changeSet.id)
 
   if (current) {
     if (changeSet.revision < current.revision) {
@@ -855,7 +854,7 @@ function applyChangeSet(state: AiState, changeSet: ChangeSet): ReduceResult {
     ok: true,
     state: {
       ...state,
-      changeSets: withEntity(state.changeSets, changeSet.id, changeSet),
+      changeSets: state.changeSets.set(changeSet.id, changeSet),
     },
   }
 }

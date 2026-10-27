@@ -74,7 +74,7 @@ describe('ai2-401 · workspace selection', () => {
     expect(
       selectExecutionsForWorkspace(fixture.store.getState(), 'ws-1'),
     ).toHaveLength(1)
-    expect(fixture.store.getState().executions['exec-1'].workspaceId).toBe(
+    expect(fixture.store.getState().executions.get('exec-1')!.workspaceId).toBe(
       'ws-1',
     )
   })

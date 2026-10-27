@@ -41,7 +41,7 @@ function childIdsByParent(
 
   const byParent = new Map<string, EntityId[]>()
   for (const id of ids) {
-    const parent = state.steps[id]?.parentStepId ?? ROOT
+    const parent = state.steps.get(id)?.parentStepId ?? ROOT
     const list = byParent.get(parent)
     if (list) list.push(id)
     else byParent.set(parent, [id])
@@ -81,14 +81,17 @@ export function selectStepTool(
   state: AiState,
   stepId: EntityId,
 ): ToolInvocation | undefined {
-  const step = state.steps[stepId]
+  const step = state.steps.get(stepId)
   if (!step) return undefined
 
-  if (step.toolInvocationId) return state.toolInvocations[step.toolInvocationId]
+  if (step.toolInvocationId)
+    return state.toolInvocations.get(step.toolInvocationId)
 
-  return Object.values(state.toolInvocations).find(
-    tool => tool.stepId === stepId && tool.executionId === step.executionId,
-  )
+  return state.toolInvocations
+    .values()
+    .find(
+      tool => tool.stepId === stepId && tool.executionId === step.executionId,
+    )
 }
 
 const treeMemo = new WeakMap<
@@ -116,12 +119,19 @@ export function selectStepTree(
   const byParent = childIdsByParent(state, executionId)
 
   function build(parent: string, depth: number): StepNode[] {
-    return (byParent.get(parent) ?? []).map(id => ({
-      step: state.steps[id],
-      tool: selectStepTool(state, id),
-      depth,
-      children: build(id, depth + 1),
-    }))
+    return (byParent.get(parent) ?? []).flatMap(id => {
+      const step = state.steps.get(id)
+      return step
+        ? [
+            {
+              step,
+              tool: selectStepTool(state, id),
+              depth,
+              children: build(id, depth + 1),
+            },
+          ]
+        : []
+    })
   }
 
   const tree = build(ROOT, 0)
@@ -134,7 +144,7 @@ export function selectExecutionTools(
   state: AiState,
   executionId: EntityId,
 ): readonly ToolInvocation[] {
-  return Object.values(state.toolInvocations).filter(
-    tool => tool.executionId === executionId,
-  )
+  return state.toolInvocations
+    .values()
+    .filter(tool => tool.executionId === executionId)
 }

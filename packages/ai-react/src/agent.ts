@@ -61,9 +61,8 @@ export function AiToolInvocation(
   const session = useAiSession(props.session)
   const ids = useIds()
   const [expanded, setExpanded] = useState(props.defaultExpanded ?? false)
-  const tool = useAiState(
-    session.store,
-    state => state.toolInvocations[props.toolId],
+  const tool = useAiState(session.store, state =>
+    state.toolInvocations.get(props.toolId),
   )
   if (!tool) return null
   return renderView(
@@ -83,7 +82,7 @@ export interface AiStepProps {
 /** One step row; subscribes to its own step and tool only. */
 export function AiStep(props: AiStepProps): ReactElement | null {
   const session = useAiSession(props.session)
-  const step = useAiState(session.store, state => state.steps[props.stepId])
+  const step = useAiState(session.store, state => state.steps.get(props.stepId))
   const tool = useAiState(session.store, state =>
     selectStepTool(state, props.stepId),
   )
@@ -124,7 +123,7 @@ export function AiStepList(props: AiStepListProps): ReactElement {
     () =>
       createTreeController({
         // Steps start expanded so progress is visible without clicking.
-        initiallyExpanded: Object.keys(session.store.getState().steps),
+        initiallyExpanded: session.store.getState().steps.keys(),
         onFocus: id => {
           focusById(ids.id(`node-${id}`))
         },

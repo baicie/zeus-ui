@@ -90,7 +90,7 @@ export function defineAiToolInvocation(registry?: Registry): void {
             session && toolId
               ? listener =>
                   session.store.subscribe(
-                    state => state.toolInvocations[toolId],
+                    state => state.toolInvocations.get(toolId),
                     listener,
                   )
               : undefined,
@@ -98,8 +98,9 @@ export function defineAiToolInvocation(registry?: Registry): void {
         },
         view: () => {
           const session = p.session as AiSession | undefined
-          const tool =
-            session?.store.getState().toolInvocations[p.toolId as EntityId]
+          const tool = session?.store
+            .getState()
+            .toolInvocations.get(p.toolId as EntityId)
           if (!tool) return null
           return toolInvocationView(
             tool,
@@ -133,7 +134,7 @@ export function defineAiStep(registry?: Registry): void {
           if (!session || !stepId) return []
           return [
             session.store.subscribe(
-              state => state.steps[stepId],
+              state => state.steps.get(stepId),
               () => element.requestRender(),
             ),
             session.store.subscribe(
@@ -144,7 +145,7 @@ export function defineAiStep(registry?: Registry): void {
         },
         view: () => {
           const session = p.session as AiSession | undefined
-          const step = session?.store.getState().steps[p.stepId as EntityId]
+          const step = session?.store.getState().steps.get(p.stepId as EntityId)
           if (!session || !step) return null
           const tool = selectStepTool(session.store.getState(), step.id)
           return el('div', { attrs: { 'data-step-id': step.id } }, [

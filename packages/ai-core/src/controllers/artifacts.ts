@@ -11,6 +11,7 @@
  */
 
 import type { Artifact, EntityId } from '../domain/types'
+import type { AiState } from '../store/state'
 import type { AiSession } from './session'
 import type { Controller } from './view-store'
 
@@ -129,7 +130,9 @@ export function createArtifactController(
   let loadToken = 0
 
   function listIds(): EntityId[] {
-    return Object.values(store.getState().artifacts)
+    return store
+      .getState()
+      .artifacts.values()
       .filter(
         artifact =>
           options.executionId === undefined ||
@@ -208,7 +211,7 @@ export function createArtifactController(
       loadToken += 1
       const token = loadToken
       const artifact = artifactId
-        ? store.getState().artifacts[artifactId]
+        ? store.getState().artifacts.get(artifactId)
         : undefined
       view.update({ selectedId: artifact?.id, preview: undefined })
       if (artifact) await load(artifact, token)
@@ -237,14 +240,12 @@ export interface Citation {
 
 /** Citations of one message, in part order. */
 export function selectMessageCitations(
-  state: {
-    messages: Readonly<Record<EntityId, { parts: readonly unknown[] }>>
-  },
+  state: Pick<AiState, 'messages'>,
   messageId: EntityId,
   resolveSource: (sourceId: string) => CitationSource | undefined = () =>
     undefined,
 ): Citation[] {
-  const message = state.messages[messageId]
+  const message = state.messages.get(messageId)
   if (!message) return []
 
   const citations: Citation[] = []

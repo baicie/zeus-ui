@@ -12,7 +12,11 @@
  *   keeps that item where the user was reading, even after older items were
  *   prepended or an item above changed height;
  * - "near bottom" is a threshold derived from the viewport (or supplied by
- *   the host), never a hard-coded pixel constant.
+ *   the host), never a hard-coded pixel constant;
+ * - with `virtualize`, conversations above a threshold (default 1000
+ *   items) render only the visible range plus overscan, with spacer heights
+ *   from measured (or estimated) item heights; the item holding focus is
+ *   pinned so keyboard and screen-reader users never lose it.
  */
 
 import type { EntityId } from '../domain/types'
@@ -28,8 +32,22 @@ export interface TimelineAnchor {
   offset: number
 }
 
+/** One piece of a windowed list: a spacer, or a run of rendered items. */
+export type TimelineSegment =
+  | { kind: 'pad'; height: number }
+  | { kind: 'items'; start: number; end: number }
+
+export interface TimelineRange {
+  start: number
+  end: number
+  /** Spacers and item runs in order; includes a pinned item outside the range. */
+  segments: readonly TimelineSegment[]
+}
+
 export interface TimelineViewState {
   itemIds: readonly EntityId[]
+  /** Present when windowing is active; render only these segments. */
+  range?: TimelineRange
   following: boolean
   anchor?: TimelineAnchor
   /** Items appended while the user was reading elsewhere. */
@@ -56,6 +74,15 @@ export interface TimelineControllerOptions {
    */
   nearBottom?: (metrics: ViewportMetrics) => number
   initialItemIds?: readonly EntityId[]
+  /** Render only the visible range for long conversations. */
+  virtualize?: {
+    /** Item count from which windowing starts. Default 1000. */
+    threshold?: number
+    /** Height assumed for items not measured yet. Default 120. */
+    estimatedItemHeight?: number
+    /** Extra items rendered above and below the viewport. Default 8. */
+    overscan?: number
+  }
 }
 
 export interface TimelineController extends Controller<TimelineViewState> {
@@ -69,6 +96,8 @@ export interface TimelineController extends Controller<TimelineViewState> {
    */
   scrollCorrection: (metrics: ViewportMetrics) => number | undefined
   jumpToLatest: () => void
+  /** Keep this item rendered while windowing (the focused message). */
+  pin: (itemId: EntityId | undefined) => void
   readonly mode: FollowMode
 }
 
@@ -88,6 +117,10 @@ export function createTimelineController(
   let layouts: ReadonlyMap<EntityId, ItemLayout> = new Map()
   /** A jump in `never` mode scrolls once without turning follow on. */
   let jumpRequested = false
+  const windowing = options.virtualize
+  const heights = new Map<EntityId, number>()
+  let lastMetrics: ViewportMetrics | undefined
+  let pinned: EntityId | undefined
 
   const view = createViewStore<TimelineViewState>({
     itemIds: options.initialItemIds ?? [],
@@ -105,6 +138,106 @@ export function createTimelineController(
       }
     }
     return undefined
+  }
+
+  function computeRange(
+    itemIds: readonly EntityId[],
+    following: boolean,
+  ): TimelineRange | undefined {
+    if (!windowing || itemIds.length < (windowing.threshold ?? 1000)) {
+      return undefined
+    }
+
+    const estimate = windowing.estimatedItemHeight ?? 120
+    const overscan = windowing.overscan ?? 8
+    const count = itemIds.length
+    const size = (index: number): number =>
+      heights.get(itemIds[index]) ?? estimate
+    // Zero means "not laid out yet" (hidden, detached, jsdom): estimate.
+    const viewport =
+      lastMetrics && lastMetrics.viewportHeight > 0
+        ? lastMetrics.viewportHeight
+        : estimate * 6
+    let start: number
+    let end: number
+
+    if (following || !lastMetrics || lastMetrics.viewportHeight <= 0) {
+      // Anchor at the bottom: fill one viewport upwards from the end.
+      end = count
+      start = count
+      for (let filled = 0; start > 0 && filled < viewport; ) {
+        start -= 1
+        filled += size(start)
+      }
+    } else {
+      const top = lastMetrics.scrollTop
+      let offset = 0
+      start = 0
+      while (start < count && offset + size(start) <= top) {
+        offset += size(start)
+        start += 1
+      }
+      end = start
+      while (end < count && offset < top + viewport) {
+        offset += size(end)
+        end += 1
+      }
+    }
+
+    start = Math.max(0, start - overscan)
+    end = Math.min(count, end + overscan)
+
+    const sum = (from: number, to: number): number => {
+      let total = 0
+      for (let index = from; index < to; index += 1) total += size(index)
+      return total
+    }
+    const pinnedIndex = pinned === undefined ? -1 : itemIds.indexOf(pinned)
+    const segments: TimelineSegment[] = []
+    const pad = (from: number, to: number): void => {
+      if (to > from) segments.push({ kind: 'pad', height: sum(from, to) })
+    }
+
+    if (pinnedIndex >= 0 && pinnedIndex < start) {
+      pad(0, pinnedIndex)
+      segments.push({ kind: 'items', start: pinnedIndex, end: pinnedIndex + 1 })
+      pad(pinnedIndex + 1, start)
+    } else {
+      pad(0, start)
+    }
+    segments.push({ kind: 'items', start, end })
+    if (pinnedIndex >= end) {
+      pad(end, pinnedIndex)
+      segments.push({ kind: 'items', start: pinnedIndex, end: pinnedIndex + 1 })
+      pad(pinnedIndex + 1, count)
+    } else {
+      pad(end, count)
+    }
+
+    return { start, end, segments }
+  }
+
+  let rangeQueued = false
+  /** Recompute the window once the current handler finished updating. */
+  function queueRange(): void {
+    if (rangeQueued) return
+    rangeQueued = true
+    Promise.resolve().then(() => {
+      rangeQueued = false
+      if (!view.disposed) updateRange()
+    })
+  }
+
+  function updateRange(): void {
+    const current = view.getSnapshot()
+    const next = computeRange(current.itemIds, current.following)
+    const same =
+      next === current.range ||
+      (next !== undefined &&
+        current.range !== undefined &&
+        JSON.stringify(next.segments) ===
+          JSON.stringify(current.range.segments))
+    if (!same) view.update({ range: next })
   }
 
   return {
@@ -135,8 +268,12 @@ export function createTimelineController(
             ? true
             : current.showJumpToLatest,
       })
+      updateRange()
     },
     onScroll(metrics, userInitiated): void {
+      lastMetrics = metrics
+      // Re-window after whatever this scroll changes below.
+      queueRange()
       const current = view.getSnapshot()
       const atBottom = distanceFromBottom(metrics) <= nearBottom(metrics)
 
@@ -171,6 +308,20 @@ export function createTimelineController(
     },
     setLayout(next): void {
       layouts = next
+      let changed = false
+      for (const [id, layout] of next) {
+        // An unmeasured (zero-height) item keeps its estimate.
+        if (layout.height > 0 && heights.get(id) !== layout.height) {
+          heights.set(id, layout.height)
+          changed = true
+        }
+      }
+      if (changed) updateRange()
+    },
+    pin(itemId): void {
+      if (pinned === itemId) return
+      pinned = itemId
+      updateRange()
     },
     scrollCorrection(metrics): number | undefined {
       const current = view.getSnapshot()
@@ -200,6 +351,7 @@ export function createTimelineController(
         unreadCount: 0,
         showJumpToLatest: false,
       })
+      updateRange()
     },
     dispose(): void {
       view.dispose()

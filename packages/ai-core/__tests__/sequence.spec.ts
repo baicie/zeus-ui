@@ -37,7 +37,7 @@ describe('seq ordering and recovery (AI2-108)', () => {
       seq: 2,
     })
     expect(store.getCursor()).toBe(2)
-    expect(store.getState().conversations['conv-1'].title).toBe('seq 2')
+    expect(store.getState().conversations.get('conv-1')!.title).toBe('seq 2')
   })
 
   it('buffers out-of-order events, reports the gap and heals in order', () => {
@@ -69,7 +69,7 @@ describe('seq ordering and recovery (AI2-108)', () => {
     })
     expect(store.getCursor()).toBe(3)
     expect(store.pendingSeqs()).toEqual([])
-    expect(store.getState().conversations['conv-1'].title).toBe('seq 3')
+    expect(store.getState().conversations.get('conv-1')!.title).toBe('seq 3')
   })
 
   it('rejects events from another stream', () => {

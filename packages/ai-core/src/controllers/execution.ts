@@ -116,7 +116,7 @@ export function createExecutionController(
   function read(
     pendingAction: ExecutionAction | undefined,
   ): Omit<ExecutionViewState, 'lastError' | 'lastErrorCode'> {
-    const execution = store.getState().executions[options.executionId]
+    const execution = store.getState().executions.get(options.executionId)
     const available = availableExecutionActions(
       execution,
       capabilitiesOf(execution),
@@ -137,7 +137,7 @@ export function createExecutionController(
   function refresh(): void {
     const current = view.getSnapshot()
     let pending = current.pendingAction
-    const execution = store.getState().executions[options.executionId]
+    const execution = store.getState().executions.get(options.executionId)
 
     if (pending && execution && execution.status !== current.status) {
       if (settles(pending, execution.status)) pending = undefined
@@ -156,7 +156,10 @@ export function createExecutionController(
   }
 
   view.onDispose(
-    store.subscribe(state => state.executions[options.executionId], refresh),
+    store.subscribe(
+      state => state.executions.get(options.executionId),
+      refresh,
+    ),
   )
 
   return {
@@ -169,7 +172,7 @@ export function createExecutionController(
       const shared = inFlight.get(action)
       if (shared) return shared
 
-      const execution = store.getState().executions[options.executionId]
+      const execution = store.getState().executions.get(options.executionId)
       const current = view.getSnapshot()
 
       if (!execution || !current.availableActions.includes(action)) {

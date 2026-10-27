@@ -108,7 +108,9 @@ export function toReactProps(
   if (on.keydown) props.onKeyDown = wrap(on.keydown)
   if (on.compositionstart) props.onCompositionStart = wrap(on.compositionstart)
   if (on.compositionend) props.onCompositionEnd = wrap(on.compositionend)
-  if (on.focus) props.onFocus = wrap(on.focus)
+  // React's onFocus bubbles, which is what `focusin` means.
+  const focus = on.focus ?? on.focusin
+  if (focus) props.onFocus = wrap(focus)
   if (on.blur) props.onBlur = wrap(on.blur)
   // React's onChange fires on every input for text fields and on toggle for
   // checkboxes, which is what `input` / `change` mean in the neutral model.

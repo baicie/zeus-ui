@@ -22,6 +22,8 @@ export type PartEventName =
   | 'compositionend'
   | 'focus'
   | 'blur'
+  /** Focus entering the element or any descendant (bubbles). */
+  | 'focusin'
 
 /** The parts of a DOM / React / Vue event that primitives may read. */
 export interface PartEvent {

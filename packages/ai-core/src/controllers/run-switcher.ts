@@ -45,13 +45,13 @@ export interface RunSwitcherController extends Controller<RunSwitcherViewState> 
 /** Objects whose identity changes when a run shows new activity. */
 function activityOf(state: AiState, executionId: EntityId): object[] {
   const parts: object[] = []
-  const execution = state.executions[executionId]
+  const execution = state.executions.get(executionId)
   if (execution) parts.push(execution)
   for (const id of state.executionStepIds[executionId] ?? []) {
-    const step = state.steps[id]
+    const step = state.steps.get(id)
     if (step) parts.push(step)
   }
-  for (const tool of Object.values(state.toolInvocations)) {
+  for (const tool of state.toolInvocations.values()) {
     if (tool.executionId === executionId) parts.push(tool)
   }
   return parts
@@ -62,7 +62,7 @@ export function createRunSwitcher(
 ): RunSwitcherController {
   const { store } = options.session
   const listIds =
-    options.filter ?? ((state: AiState) => Object.keys(state.executions))
+    options.filter ?? ((state: AiState) => state.executions.keys())
   const unread = new Map<EntityId, number>()
   const seen = new Map<EntityId, Set<object>>()
   let selected = options.initialExecutionId
@@ -86,7 +86,7 @@ export function createRunSwitcher(
 
   function project(state: AiState): RunSwitcherViewState {
     const approvalsByRun = new Map<EntityId, number>()
-    for (const approval of Object.values(state.approvals)) {
+    for (const approval of state.approvals.values()) {
       if (approval.status === 'pending' || approval.status === 'submitted') {
         approvalsByRun.set(
           approval.executionId,
@@ -96,7 +96,7 @@ export function createRunSwitcher(
     }
 
     const runs = listIds(state)
-      .map(id => state.executions[id])
+      .map(id => state.executions.get(id))
       .filter(execution => execution !== undefined)
       .map(execution => ({
         executionId: execution.id,
@@ -145,7 +145,7 @@ export function createRunSwitcher(
   )
 
   function select(executionId: EntityId): void {
-    if (!store.getState().executions[executionId]) return
+    if (!store.getState().executions.get(executionId)) return
     selected = executionId
     unread.set(executionId, 0)
     refresh()

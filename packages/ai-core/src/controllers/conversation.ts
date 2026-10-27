@@ -75,16 +75,16 @@ export function projectVisibleBranch(
 ): Omit<ConversationViewState, 'conversationId'> {
   const ids = state.conversationMessageIds[conversationId] ?? []
   const messages = ids
-    .map(id => state.messages[id])
+    .map(id => state.messages.get(id))
     .filter((message): message is Message => message !== undefined)
   const children = childrenIndex(messages)
 
   // Path the host selected, so its ancestors are preferred by default.
   const preferred = new Set<EntityId>()
-  let cursor = state.conversations[conversationId]?.selectedLeafMessageId
+  let cursor = state.conversations.get(conversationId)?.selectedLeafMessageId
   while (cursor !== undefined) {
     preferred.add(cursor)
-    cursor = state.messages[cursor]?.parentMessageId
+    cursor = state.messages.get(cursor)?.parentMessageId
   }
 
   const visible: EntityId[] = []
@@ -163,10 +163,10 @@ export function createConversationController(
     store.subscribe(state => {
       const ids = state.conversationMessageIds[options.conversationId]
       return `${(ids ?? []).join(',')}|${(ids ?? [])
-        .map(id => state.messages[id]?.parentMessageId ?? '')
+        .map(id => state.messages.get(id)?.parentMessageId ?? '')
         .join(
           ',',
-        )}|${state.conversations[options.conversationId]?.selectedLeafMessageId ?? ''}`
+        )}|${state.conversations.get(options.conversationId)?.selectedLeafMessageId ?? ''}`
     }, refresh),
   )
 
@@ -195,7 +195,7 @@ export function createConversationController(
       return view.disposed
     },
     selectSibling(messageId, to): void {
-      const message = store.getState().messages[messageId]
+      const message = store.getState().messages.get(messageId)
       if (!message || message.conversationId !== options.conversationId) return
 
       const parent = message.parentMessageId ?? ROOT
@@ -203,7 +203,8 @@ export function createConversationController(
         store.getState().conversationMessageIds[options.conversationId] ?? []
       ).filter(
         id =>
-          (store.getState().messages[id]?.parentMessageId ?? ROOT) === parent,
+          (store.getState().messages.get(id)?.parentMessageId ?? ROOT) ===
+          parent,
       )
       const index = siblings.indexOf(messageId)
       const target =
@@ -215,7 +216,7 @@ export function createConversationController(
       refresh()
     },
     edit(messageId, text): Promise<CommandAck> {
-      const message = store.getState().messages[messageId]
+      const message = store.getState().messages.get(messageId)
 
       if (!message || message.conversationId !== options.conversationId) {
         return Promise.resolve({
@@ -239,7 +240,7 @@ export function createConversationController(
       )
     },
     retry(messageId): Promise<CommandAck> {
-      const message = store.getState().messages[messageId]
+      const message = store.getState().messages.get(messageId)
 
       if (!message || message.conversationId !== options.conversationId) {
         return Promise.resolve({

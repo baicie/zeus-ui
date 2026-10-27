@@ -51,12 +51,12 @@ describe('s1/S2/S3 replay (G0 gate, AI2-110)', () => {
     const store = await replay(createS1ChatScenario())
     const state = store.getState()
 
-    expect(state.messages['msg-s1-assistant'].status).toBe('complete')
-    expect(state.messages['msg-s1-assistant'].parts[0]).toMatchObject({
+    expect(state.messages.get('msg-s1-assistant')!.status).toBe('complete')
+    expect(state.messages.get('msg-s1-assistant')!.parts[0]).toMatchObject({
       kind: 'text',
       text: '这段代码做的是增量渲染。',
     })
-    expect(state.executions['exec-s1'].status).toBe('completed')
+    expect(state.executions.get('exec-s1')!.status).toBe('completed')
     expect(state.conversationMessageIds['conv-s1']).toEqual([
       'msg-s1-user',
       'msg-s1-assistant',
@@ -67,19 +67,19 @@ describe('s1/S2/S3 replay (G0 gate, AI2-110)', () => {
     const store = await replay(createS2AgentApprovalScenario())
     const state = store.getState()
 
-    expect(state.approvals['approval-s2'].status).toBe('approved')
-    expect(state.executions['exec-s2'].status).toBe('completed')
-    expect(state.steps['step-s2-plan'].status).toBe('completed')
-    expect(state.toolInvocations['tool-s2-shell'].status).toBe('succeeded')
+    expect(state.approvals.get('approval-s2')!.status).toBe('approved')
+    expect(state.executions.get('exec-s2')!.status).toBe('completed')
+    expect(state.steps.get('step-s2-plan')!.status).toBe('completed')
+    expect(state.toolInvocations.get('tool-s2-shell')!.status).toBe('succeeded')
   })
 
   it('replays S3 to an applied change set', async () => {
     const store = await replay(createS3CodingReviewScenario())
     const state = store.getState()
 
-    expect(state.approvals['approval-s3'].status).toBe('approved')
-    expect(state.changeSets['changeset-s3'].status).toBe('applied')
-    expect(state.executions['exec-s3'].status).toBe('completed')
+    expect(state.approvals.get('approval-s3')!.status).toBe('approved')
+    expect(state.changeSets.get('changeset-s3')!.status).toBe('applied')
+    expect(state.executions.get('exec-s3')!.status).toBe('completed')
   })
 
   it('is deterministic across replays of the same stream', async () => {

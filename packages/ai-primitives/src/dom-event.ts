@@ -43,4 +43,5 @@ export const DOM_EVENT_TYPES: Readonly<Record<string, string>> = {
   compositionend: 'compositionend',
   focus: 'focus',
   blur: 'blur',
+  focusin: 'focusin',
 }

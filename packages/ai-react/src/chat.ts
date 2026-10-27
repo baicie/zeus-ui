@@ -247,7 +247,7 @@ export function AiMessage(props: AiMessageProps): ReactElement | null {
     conversation,
     view => view.branches[props.messageId],
   )
-  const message = session.store.getState().messages[props.messageId]
+  const message = session.store.getState().messages.get(props.messageId)
 
   if (!message) return null
 
@@ -305,7 +305,7 @@ export function AiMessageTimeline(props: AiMessageTimelineProps): ReactElement {
   const ids = useIds()
   const locale = props.locale ?? EN_LOCALE
   const timeline = useOwnedController(
-    () => createTimelineController({ follow: props.follow }),
+    () => createTimelineController({ follow: props.follow, virtualize: {} }),
     [props.follow],
   )
   const view = useController(timeline)
@@ -315,7 +315,7 @@ export function AiMessageTimeline(props: AiMessageTimelineProps): ReactElement {
   )
   const busy = useAiState(session.store, state =>
     visible.some(id => {
-      const status = state.messages[id]?.status
+      const status = state.messages.get(id)?.status
       return status === 'streaming' || status === 'pending'
     }),
   )
@@ -441,7 +441,7 @@ export function AiArtifactPreview(props: AiArtifactPreviewProps): ReactElement {
   const [url, setUrl] = useState<string>()
   const bytes = preview?.status === 'ready' ? preview.bytes : undefined
   const mime = preview?.artifactId
-    ? session.store.getState().artifacts[preview.artifactId]?.asset.mimeType
+    ? session.store.getState().artifacts.get(preview.artifactId)?.asset.mimeType
     : undefined
 
   useEffect(() => {

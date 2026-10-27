@@ -82,7 +82,7 @@ export function createApprovalController(
     local: ApprovalLocalState,
     pendingDecision: ApprovalDecisionIntent | undefined,
   ): Omit<ApprovalViewState, 'error' | 'errorCode'> {
-    const approval = store.getState().approvals[options.approvalId]
+    const approval = store.getState().approvals.get(options.approvalId)
     const expired = isExpired(approval, now())
     const hostDecided =
       approval !== undefined &&
@@ -132,7 +132,7 @@ export function createApprovalController(
   }
 
   view.onDispose(
-    store.subscribe(state => state.approvals[options.approvalId], refresh),
+    store.subscribe(state => state.approvals.get(options.approvalId), refresh),
   )
   view.onDispose(() => {
     if (expiryTimer) clearTimeout(expiryTimer)

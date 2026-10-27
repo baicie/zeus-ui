@@ -8,6 +8,12 @@ export function stableStringify(value: unknown): string {
     return JSON.stringify(value) ?? 'null'
   }
 
+  // Persistent collections serialize through their plain-record form.
+  const serializable = value as { toJSON?: () => unknown }
+  if (typeof serializable.toJSON === 'function') {
+    return stableStringify(serializable.toJSON())
+  }
+
   if (Array.isArray(value)) {
     return `[${value.map(entry => stableStringify(entry)).join(',')}]`
   }

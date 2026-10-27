@@ -84,7 +84,7 @@ export function createStreamingText(
 
   function read(): StreamingTextViewState {
     const state = options.store.getState()
-    const message = state.messages[options.messageId]
+    const message = state.messages.get(options.messageId)
 
     return {
       messageId: options.messageId,
@@ -105,7 +105,7 @@ export function createStreamingText(
 
   view.onDispose(
     options.store.subscribe(
-      state => state.messages[options.messageId],
+      state => state.messages.get(options.messageId),
       message => {
         if (message && TERMINAL.includes(message.status)) {
           // The final flush is synchronous: nothing may wait on a frame.

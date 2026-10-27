@@ -70,7 +70,7 @@ export function createChangeSetActions(
   function read(
     pendingAction: ChangeSetAction | undefined,
   ): Omit<ChangeSetActionsViewState, 'lastError' | 'lastErrorCode'> {
-    const changeSet = store.getState().changeSets[options.changeSetId]
+    const changeSet = store.getState().changeSets.get(options.changeSetId)
     return {
       changeSetId: options.changeSetId,
       status: changeSet?.status,
@@ -86,7 +86,7 @@ export function createChangeSetActions(
 
   view.onDispose(
     store.subscribe(
-      state => state.changeSets[options.changeSetId],
+      state => state.changeSets.get(options.changeSetId),
       changeSet => {
         const current = view.getSnapshot()
         // Any host-side movement of the change set settles a pending intent.
@@ -126,7 +126,7 @@ export function createChangeSetActions(
             })
       }
 
-      const changeSet = store.getState().changeSets[options.changeSetId]
+      const changeSet = store.getState().changeSets.get(options.changeSetId)
 
       if (
         !changeSet ||

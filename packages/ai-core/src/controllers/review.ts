@@ -140,7 +140,7 @@ export function createReviewController(
   const loading = new Map<string, Promise<void>>()
 
   function currentChangeSet(): ChangeSet | undefined {
-    return store.getState().changeSets[options.changeSetId]
+    return store.getState().changeSets.get(options.changeSetId)
   }
 
   const view = createViewStore<ReviewViewState>({
@@ -357,7 +357,7 @@ export function createReviewController(
 
   view.onDispose(
     store.subscribe(
-      state => state.changeSets[options.changeSetId],
+      state => state.changeSets.get(options.changeSetId),
       changeSet => {
         const current = view.getSnapshot()
         const revisionChanged =

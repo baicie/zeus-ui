@@ -56,13 +56,15 @@ describe('canonical reducers (AI2-107)', () => {
     expect(result.ok).toBe(true)
     if (!result.ok) return
 
-    expect(result.state.messages['msg-1']).not.toBe(before.messages['msg-1'])
+    expect(result.state.messages.get('msg-1')).not.toBe(
+      before.messages.get('msg-1'),
+    )
     expect(result.state.conversations).toBe(before.conversations)
     expect(result.state.executions).toBe(before.executions)
     expect(result.state.conversationMessageIds).toBe(
       before.conversationMessageIds,
     )
-    expect(result.state.messages['msg-1'].parts[0]).toMatchObject({
+    expect(result.state.messages.get('msg-1')!.parts[0]).toMatchObject({
       text: 'Hello',
       revision: 2,
     })
@@ -209,7 +211,7 @@ describe('canonical reducers (AI2-107)', () => {
     })
     const second = reduceEvent(first.state, approved)
     if (!second.ok) throw new Error(second.message)
-    expect(second.state.approvals['approval-1'].status).toBe('approved')
+    expect(second.state.approvals.get('approval-1')!.status).toBe('approved')
 
     const rejectAfterApprove = factory.create(
       'approval.resolved',

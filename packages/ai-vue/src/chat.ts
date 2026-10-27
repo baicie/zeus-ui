@@ -272,7 +272,7 @@ export const AiMessage = defineComponent({
 
     return () => {
       void revision.value
-      const message = session.store.getState().messages[props.messageId]
+      const message = session.store.getState().messages.get(props.messageId)
       if (!message) return null
       const copy = props.copy ?? defaultCopy
       const parts = getMessageParts(message, {
@@ -327,7 +327,7 @@ export const AiMessageTimeline = defineComponent({
     const ids = useIds()
     const locale = props.locale ?? EN_LOCALE
     const timeline = useOwnedController(() =>
-      createTimelineController({ follow: props.follow }),
+      createTimelineController({ follow: props.follow, virtualize: {} }),
     )
     const view = useController(timeline)
     const visible = useController(
@@ -336,7 +336,7 @@ export const AiMessageTimeline = defineComponent({
     )
     const busy = useAiState(session.store, state =>
       visible.value.some(id => {
-        const status = state.messages[id]?.status
+        const status = state.messages.get(id)?.status
         return status === 'streaming' || status === 'pending'
       }),
     )
@@ -482,7 +482,7 @@ export const AiArtifactPreview = defineComponent({
     const mimeOf = (): string | undefined => {
       const id = preview.value?.artifactId
       return id
-        ? session.store.getState().artifacts[id]?.asset.mimeType
+        ? session.store.getState().artifacts.get(id)?.asset.mimeType
         : undefined
     }
 

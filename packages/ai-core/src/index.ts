@@ -38,6 +38,7 @@ export * from './protocol/compat'
 export * from './protocol/events'
 export * from './protocol/validation'
 
+export * from './store/entity-map'
 export * from './store/projections'
 export * from './store/reducers'
 export * from './store/selectors'

@@ -78,7 +78,9 @@ function parseInline(source: string, protocols: readonly string[]): MdInline[] {
 
   while (index < source.length) {
     const char = source[index]
-    const rest = source.slice(index)
+    // Bounded lookahead keeps link / image matching linear on hostile
+    // input (CommonMark caps link labels at 999 characters anyway).
+    const rest = source.slice(index, index + 2048)
 
     // Backslash escapes and hard breaks.
     if (char === '\\') {

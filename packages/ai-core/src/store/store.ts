@@ -158,6 +158,8 @@ export interface AiStore {
     equal?: (previous: T, next: T) => boolean,
   ) => Unsubscribe
   getCursor: (streamId?: string) => number
+  /** Live selector subscriptions; used by leak checks. */
+  subscriptionCount: () => number
   getSyncState: () => AiStreamSyncState
   pendingSeqs: () => readonly number[]
   exportSnapshot: (takenAt: Timestamp) => AiSnapshot
@@ -200,7 +202,7 @@ function checkEventScope(
   scope: AiStoreScope,
 ): ApplyOutcome | null {
   const scopedExecution =
-    scope.kind === 'execution' ? state.executions[scope.id] : undefined
+    scope.kind === 'execution' ? state.executions.get(scope.id) : undefined
   const linkedConversationId =
     scope.kind === 'conversation' ? scope.id : scopedExecution?.conversationId
 
@@ -211,7 +213,7 @@ function checkEventScope(
     executionId !== undefined &&
     (scope.kind === 'execution'
       ? executionId === scope.id
-      : state.executions[executionId] !== undefined)
+      : state.executions.get(executionId) !== undefined)
 
   switch (event.type) {
     case 'conversation.upserted': {
@@ -277,40 +279,40 @@ function findOutOfScopeEntity(
   state: AiState,
   scope: AiStoreScope,
 ): string | null {
-  const executionIds = new Set(Object.keys(state.executions))
+  const executionIds = new Set(state.executions.keys())
 
   if (scope.kind === 'conversation') {
-    for (const id of Object.keys(state.conversations)) {
+    for (const id of state.conversations.keys()) {
       if (id !== scope.id) return `conversation ${id}`
     }
-    for (const message of Object.values(state.messages)) {
+    for (const message of state.messages.values()) {
       if (message.conversationId !== scope.id) return `message ${message.id}`
     }
-    for (const execution of Object.values(state.executions)) {
+    for (const execution of state.executions.values()) {
       if (execution.conversationId !== scope.id) {
         return `execution ${execution.id}`
       }
     }
   } else {
-    const linked = state.executions[scope.id]?.conversationId
+    const linked = state.executions.get(scope.id)?.conversationId
 
     for (const id of executionIds) {
       if (id !== scope.id) return `execution ${id}`
     }
-    for (const id of Object.keys(state.conversations)) {
+    for (const id of state.conversations.keys()) {
       if (id !== linked) return `conversation ${id}`
     }
-    for (const message of Object.values(state.messages)) {
+    for (const message of state.messages.values()) {
       if (message.conversationId !== linked) return `message ${message.id}`
     }
   }
 
   const children = [
-    ...Object.values(state.steps),
-    ...Object.values(state.toolInvocations),
-    ...Object.values(state.approvals),
-    ...Object.values(state.changeSets),
-    ...Object.values(state.artifacts),
+    ...state.steps.values(),
+    ...state.toolInvocations.values(),
+    ...state.approvals.values(),
+    ...state.changeSets.values(),
+    ...state.artifacts.values(),
   ]
 
   for (const child of children) {
@@ -767,6 +769,9 @@ export function createAiStore(options: AiStoreOptions): AiStore {
       return (): void => {
         subscriptions.delete(subscription)
       }
+    },
+    subscriptionCount(): number {
+      return subscriptions.size
     },
     getCursor(targetStreamId?: string): number {
       return state.cursors[targetStreamId ?? streamId] ?? 0

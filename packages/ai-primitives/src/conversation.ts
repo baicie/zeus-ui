@@ -89,6 +89,8 @@ export function getTimelineParts(
     /** Status sentence for screen readers, e.g. from `StreamingTextController`. */
     announcement: string
     onFocusItem?: (messageId: EntityId) => void
+    /** Focus entered a message; windowed timelines pin it. */
+    onItemFocus?: (messageId: EntityId) => void
     locale?: AiLocale
   },
 ): TimelineParts {
@@ -113,6 +115,7 @@ export function getTimelineParts(
           'data-message-id': messageId,
         },
         {
+          focusin: () => options.onItemFocus?.(messageId),
           keydown: event => {
             const target = feedTarget(view.itemIds, messageId, event.key)
             if (target && target !== messageId) {

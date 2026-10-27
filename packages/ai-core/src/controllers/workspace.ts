@@ -82,7 +82,7 @@ export function selectExecutionsForWorkspace(
   state: AiState,
   workspaceId: EntityId,
 ): Execution[] {
-  return Object.values(state.executions).filter(
-    execution => execution.workspaceId === workspaceId,
-  )
+  return state.executions
+    .values()
+    .filter(execution => execution.workspaceId === workspaceId)
 }

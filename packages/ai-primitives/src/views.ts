@@ -444,7 +444,8 @@ export function messageView(
 
 export function timelineView(
   view: Readonly<TimelineViewState>,
-  controller: Pick<TimelineController, 'jumpToLatest'>,
+  controller: Pick<TimelineController, 'jumpToLatest'> &
+    Partial<Pick<TimelineController, 'pin'>>,
   options: {
     ids: IdScope
     label: string
@@ -454,7 +455,38 @@ export function timelineView(
     locale?: AiLocale
   },
 ): ViewNode {
-  const parts = getTimelineParts(view, controller, options)
+  const parts = getTimelineParts(view, controller, {
+    ...options,
+    onItemFocus: id => controller.pin?.(id),
+  })
+  const item = (id: EntityId, index: number): ViewNode =>
+    el(
+      'article',
+      parts.item(id, index),
+      [slot('message', { messageId: id }, id)],
+      id,
+    )
+  const items: ViewNode[] = view.range
+    ? view.range.segments.flatMap((segment, index) =>
+        segment.kind === 'pad'
+          ? [
+              el(
+                'div',
+                part({
+                  'aria-hidden': 'true',
+                  'data-part': 'spacer',
+                  style: `height:${Math.round(segment.height)}px`,
+                }),
+                undefined,
+                `pad-${index}`,
+              ),
+            ]
+          : view.itemIds
+              .slice(segment.start, segment.end)
+              .map((id, offset) => item(id, segment.start + offset)),
+      )
+    : view.itemIds.map((id, index) => item(id, index))
+
   return el('div', part({ 'data-zw-ai': 'timeline' }), [
     el(
       'div',
@@ -462,14 +494,7 @@ export function timelineView(
         ...parts.root,
         attrs: { ...parts.root.attrs, 'data-part': 'scroller' },
       },
-      view.itemIds.map((id, index) =>
-        el(
-          'article',
-          parts.item(id, index),
-          [slot('message', { messageId: id }, id)],
-          id,
-        ),
-      ),
+      items,
     ),
     parts.jumpToLatest && el('button', parts.jumpToLatest),
     el('div', {
@@ -754,8 +779,18 @@ export function diffView(
           row.type === 'hunk'
             ? el(
                 'div',
-                { ...props, attrs: { ...props.attrs, role: 'row' } },
+                // A row may only own cells: the header text, the review
+                // checkbox and the comment area each get one.
+                { attrs: { ...props.attrs, role: 'row' }, on: props.on },
                 [
+                  el(
+                    'span',
+                    part(
+                      { role: 'rowheader', 'data-part': 'hunk-header' },
+                      undefined,
+                      row.header,
+                    ),
+                  ),
                   el('span', part({ role: 'cell' }), [
                     el(
                       'input',
@@ -767,7 +802,9 @@ export function diffView(
                       ).checkbox,
                     ),
                   ]),
-                  slot('hunk-actions', { hunkId: row.hunkId }),
+                  el('span', part({ role: 'cell' }), [
+                    slot('hunk-actions', { hunkId: row.hunkId }),
+                  ]),
                 ],
                 row.id,
               )

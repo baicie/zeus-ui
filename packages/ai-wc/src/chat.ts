@@ -190,7 +190,7 @@ export function defineAiMessage(registry?: Registry): void {
           const messageId = p.messageId as EntityId | undefined
           const message =
             session && messageId
-              ? session.store.getState().messages[messageId]
+              ? session.store.getState().messages.get(messageId)
               : undefined
           if (!message) return null
           const conversation = p.conversation as
@@ -212,8 +212,9 @@ export function defineAiMessage(registry?: Registry): void {
         slots: () => {
           const session = p.session as AiSession
           const renderers = p.renderers as RendererRegistry<Node> | undefined
-          const message =
-            session.store.getState().messages[p.messageId as EntityId]
+          const message = session.store
+            .getState()
+            .messages.get(p.messageId as EntityId)
           const byPart = new Map(
             (message?.parts ?? []).map(part => [part.id, part]),
           )
@@ -265,7 +266,7 @@ export function defineAiMessageTimeline(registry?: Registry): void {
       const p = props(element)
       const follow =
         (element.getAttribute('follow') as FollowMode | null) ?? undefined
-      const timeline = createTimelineController({ follow })
+      const timeline = createTimelineController({ follow, virtualize: {} })
       let scroller: HTMLElement | null = null
       let programmatic = false
       let observer: ResizeObserver | undefined
@@ -317,7 +318,7 @@ export function defineAiMessageTimeline(registry?: Registry): void {
             const next = conversation
               .getSnapshot()
               .visibleMessageIds.some(id => {
-                const status = state.messages[id]?.status
+                const status = state.messages.get(id)?.status
                 return status === 'streaming' || status === 'pending'
               })
             if (next !== busy) {
@@ -464,7 +465,7 @@ export function defineAiArtifactPreview(registry?: Registry): void {
             const session = p.session as AiSession | undefined
             const mime =
               preview &&
-              session?.store.getState().artifacts[preview.artifactId]?.asset
+              session?.store.getState().artifacts.get(preview.artifactId)?.asset
                 .mimeType
             if (!preview?.bytes || !mime) return
             if (wrapper.dataset.artifactId === preview.artifactId) return

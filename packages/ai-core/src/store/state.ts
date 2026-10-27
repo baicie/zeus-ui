@@ -1,8 +1,9 @@
 /**
  * Canonical normalized state (AI2-107).
  *
- * Every collection is a plain record keyed by entity id, so a reducer replaces
- * exactly one entity and leaves unrelated references untouched. Ordered
+ * Entity collections are persistent `EntityMap`s keyed by id: a reducer
+ * replaces exactly one entity, untouched entities keep their identity, and
+ * the cost of an update does not grow with the collection. Ordered
  * indexes (`conversationMessageIds`, `executionStepIds`) are maintained by the
  * reducers in authoritative arrival order. `cursors` tracks the last applied
  * `seq` per stream for gap recovery.
@@ -20,36 +21,50 @@ import type {
   ToolInvocation,
 } from '../domain/types'
 
+import { EntityMap } from './entity-map'
+
 export interface AiState {
-  conversations: Readonly<Record<EntityId, Conversation>>
-  messages: Readonly<Record<EntityId, Message>>
+  conversations: EntityMap<Conversation>
+  messages: EntityMap<Message>
   conversationMessageIds: Readonly<Record<EntityId, readonly EntityId[]>>
-  executions: Readonly<Record<EntityId, Execution>>
+  executions: EntityMap<Execution>
   /** Every step of an execution, in host order (not only the active ones). */
   executionStepIds: Readonly<Record<EntityId, readonly EntityId[]>>
-  steps: Readonly<Record<EntityId, ExecutionStep>>
-  toolInvocations: Readonly<Record<EntityId, ToolInvocation>>
-  approvals: Readonly<Record<EntityId, ApprovalRequest>>
-  artifacts: Readonly<Record<EntityId, Artifact>>
-  changeSets: Readonly<Record<EntityId, ChangeSet>>
+  steps: EntityMap<ExecutionStep>
+  toolInvocations: EntityMap<ToolInvocation>
+  approvals: EntityMap<ApprovalRequest>
+  artifacts: EntityMap<Artifact>
+  changeSets: EntityMap<ChangeSet>
   cursors: Readonly<Record<string, number>>
 }
 
 export function createInitialState(): AiState {
   return {
-    conversations: {},
-    messages: {},
+    conversations: EntityMap.empty(),
+    messages: EntityMap.empty(),
     conversationMessageIds: {},
-    executions: {},
+    executions: EntityMap.empty(),
     executionStepIds: {},
-    steps: {},
-    toolInvocations: {},
-    approvals: {},
-    artifacts: {},
-    changeSets: {},
+    steps: EntityMap.empty(),
+    toolInvocations: EntityMap.empty(),
+    approvals: EntityMap.empty(),
+    artifacts: EntityMap.empty(),
+    changeSets: EntityMap.empty(),
     cursors: {},
   }
 }
+
+/** Entity collections stored as `EntityMap`s. */
+export const ENTITY_COLLECTION_KEYS = [
+  'conversations',
+  'messages',
+  'executions',
+  'steps',
+  'toolInvocations',
+  'approvals',
+  'artifacts',
+  'changeSets',
+] as const
 
 /** Collection keys of {@link AiState}, used for structural snapshot checks. */
 export const AI_STATE_KEYS: readonly (keyof AiState)[] = [

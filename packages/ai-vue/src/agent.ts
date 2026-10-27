@@ -72,9 +72,8 @@ export const AiToolInvocation = defineComponent({
     const session = useAiSession(props.session)
     const ids = useIds()
     const expanded = ref(props.defaultExpanded)
-    const tool = useAiState(
-      session.store,
-      state => state.toolInvocations[props.toolId],
+    const tool = useAiState(session.store, state =>
+      state.toolInvocations.get(props.toolId),
     )
     return () =>
       tool.value
@@ -102,7 +101,9 @@ export const AiStep = defineComponent({
   },
   setup(props) {
     const session = useAiSession(props.session)
-    const step = useAiState(session.store, state => state.steps[props.stepId])
+    const step = useAiState(session.store, state =>
+      state.steps.get(props.stepId),
+    )
     const tool = useAiState(session.store, state =>
       selectStepTool(state, props.stepId),
     )
@@ -142,7 +143,7 @@ export const AiStepList = defineComponent({
     )
     const tree = useOwnedController(() =>
       createTreeController({
-        initiallyExpanded: Object.keys(session.store.getState().steps),
+        initiallyExpanded: session.store.getState().steps.keys(),
         onFocus: id => focusById(ids.id(`node-${id}`)),
       }),
     )

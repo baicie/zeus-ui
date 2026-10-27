@@ -22,9 +22,8 @@ import type {
   Message,
   ToolInvocation,
 } from '../domain/types'
+import type { EntityMap } from './entity-map'
 import type { AiState } from './state'
-
-type EntityRecord<T> = Readonly<Record<EntityId, T>>
 
 const EMPTY: readonly never[] = Object.freeze([])
 
@@ -38,7 +37,7 @@ const listMemos = new WeakMap<readonly EntityId[], ListMemo>()
 
 function resolveList<T>(
   ids: readonly EntityId[] | undefined,
-  record: EntityRecord<T>,
+  record: EntityMap<T>,
 ): readonly T[] {
   if (!ids || ids.length === 0) return EMPTY
 
@@ -47,7 +46,7 @@ function resolveList<T>(
   if (memo && memo.record === record) return memo.values as readonly T[]
 
   const values = ids
-    .map(id => record[id])
+    .map(id => record.get(id))
     .filter((entry): entry is T => entry !== undefined)
 
   if (
@@ -68,42 +67,42 @@ export function selectConversation(
   state: AiState,
   id: EntityId,
 ): Conversation | undefined {
-  return state.conversations[id]
+  return state.conversations.get(id)
 }
 
 export function selectMessage(
   state: AiState,
   id: EntityId,
 ): Message | undefined {
-  return state.messages[id]
+  return state.messages.get(id)
 }
 
 export function selectExecution(
   state: AiState,
   id: EntityId,
 ): Execution | undefined {
-  return state.executions[id]
+  return state.executions.get(id)
 }
 
 export function selectStep(
   state: AiState,
   id: EntityId,
 ): ExecutionStep | undefined {
-  return state.steps[id]
+  return state.steps.get(id)
 }
 
 export function selectToolInvocation(
   state: AiState,
   id: EntityId,
 ): ToolInvocation | undefined {
-  return state.toolInvocations[id]
+  return state.toolInvocations.get(id)
 }
 
 export function selectApproval(
   state: AiState,
   id: EntityId,
 ): ApprovalRequest | undefined {
-  return state.approvals[id]
+  return state.approvals.get(id)
 }
 
 export function selectConversationMessageIds(
@@ -136,11 +135,14 @@ export function selectActiveExecutionSteps(
   state: AiState,
   executionId: EntityId,
 ): readonly ExecutionStep[] {
-  return resolveList(state.executions[executionId]?.activeStepIds, state.steps)
+  return resolveList(
+    state.executions.get(executionId)?.activeStepIds,
+    state.steps,
+  )
 }
 
 const approvalQueries = new WeakMap<
-  EntityRecord<ApprovalRequest>,
+  EntityMap<ApprovalRequest>,
   Map<string, readonly ApprovalRequest[]>
 >()
 
@@ -160,9 +162,7 @@ function queryApprovals(
   const cached = cache.get(key)
   if (cached) return cached
 
-  const values = Object.keys(state.approvals)
-    .map(id => state.approvals[id])
-    .filter(predicate)
+  const values = state.approvals.values().filter(predicate)
   const result = values.length === 0 ? EMPTY : values
 
   cache.set(key, result)
@@ -219,7 +219,7 @@ export function shallowArrayEqual<T>(
 }
 
 export function selectMessageText(state: AiState, id: EntityId): string {
-  const message = state.messages[id]
+  const message = state.messages.get(id)
 
   if (!message) return ''
 

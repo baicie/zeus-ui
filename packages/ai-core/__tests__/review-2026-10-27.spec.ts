@@ -145,7 +145,7 @@ describe('review f1 · lifecycle cannot be bypassed by re-sending an entity', ()
       status: 'rejected',
       code: 'illegal-transition',
     })
-    expect(store.getState().executions['exec-1'].status).toBe('completed')
+    expect(store.getState().executions.get('exec-1')!.status).toBe('completed')
   })
 
   it('keeps an execution bound to its conversation and kind', () => {
@@ -289,7 +289,7 @@ describe('review f2 · approvals are decided only by approval.resolved', () => {
         }),
       ),
     ).toMatchObject({ status: 'rejected', code: 'illegal-transition' })
-    expect(store.getState().approvals['approval-1']).toBeUndefined()
+    expect(store.getState().approvals.get('approval-1')).toBeUndefined()
   })
 
   it('refuses scope escalation and status changes on re-request', () => {
@@ -467,7 +467,7 @@ describe('review f3 · a broken seq halts the stream explicitly', () => {
 
     expect(store.loadHostSnapshot(snapshot, T)).toMatchObject({ ok: true })
     expect(store.getSyncState()).toMatchObject({ status: 'live', cursor: 3 })
-    expect(store.getState().conversations['conv-1'].title).toBe('c3')
+    expect(store.getState().conversations.get('conv-1')!.title).toBe('c3')
   })
 })
 
@@ -577,7 +577,7 @@ describe('review f5 · scoped stores refuse foreign conversations and executions
       }),
     )
 
-    expect(store.getState().conversations['conv-2']).toBeUndefined()
+    expect(store.getState().conversations.get('conv-2')).toBeUndefined()
     expect(store.getSyncState()).toMatchObject({
       status: 'desynced',
       halt: { code: 'out-of-scope' },
@@ -905,7 +905,7 @@ describe('review f13 · canonical state is owned by the store', () => {
     store.ingest(event)
     ;(event.payload.conversation as { title: string }).title = 'mutated'
 
-    expect(store.getState().conversations['conv-1'].title).toBe('original')
+    expect(store.getState().conversations.get('conv-1')!.title).toBe('original')
   })
 
   it('does not let consumers edit state or exported snapshots in place', () => {
@@ -921,12 +921,14 @@ describe('review f13 · canonical state is owned by the store', () => {
     const snapshot = store.exportSnapshot(T)
 
     expect(() => {
-      ;(state.conversations as Record<string, unknown>)['conv-1'] = null
+      ;(state.conversations as unknown as Record<string, unknown>)['conv-1'] =
+        null
     }).toThrow(TypeError)
     expect(() => {
-      ;(snapshot.state.conversations['conv-1'] as { title: string }).title = 'x'
+      ;(snapshot.state.conversations.get('conv-1') as { title: string }).title =
+        'x'
     }).toThrow(TypeError)
-    expect(store.getState().conversations['conv-1'].title).toBe('c')
+    expect(store.getState().conversations.get('conv-1')!.title).toBe('c')
   })
 
   it('detaches a loaded snapshot from the object it was loaded from', () => {
@@ -943,7 +945,7 @@ describe('review f13 · canonical state is owned by the store', () => {
 
     expect(store.loadSnapshot(raw)).toMatchObject({ ok: true })
     raw.state.conversations['conv-1'].title = 'mutated'
-    expect(store.getState().conversations['conv-1'].title).toBe('c')
+    expect(store.getState().conversations.get('conv-1')!.title).toBe('c')
   })
 })
 
@@ -1133,7 +1135,7 @@ describe('review f16–f18 · cross-aggregate references and approval risk', () 
         }),
       ),
     ).toMatchObject({ status: 'rejected', code: 'immutable-field' })
-    expect(store.getState().approvals['approval-1'].risk).toBe('high')
+    expect(store.getState().approvals.get('approval-1')!.risk).toBe('high')
   })
 })
 

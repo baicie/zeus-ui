@@ -200,7 +200,7 @@ describe('ai2-303 · approval decisions', () => {
       displayStatus: 'submitted',
       canDecide: false,
     })
-    expect(fixture.store.getState().approvals['approval-1'].status).toBe(
+    expect(fixture.store.getState().approvals.get('approval-1')!.status).toBe(
       'pending',
     )
 
@@ -310,7 +310,9 @@ describe('ai2-306 · run switcher', () => {
       switcher.getSnapshot().runs.find(run => run.executionId === 'exec-2')
         ?.unread,
     ).toBe(0)
-    expect(fixture.store.getState().executions['exec-1'].status).toBe('running')
+    expect(fixture.store.getState().executions.get('exec-1')!.status).toBe(
+      'running',
+    )
   })
 
   it('keeps approvals of hidden runs discoverable', () => {
