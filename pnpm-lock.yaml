@@ -988,6 +988,28 @@ importers:
         specifier: workspace:*
         version: link:../ai-core
 
+  packages/ai-react:
+    dependencies:
+      '@zeus-web/ai-core':
+        specifier: workspace:*
+        version: link:../ai-core
+      '@zeus-web/ai-primitives':
+        specifier: workspace:*
+        version: link:../ai-primitives
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.17
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.17)
+      react:
+        specifier: ^19.2.7
+        version: 19.2.7
+      react-dom:
+        specifier: ^19.2.7
+        version: 19.2.7(react@19.2.7)
+
   packages/cli:
     dependencies:
       '@zeus-web/ai':

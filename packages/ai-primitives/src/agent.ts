@@ -391,7 +391,8 @@ export function getRunSwitcherParts(
             'aria-selected': ariaBool(selected),
             tabindex: selected ? 0 : -1,
             'data-status': run.status,
-            'aria-description': notes.join(', '),
+            // Visible title first, so the accessible name contains it.
+            'aria-label': [options.title(run.executionId), ...notes].join(', '),
           },
           {
             click: () => controller.select(run.executionId),

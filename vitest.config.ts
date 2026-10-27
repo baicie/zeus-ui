@@ -182,6 +182,10 @@ export default defineConfig({
             'packages/primitives/__tests__/*-runtime.spec.ts',
             'packages/primitives/textarea/__tests__/textarea-runtime.spec.ts',
             'packages/advanced/chat/__tests__/chat-composer-runtime.spec.ts',
+            // AI Headless V2 renderer adapters render real DOM.
+            'packages/ai-react/__tests__/**',
+            'packages/ai-vue/__tests__/**',
+            'packages/ai-wc/__tests__/**',
           ],
         },
       },

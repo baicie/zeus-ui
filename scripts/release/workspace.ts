@@ -76,11 +76,11 @@ export const expectedWorkspacePackageCounts: WorkspacePackageCounts = {
 }
 
 export const expectedWorkspacePackageTotals: WorkspacePackageCounts = {
-  total: 43,
-  base: 14,
+  total: 44,
+  base: 15,
   primitive: 24,
   advanced: 5,
-  private: 3,
+  private: 4,
 }
 
 function toForwardSlash(value: string): string {

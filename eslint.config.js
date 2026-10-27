@@ -79,7 +79,12 @@ export default defineConfig(
 
   // E2E tests and harnesses - run in jsdom, need DOM globals
   {
-    files: ['e2e/**'],
+    files: [
+      'e2e/**',
+      'packages/ai-react/__tests__/**',
+      'packages/ai-vue/__tests__/**',
+      'packages/ai-wc/**',
+    ],
     rules: {
       'no-restricted-globals': 'off',
     },

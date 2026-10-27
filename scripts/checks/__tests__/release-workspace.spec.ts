@@ -31,6 +31,7 @@ describe('release workspace discovery', () => {
       '@zeus-web/ai-adapters',
       '@zeus-web/ai-core',
       '@zeus-web/ai-primitives',
+      '@zeus-web/ai-react',
     ])
     expect(packages.some(pkg => pkg.name === '@zeus-web/cli')).toBe(true)
     expect(packages.some(pkg => pkg.name === '@zeus-web/icons')).toBe(true)

@@ -349,7 +349,7 @@ describe('run switcher parts (AI2-306, APG tabs)', () => {
     )
 
     expect(parts.tabs.map(tab => tab.props.attrs.tabindex)).toEqual([0, -1])
-    expect(parts.tabs[1].props.attrs['aria-description']).toContain(
+    expect(parts.tabs[1].props.attrs['aria-label']).toContain(
       'awaiting approval',
     )
     parts.tabs[0].props.on!.keydown!(syntheticEvent({ key: 'ArrowRight' }))

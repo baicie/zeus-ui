@@ -35,6 +35,8 @@ export interface PartEvent {
   /** Current value of the event target for `input` / `change`. */
   value?: string
   checked?: boolean
+  /** Caret position of a text field, when the adapter can read it. */
+  selectionStart?: number
   preventDefault: () => void
 }
 
@@ -72,6 +74,17 @@ let scopeCounter = 0
 export function createIdScope(prefix = 'zw-ai'): IdScope {
   scopeCounter += 1
   const base = `${prefix}-${scopeCounter}`
+  return {
+    id: name => `${base}-${name.replace(/[^\w-]/g, '_')}`,
+  }
+}
+
+/**
+ * Id scope from a caller-provided prefix, without a module counter: use it
+ * with framework ids (React `useId`) so server and client agree.
+ */
+export function idScopeFrom(prefix: string): IdScope {
+  const base = prefix.replace(/[^\w-]/g, '_')
   return {
     id: name => `${base}-${name.replace(/[^\w-]/g, '_')}`,
   }
