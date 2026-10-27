@@ -4,6 +4,12 @@
  * Deterministic in-memory host: commands produce an acknowledgement (optionally
  * scripted) and tests append authoritative events with `emit`, which keeps
  * `seq` strictly increasing. It never touches the network.
+ *
+ * It behaves like a trusted host where it matters for client tests: commands
+ * are validated, and an `idempotencyKey` executes at most once. Retries replay
+ * the recorded ack (same `operationId`), concurrent duplicates share the
+ * in-flight attempt, and reusing a key for a different command is refused.
+ * `commands()` lists only attempts that actually executed.
  */
 
 import type { AssetRef } from '../domain/types'
@@ -22,8 +28,12 @@ import type {
   SnapshotScope,
 } from './adapter'
 import type { EventFactory } from './event-factory'
+import { createIdempotencyTracker, validateCommand } from '../protocol/commands'
+import { checksumState } from '../store/snapshot'
+import { createInitialState } from '../store/state'
 import { createAcceptedAck, createRejectedAck } from './adapter'
 import { createEventFactory } from './event-factory'
+import { buildHostSnapshot } from './host-snapshot'
 
 export interface MockHostOptions {
   streamId?: string
@@ -31,8 +41,11 @@ export interface MockHostOptions {
   onExecute?: (
     command: Command,
     host: MockHost,
-  ) => CommandAck | Promise<CommandAck> | undefined
-  /** Snapshot state projection used by `getSnapshot`. */
+  ) => CommandAck | undefined | Promise<CommandAck | undefined>
+  /**
+   * Override the state served by `getSnapshot`. By default the host folds its
+   * own emitted events, so the snapshot cursor always matches its state.
+   */
   snapshotState?: () => Partial<AiState>
 }
 
@@ -62,6 +75,8 @@ export function createMockHost(options: MockHostOptions = {}): MockHost {
   const events: AnyDomainEvent[] = []
   const commands: Command[] = []
   const waiters = new Set<Waiter>()
+  const tracker = createIdempotencyTracker({ limit: 1000 })
+  const inFlight = new Map<string, Promise<CommandAck>>()
   let closed = false
 
   function wake(): void {
@@ -119,6 +134,19 @@ export function createMockHost(options: MockHostOptions = {}): MockHost {
       wake()
     },
     async execute(command: Command, signal?: AbortSignal): Promise<CommandAck> {
+      const validation = validateCommand(command)
+
+      if (!validation.ok) {
+        return {
+          accepted: false,
+          commandId:
+            typeof (command as { commandId?: unknown })?.commandId === 'string'
+              ? command.commandId
+              : '',
+          code: validation.code,
+          message: validation.message,
+        }
+      }
       if (closed) {
         return createRejectedAck(
           command,
@@ -134,13 +162,41 @@ export function createMockHost(options: MockHostOptions = {}): MockHost {
         )
       }
 
+      const decision = tracker.begin(command)
+
+      if (decision.kind === 'replay' || decision.kind === 'conflict') {
+        return decision.ack
+      }
+
+      if (decision.kind === 'in-flight') {
+        const shared = inFlight.get(command.idempotencyKey)
+
+        if (shared) {
+          const ack = await shared
+          return { ...ack, commandId: command.commandId }
+        }
+      }
+
       commands.push(command)
 
-      const scripted = await options.onExecute?.(command, host)
+      const attempt = (async (): Promise<CommandAck> => {
+        const scripted = await options.onExecute?.(command, host)
+        return scripted ?? createAcceptedAck(command, `op-${commands.length}`)
+      })()
 
-      if (scripted) return scripted
+      inFlight.set(command.idempotencyKey, attempt)
 
-      return createAcceptedAck(command, `op-${commands.length}`)
+      try {
+        const ack = await attempt
+        tracker.acknowledge(command, ack)
+        return ack
+      } catch (error) {
+        // No answer was recorded: let a retry with the same key execute.
+        tracker.release(command)
+        throw error
+      } finally {
+        inFlight.delete(command.idempotencyKey)
+      }
     },
     subscribe(
       targetStreamId: string,
@@ -174,10 +230,18 @@ export function createMockHost(options: MockHostOptions = {}): MockHost {
     async getSnapshot(scope: SnapshotScope): Promise<HostSnapshotPayload> {
       void scope
 
-      return {
-        cursors: { [streamId]: factory.nextSeq - 1 },
-        state: options.snapshotState?.() ?? {},
+      if (options.snapshotState) {
+        const cursors = { [streamId]: factory.nextSeq - 1 }
+        const state = {
+          ...createInitialState(),
+          ...options.snapshotState(),
+          cursors,
+        }
+
+        return { cursors, state, checksum: checksumState(state) }
       }
+
+      return buildHostSnapshot(streamId, events)
     },
     async loadAsset(
       asset: AssetRef,

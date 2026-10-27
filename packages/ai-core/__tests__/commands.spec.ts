@@ -82,9 +82,10 @@ describe('idempotency tracker', () => {
 
     tracker.acknowledge(command, ack)
 
+    // Same operation, answered under the retry's tracing id.
     expect(tracker.begin(retryCommand(command, 'cmd-3'))).toEqual({
       kind: 'replay',
-      ack,
+      ack: { ...ack, commandId: 'cmd-3' },
     })
   })
 
@@ -118,6 +119,11 @@ describe('idempotency tracker', () => {
         idempotencyKey: `idem-${index}`,
       })
       tracker.begin(command)
+      tracker.acknowledge(command, {
+        accepted: true,
+        commandId: command.commandId,
+        operationId: `op-${index}`,
+      })
     }
 
     expect(tracker.size()).toBe(2)

@@ -7,12 +7,14 @@
  */
 
 export * from './domain/approval'
+export * from './domain/changeset'
 export * from './domain/execution'
 export * from './domain/types'
 
 export * from './host/adapter'
 export * from './host/event-factory'
 export * from './host/fixtures'
+export * from './host/host-snapshot'
 
 export * from './host/mock-host'
 export * from './host/replay-host'

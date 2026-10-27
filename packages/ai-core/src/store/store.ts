@@ -6,28 +6,51 @@
  * - deduplicate by `seq`, buffer out-of-order events and surface gaps;
  * - quarantine unsupported schema versions / unknown event types instead of
  *   silently applying them;
+ * - optionally pin the store to one conversation or execution scope and
+ *   refuse events that belong elsewhere (threat T5-2);
  * - expose selector subscriptions whose listeners only run when their slice
  *   actually changed;
  * - import/export checksummed snapshots.
+ *
+ * Failure model: an event that occupies the next `seq` but cannot be applied
+ * (reducer rejection, out-of-scope, structurally invalid, unknown version or
+ * type) is never skipped and never retried forever. The stream enters
+ * `desynced`: the cursor stays on the last good event, later events are only
+ * buffered, and the store waits for a validated snapshot (`loadSnapshot` /
+ * `loadHostSnapshot`). Replaying the same broken seq cannot heal it, so the
+ * store says so instead of reporting a misleading gap.
  */
 
-import type { Timestamp } from '../domain/types'
+import type { EntityId, Timestamp } from '../domain/types'
 import type { AnyDomainEvent } from '../protocol/events'
 import type { ReduceErrorCode } from './reducers'
-import type { AiSnapshot, SnapshotValidationResult } from './snapshot'
-
+import type {
+  AiSnapshot,
+  HostSnapshotInput,
+  SnapshotValidationResult,
+} from './snapshot'
 import type { AiState } from './state'
+
+import { isRecord } from '../internal/stable'
 import { validateDomainEvent } from '../protocol/validation'
 import { reduceEvent } from './reducers'
-import { createSnapshot, validateSnapshot } from './snapshot'
+import {
+  createSnapshot,
+  snapshotFromHostPayload,
+  validateSnapshot,
+} from './snapshot'
 import { createInitialState } from './state'
 
 export type AiStoreDiagnosticCode =
   | 'gap-detected'
   | 'quarantined-event'
   | 'rejected-event'
+  | 'stream-mismatch'
+  | 'stream-desynced'
+  | 'listener-error'
   | 'snapshot-available'
   | 'snapshot-loaded'
+  | 'snapshot-rejected'
 
 export interface AiStoreDiagnostic {
   code: AiStoreDiagnosticCode
@@ -37,15 +60,49 @@ export interface AiStoreDiagnostic {
   detail?: Readonly<Record<string, unknown>>
 }
 
+/**
+ * The aggregate a store is allowed to hold. `conversation` accepts that
+ * conversation, its messages and the executions linked to it; `execution`
+ * accepts that execution, its children and its linked conversation.
+ */
+export interface AiStoreScope {
+  kind: 'conversation' | 'execution'
+  id: EntityId
+}
+
 export interface AiStoreOptions {
   streamId: string
+  scope?: AiStoreScope
   onDiagnostic?: (diagnostic: AiStoreDiagnostic) => void
   /** Guard against unbounded buffering when a stream never heals. */
   maxBufferedEvents?: number
 }
 
+export interface StreamHalt {
+  seq: number
+  code: string
+  message: string
+}
+
+export type AiStreamStatus = 'live' | 'gap' | 'desynced'
+
+export interface AiStreamSyncState {
+  status: AiStreamStatus
+  cursor: number
+  expectedSeq: number
+  pendingSeqs: readonly number[]
+  /** Why the stream stopped; present only while `desynced`. */
+  halt?: StreamHalt
+}
+
 export type IngestResult =
-  | { status: 'applied'; seq: number; appliedSeqs: readonly number[] }
+  | {
+      status: 'applied'
+      seq: number
+      appliedSeqs: readonly number[]
+      /** A buffered event behind this one could not be applied. */
+      halted?: StreamHalt
+    }
   | { status: 'duplicate'; seq: number }
   | {
       status: 'gap'
@@ -59,8 +116,24 @@ export type IngestResult =
       receivedSeq: number
       buffered: number
     }
-  | { status: 'quarantined'; code: string; message: string }
-  | { status: 'rejected'; code: string | ReduceErrorCode; message: string }
+  | {
+      status: 'desynced'
+      seq: number
+      halt: StreamHalt
+      buffered: number
+    }
+  | {
+      status: 'quarantined'
+      code: string
+      message: string
+      recovery?: 'snapshot-required'
+    }
+  | {
+      status: 'rejected'
+      code: string | ReduceErrorCode
+      message: string
+      recovery?: 'snapshot-required'
+    }
 
 export type Unsubscribe = () => void
 
@@ -75,9 +148,14 @@ export interface AiStore {
     equal?: (previous: T, next: T) => boolean,
   ) => Unsubscribe
   getCursor: (streamId?: string) => number
+  getSyncState: () => AiStreamSyncState
   pendingSeqs: () => readonly number[]
   exportSnapshot: (takenAt: Timestamp) => AiSnapshot
   loadSnapshot: (input: unknown) => SnapshotValidationResult
+  loadHostSnapshot: (
+    payload: HostSnapshotInput,
+    takenAt: Timestamp,
+  ) => SnapshotValidationResult
 }
 
 interface Subscription {
@@ -85,11 +163,151 @@ interface Subscription {
   listener: (value: unknown) => void
   equal: (previous: unknown, next: unknown) => boolean
   last: unknown
-  hasValue: boolean
+}
+
+type ApplyOutcome =
+  | { ok: true; state: AiState }
+  | { ok: false; code: string; message: string }
+
+function outOfScope(message: string): ApplyOutcome {
+  return { ok: false, code: 'out-of-scope', message }
+}
+
+/** Scope check for one event against the state it would be applied to. */
+function checkEventScope(
+  state: AiState,
+  event: AnyDomainEvent,
+  scope: AiStoreScope,
+): ApplyOutcome | null {
+  const scopedExecution =
+    scope.kind === 'execution' ? state.executions[scope.id] : undefined
+  const linkedConversationId =
+    scope.kind === 'conversation' ? scope.id : scopedExecution?.conversationId
+
+  const inConversation = (conversationId: EntityId | undefined): boolean =>
+    conversationId !== undefined && conversationId === linkedConversationId
+
+  const inExecution = (executionId: EntityId | undefined): boolean =>
+    executionId !== undefined &&
+    (scope.kind === 'execution'
+      ? executionId === scope.id
+      : state.executions[executionId] !== undefined)
+
+  switch (event.type) {
+    case 'conversation.upserted': {
+      const id = event.payload.conversation.id
+      return inConversation(id)
+        ? null
+        : outOfScope(`conversation ${id} is outside ${scope.kind} ${scope.id}`)
+    }
+    case 'message.created': {
+      const { id, conversationId } = event.payload.message
+      return inConversation(conversationId)
+        ? null
+        : outOfScope(
+            `message ${id} of conversation ${conversationId} is outside ${scope.kind} ${scope.id}`,
+          )
+    }
+    case 'execution.started': {
+      const { id, conversationId } = event.payload.execution
+      const allowed =
+        scope.kind === 'execution'
+          ? id === scope.id
+          : conversationId === scope.id
+      return allowed
+        ? null
+        : outOfScope(`execution ${id} is outside ${scope.kind} ${scope.id}`)
+    }
+    case 'execution.status.changed':
+      return inExecution(event.payload.id)
+        ? null
+        : outOfScope(
+            `execution ${event.payload.id} is outside ${scope.kind} ${scope.id}`,
+          )
+    case 'step.upserted':
+    case 'tool.upserted':
+    case 'approval.requested':
+    case 'artifact.published':
+    case 'changeset.updated': {
+      const entity =
+        event.type === 'step.upserted'
+          ? event.payload.step
+          : event.type === 'tool.upserted'
+            ? event.payload.tool
+            : event.type === 'approval.requested'
+              ? event.payload.approval
+              : event.type === 'artifact.published'
+                ? event.payload.artifact
+                : event.payload.changeset
+      return inExecution(entity.executionId)
+        ? null
+        : outOfScope(
+            `${event.entity.kind} ${entity.id} of execution ${String(entity.executionId)} is outside ${scope.kind} ${scope.id}`,
+          )
+    }
+    default:
+      // Deltas/completions/resolutions address entities that already passed
+      // the scope check when they were created; the reducer rejects unknown ids.
+      return null
+  }
+}
+
+/** First entity in a snapshot state that does not belong to the scope. */
+function findOutOfScopeEntity(
+  state: AiState,
+  scope: AiStoreScope,
+): string | null {
+  const executionIds = new Set(Object.keys(state.executions))
+
+  if (scope.kind === 'conversation') {
+    for (const id of Object.keys(state.conversations)) {
+      if (id !== scope.id) return `conversation ${id}`
+    }
+    for (const message of Object.values(state.messages)) {
+      if (message.conversationId !== scope.id) return `message ${message.id}`
+    }
+    for (const execution of Object.values(state.executions)) {
+      if (execution.conversationId !== scope.id) {
+        return `execution ${execution.id}`
+      }
+    }
+  } else {
+    const linked = state.executions[scope.id]?.conversationId
+
+    for (const id of executionIds) {
+      if (id !== scope.id) return `execution ${id}`
+    }
+    for (const id of Object.keys(state.conversations)) {
+      if (id !== linked) return `conversation ${id}`
+    }
+    for (const message of Object.values(state.messages)) {
+      if (message.conversationId !== linked) return `message ${message.id}`
+    }
+  }
+
+  const children = [
+    ...Object.values(state.steps),
+    ...Object.values(state.toolInvocations),
+    ...Object.values(state.approvals),
+    ...Object.values(state.changeSets),
+    ...Object.values(state.artifacts),
+  ]
+
+  for (const child of children) {
+    if (
+      child.executionId === undefined ||
+      !executionIds.has(child.executionId)
+    ) {
+      return `${child.id} (execution ${String(child.executionId)})`
+    }
+  }
+
+  return null
 }
 
 export function createAiStore(options: AiStoreOptions): AiStore {
   const streamId = options.streamId
+  const scope = options.scope
   const maxBufferedEvents = options.maxBufferedEvents ?? 512
   const diagnostic = options.onDiagnostic ?? ((): void => {})
 
@@ -98,68 +316,188 @@ export function createAiStore(options: AiStoreOptions): AiStore {
   const subscriptions = new Set<Subscription>()
 
   let gapOpen = false
+  let halt: StreamHalt | undefined
+
+  function cursorOf(current: AiState): number {
+    return current.cursors[streamId] ?? 0
+  }
 
   function commit(next: AiState): void {
+    if (next === state) return
+
     state = next
 
-    for (const subscription of subscriptions) {
-      const value = subscription.selector(state)
+    for (const subscription of [...subscriptions]) {
+      if (!subscriptions.has(subscription)) continue
 
-      if (!subscription.hasValue) {
-        subscription.hasValue = true
+      try {
+        const value = subscription.selector(state)
+
+        if (subscription.equal(subscription.last, value)) continue
+
         subscription.last = value
-        continue
+        subscription.listener(value)
+      } catch (error) {
+        // One faulty view must not stop the others from seeing the commit.
+        diagnostic({
+          code: 'listener-error',
+          message: error instanceof Error ? error.message : String(error),
+          streamId,
+        })
       }
-
-      if (subscription.equal(subscription.last, value)) continue
-
-      subscription.last = value
-      subscription.listener(value)
     }
   }
 
-  function drainBuffered(base: AiState): { state: AiState; applied: number[] } {
+  function apply(base: AiState, event: AnyDomainEvent): ApplyOutcome {
+    if (scope) {
+      const scoped = checkEventScope(base, event, scope)
+      if (scoped) return scoped
+    }
+
+    const reduced = reduceEvent(base, event)
+
+    if (!reduced.ok) return reduced
+
+    return {
+      ok: true,
+      state: {
+        ...reduced.state,
+        cursors: { ...reduced.state.cursors, [streamId]: event.seq },
+      },
+    }
+  }
+
+  function enterDesync(next: StreamHalt): void {
+    halt = next
+    gapOpen = false
+    diagnostic({
+      code: 'stream-desynced',
+      message: `stream ${streamId} halted at seq ${next.seq} (${next.code}); a snapshot is required`,
+      streamId,
+      seq: next.seq,
+      detail: { reason: next.code },
+    })
+  }
+
+  function rememberPending(event: AnyDomainEvent): boolean {
+    if (pending.has(event.seq)) return true
+    if (pending.size >= maxBufferedEvents) return false
+
+    pending.set(event.seq, event)
+    return true
+  }
+
+  function drainBuffered(base: AiState): {
+    state: AiState
+    applied: number[]
+    halted?: StreamHalt
+  } {
     let nextState = base
     const applied: number[] = []
-    let cursor = nextState.cursors[streamId] ?? 0
 
     for (;;) {
-      const buffered = pending.get(cursor + 1)
+      const seq = cursorOf(nextState) + 1
+      const buffered = pending.get(seq)
 
       if (!buffered) break
 
-      pending.delete(cursor + 1)
+      const outcome = apply(nextState, buffered)
 
-      const reduced = reduceEvent(nextState, buffered)
-
-      if (!reduced.ok) {
+      if (!outcome.ok) {
+        // Leave the event in the buffer: it is still the next seq and must be
+        // superseded by a snapshot, never dropped.
+        const stopped: StreamHalt = {
+          seq,
+          code: outcome.code,
+          message: outcome.message,
+        }
         diagnostic({
           code: 'rejected-event',
-          message: reduced.message,
+          message: outcome.message,
           streamId,
-          seq: buffered.seq,
-          detail: { reduceCode: reduced.code },
+          seq,
+          detail: { reduceCode: outcome.code },
         })
-        cursor += 1
-        nextState = {
-          ...nextState,
-          cursors: { ...nextState.cursors, [streamId]: cursor },
-        }
-        applied.push(buffered.seq)
-        continue
+        enterDesync(stopped)
+        return { state: nextState, applied, halted: stopped }
       }
 
-      nextState = {
-        ...reduced.state,
-        cursors: { ...reduced.state.cursors, [streamId]: buffered.seq },
-      }
-      cursor = buffered.seq
-      applied.push(buffered.seq)
+      pending.delete(seq)
+      nextState = outcome.state
+      applied.push(seq)
     }
 
     if (pending.size === 0) gapOpen = false
 
     return { state: nextState, applied }
+  }
+
+  /** An unreadable event that claims a future seq of this stream. */
+  function claimsFutureSeq(input: unknown): number | undefined {
+    if (!isRecord(input) || input.streamId !== streamId) return undefined
+
+    const seq = input.seq
+
+    if (typeof seq !== 'number' || !Number.isInteger(seq)) return undefined
+
+    return seq > cursorOf(state) ? seq : undefined
+  }
+
+  function restore(result: SnapshotValidationResult): SnapshotValidationResult {
+    if (!result.ok) {
+      diagnostic({
+        code: 'snapshot-rejected',
+        message: result.message,
+        streamId,
+        detail: { snapshotCode: result.code },
+      })
+      return result
+    }
+
+    if (scope) {
+      const foreign = findOutOfScopeEntity(result.snapshot.state, scope)
+
+      if (foreign) {
+        const rejected: SnapshotValidationResult = {
+          ok: false,
+          code: 'scope-mismatch',
+          message: `snapshot contains ${foreign}, outside ${scope.kind} ${scope.id}`,
+        }
+        diagnostic({
+          code: 'snapshot-rejected',
+          message: rejected.message,
+          streamId,
+          detail: { snapshotCode: rejected.code },
+        })
+        return rejected
+      }
+    }
+
+    const nextCursor = cursorOf(result.snapshot.state)
+
+    for (const seq of [...pending.keys()]) {
+      if (seq <= nextCursor) pending.delete(seq)
+    }
+
+    halt = undefined
+    gapOpen = false
+
+    // Events buffered beyond the snapshot cursor are still authoritative.
+    const drained = drainBuffered(result.snapshot.state)
+    commit(drained.state)
+
+    diagnostic({
+      code: 'snapshot-loaded',
+      message: `snapshot ${result.snapshot.streamId}@${result.snapshot.takenAt} loaded`,
+      streamId,
+      seq: nextCursor,
+      detail: {
+        checksum: result.snapshot.checksum,
+        drained: drained.applied.length,
+      },
+    })
+
+    return result
   }
 
   return {
@@ -170,39 +508,62 @@ export function createAiStore(options: AiStoreOptions): AiStore {
       const validation = validateDomainEvent(event)
 
       if (!validation.ok) {
-        if (validation.quarantined) {
-          diagnostic({
-            code: 'quarantined-event',
-            message: validation.message,
-            detail: { validationCode: validation.code },
-          })
-          return {
-            status: 'quarantined',
-            code: validation.code,
-            message: validation.message,
-          }
-        }
+        const futureSeq = claimsFutureSeq(event)
+        const blocks = futureSeq !== undefined && halt === undefined
 
         diagnostic({
-          code: 'rejected-event',
+          code: validation.quarantined ? 'quarantined-event' : 'rejected-event',
           message: validation.message,
+          streamId,
+          seq: futureSeq,
           detail: { validationCode: validation.code },
         })
-        return {
-          status: 'rejected',
-          code: validation.code,
-          message: validation.message,
+
+        if (blocks) {
+          enterDesync({
+            seq: futureSeq,
+            code: validation.code,
+            message: validation.message,
+          })
         }
+
+        const recovery = blocks
+          ? { recovery: 'snapshot-required' as const }
+          : {}
+
+        return validation.quarantined
+          ? {
+              status: 'quarantined',
+              code: validation.code,
+              message: validation.message,
+              ...recovery,
+            }
+          : {
+              status: 'rejected',
+              code: validation.code,
+              message: validation.message,
+              ...recovery,
+            }
       }
 
       const envelope = validation.event
 
       if (envelope.streamId !== streamId) {
-        return {
-          status: 'rejected',
+        const message = `event belongs to stream ${envelope.streamId}, store owns ${streamId}`
+        diagnostic({
           code: 'stream-mismatch',
-          message: `event belongs to stream ${envelope.streamId}, store owns ${streamId}`,
-        }
+          message,
+          streamId,
+          seq: envelope.seq,
+          detail: { eventStreamId: envelope.streamId },
+        })
+        return { status: 'rejected', code: 'stream-mismatch', message }
+      }
+
+      const cursor = cursorOf(state)
+
+      if (envelope.seq <= cursor) {
+        return { status: 'duplicate', seq: envelope.seq }
       }
 
       if (envelope.type === 'snapshot.available') {
@@ -218,26 +579,27 @@ export function createAiStore(options: AiStoreOptions): AiStore {
         })
       }
 
-      const cursor = state.cursors[streamId] ?? 0
+      if (halt) {
+        if (envelope.seq !== halt.seq) rememberPending(envelope)
 
-      if (envelope.seq <= cursor) {
-        return { status: 'duplicate', seq: envelope.seq }
+        return {
+          status: 'desynced',
+          seq: envelope.seq,
+          halt,
+          buffered: pending.size,
+        }
       }
 
-      if (envelope.seq !== cursor + 1) {
-        if (!pending.has(envelope.seq)) {
-          if (pending.size >= maxBufferedEvents) {
-            return {
-              status: 'rejected',
-              code: 'buffer-overflow',
-              message: `stream ${streamId} holds ${pending.size} buffered events without healing the gap`,
-            }
+      const expectedSeq = cursor + 1
+
+      if (envelope.seq !== expectedSeq) {
+        if (!rememberPending(envelope)) {
+          return {
+            status: 'rejected',
+            code: 'buffer-overflow',
+            message: `stream ${streamId} holds ${pending.size} buffered events without healing the gap`,
           }
-
-          pending.set(envelope.seq, envelope)
         }
-
-        const expectedSeq = cursor + 1
 
         if (!gapOpen) {
           gapOpen = true
@@ -250,49 +612,46 @@ export function createAiStore(options: AiStoreOptions): AiStore {
           })
         }
 
-        return pending.size === 1
-          ? {
-              status: 'gap',
-              expectedSeq,
-              receivedSeq: envelope.seq,
-              buffered: pending.size,
-            }
-          : {
-              status: 'buffered',
-              expectedSeq,
-              receivedSeq: envelope.seq,
-              buffered: pending.size,
-            }
-      }
-
-      const reduced = reduceEvent(state, envelope)
-
-      if (!reduced.ok) {
-        diagnostic({
-          code: 'rejected-event',
-          message: reduced.message,
-          streamId,
-          seq: envelope.seq,
-          detail: { reduceCode: reduced.code },
-        })
         return {
-          status: 'rejected',
-          code: reduced.code,
-          message: reduced.message,
+          status: pending.size === 1 ? 'gap' : 'buffered',
+          expectedSeq,
+          receivedSeq: envelope.seq,
+          buffered: pending.size,
         }
       }
 
-      const committed: AiState = {
-        ...reduced.state,
-        cursors: { ...reduced.state.cursors, [streamId]: envelope.seq },
+      const outcome = apply(state, envelope)
+
+      if (!outcome.ok) {
+        diagnostic({
+          code: 'rejected-event',
+          message: outcome.message,
+          streamId,
+          seq: envelope.seq,
+          detail: { reduceCode: outcome.code },
+        })
+        enterDesync({
+          seq: envelope.seq,
+          code: outcome.code,
+          message: outcome.message,
+        })
+        return {
+          status: 'rejected',
+          code: outcome.code,
+          message: outcome.message,
+          recovery: 'snapshot-required',
+        }
       }
-      const drained = drainBuffered(committed)
+
+      pending.delete(envelope.seq)
+      const drained = drainBuffered(outcome.state)
       commit(drained.state)
 
       return {
         status: 'applied',
         seq: envelope.seq,
         appliedSeqs: [envelope.seq, ...drained.applied],
+        ...(drained.halted ? { halted: drained.halted } : {}),
       }
     },
     subscribe<T>(
@@ -307,7 +666,6 @@ export function createAiStore(options: AiStoreOptions): AiStore {
         // Seed with the current slice so the first real change is delivered
         // instead of being swallowed as an initialization step.
         last: (selector as Selector<unknown>)(state),
-        hasValue: true,
       }
 
       subscriptions.add(subscription)
@@ -319,6 +677,20 @@ export function createAiStore(options: AiStoreOptions): AiStore {
     getCursor(targetStreamId?: string): number {
       return state.cursors[targetStreamId ?? streamId] ?? 0
     },
+    getSyncState(): AiStreamSyncState {
+      const cursor = cursorOf(state)
+      const pendingSeqs = [...pending.keys()].sort(
+        (left, right) => left - right,
+      )
+
+      return {
+        status: halt ? 'desynced' : pending.size > 0 ? 'gap' : 'live',
+        cursor,
+        expectedSeq: cursor + 1,
+        pendingSeqs,
+        ...(halt ? { halt } : {}),
+      }
+    },
     pendingSeqs(): readonly number[] {
       return [...pending.keys()].sort((left, right) => left - right)
     },
@@ -326,21 +698,13 @@ export function createAiStore(options: AiStoreOptions): AiStore {
       return createSnapshot(streamId, state, takenAt)
     },
     loadSnapshot(input: unknown): SnapshotValidationResult {
-      const result = validateSnapshot(input, streamId)
-
-      if (!result.ok) return result
-
-      pending.clear()
-      gapOpen = false
-      commit(result.snapshot.state)
-      diagnostic({
-        code: 'snapshot-loaded',
-        message: `snapshot ${result.snapshot.streamId}@${result.snapshot.takenAt} loaded`,
-        streamId,
-        detail: { checksum: result.snapshot.checksum },
-      })
-
-      return result
+      return restore(validateSnapshot(input, streamId))
+    },
+    loadHostSnapshot(
+      payload: HostSnapshotInput,
+      takenAt: Timestamp,
+    ): SnapshotValidationResult {
+      return restore(snapshotFromHostPayload(streamId, payload, takenAt))
     },
   }
 }

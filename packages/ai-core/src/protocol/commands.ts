@@ -4,8 +4,11 @@
  * `accepted: true` only means the host accepted the intent. It is never proof
  * that the side effect happened: success or failure arrives later as domain
  * events. Retries must reuse `idempotencyKey`; `commandId` is for tracing and
- * may change between attempts.
+ * may change between attempts. Reusing a key for a *different* command is a
+ * client bug and is refused instead of replaying an unrelated result.
  */
+
+import { stableStringify } from '../internal/stable'
 
 export const COMMAND_SCHEMA_VERSION = 2
 
@@ -119,12 +122,29 @@ export function validateCommand(input: unknown): CommandValidationResult {
     typeof target !== 'object' ||
     target === null ||
     typeof (target as Record<string, unknown>).kind !== 'string' ||
-    typeof (target as Record<string, unknown>).id !== 'string'
+    typeof (target as Record<string, unknown>).id !== 'string' ||
+    ((target as Record<string, unknown>).kind as string).length === 0 ||
+    ((target as Record<string, unknown>).id as string).length === 0
   ) {
     return {
       ok: false,
       code: 'AI_COMMAND_INVALID',
       message: 'target.kind and target.id are required',
+    }
+  }
+
+  const expectedRevision = value.expectedRevision
+
+  if (
+    expectedRevision !== undefined &&
+    (typeof expectedRevision !== 'number' ||
+      !Number.isInteger(expectedRevision) ||
+      expectedRevision < 0)
+  ) {
+    return {
+      ok: false,
+      code: 'AI_COMMAND_INVALID',
+      message: 'expectedRevision must be a non-negative integer',
     }
   }
 
@@ -139,18 +159,43 @@ export function validateCommand(input: unknown): CommandValidationResult {
   return { ok: true, command: value as unknown as Command }
 }
 
+export const IDEMPOTENCY_KEY_REUSED = 'AI_IDEMPOTENCY_KEY_REUSED'
+
 export type CommandAttemptDecision =
   | { kind: 'execute' }
   | { kind: 'in-flight' }
   | { kind: 'replay'; ack: CommandAck }
+  | { kind: 'conflict'; ack: CommandAck }
+
+/**
+ * What a command means, independent of the tracing id: two attempts with the
+ * same key must agree on this or they are not retries of one another.
+ */
+export function commandFingerprint(command: Command): string {
+  return stableStringify({
+    type: command.type,
+    target: command.target,
+    expectedRevision: command.expectedRevision,
+    payload: command.payload,
+  })
+}
 
 interface AttemptEntry {
+  fingerprint: string
   ack?: CommandAck
 }
 
 export interface IdempotencyTracker {
+  /** Decide what to do with an attempt before contacting the host. */
   begin: (command: Command) => CommandAttemptDecision
+  /** Record the host's answer; later attempts with the key replay it. */
   acknowledge: (command: Command, ack: CommandAck) => void
+  /**
+   * Forget an in-flight attempt that never got an answer (transport error,
+   * abort), so a retry with the same key is executed instead of waiting on
+   * an attempt that will never settle.
+   */
+  release: (command: Command) => void
   size: () => number
 }
 
@@ -165,35 +210,65 @@ export function createIdempotencyTracker(
   const limit = Math.max(1, options.limit ?? 200)
   const entries = new Map<string, AttemptEntry>()
 
+  /** Evict settled entries only; an in-flight key must never be forgotten. */
+  function evict(): void {
+    if (entries.size <= limit) return
+
+    for (const [key, entry] of entries) {
+      if (entries.size <= limit) break
+      if (entry.ack) entries.delete(key)
+    }
+  }
+
   return {
     begin(command: Command): CommandAttemptDecision {
+      const fingerprint = commandFingerprint(command)
       const entry = entries.get(command.idempotencyKey)
 
       if (!entry) {
-        entries.set(command.idempotencyKey, {})
-
-        while (entries.size > limit) {
-          const oldest = entries.keys().next()
-          if (oldest.done) break
-          entries.delete(oldest.value)
-        }
-
+        entries.set(command.idempotencyKey, { fingerprint })
+        evict()
         return { kind: 'execute' }
       }
 
-      if (entry.ack) return { kind: 'replay', ack: entry.ack }
+      if (entry.fingerprint !== fingerprint) {
+        return {
+          kind: 'conflict',
+          ack: {
+            accepted: false,
+            commandId: command.commandId,
+            code: IDEMPOTENCY_KEY_REUSED,
+            message: `idempotencyKey ${command.idempotencyKey} was already used for a different command`,
+          },
+        }
+      }
+
+      if (entry.ack) {
+        // Same outcome, answered under the retry's tracing id.
+        return {
+          kind: 'replay',
+          ack: { ...entry.ack, commandId: command.commandId },
+        }
+      }
 
       return { kind: 'in-flight' }
     },
     acknowledge(command: Command, ack: CommandAck): void {
+      const fingerprint = commandFingerprint(command)
       const entry = entries.get(command.idempotencyKey)
 
       if (entry) {
-        entry.ack = ack
+        if (entry.fingerprint === fingerprint && !entry.ack) entry.ack = ack
         return
       }
 
-      entries.set(command.idempotencyKey, { ack })
+      entries.set(command.idempotencyKey, { fingerprint, ack })
+      evict()
+    },
+    release(command: Command): void {
+      const entry = entries.get(command.idempotencyKey)
+
+      if (entry && !entry.ack) entries.delete(command.idempotencyKey)
     },
     size(): number {
       return entries.size

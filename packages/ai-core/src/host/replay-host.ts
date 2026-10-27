@@ -17,6 +17,7 @@ import type {
   SnapshotScope,
 } from './adapter'
 import { createRejectedAck } from './adapter'
+import { buildHostSnapshot } from './host-snapshot'
 
 export interface ReplayHostOptions {
   streamId?: string
@@ -35,8 +36,6 @@ export function createReplayHost(
     .filter(event => event.streamId === streamId)
     .slice()
     .sort((left, right) => left.seq - right.seq)
-
-  const lastSeq = events.length > 0 ? events[events.length - 1].seq : 0
 
   return {
     events(): readonly AnyDomainEvent[] {
@@ -68,7 +67,8 @@ export function createReplayHost(
     async getSnapshot(scope: SnapshotScope): Promise<HostSnapshotPayload> {
       void scope
 
-      return { cursors: { [streamId]: lastSeq }, state: {} }
+      // Folded from the recording, so the cursor never runs ahead of the state.
+      return buildHostSnapshot(streamId, events)
     },
     async loadAsset(
       asset: AssetRef,

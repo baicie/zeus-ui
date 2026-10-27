@@ -1,9 +1,15 @@
 /**
  * Fine-grained selectors (AI2-109).
  *
- * Selectors are plain functions over canonical state. List selectors memoize on
- * the index array reference plus each entity reference, so a change to one
- * message does not invalidate an unrelated list.
+ * Selectors are plain functions over canonical state and return stable
+ * references: calling one twice against an unchanged slice yields the same
+ * array, so `store.subscribe(selector, listener)` with the default `Object.is`
+ * only fires when that slice really changed.
+ *
+ * Memoization lives in `WeakMap`s keyed by the state's own index arrays and
+ * records. Nothing is cached at module scope by id, so a long-running SSR
+ * process or many short-lived stores never accumulate entries, and one
+ * store's entities are never retained on behalf of another.
  */
 
 import type {
@@ -20,40 +26,42 @@ import type { AiState } from './state'
 
 type EntityRecord<T> = Readonly<Record<EntityId, T>>
 
-function memoizeList<T>(
-  readIds: (state: AiState) => readonly EntityId[] | undefined,
-  readEntity: (state: AiState) => EntityRecord<T>,
-): (state: AiState) => readonly T[] {
-  let lastIds: readonly EntityId[] | undefined
-  let lastRecord: EntityRecord<T> | undefined
-  let lastValues: readonly T[] | undefined
+const EMPTY: readonly never[] = Object.freeze([])
 
-  return (state: AiState): readonly T[] => {
-    const ids = readIds(state) ?? []
-    const record = readEntity(state)
+interface ListMemo {
+  record: object
+  values: readonly unknown[]
+}
 
-    if (lastValues && ids === lastIds && record === lastRecord) {
-      return lastValues
-    }
+/** Cache keyed by the index array: lives exactly as long as that array. */
+const listMemos = new WeakMap<readonly EntityId[], ListMemo>()
 
-    const values = ids
-      .map(id => record[id])
-      .filter((entry): entry is T => entry !== undefined)
+function resolveList<T>(
+  ids: readonly EntityId[] | undefined,
+  record: EntityRecord<T>,
+): readonly T[] {
+  if (!ids || ids.length === 0) return EMPTY
 
-    if (
-      lastValues &&
-      lastValues.length === values.length &&
-      lastValues.every((entry, index) => entry === values[index])
-    ) {
-      return lastValues
-    }
+  const memo = listMemos.get(ids)
 
-    lastIds = ids
-    lastRecord = record
-    lastValues = values
+  if (memo && memo.record === record) return memo.values as readonly T[]
 
-    return values
+  const values = ids
+    .map(id => record[id])
+    .filter((entry): entry is T => entry !== undefined)
+
+  if (
+    memo &&
+    memo.values.length === values.length &&
+    memo.values.every((entry, index) => entry === values[index])
+  ) {
+    memo.record = record
+    return memo.values as readonly T[]
   }
+
+  listMemos.set(ids, { record, values })
+
+  return values
 }
 
 export function selectConversation(
@@ -77,6 +85,13 @@ export function selectExecution(
   return state.executions[id]
 }
 
+export function selectStep(
+  state: AiState,
+  id: EntityId,
+): ExecutionStep | undefined {
+  return state.steps[id]
+}
+
 export function selectToolInvocation(
   state: AiState,
   id: EntityId,
@@ -95,63 +110,73 @@ export function selectConversationMessageIds(
   state: AiState,
   conversationId: EntityId,
 ): readonly EntityId[] {
-  return state.conversationMessageIds[conversationId] ?? []
+  return state.conversationMessageIds[conversationId] ?? EMPTY
 }
-
-const timelineSelectors: Map<EntityId, (state: AiState) => readonly Message[]> =
-  new Map()
 
 export function selectConversationTimeline(
   state: AiState,
   conversationId: EntityId,
 ): readonly Message[] {
-  let selector = timelineSelectors.get(conversationId)
-
-  if (!selector) {
-    selector = memoizeList<Message>(
-      current => current.conversationMessageIds[conversationId],
-      current => current.messages,
-    )
-    timelineSelectors.set(conversationId, selector)
-  }
-
-  return selector(state)
+  return resolveList(
+    state.conversationMessageIds[conversationId],
+    state.messages,
+  )
 }
 
-const stepSelectors: Map<
-  EntityId,
-  (state: AiState) => readonly ExecutionStep[]
-> = new Map()
-
+/** Every step of an execution in host order, including finished ones. */
 export function selectExecutionSteps(
   state: AiState,
   executionId: EntityId,
 ): readonly ExecutionStep[] {
-  let selector = stepSelectors.get(executionId)
-
-  if (!selector) {
-    selector = memoizeList<ExecutionStep>(
-      current => {
-        const execution = current.executions[executionId]
-        return execution ? execution.activeStepIds : undefined
-      },
-      current => current.steps,
-    )
-    stepSelectors.set(executionId, selector)
-  }
-
-  return selector(state)
+  return resolveList(state.executionStepIds[executionId], state.steps)
 }
 
-function recordValues<T>(record: Readonly<Record<string, T>>): T[] {
-  return Object.keys(record).map(key => record[key])
+/** Only the steps the host currently lists as active on the execution. */
+export function selectActiveExecutionSteps(
+  state: AiState,
+  executionId: EntityId,
+): readonly ExecutionStep[] {
+  return resolveList(state.executions[executionId]?.activeStepIds, state.steps)
+}
+
+const approvalQueries = new WeakMap<
+  EntityRecord<ApprovalRequest>,
+  Map<string, readonly ApprovalRequest[]>
+>()
+
+/** Filter approvals once per approvals record; unrelated commits reuse it. */
+function queryApprovals(
+  state: AiState,
+  key: string,
+  predicate: (approval: ApprovalRequest) => boolean,
+): readonly ApprovalRequest[] {
+  let cache = approvalQueries.get(state.approvals)
+
+  if (!cache) {
+    cache = new Map()
+    approvalQueries.set(state.approvals, cache)
+  }
+
+  const cached = cache.get(key)
+  if (cached) return cached
+
+  const values = Object.keys(state.approvals)
+    .map(id => state.approvals[id])
+    .filter(predicate)
+  const result = values.length === 0 ? EMPTY : values
+
+  cache.set(key, result)
+
+  return result
 }
 
 export function selectApprovalsForExecution(
   state: AiState,
   executionId: EntityId,
 ): readonly ApprovalRequest[] {
-  return recordValues(state.approvals).filter(
+  return queryApprovals(
+    state,
+    `execution:${executionId}`,
     approval => approval.executionId === executionId,
   )
 }
@@ -160,7 +185,9 @@ export function selectApprovalsByStatus(
   state: AiState,
   status: ApprovalStatus,
 ): readonly ApprovalRequest[] {
-  return recordValues(state.approvals).filter(
+  return queryApprovals(
+    state,
+    `status:${status}`,
     approval => approval.status === status,
   )
 }
@@ -168,10 +195,27 @@ export function selectApprovalsByStatus(
 export function selectPendingApprovals(
   state: AiState,
 ): readonly ApprovalRequest[] {
-  return recordValues(state.approvals).filter(
+  return queryApprovals(
+    state,
+    'pending',
     approval =>
       approval.status === 'pending' || approval.status === 'submitted',
   )
+}
+
+/**
+ * Element-wise equality for list selectors. Approval queries are recomputed
+ * whenever any approval changes; pass this as the `equal` argument of
+ * `store.subscribe` to stay quiet when the filtered entities are unchanged.
+ */
+export function shallowArrayEqual<T>(
+  previous: readonly T[],
+  next: readonly T[],
+): boolean {
+  if (previous === next) return true
+  if (previous.length !== next.length) return false
+
+  return previous.every((entry, index) => entry === next[index])
 }
 
 export function selectMessageText(state: AiState, id: EntityId): string {

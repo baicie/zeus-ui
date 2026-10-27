@@ -121,6 +121,18 @@ describe('fine-grained selectors (AI2-109)', () => {
     const factory = createEventFactory(STREAM)
 
     store.ingest(
+      factory.create('execution.started', 'exec-1', {
+        execution: {
+          id: 'exec-1',
+          kind: 'agent',
+          status: 'running',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          revision: 1,
+          activeStepIds: [],
+        },
+      }),
+    )
+    store.ingest(
       factory.create('approval.requested', 'approval-1', {
         approval: {
           id: 'approval-1',
@@ -135,6 +147,8 @@ describe('fine-grained selectors (AI2-109)', () => {
         },
       }),
     )
+    expect(selectPendingApprovals(store.getState())).toHaveLength(1)
+
     store.ingest(
       factory.create('approval.resolved', 'approval-1', {
         approvalId: 'approval-1',

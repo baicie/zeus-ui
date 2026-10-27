@@ -171,6 +171,21 @@ describe('canonical reducers (AI2-107)', () => {
   })
 
   it('guards approval decisions with the approval state machine', () => {
+    const execution = reduceEvent(
+      createInitialState(),
+      factory.create('execution.started', 'exec-1', {
+        execution: {
+          id: 'exec-1',
+          kind: 'agent',
+          status: 'running',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          revision: 1,
+          activeStepIds: [],
+        },
+      }),
+    )
+    if (!execution.ok) throw new Error(execution.message)
+
     const requested = factory.create('approval.requested', 'approval-1', {
       approval: {
         id: 'approval-1',
@@ -184,7 +199,7 @@ describe('canonical reducers (AI2-107)', () => {
         revision: 1,
       },
     })
-    const first = reduceEvent(createInitialState(), requested)
+    const first = reduceEvent(execution.state, requested)
     if (!first.ok) throw new Error(first.message)
 
     const approved = factory.create('approval.resolved', 'approval-1', {

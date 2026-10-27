@@ -2,8 +2,10 @@
  * Canonical normalized state (AI2-107).
  *
  * Every collection is a plain record keyed by entity id, so a reducer replaces
- * exactly one entity and leaves unrelated references untouched. `cursors`
- * tracks the last applied `seq` per stream for gap recovery.
+ * exactly one entity and leaves unrelated references untouched. Ordered
+ * indexes (`conversationMessageIds`, `executionStepIds`) are maintained by the
+ * reducers in authoritative arrival order. `cursors` tracks the last applied
+ * `seq` per stream for gap recovery.
  */
 
 import type {
@@ -23,6 +25,8 @@ export interface AiState {
   messages: Readonly<Record<EntityId, Message>>
   conversationMessageIds: Readonly<Record<EntityId, readonly EntityId[]>>
   executions: Readonly<Record<EntityId, Execution>>
+  /** Every step of an execution, in host order (not only the active ones). */
+  executionStepIds: Readonly<Record<EntityId, readonly EntityId[]>>
   steps: Readonly<Record<EntityId, ExecutionStep>>
   toolInvocations: Readonly<Record<EntityId, ToolInvocation>>
   approvals: Readonly<Record<EntityId, ApprovalRequest>>
@@ -37,6 +41,7 @@ export function createInitialState(): AiState {
     messages: {},
     conversationMessageIds: {},
     executions: {},
+    executionStepIds: {},
     steps: {},
     toolInvocations: {},
     approvals: {},
@@ -45,3 +50,18 @@ export function createInitialState(): AiState {
     cursors: {},
   }
 }
+
+/** Collection keys of {@link AiState}, used for structural snapshot checks. */
+export const AI_STATE_KEYS: readonly (keyof AiState)[] = [
+  'conversations',
+  'messages',
+  'conversationMessageIds',
+  'executions',
+  'executionStepIds',
+  'steps',
+  'toolInvocations',
+  'approvals',
+  'artifacts',
+  'changeSets',
+  'cursors',
+]
