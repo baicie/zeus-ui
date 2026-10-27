@@ -974,6 +974,8 @@ importers:
 
   packages/ai: {}
 
+  packages/ai-core: {}
+
   packages/cli:
     dependencies:
       '@zeus-web/ai':
