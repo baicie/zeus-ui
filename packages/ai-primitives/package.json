@@ -2,13 +2,16 @@
   "name": "@zeus-web/ai-primitives",
   "type": "module",
   "version": "0.1.0-beta.34",
-  "private": true,
   "description": "Framework-neutral interaction parts, Markdown and renderer registry for Zeus AI Headless V2. No DOM, no UI framework.",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/baicie/zeus-ui.git",
     "directory": "packages/ai-primitives"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "sideEffects": false,
   "exports": {

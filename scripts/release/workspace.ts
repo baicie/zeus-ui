@@ -63,13 +63,13 @@ export const packageRoots = [
 export const repositoryUrl = 'https://github.com/baicie/zeus-ui.git'
 
 /**
- * Publishable package set used by the release gates. Private packages such as
- * the experimental `@zeus-web/ai-*` packages are counted separately in
- * `expectedWorkspacePackageTotals` so the publish matrix stays exact.
+ * Publishable package set used by the release gates. Private workspace
+ * packages, if any, are counted separately in `expectedWorkspacePackageTotals`
+ * so the publish matrix stays exact.
  */
 export const expectedWorkspacePackageCounts: WorkspacePackageCounts = {
-  total: 40,
-  base: 11,
+  total: 46,
+  base: 17,
   primitive: 24,
   advanced: 5,
   private: 0,
@@ -80,7 +80,7 @@ export const expectedWorkspacePackageTotals: WorkspacePackageCounts = {
   base: 17,
   primitive: 24,
   advanced: 5,
-  private: 6,
+  private: 0,
 }
 
 function toForwardSlash(value: string): string {
