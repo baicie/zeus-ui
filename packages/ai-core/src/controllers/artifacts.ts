@@ -93,7 +93,8 @@ async function readAll(
   content: Uint8Array | ReadableStream<Uint8Array>,
   limit: number,
 ): Promise<Uint8Array> {
-  if (content instanceof Uint8Array) {
+  // Not `instanceof`: bytes from another realm (iframe, jsdom) fail it.
+  if (ArrayBuffer.isView(content)) {
     if (content.byteLength > limit) throw new Error('preview too large')
     return content
   }
