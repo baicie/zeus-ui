@@ -1,7 +1,7 @@
 {
   "name": "@zeus-web/ai-primitives",
   "type": "module",
-  "version": "0.1.0-beta.34",
+  "version": "0.1.0-beta.35",
   "description": "Framework-neutral interaction parts, Markdown and renderer registry for Zeus AI Headless V2. No DOM, no UI framework.",
   "license": "MIT",
   "repository": {

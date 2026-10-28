@@ -1,7 +1,7 @@
 {
   "name": "@zeus-web/ai-adapters",
   "type": "module",
-  "version": "0.1.0-beta.34",
+  "version": "0.1.0-beta.35",
   "description": "SSE and WebSocket host adapters for Zeus AI Headless V2. No DOM, no vendor SDK.",
   "license": "MIT",
   "repository": {

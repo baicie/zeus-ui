@@ -1,7 +1,7 @@
 {
   "name": "@zeus-web/ai-wc",
   "type": "module",
-  "version": "0.1.0-beta.34",
+  "version": "0.1.0-beta.35",
   "description": "Web Component adapter for Zeus AI Headless V2: zw-ai-* custom elements, registered on demand, light DOM, property-only data.",
   "license": "MIT",
   "repository": {

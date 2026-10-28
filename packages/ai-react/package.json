@@ -1,7 +1,7 @@
 {
   "name": "@zeus-web/ai-react",
   "type": "module",
-  "version": "0.1.0-beta.34",
+  "version": "0.1.0-beta.35",
   "description": "React hooks and compound components for Zeus AI Headless V2. Renders natively with React; no Web Component runtime.",
   "license": "MIT",
   "repository": {
