@@ -1,0 +1,39 @@
+{
+  "name": "@zeus-web/ai-primitives",
+  "type": "module",
+  "version": "0.1.0-beta.35",
+  "description": "Framework-neutral interaction parts, Markdown and renderer registry for Zeus AI Headless V2. No DOM, no UI framework.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baicie/zeus-ui.git",
+    "directory": "packages/ai-primitives"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./extensions": {
+      "types": "./dist/extensions/index.d.ts",
+      "import": "./dist/extensions/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsup src/index.ts src/extensions/index.ts --format esm --dts --clean --watch",
+    "build": "tsup src/index.ts src/extensions/index.ts --format esm --dts --clean",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest --root ../.. --project unit packages/ai-primitives/__tests__"
+  },
+  "dependencies": {
+    "@zeus-web/ai-core": "workspace:*"
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 2,
+  "streamId": "stream-s1",
+  "takenAt": "2026-01-01T00:00:00.000Z",
+  "cursors": {
+    "stream-s1": 10
+  },
+  "state": {
+    "conversations": {
+      "conv-s1": {
+        "id": "conv-s1",
+        "title": "总结这段代码",
+        "revision": 1
+      }
+    },
+    "messages": {
+      "msg-s1-user": {
+        "id": "msg-s1-user",
+        "conversationId": "conv-s1",
+        "author": "user",
+        "parts": [
+          {
+            "id": "msg-s1-user-text",
+            "kind": "text",
+            "revision": 1,
+            "text": "帮我总结这段代码",
+            "format": "markdown"
+          }
+        ],
+        "status": "complete",
+        "revision": 1,
+        "createdAt": "2026-01-01T00:00:00.000Z"
+      },
+      "msg-s1-assistant": {
+        "id": "msg-s1-assistant",
+        "conversationId": "conv-s1",
+        "author": "assistant",
+        "parts": [
+          {
+            "id": "msg-s1-assistant-text",
+            "kind": "text",
+            "revision": 5,
+            "text": "这段代码做的是增量渲染。",
+            "format": "markdown"
+          }
+        ],
+        "status": "complete",
+        "revision": 6,
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "executionId": "exec-s1"
+      }
+    },
+    "conversationMessageIds": {
+      "conv-s1": ["msg-s1-user", "msg-s1-assistant"]
+    },
+    "executions": {
+      "exec-s1": {
+        "id": "exec-s1",
+        "kind": "generation",
+        "status": "completed",
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "revision": 2,
+        "activeStepIds": [],
+        "conversationId": "conv-s1"
+      }
+    },
+    "executionStepIds": {},
+    "steps": {},
+    "toolInvocations": {},
+    "approvals": {},
+    "artifacts": {},
+    "changeSets": {},
+    "cursors": {
+      "stream-s1": 10
+    }
+  },
+  "checksum": "fnv1a:e3e5c8a9"
+}

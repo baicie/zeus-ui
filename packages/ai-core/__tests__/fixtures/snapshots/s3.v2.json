@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 2,
+  "streamId": "stream-s3",
+  "takenAt": "2026-01-01T00:00:00.000Z",
+  "cursors": {
+    "stream-s3": 7
+  },
+  "state": {
+    "conversations": {},
+    "messages": {},
+    "conversationMessageIds": {},
+    "executions": {
+      "exec-s3": {
+        "id": "exec-s3",
+        "kind": "agent",
+        "status": "completed",
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "revision": 2,
+        "activeStepIds": [],
+        "workspaceId": "ws-main"
+      }
+    },
+    "executionStepIds": {},
+    "steps": {},
+    "toolInvocations": {},
+    "approvals": {
+      "approval-s3": {
+        "id": "approval-s3",
+        "executionId": "exec-s3",
+        "title": "应用代码变更",
+        "summary": "把 2 个文件写入工作区 ws-main",
+        "operation": {
+          "kind": "changeset.apply",
+          "target": "workspace:ws-main"
+        },
+        "scope": "workspace",
+        "risk": "high",
+        "status": "approved",
+        "revision": 2
+      }
+    },
+    "artifacts": {},
+    "changeSets": {
+      "changeset-s3": {
+        "id": "changeset-s3",
+        "executionId": "exec-s3",
+        "workspaceId": "ws-main",
+        "baseRevision": "abc123",
+        "files": [
+          {
+            "path": "packages/ai-core/src/index.ts",
+            "status": "added",
+            "stats": {
+              "additions": 12,
+              "deletions": 0
+            }
+          },
+          {
+            "path": "packages/ai-core/package.json",
+            "status": "added",
+            "stats": {
+              "additions": 24,
+              "deletions": 0
+            }
+          }
+        ],
+        "status": "applied",
+        "revision": 3
+      }
+    },
+    "cursors": {
+      "stream-s3": 7
+    }
+  },
+  "checksum": "fnv1a:dd02d352"
+}

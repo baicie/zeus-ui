@@ -1,0 +1,42 @@
+{
+  "name": "@zeus-web/ai-vue",
+  "type": "module",
+  "version": "0.1.0-beta.35",
+  "description": "Vue composables and components for Zeus AI Headless V2. Renders natively with Vue; no Web Component runtime.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baicie/zeus-ui.git",
+    "directory": "packages/ai-vue"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsup src/index.ts --format esm --dts --clean --watch --external vue",
+    "build": "tsup src/index.ts --format esm --dts --clean --external vue",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest --root ../.. --project unit-jsdom packages/ai-vue/__tests__"
+  },
+  "peerDependencies": {
+    "vue": ">=3.5"
+  },
+  "dependencies": {
+    "@zeus-web/ai-core": "workspace:*",
+    "@zeus-web/ai-primitives": "workspace:*"
+  },
+  "devDependencies": {
+    "vue": "^3.5.38"
+  }
+}

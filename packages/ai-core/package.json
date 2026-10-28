@@ -1,0 +1,32 @@
+{
+  "name": "@zeus-web/ai-core",
+  "type": "module",
+  "version": "0.1.0-beta.35",
+  "description": "Domain, protocol and normalized store for Zeus AI Headless V2. Pure Node, no DOM.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baicie/zeus-ui.git",
+    "directory": "packages/ai-core"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsup src/index.ts --format esm --dts --clean --watch",
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest --root ../.. --project unit packages/ai-core/__tests__"
+  }
+}

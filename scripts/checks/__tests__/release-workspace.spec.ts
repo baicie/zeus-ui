@@ -7,6 +7,7 @@ import releaseConfig from '../../release.config'
 import {
   countWorkspacePackages,
   expectedWorkspacePackageCounts,
+  expectedWorkspacePackageTotals,
   getUniqueVersions,
   listPublishablePackages,
   listWorkspacePackages,
@@ -17,10 +18,11 @@ describe('release workspace discovery', () => {
     const packages = listWorkspacePackages()
     const counts = countWorkspacePackages(packages)
 
-    expect(counts).toEqual(expectedWorkspacePackageCounts)
+    expect(counts).toEqual(expectedWorkspacePackageTotals)
     expect(new Set(packages.map(pkg => pkg.name)).size).toBe(
-      expectedWorkspacePackageCounts.total,
+      expectedWorkspacePackageTotals.total,
     )
+    expect(packages.filter(pkg => pkg.isPrivate)).toEqual([])
     expect(packages.some(pkg => pkg.name === '@zeus-web/cli')).toBe(true)
     expect(packages.some(pkg => pkg.name === '@zeus-web/icons')).toBe(true)
     expect(packages.some(pkg => pkg.name === '@zeus-web/button')).toBe(true)

@@ -327,6 +327,49 @@ importers:
         specifier: ^4.1.9
         version: 4.1.9(@types/node@26.0.0)(jsdom@29.1.1)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
 
+  examples/ai-showcase:
+    dependencies:
+      '@zeus-web/ai-core':
+        specifier: workspace:*
+        version: link:../../packages/ai-core
+      '@zeus-web/ai-primitives':
+        specifier: workspace:*
+        version: link:../../packages/ai-primitives
+      '@zeus-web/ai-react':
+        specifier: workspace:*
+        version: link:../../packages/ai-react
+      '@zeus-web/ai-vue':
+        specifier: workspace:*
+        version: link:../../packages/ai-vue
+      '@zeus-web/ai-wc':
+        specifier: workspace:*
+        version: link:../../packages/ai-wc
+      react:
+        specifier: ^19.2.7
+        version: 19.2.7
+      react-dom:
+        specifier: ^19.2.7
+        version: 19.2.7(react@19.2.7)
+      vue:
+        specifier: 3.5.38
+        version: 3.5.38(typescript@6.0.3)
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.17
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.17)
+      '@vitejs/plugin-react':
+        specifier: ^6.0.2
+        version: 6.0.2(vite@8.3.4(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vite:
+        specifier: ^8.0.16
+        version: 8.3.4(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0)
+
   examples/data-grid-react18-consumer:
     dependencies:
       '@zeus-web/data-grid':
@@ -973,6 +1016,64 @@ importers:
         version: 3.5.38(typescript@6.0.3)
 
   packages/ai: {}
+
+  packages/ai-adapters:
+    dependencies:
+      '@zeus-web/ai-core':
+        specifier: workspace:*
+        version: link:../ai-core
+
+  packages/ai-core: {}
+
+  packages/ai-primitives:
+    dependencies:
+      '@zeus-web/ai-core':
+        specifier: workspace:*
+        version: link:../ai-core
+
+  packages/ai-react:
+    dependencies:
+      '@zeus-web/ai-core':
+        specifier: workspace:*
+        version: link:../ai-core
+      '@zeus-web/ai-primitives':
+        specifier: workspace:*
+        version: link:../ai-primitives
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.17
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.17)
+      react:
+        specifier: ^19.2.7
+        version: 19.2.7
+      react-dom:
+        specifier: ^19.2.7
+        version: 19.2.7(react@19.2.7)
+
+  packages/ai-vue:
+    dependencies:
+      '@zeus-web/ai-core':
+        specifier: workspace:*
+        version: link:../ai-core
+      '@zeus-web/ai-primitives':
+        specifier: workspace:*
+        version: link:../ai-primitives
+    devDependencies:
+      vue:
+        specifier: 3.5.38
+        version: 3.5.38(typescript@6.0.3)
+
+  packages/ai-wc:
+    dependencies:
+      '@zeus-web/ai-core':
+        specifier: workspace:*
+        version: link:../ai-core
+      '@zeus-web/ai-primitives':
+        specifier: workspace:*
+        version: link:../ai-primitives
 
   packages/cli:
     dependencies:
@@ -8445,6 +8546,11 @@ snapshots:
     dependencies:
       '@rolldown/pluginutils': 1.0.1
       vite: 8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0)
+
+  '@vitejs/plugin-react@6.0.2(vite@8.3.4(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))':
+    dependencies:
+      '@rolldown/pluginutils': 1.0.1
+      vite: 8.3.4(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0)
 
   '@vitejs/plugin-vue@5.2.4(vite@5.4.21(@types/node@26.0.0)(lightningcss@1.33.0))(vue@3.5.38(typescript@6.0.3))':
     dependencies:

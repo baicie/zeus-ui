@@ -182,6 +182,10 @@ export default defineConfig({
             'packages/primitives/__tests__/*-runtime.spec.ts',
             'packages/primitives/textarea/__tests__/textarea-runtime.spec.ts',
             'packages/advanced/chat/__tests__/chat-composer-runtime.spec.ts',
+            // AI Headless V2 renderer adapters render real DOM.
+            'packages/ai-react/__tests__/**',
+            'packages/ai-vue/__tests__/**',
+            'packages/ai-wc/__tests__/**',
           ],
         },
       },
@@ -530,6 +534,7 @@ export default defineConfig({
           include: ['e2e/**/*.spec.ts'],
           exclude: [
             'e2e/showcase/**',
+            'e2e/ai-browser/**',
             'e2e/advanced/data-grid/framework-renderer-browser.spec.ts',
             'packages/zeus-compat/**',
           ],
@@ -590,6 +595,20 @@ export default defineConfig({
           include: ['benchmarks/web-c-instances/*.bench.ts'],
           globalSetup: ['benchmarks/web-c-instances/setup.ts'],
           testTimeout: 120_000,
+          hookTimeout: 120_000,
+          pool: 'forks',
+          fileParallelism: false,
+        },
+      },
+
+      {
+        extends: true,
+        test: {
+          name: 'ai-browser-e2e',
+          environment: 'node',
+          include: ['e2e/ai-browser/*.spec.ts'],
+          globalSetup: ['e2e/ai-browser/setup.ts'],
+          testTimeout: 60_000,
           hookTimeout: 120_000,
           pool: 'forks',
           fileParallelism: false,

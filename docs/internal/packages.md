@@ -1,8 +1,8 @@
 # Zeus 包公共 API
 
 本文件是 Zeus 包公共 API 的唯一权威来源。当前覆盖 `@zeus-web/zeus-compat`、
-`@zeus-web/chat`、`@zeus-web/agent-console`、`@zeus-web/data-grid` 与 `@zeus-web/ai`；尚未迁移到本文件的包
-继续保持现有发布出口，后续变更公共 API 时必须补充对应章节。
+`@zeus-web/chat`、`@zeus-web/agent-console`、`@zeus-web/data-grid`、`@zeus-web/ai` 与 AI Headless V2
+（`@zeus-web/ai-*`，见文末）；尚未迁移到本文件的包继续保持现有发布出口，后续变更公共 API 时必须补充对应章节。
 
 ## `@zeus-web/ai`
 
@@ -739,3 +739,80 @@ interface DataGridColumnVirtualizer {
 相关公共类型：`DataGridColumnVirtualRange`、`DataGridColumnVirtualItem`、
 `DataGridColumnVirtualSnapshot`、`DataGridColumnVirtualizerOptions`、
 `DataGridColumnVirtualizer`。
+
+## AI Headless V2：`@zeus-web/ai-*`
+
+状态：**API proposed**，六个包均为 `private`（不在发布矩阵中），beta 阶段可破坏性变更。设计与验收见
+[docs/ai-headless-v2](../ai-headless-v2/implementation-status.md)。依赖方向：
+`ai-core` ← `ai-adapters` / `ai-primitives` ← `ai-react` / `ai-vue` / `ai-wc`；React、Vue 只是各自适配器的可选
+peer，`ai-wc` 不依赖任何框架（由 `pnpm ai:pack-check` 校验）。
+
+### `@zeus-web/ai-core`
+
+零依赖、无 DOM 的领域、协议、Store 与控制器。
+
+| 分组     | 主要导出                                                                                                                                                                                                                                                                                                                                                                            |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 领域类型 | `Conversation`、`Message`、`ContentPart`、`Execution`、`ExecutionStep`、`ToolInvocation`、`ApprovalRequest`、`Artifact`、`AssetRef`、`ChangeSet`、`Workspace`                                                                                                                                                                                                                       |
+| 状态机   | `canTransitionExecution`、`canResolveApproval`、`canTransitionChangeSet`、`isExecutionTerminal`                                                                                                                                                                                                                                                                                     |
+| 协议     | `DomainEvent`、`AnyDomainEvent`、`validateDomainEvent`、`Command`、`CommandAck`、`createCommand`、`createIdempotencyTracker`、`readIgnorableExtension`、`SUPPORTED_EVENT_SCHEMA_VERSIONS`                                                                                                                                                                                           |
+| Store    | `createAiStore(options): AiStore`（`ingest`、`subscribe(selector, listener, equal?)`、`getSyncState`、`loadSnapshot`、`loadHostSnapshot`、`exportSnapshot`）、`AiState`、`EntityMap`、`validateSnapshot`                                                                                                                                                                            |
+| 选择器   | `selectConversationTimeline`、`selectExecutionSteps`、`selectStepTree`、`selectStepChildIds`、`selectPendingApprovals`、`selectMessageText`、`shallowArrayEqual`                                                                                                                                                                                                                    |
+| 控制器   | `createAiSession`、`createComposerController`、`createConversationController`、`createStreamingText`、`createTimelineController`、`createExecutionController`、`createApprovalController`、`createRunSwitcher`、`createWorkspaceController`、`createReviewController`、`createChangeSetActions`、`createTestReportController`、`createArtifactController`、`selectMessageCitations` |
+| 工具     | `parseUnifiedDiff`、`toSideBySide`、`pageHunks`、`classifyPreview`、`safeExternalUrl`、`parseTestReport`                                                                                                                                                                                                                                                                            |
+| Host     | `AiHostAdapter`、`createMockHost`、`createReplayHost`、`createEventFactory`、`SCENARIO_FIXTURES`                                                                                                                                                                                                                                                                                    |
+| 迁移     | `importLegacyChat`、`importLegacyAgentRun`                                                                                                                                                                                                                                                                                                                                          |
+
+`AiState` 的实体集合是 `EntityMap<T>`（`get` / `has` / `keys` / `values` / `entries` / `size` / `toJSON`），不是
+普通对象；索引（`conversationMessageIds`、`executionStepIds`）与 `cursors` 是只读 record。控制器统一接口：
+
+```ts
+interface Controller<TView> {
+  getSnapshot(): Readonly<TView>
+  subscribe<T>(
+    selector: (view: Readonly<TView>) => T,
+    listener: (value: T) => void,
+    equal?: (a: T, b: T) => boolean,
+  ): () => void
+  dispose(): void // 只释放自身订阅，从不取消 Host 任务
+  readonly disposed: boolean
+}
+```
+
+### `@zeus-web/ai-adapters`
+
+`createSseHostAdapter({ baseUrl, fetch?, headers?, reconnect?, sleep? })`、
+`createWebSocketHostAdapter({ url, createSocket?, reconnect?, requestTimeoutMs?, loadAsset? })`、
+`AiTransportError`（`code`、`retryable`、`status?`）、`createSseParser`、`createSequenceGuard`。
+
+### `@zeus-web/ai-primitives`
+
+框架无关的 part（`attrs` + 中性事件 `on` + 纯文本 `text`）与共享视图：`getComposerParts`、`createCombobox`、
+`createContextPicker`、`getTimelineParts`、`getMessageParts`、`getApprovalPromptParts`、`getRunSwitcherParts`、
+`createTreeController`、`diffRows`、`buildFileTree` 等；`parseMarkdown`（安全 AST）、`sanitizeHref`、`describePart`、
+`createRendererRegistry<TNode>`、`redactPreview`；视图 `composerView`、`timelineView`、`messageView`、
+`approvalPromptView`、`diffView` 等；`AiLocale` / `EN_LOCALE` / `createLocale`。
+子入口 `./extensions`：`createVoiceInput`、`createAudioPlayback`、`getThinkingSummaryParts`、`formatUsage`、
+`createCommandPalette`、`groupRunsForBoard`。
+
+### `@zeus-web/ai-react`
+
+Hooks：`useController`、`useAiState`、`useOwnedController`、`useOptionalController`、`useIds`、
+`AiSessionProvider` / `useAiSession`。组件：`AiComposer`、`AiMessageTimeline`、`AiMessage`、`AiMessageContent`、
+`AiAssetImage`、`AiCitationList`、`AiArtifactPreview`、`AiConversationList`、`AiExecutionStatus`、`AiStepList`、
+`AiPlanOutline`、`AiStep`、`AiToolInvocation`、`AiApprovalPrompt`、`AiRunSwitcher`、`AiWorkspacePicker`、
+`AiFileChangeTree`、`AiDiffViewer`、`AiHunkComments`、`AiTestReport`、`AiChangesetActions`；`renderView`、`toReactProps`。
+
+### `@zeus-web/ai-vue`
+
+Composables：`useController`、`useAiState`、`useOwnedController`、`useIds`、`provideAiSession` / `useAiSession`。
+组件同 React（scoped slots：`toolbar`、`message`、`block`、`actions`、`step`、`hunk-actions`）；`renderView`、`toVueProps`。
+
+### `@zeus-web/ai-wc`
+
+按需注册函数 `defineAiComposer`、`defineAiMessageTimeline`、`defineAiMessage`、`defineAiCitationList`、
+`defineAiArtifactPreview`、`defineAiConversationList`、`defineAiExecutionStatus`、`defineAiStepList`、`defineAiStep`、
+`defineAiToolInvocation`、`defineAiApprovalPrompt`、`defineAiRunSwitcher`、`defineAiWorkspacePicker`、
+`defineAiFileChangeTree`、`defineAiDiffViewer`、`defineAiTestReport`、`defineAiChangesetActions`、`defineAiElements`；
+子入口 `./define`（客户端，副作用注册全部）。元素 `zw-ai-*` 只通过 DOM property 接收控制器与数据；事件
+`zw-ai-dismiss`、`zw-ai-select` 不携带敏感数据。

@@ -51,6 +51,7 @@ export interface WorkspacePackageCounts {
   base: number
   primitive: number
   advanced: number
+  private: number
 }
 
 export const packageRoots = [
@@ -61,11 +62,25 @@ export const packageRoots = [
 
 export const repositoryUrl = 'https://github.com/baicie/zeus-ui.git'
 
+/**
+ * Publishable package set used by the release gates. Private workspace
+ * packages, if any, are counted separately in `expectedWorkspacePackageTotals`
+ * so the publish matrix stays exact.
+ */
 export const expectedWorkspacePackageCounts: WorkspacePackageCounts = {
-  total: 40,
-  base: 11,
+  total: 46,
+  base: 17,
   primitive: 24,
   advanced: 5,
+  private: 0,
+}
+
+export const expectedWorkspacePackageTotals: WorkspacePackageCounts = {
+  total: 46,
+  base: 17,
+  primitive: 24,
+  advanced: 5,
+  private: 0,
 }
 
 function toForwardSlash(value: string): string {
@@ -153,12 +168,14 @@ export function countWorkspacePackages(
     base: 0,
     primitive: 0,
     advanced: 0,
+    private: 0,
   }
 
   for (const pkg of packages) {
     if (pkg.kind === 'package') counts.base += 1
     if (pkg.kind === 'primitive') counts.primitive += 1
     if (pkg.kind === 'advanced') counts.advanced += 1
+    if (pkg.isPrivate) counts.private += 1
   }
 
   return counts

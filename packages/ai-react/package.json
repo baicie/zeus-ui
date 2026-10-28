@@ -1,0 +1,45 @@
+{
+  "name": "@zeus-web/ai-react",
+  "type": "module",
+  "version": "0.1.0-beta.35",
+  "description": "React hooks and compound components for Zeus AI Headless V2. Renders natively with React; no Web Component runtime.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baicie/zeus-ui.git",
+    "directory": "packages/ai-react"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsup src/index.ts --format esm --dts --clean --watch --external react",
+    "build": "tsup src/index.ts --format esm --dts --clean --external react",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest --root ../.. --project unit-jsdom packages/ai-react/__tests__"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "dependencies": {
+    "@zeus-web/ai-core": "workspace:*",
+    "@zeus-web/ai-primitives": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  }
+}
