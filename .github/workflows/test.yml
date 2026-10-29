@@ -164,3 +164,54 @@ jobs:
       - run: pnpm run lint
       - run: pnpm run format-check
       - run: pnpm run check
+
+  ai-headless:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run AI contract, security, accessibility and performance suites
+        run: pnpm exec vitest --project e2e --run e2e/ai
+      - name: Check AI package tarballs in an isolated consumer
+        run: pnpm ai:pack-check
+
+  ai-headless-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @zeus-web/example-ai-showcase build
+      - name: Set Playwright browser cache path and version
+        run: |
+          echo "PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/playwright-bin" >> "$GITHUB_ENV"
+          PLAYWRIGHT_VERSION="$(node -p "require('./node_modules/@playwright/test/package.json').version")"
+          echo "PLAYWRIGHT_VERSION=$PLAYWRIGHT_VERSION" >> "$GITHUB_ENV"
+      - name: Cache AI story E2E browsers
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-playwright-ai-browser-v1-${{ env.PLAYWRIGHT_VERSION }}
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-ai-browser-v1-
+      - name: Install AI story E2E browsers
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - name: Run AI story E2E in Chromium, Firefox and WebKit
+        run: pnpm test-e2e:ai
+        env:
+          AI_E2E_BROWSERS: chromium,firefox,webkit
