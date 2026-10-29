@@ -4,6 +4,8 @@
 > **文档时点：2026-10-27（Asia/Shanghai）**
 > **对应任务：AI2-001 / AI2-002 / AI2-003 / AI2-004（M0 · Product RFC）**
 > **维护者：Zeus UI 文档作者（AI Headless V2）**
+>
+> 本文件是 2026-10-27 的 M0 快照，其中关于包、`private` 和实现进度的描述都是当天的状态；当前状态以 [implementation-status.md](./implementation-status.md) 为准。
 
 ---
 

@@ -742,7 +742,7 @@ interface DataGridColumnVirtualizer {
 
 ## AI Headless V2：`@zeus-web/ai-*`
 
-状态：**API proposed**，六个包均为 `private`（不在发布矩阵中），beta 阶段可破坏性变更。设计与验收见
+状态：**API proposed**，六个包均已纳入发布矩阵，beta 阶段可破坏性变更。设计与验收见
 [docs/ai-headless-v2](../ai-headless-v2/implementation-status.md)。依赖方向：
 `ai-core` ← `ai-adapters` / `ai-primitives` ← `ai-react` / `ai-vue` / `ai-wc`；React、Vue 只是各自适配器的可选
 peer，`ai-wc` 不依赖任何框架（由 `pnpm ai:pack-check` 校验）。

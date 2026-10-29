@@ -5,10 +5,10 @@
 
 ## 范围与结论
 
-- 六个包：`@zeus-web/ai-core`、`ai-adapters`、`ai-primitives`、`ai-react`、`ai-vue`、`ai-wc`，全部为 **`private`、API proposed**。是否发布、何时发布由维护者决定。
+- 六个包：`@zeus-web/ai-core`、`ai-adapters`、`ai-primitives`、`ai-react`、`ai-vue`、`ai-wc`，均已去掉 `private`，纳入仓库发布矩阵，版本随仓库统一；API 仍为 **proposed**。
 - 示例 / 原型：`examples/ai-showcase`（S1 Chat、S2 Agent + 审批、S3 Coding review、三端并排）。
-- 54 项任务：**52 项完成、2 项部分**（AI2-507 缺真实屏幕阅读器人工抽样；AI2-509 发布矩阵已校验但未发布）。
-- 门禁：G0–G5 通过，G6 部分（见 [quality-gates.md](./quality-gates.md)）。
+- 54 项任务：**52 项完成、2 项部分**（AI2-507 缺真实屏幕阅读器人工抽样；AI2-509 已纳入发布矩阵，缺首次发布及发布后验收的记录）。
+- 门禁：G0–G5 通过，G6 部分；全部自动化检查已接入 CI（见 [quality-gates.md](./quality-gates.md)）。
 - 复审记录：[review-2026-10-27-ai-core.md](./review-2026-10-27-ai-core.md)（F1–F19）。
 - API 权威说明：[docs/internal/packages.md](../internal/packages.md) 的「AI Headless V2」章节。
 
@@ -66,19 +66,18 @@
 | `AI2-506` | P0     | Security Harness                                        | ✅      | `e2e/ai/security.spec.ts`                                                                 |
 | `AI2-507` | P1     | Accessibility / 屏幕阅读器 / 键盘                       | ⚠️ 部分 | 自动化完成（`e2e/ai/accessibility.spec.ts` + 浏览器 axe）；**真实屏幕阅读器人工抽样未做** |
 | `AI2-508` | P1     | Performance Harness                                     | ✅      | `e2e/ai/performance.spec.ts`；基线见 `quality-gates.md`                                   |
-| `AI2-509` | P1     | Build & Publish Matrix + npm pack                       | ⚠️ 部分 | `pnpm ai:pack-check` 全部通过；包仍 `private`，未进入 release 计划，体积预算未设          |
+| `AI2-509` | P1     | Build & Publish Matrix + npm pack                       | ⚠️ 部分 | `pnpm ai:pack-check` 通过并在 CI 运行；已纳入发布矩阵；缺首次发布验收与专门体积预算       |
 | `AI2-510` | P1     | API Docs / 示例                                         | ✅      | `docs/internal/packages.md`；各包 README；`examples/ai-showcase`（标注 API proposed）     |
 | `AI2-511` | P2     | Legacy Adapter / Migration Guide                        | ✅      | `ai-core/src/legacy/import.ts`；`migration-guide.md`                                      |
 | `AI2-512` | P2     | Voice / Cost / Parallel Board / Command Palette         | ✅      | `ai-primitives/src/extensions`                                                            |
 
 ## 明确的非声明
 
-- 不声称 V2 已发布：六个包均为 `private`，版本号沿用仓库版本，尚未进入发布计划。
-- 浏览器 E2E 在本机运行的是缓存中较新的浏览器版本（Playwright 固定版本的浏览器无法下载）；CI 上应安装固定版本。
+- 不声称 V2 已发布：六个包已纳入发布矩阵、版本号随仓库统一，但本仓库还没有它们首次 npm 发布及发布后验收的记录。
+- 浏览器 E2E 的本机结果来自缓存中较新的浏览器版本（Playwright 固定版本的浏览器无法下载）；CI 的 `ai-headless-browser` 任务安装固定版本后运行。
 - 旧 `@zeus-web/chat` / `@zeus-web/agent-console` 保持现状；V2 只提供单向导入，不提供兼容层。
 
 ## 剩余工作
 
 1. 真实屏幕阅读器（VoiceOver / NVDA）与移动端缩放人工检查（AI2-507）。
-2. 决定是否发布：去掉 `private`、加入发布计划、设定体积预算（AI2-509）。
-3. CI 中接入 `pnpm test-e2e:ai` 与 `pnpm ai:pack-check`。
+2. 完成首次发布并通过发布后验收；按 tree-shaking 后的真实消费方式设定专门的体积预算，在此之前只受仓库统一的 48 KB gzip 上限（`pnpm check:bundle-size`）约束（AI2-509）。

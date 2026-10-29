@@ -1,7 +1,7 @@
 # AI Headless V2 质量门禁（G0–G6）与基线
 
 > 记录时间：2026-10-27。机器：Apple M1 / macOS 15.7.7 / Node 22.12.0。数字来自 `temp/ai-headless-perf.json`
-> 与 `temp/ai-pack-report.json`（运行下列命令会重新生成）。所有包仍为 `private`，**本文不代表已发布**。
+> 与 `temp/ai-pack-report.json`（运行下列命令会重新生成）。六个包已纳入发布矩阵，但**本文不代表已发布**。
 
 ## 门禁状态
 
@@ -27,6 +27,13 @@ pnpm ai:pack-check                                   # npm pack → 独立 consu
 
 浏览器 E2E 默认跑三个引擎，`AI_E2E_BROWSERS=chromium` 可缩小范围。Playwright 固定版本的浏览器未安装时
 （离线机器），会回退到缓存中同一引擎的其他版本并在 stderr 说明。
+
+CI 中对应的任务：
+
+- 前两条：随仓库单测在 `test.yml` 的 `unit-test` 与 `unit-test-windows` 任务中运行。
+- `e2e/ai` 与 `pnpm ai:pack-check`：`test.yml` 的 `ai-headless` 任务。
+- `pnpm test-e2e:ai`：`test.yml` 的 `ai-headless-browser` 任务，先构建 `examples/ai-showcase`，再安装 Playwright 固定版本的三个浏览器。
+- `examples/ai-showcase` 的类型检查：`ci.yml` 的 `build` 任务（`pnpm site:check` 中的 `pnpm examples:check`）。
 
 ## 性能基线（AI2-508）
 
@@ -58,7 +65,7 @@ pnpm ai:pack-check                                   # npm pack → 独立 consu
 | `@zeus-web/ai-vue`        | `.`                       | 6.9 KB                                      |
 | `@zeus-web/ai-wc`         | `.`（实现位于共享 chunk） | 入口 0.3 KB                                 |
 
-尚未设体积预算：在首次发布前按真实消费方式（tree-shaking 后）再定，避免预填无依据的数字（`01` §15.1）。
+尚未设专门的体积预算：按真实消费方式（tree-shaking 后）再定，避免预填无依据的数字（`01` §15.1）。在此之前，六个包作为可发布包受仓库统一的 48 KB gzip 上限约束（`pnpm check:bundle-size`，按 `dist` 下全部 JS 计）。
 
 ## 无障碍（AI2-507）
 

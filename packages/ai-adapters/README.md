@@ -2,7 +2,7 @@
 
 Zeus AI Headless V2 的传输适配器（AI2-111）。两个实现都满足 `@zeus-web/ai-core` 的 `AiHostAdapter`，不依赖 DOM、UI 框架或供应商 SDK；`fetch` / `WebSocket` 在调用时查找或由调用方注入，因此在 SSR 中 import 安全。
 
-- 包状态：**Proposed / 实验性**，`private`。
+- 包状态：**Proposed / 实验性**，以 beta 版本随仓库统一发布。
 
 ## SSE：`createSseHostAdapter({ baseUrl, fetch?, headers?, reconnect?, sleep? })`
 

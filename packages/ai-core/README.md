@@ -4,7 +4,7 @@ Zeus AI Headless V2 的领域、协议与规范化 Store 层。**纯 TypeScript�
 
 ## 状态
 
-- 包状态：**Proposed / 实验性**，`private`，未进入发布计划。完整任务状态见 [implementation-status.md](../../docs/ai-headless-v2/implementation-status.md)。
+- 包状态：**Proposed / 实验性**，以 beta 版本随仓库统一发布。完整任务状态见 [implementation-status.md](../../docs/ai-headless-v2/implementation-status.md)。
 - 内容：领域类型与状态机、Command/Ack 幂等、DomainEvent 校验与兼容策略、规范化 Store（持久化 `EntityMap` 集合）、seq 去重 / 乱序 / gap / 快照恢复、细粒度选择器与投影、全部 Headless 控制器（Session、Composer、Conversation、Streaming text、Timeline、Execution、Approval、Run switcher、Workspace、Review、ChangeSet actions、Test report、Artifacts）、Diff 解析、Mock / Replay Host 与 S1/S2/S3 fixture、V1 单向导入。
 - 渲染层在 `@zeus-web/ai-primitives` 与 `ai-react` / `ai-vue` / `ai-wc`；传输在 `@zeus-web/ai-adapters`。
 

@@ -2,7 +2,7 @@
 
 Zeus AI Headless V2 的 Vue 适配（AI2-502）。**原生 Vue 渲染**（render 函数 + scoped slots），不依赖 Web Component 运行时；import 时不访问 DOM，可用于 SSR。
 
-- 包状态：**Proposed / 实验性**，`private`。peer：`vue >= 3.5`。
+- 包状态：**Proposed / 实验性**，以 beta 版本随仓库统一发布。peer：`vue >= 3.5`。
 
 ## Composables
 
