@@ -178,6 +178,13 @@ export const ZEUS_IMPORT_CHECKED_ROOTS = [
   'packages/utils',
   'packages/registry',
   'packages/cli',
+  'packages/ui',
+  'packages/ai-core',
+  'packages/ai-adapters',
+  'packages/ai-primitives',
+  'packages/ai-react',
+  'packages/ai-vue',
+  'packages/ai-wc',
 ] as const
 
 const DATA_GRID_COMPILER_CONTRACT =
