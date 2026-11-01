@@ -19,6 +19,7 @@
     "check:exports": "tsx scripts/checks/build/check-package-exports.ts",
     "check:build-output": "tsx scripts/checks/build/check-build-output.ts",
     "check:bundle-size": "tsx scripts/checks/build/check-bundle-size.ts",
+    "check:ui-tarball-baseline": "tsx scripts/checks/build/check-ui-tarball-baseline.ts",
     "check:workspace-overrides": "tsx scripts/checks/check-workspace-overrides.ts",
     "ai:pack-check": "tsx scripts/checks/ai/check-ai-pack.ts",
     "test-e2e:ai": "vitest --project ai-browser-e2e --run",
