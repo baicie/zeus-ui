@@ -1,6 +1,6 @@
 # Zeus 包公共 API
 
-本文件是 Zeus 包公共 API 的唯一权威来源。当前覆盖 `@zeus-web/zeus-compat`、
+本文件是 Zeus 包公共 API 的唯一权威来源。当前覆盖 `@zeus-web/zeus-compat`、`@zeus-web/themes`、
 `@zeus-web/chat`、`@zeus-web/agent-console`、`@zeus-web/data-grid`、`@zeus-web/ai` 与 AI Headless V2
 （`@zeus-web/ai-*`，见文末）；尚未迁移到本文件的包继续保持现有发布出口，后续变更公共 API 时必须补充对应章节。
 
@@ -117,6 +117,76 @@ function assertZeusCompatRequirements(): void
 
 历史 alias `computed`、`effect`、`nextTick`、`scope`、`state`、`untrack`、`watch` 已删除，且不提供
 兼容转发。
+
+## `@zeus-web/themes`
+
+状态：`0.1.0` 发布准备，MVP 阶段，不承诺向后兼容。
+
+主题 token 与组件展示样式的单一来源。语义颜色 token 定义在 `src/palettes.ts`，
+内置主题 CSS 由 `scripts/emit-theme-css.ts` 从该文件生成；手改 CSS 会被
+`theme:check` 与 `themes.spec.ts` 的字节级断言拦下。
+
+入口：
+
+- `@zeus-web/themes`（JS API）
+- `@zeus-web/themes/tokens.css`
+- `@zeus-web/themes/{default,slate,zinc,neutral,stone}.css`
+- `@zeus-web/themes/components.css`
+- `@zeus-web/themes/components/*.css`（按需的单组件 CSS）
+
+### CSS 契约
+
+每个主题文件包含：
+
+- 浅色块 `:root, [data-theme='<name>']`：`color-scheme: light`、19 个语义颜色
+  token（`--background` … `--ring`）、9 个 `--zw-*` 原生别名、19 个 `--zeus-*`
+  Registry 别名；
+- 暗色块（内置文件用 `.dark` 策略）：同样的三组变量，`color-scheme: dark`。
+
+`--zw-*` 与 `--zeus-*` 都指向同一批语义 token，分别供 WC 包与 Registry 源码使用。
+
+### JS API
+
+常量与类型：
+
+- `themeNames`、`themeCssImports`、`themeCssExports`、`themePackageName`
+- `semanticColorTokens`（19）、`nativeAliasTokens`（9）、`radiusTokens`、`motionTokens`
+- `radiusPresetNames` / `radiusPresets`、`motionPresetNames` / `motionPresets`
+- `darkModeStrategyNames = ['class', 'data', 'media']`、`themeModeNames = ['light', 'dark']`
+- 类型：`ThemeName`、`ThemeModeName`、`SemanticColorToken`、`NativeAliasToken`、
+  `RadiusToken`、`MotionToken`、`RadiusPresetName`、`MotionPresetName`、
+  `DarkModeStrategyName`、`ThemeTokenSet`、`ThemeColorOverrides`、`MotionPreset`
+
+调色板与注册表：
+
+- `themePalettes`：`Record<ThemeName, { light, dark }>`，权威颜色数据
+- `themeRegistry` / `darkThemeRegistry` / `themeModeRegistry`
+- `getThemeColors(theme, mode)`、`getThemeCssImport(theme)`、`getThemeTokens(theme)`、
+  `getThemeTokensJson()`
+
+生成：
+
+- `createThemeCss(name, baseTheme?, overrides?, options?)`：返回完整 CSS 文本，
+  `options.darkMode` 选 `class` / `data` / `media` 策略
+- `createThemeBlockCss(params)`、`createBuiltinThemeFileCss(name, palettes)`、
+  `generatedThemeCssMarker`
+- 守卫：`isThemeName`、`isRadiusPresetName`、`isMotionPresetName`、
+  `isDarkModeStrategyName`
+
+```ts
+import { createThemeCss } from '@zeus-web/themes'
+
+const css = createThemeCss(
+  'brand',
+  'slate',
+  { light: { primary: '12 80% 45%' }, dark: { primary: '12 70% 65%' } },
+  { darkMode: 'data' },
+)
+// 选择器: :root, [data-theme='brand'] 与 [data-mode='dark']
+```
+
+样式分发模式、暗色策略、RTL、CSP 与样式隔离的完整说明见
+[theming-and-distribution.md](./theming-and-distribution.md)。
 
 ## 所有组件包共享契约
 
