@@ -200,8 +200,7 @@ export function isAllowedZeusImport(file: string, specifier: string): boolean {
   if (isZeusCompatFile(rel)) {
     return (
       specifier === '@zeus-js/zeus' ||
-      specifier === '@zeus-js/zeus/capabilities' ||
-      specifier === '@zeus-js/runtime-dom'
+      specifier === '@zeus-js/zeus/capabilities'
     )
   }
 

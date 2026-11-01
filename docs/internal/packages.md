@@ -40,7 +40,9 @@ function validateAiMetadata(
 
 状态：`0.1.0` 发布准备，MVP 阶段，不承诺向后兼容。
 
-Zeus 兼容基线：`0.1.1-beta.20`。该包只转发 Zeus 当前公共 API，不暴露 Zeus 内部实现。
+Zeus 兼容基线：`0.1.1-beta.20`。该包只依赖 `@zeus-js/zeus` 与 `@zeus-js/zeus/capabilities`
+（peer），不依赖 `@zeus-js/runtime-dom` 等未列入 Zeus downstream contract 的入口，也不暴露 Zeus
+内部实现。
 
 入口：
 
@@ -59,13 +61,42 @@ context 值：`createContext`、`inject`、`provide`、`useContext`。
 
 DOM context 值：`provideDOMContext`、`resolveDOMContext`。
 
+DOM context 类型：`DOMContext`、`DOMContextResolution`。
+
+```ts
+type DOMContext<T = unknown> = Context<T>
+
+interface DOMContextResolution<T> {
+  found: boolean
+  value: T | undefined
+}
+
+function provideDOMContext<T>(
+  target: EventTarget,
+  context: DOMContext<T>,
+  value: T,
+): void
+function resolveDOMContext<T>(
+  host: HTMLElement,
+  context: DOMContext<T>,
+): DOMContextResolution<T>
+```
+
+这两个函数由本包实现，不再从 `@zeus-js/runtime-dom` 转发。它们使用 Zeus custom element
+的 DOM context 协议：子元素派发冒泡、`composed` 的 `zeus:context-request` 事件，`detail`
+带 `id`（context 的 `Symbol`）和 `resolve(value)`；最近的 provider 应答后停止传播。
+`defineElement({ consumes })` 与 `Context.Bridge` 使用同一事件，所以三者的值可以互相读取。
+`provideDOMContext` 必须在 owner scope（custom element setup 或 `createRoot`）内同步调用，
+scope 销毁时移除监听。lazy entry 之间用 `Symbol.for('<package>/context')` 保持同一 context
+身份。事件名和 `detail` 形状由 Zeus 仓库约定，见 PR-24 报告中给 Zeus 的契约建议。
+
 capability 值：`ZEUS_CAPABILITIES`、`getMissingZeusCompatRequirements`、
 `assertZeusCompatRequirements`。
 
 公共类型：`Component`、`Context`、`ContextBridgeProps`、`ContextProviderProps`、
 `DefineElementContext`、`DefineElementMeta`、`DefineElementOptions`、`DefineElementSetup`、
 `ForProps`、`HostProps`、`JSXValue`、`ShowProps`、`SlotProps`、`DOMContext`、
-`ZeusCapabilities`、`ZeusCompatRequirement`。
+`DOMContextResolution`、`ZeusCapabilities`、`ZeusCompatRequirement`。
 
 ```ts
 function getMissingZeusCompatRequirements(): ZeusCompatRequirement[]

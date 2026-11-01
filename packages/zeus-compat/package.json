@@ -35,8 +35,5 @@
   },
   "peerDependencies": {
     "@zeus-js/zeus": "0.1.1-beta.20"
-  },
-  "dependencies": {
-    "@zeus-js/runtime-dom": "0.1.1-beta.20"
   }
 }

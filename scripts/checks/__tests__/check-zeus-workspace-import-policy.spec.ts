@@ -28,7 +28,7 @@ describe('check-zeus-workspace import policy', () => {
     expect(getExpectedZeusPeerRequirement('workspace:*')).toBeUndefined()
   })
 
-  it('allows zeus-compat to import upstream Zeus runtime APIs', () => {
+  it('allows zeus-compat to import the public Zeus entries only', () => {
     expect(
       isAllowedZeusImport('packages/zeus-compat/src/index.ts', '@zeus-js/zeus'),
     ).toBe(true)
@@ -40,12 +40,16 @@ describe('check-zeus-workspace import policy', () => {
       ),
     ).toBe(true)
 
-    expect(
-      isAllowedZeusImport(
-        'packages/zeus-compat/src/index.ts',
-        '@zeus-js/runtime-dom',
-      ),
-    ).toBe(true)
+    for (const specifier of [
+      '@zeus-js/runtime-dom',
+      '@zeus-js/web-c-runtime',
+      '@zeus-js/signal/internal',
+    ]) {
+      expect(
+        isAllowedZeusImport('packages/zeus-compat/src/index.ts', specifier),
+        specifier,
+      ).toBe(false)
+    }
   })
 
   it('allows zeus-compat tests to import upstream Zeus contract modules', () => {
