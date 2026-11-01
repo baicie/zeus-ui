@@ -1,0 +1,87 @@
+/* Derived from components.css by scripts/split-component-css.ts. */
+/* Requires tokens.css and one theme file (e.g. default.css). */
+
+zw-button,
+zw-input,
+zw-checkbox,
+zw-switch,
+zw-tabs,
+zw-dialog-trigger,
+zw-dialog-close,
+zw-select,
+zw-textarea,
+zw-radio-group,
+zw-label,
+zw-accordion,
+zw-alert,
+zw-avatar,
+zw-badge,
+zw-card,
+zw-collapsible,
+zw-progress,
+zw-separator,
+zw-skeleton,
+zw-tooltip,
+zw-agent-console,
+zw-chat,
+zw-data-grid,
+zw-revogrid-adapter,
+zw-virtual-list {
+  font: inherit;
+}
+
+zw-dialog-trigger button,
+zw-dialog-close button {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.65rem;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+zw-dialog-content {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: hsl(0 0% 0% / 0.35);
+  padding: 1rem;
+}
+
+zw-dialog-content[hidden] {
+  display: none;
+}
+
+zw-dialog-content [part='content'] {
+  width: min(32rem, 100%);
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  background: hsl(var(--popover, var(--background)));
+  color: hsl(var(--popover-foreground, var(--foreground)));
+  padding: 1rem;
+  box-shadow: 0 24px 80px hsl(0 0% 0% / 0.22);
+}
+
+zw-dialog-title {
+  display: block;
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+
+zw-dialog-description {
+  display: block;
+  margin: 0.35rem 0 1rem;
+  color: hsl(var(--foreground));
+  line-height: 1.5;
+}

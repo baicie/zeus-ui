@@ -249,7 +249,7 @@ zw-select [data-slot='select-trigger'] {
   padding: 0.625rem 0.75rem;
   font: inherit;
   line-height: 1.25;
-  text-align: left;
+  text-align: start;
   outline: none;
   cursor: pointer;
   transition:
@@ -298,8 +298,7 @@ zw-select [data-slot='select-content'] {
   position: absolute;
   z-index: 50;
   top: calc(100% + 0.35rem);
-  right: 0;
-  left: 0;
+  inset-inline: 0;
   max-height: min(16rem, var(--zw-select-available-height, calc(100vh - 1rem)));
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -499,16 +498,27 @@ zw-switch[data-state='checked'] [data-slot='switch-track'] {
   background: hsl(var(--primary));
 }
 
+zw-switch {
+  --zw-switch-thumb-offset: 1rem;
+  --zw-switch-thumb-direction: 1;
+}
+
+zw-switch:dir(rtl) {
+  --zw-switch-thumb-direction: -1;
+}
+
+zw-switch[data-size='sm'] {
+  --zw-switch-thumb-offset: 0.75rem;
+}
+
+zw-switch[data-size='lg'] {
+  --zw-switch-thumb-offset: 1.25rem;
+}
+
 zw-switch[data-state='checked'] [data-slot='switch-thumb'] {
-  transform: translateX(1rem);
-}
-
-zw-switch[data-state='checked'][data-size='sm'] [data-slot='switch-thumb'] {
-  transform: translateX(0.75rem);
-}
-
-zw-switch[data-state='checked'][data-size='lg'] [data-slot='switch-thumb'] {
-  transform: translateX(1.25rem);
+  transform: translateX(
+    calc(var(--zw-switch-thumb-offset) * var(--zw-switch-thumb-direction))
+  );
 }
 
 zw-switch[data-disabled] [part='root'] {
@@ -743,7 +753,7 @@ zw-alert {
   display: grid;
   gap: 0.25rem;
   border: 1px solid hsl(var(--border));
-  border-left-width: 0.25rem;
+  border-inline-start-width: 0.25rem;
   border-radius: 0.5rem;
   background: hsl(var(--background));
   color: hsl(var(--foreground));
@@ -751,22 +761,22 @@ zw-alert {
 }
 
 zw-alert[data-variant='info'] {
-  border-left-color: hsl(210 85% 50%);
+  border-inline-start-color: hsl(210 85% 50%);
   background: hsl(210 85% 50% / 0.08);
 }
 
 zw-alert[data-variant='success'] {
-  border-left-color: hsl(142 70% 38%);
+  border-inline-start-color: hsl(142 70% 38%);
   background: hsl(142 70% 38% / 0.08);
 }
 
 zw-alert[data-variant='warning'] {
-  border-left-color: hsl(42 92% 48%);
+  border-inline-start-color: hsl(42 92% 48%);
   background: hsl(42 92% 48% / 0.1);
 }
 
 zw-alert[data-variant='danger'] {
-  border-left-color: hsl(var(--destructive));
+  border-inline-start-color: hsl(var(--destructive));
   background: hsl(var(--destructive) / 0.08);
 }
 
@@ -917,6 +927,11 @@ zw-progress[data-state='indeterminate'] [data-slot='progress-indicator'] {
   }
 }
 
+zw-progress[data-state='indeterminate']:dir(rtl)
+  [data-slot='progress-indicator'] {
+  animation-direction: reverse;
+}
+
 zw-accordion,
 zw-collapsible {
   display: grid;
@@ -947,7 +962,7 @@ zw-collapsible-trigger [data-slot='collapsible-trigger-button'] {
   padding: 0.65rem 0;
   font: inherit;
   font-weight: 650;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
 }
 
@@ -997,7 +1012,7 @@ zw-tooltip-content {
   position: absolute;
   z-index: 60;
   bottom: calc(100% + 0.5rem);
-  left: 50%;
+  inset-inline-start: 50%;
   width: max-content;
   max-width: 18rem;
   transform: translateX(-50%);
@@ -1011,11 +1026,19 @@ zw-tooltip-content {
   box-shadow: 0 6px 18px hsl(var(--foreground) / 0.18);
 }
 
+/* RTL mirrors the translate direction: logical `start` + 50% is the same
+   anchor, but `translateX(-50%)` must flip with the writing mode. */
+zw-tooltip-content:dir(rtl) {
+  transform: translateX(50%);
+}
+
 zw-tooltip-content[data-side='bottom'] {
   top: calc(100% + 0.5rem);
   bottom: auto;
 }
 
+/* `data-side` stays physical: `left`/`right` describe where the tooltip is
+   placed, not the reading direction, so RTL does not remap them. */
 zw-tooltip-content[data-side='left'] {
   top: 50%;
   right: calc(100% + 0.5rem);
@@ -1071,7 +1094,7 @@ zw-data-grid [data-slot='data-grid-cell'] {
   height: 100%;
   align-items: center;
   overflow: hidden;
-  border-right: 1px solid hsl(var(--border));
+  border-inline-end: 1px solid hsl(var(--border));
   padding: 0 0.75rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1105,14 +1128,13 @@ zw-data-grid [data-slot='data-grid-body'] {
 zw-data-grid[data-virtual] [data-slot='data-grid-body'] {
   position: absolute;
   top: 2.5rem;
-  right: 0;
-  left: 0;
+  inset-inline: 0;
 }
 
 zw-data-grid[data-virtual] [data-slot='data-grid-row'] {
   position: absolute;
   top: 0;
-  left: 0;
+  inset-inline-start: 0;
 }
 
 zw-data-grid [data-slot='data-grid-row'] {
@@ -1183,7 +1205,7 @@ zw-agent-console [data-slot='agent-console-tools'],
 zw-agent-console [data-slot='agent-console-artifacts'],
 zw-agent-console [data-slot='agent-console-diagnostics'] {
   min-width: 0;
-  border-left: 1px solid hsl(var(--border));
+  border-inline-start: 1px solid hsl(var(--border));
   padding: 0.75rem;
   background: hsl(var(--muted) / 0.35);
 }
@@ -1300,7 +1322,7 @@ zw-chat-artifact [data-slot='chat-artifact'] {
   zw-agent-console [data-slot='agent-console-artifacts'],
   zw-agent-console [data-slot='agent-console-diagnostics'] {
     border-top: 1px solid hsl(var(--border));
-    border-left: 0;
+    border-inline-start: 0;
   }
 }
 

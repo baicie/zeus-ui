@@ -1,0 +1,58 @@
+/* Derived from components.css by scripts/split-component-css.ts. */
+/* Requires tokens.css and one theme file (e.g. default.css). */
+
+zw-button,
+zw-input,
+zw-checkbox,
+zw-switch,
+zw-tabs,
+zw-dialog-trigger,
+zw-dialog-close,
+zw-select,
+zw-textarea,
+zw-radio-group,
+zw-label,
+zw-accordion,
+zw-alert,
+zw-avatar,
+zw-badge,
+zw-card,
+zw-collapsible,
+zw-progress,
+zw-separator,
+zw-skeleton,
+zw-tooltip,
+zw-agent-console,
+zw-chat,
+zw-data-grid,
+zw-revogrid-adapter,
+zw-virtual-list {
+  font: inherit;
+}
+
+zw-checkbox,
+zw-switch,
+zw-radio-group-item,
+zw-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+zw-checkbox [part='root'],
+zw-switch [part='root'],
+zw-radio-group-item [part='root'] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  cursor: pointer;
+}
+
+zw-checkbox [data-slot='checkbox-control'],
+zw-switch [data-slot='switch-control'],
+zw-radio-group-item [data-slot='radio-group-control'] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: hsl(var(--primary));
+}

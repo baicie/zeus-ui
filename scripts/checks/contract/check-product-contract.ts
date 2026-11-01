@@ -1013,10 +1013,20 @@ function checkThemeWorkflow(errors: string[]): void {
       'export function createThemeCss',
       'assertCustomThemeName',
       'assertHslValue',
+      'createThemeBlockCss',
+    ],
+    errors,
+  )
+  mustContain(
+    'packages/themes/src/generate.ts',
+    [
       'nativeAliasTokens.map',
       '--zw-',
       '--zeus-',
       'var(--',
+      'color-scheme: ',
+      'prefers-color-scheme: dark',
+      "[data-mode='dark']",
     ],
     errors,
   )

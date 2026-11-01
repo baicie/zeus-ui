@@ -1,0 +1,48 @@
+/* Derived from components.css by scripts/split-component-css.ts. */
+/* Requires tokens.css and one theme file (e.g. default.css). */
+
+zw-button,
+zw-input,
+zw-checkbox,
+zw-switch,
+zw-tabs,
+zw-dialog-trigger,
+zw-dialog-close,
+zw-select,
+zw-textarea,
+zw-radio-group,
+zw-label,
+zw-accordion,
+zw-alert,
+zw-avatar,
+zw-badge,
+zw-card,
+zw-collapsible,
+zw-progress,
+zw-separator,
+zw-skeleton,
+zw-tooltip,
+zw-agent-console,
+zw-chat,
+zw-data-grid,
+zw-revogrid-adapter,
+zw-virtual-list {
+  font: inherit;
+}
+
+zw-separator {
+  display: block;
+  flex: 0 0 auto;
+  background: hsl(var(--border));
+}
+
+zw-separator[data-orientation='horizontal'] {
+  width: 100%;
+  height: 1px;
+}
+
+zw-separator[data-orientation='vertical'] {
+  width: 1px;
+  height: 100%;
+  min-height: 1.5rem;
+}

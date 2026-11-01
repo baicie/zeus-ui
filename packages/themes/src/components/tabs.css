@@ -1,0 +1,73 @@
+/* Derived from components.css by scripts/split-component-css.ts. */
+/* Requires tokens.css and one theme file (e.g. default.css). */
+
+zw-button,
+zw-input,
+zw-checkbox,
+zw-switch,
+zw-tabs,
+zw-dialog-trigger,
+zw-dialog-close,
+zw-select,
+zw-textarea,
+zw-radio-group,
+zw-label,
+zw-accordion,
+zw-alert,
+zw-avatar,
+zw-badge,
+zw-card,
+zw-collapsible,
+zw-progress,
+zw-separator,
+zw-skeleton,
+zw-tooltip,
+zw-agent-console,
+zw-chat,
+zw-data-grid,
+zw-revogrid-adapter,
+zw-virtual-list {
+  font: inherit;
+}
+
+zw-tabs {
+  display: grid;
+  gap: 0.9rem;
+}
+
+zw-tabs-list {
+  display: inline-flex;
+  width: fit-content;
+  gap: 0.25rem;
+  border-radius: 0.75rem;
+  background: hsl(var(--muted));
+  padding: 0.25rem;
+}
+
+zw-tabs-trigger button {
+  border: 0;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+zw-tabs-trigger[data-state='active'] button {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  box-shadow: 0 1px 2px hsl(0 0% 0% / 0.08);
+}
+
+zw-tabs-content {
+  display: block;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.85rem;
+  background: hsl(var(--card));
+  padding: 1rem;
+}
+
+zw-tabs-content[hidden] {
+  display: none;
+}
