@@ -23,42 +23,45 @@
 
 ## 2. 提交
 
-| 提交 | 内容 |
-| ---- | ---- |
-| TBD  | TBD  |
+| 提交      | 内容                                                         |
+| --------- | ------------------------------------------------------------ |
+| `ed9be34` | `feat(registry)`：第三方作者契约与 registry schema v2        |
+| `f615530` | `feat(cli)`：`zweb author check` 与 `zweb registry validate` |
+| `df4d7df` | `test(checks)`：外部第三方 WebC 包与 output plugin 端到端    |
+| `b7db3a2` | `docs(author)`：作者 SDK、schema v2 文档与验收报告           |
 
 ## 3. 验证结果
 
-| 命令 | 结果 |
-| ---- | ---- |
-| `pnpm check`（tsc） | PASS，EXIT 0 |
-| `pnpm lint`（eslint） | PASS，EXIT 0 |
-| `pnpm format-check`（prettier） | PASS，`All matched files use Prettier code style!` |
-| `pnpm check:registry` | PASS，`@zeus-web/registry check passed.` |
-| `pnpm check:product-contract` | PASS（含 `check:components`、advanced contract） |
-| `pnpm check:cli-consumer` | PASS，react / vue / file-registry 三个 consumer |
-| `pnpm check:cli-init` / `check:cli-add` / `check:cli-update-diff` | PASS |
-| `pnpm check:author-consumer`（新增） | PASS，见 §4 |
-| `pnpm check:exports` / `check:build-output` | PASS |
-| `pnpm check:zeus-imports` / `check:workspace-overrides` | PASS |
-| `pnpm check:component-coverage` | PASS（2 条 headless-only warning，既有） |
-| `pnpm check:showcase-metadata` / `check:showcase-implementation` | PASS |
-| `pnpm check:product-layers` / `check:ui-package` | PASS |
-| `pnpm check:zeus-beta-alignment` | PASS，`0.1.1-beta.20, peer 0.1.1-beta.20` |
-| `pnpm docs:check` | PASS（generated / i18n / docs / public-docs / playground / docs tsc） |
-| `pnpm release:verify` | PASS，46 个可发布包 |
-| `vitest --project unit --run` | PASS，135 文件 / 1096 测试 |
-| `vitest --project unit-jsdom --run` | PASS，137 文件 / 1083 测试 |
-| `vitest --project e2e --run` | 244/245 通过；1 项 `a11y-keyboard` dialog 用例失败，单独重跑该文件 8/8 通过（同机并发敏感，非本次回归） |
-| `vitest run packages/cli/__tests__ packages/registry/__tests__` | PASS，34 文件 / 360 测试 |
-| `pnpm build`（全量） | PASS，EXIT 0 |
+| 命令                                                              | 结果                                                                                                    |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `pnpm check`（tsc）                                               | PASS，EXIT 0                                                                                            |
+| `pnpm lint`（eslint）                                             | PASS，EXIT 0                                                                                            |
+| `pnpm format-check`（prettier）                                   | PASS，`All matched files use Prettier code style!`                                                      |
+| `pnpm check:registry`                                             | PASS，`@zeus-web/registry check passed.`                                                                |
+| `pnpm check:product-contract`                                     | PASS（含 `check:components`、advanced contract）                                                        |
+| `pnpm check:cli-consumer`                                         | PASS，react / vue / file-registry 三个 consumer                                                         |
+| `pnpm check:cli-init` / `check:cli-add` / `check:cli-update-diff` | PASS                                                                                                    |
+| `pnpm check:author-consumer`（新增）                              | PASS，见 §4                                                                                             |
+| `pnpm check:exports` / `check:build-output`                       | PASS                                                                                                    |
+| `pnpm check:zeus-imports` / `check:workspace-overrides`           | PASS                                                                                                    |
+| `pnpm check:component-coverage`                                   | PASS（2 条 headless-only warning，既有）                                                                |
+| `pnpm check:showcase-metadata` / `check:showcase-implementation`  | PASS                                                                                                    |
+| `pnpm check:product-layers` / `check:ui-package`                  | PASS                                                                                                    |
+| `pnpm check:zeus-beta-alignment`                                  | PASS，`0.1.1-beta.20, peer 0.1.1-beta.20`                                                               |
+| `pnpm docs:check`                                                 | PASS（generated / i18n / docs / public-docs / playground / docs tsc）                                   |
+| `pnpm release:verify`                                             | PASS，46 个可发布包                                                                                     |
+| `vitest --project unit --run`                                     | PASS，135 文件 / 1096 测试                                                                              |
+| `vitest --project unit-jsdom --run`                               | PASS，137 文件 / 1083 测试                                                                              |
+| `vitest --project e2e --run`                                      | 244/245 通过；1 项 `a11y-keyboard` dialog 用例失败，单独重跑该文件 8/8 通过（同机并发敏感，非本次回归） |
+| `vitest run packages/cli/__tests__ packages/registry/__tests__`   | PASS，34 文件 / 360 测试                                                                                |
+| `pnpm build`（全量）                                              | PASS，EXIT 0                                                                                            |
 
 ### 3.1 新增测试
 
-| 文件 | 用例数 |
-| ---- | ------ |
-| `packages/registry/__tests__/author-contract.spec.ts` | 19 |
-| `packages/cli/__tests__/author.spec.ts` | 12 |
+| 文件                                                  | 用例数 |
+| ----------------------------------------------------- | ------ |
+| `packages/registry/__tests__/author-contract.spec.ts` | 19     |
+| `packages/cli/__tests__/author.spec.ts`               | 12     |
 
 覆盖的错误路径：缺少必需导出（含 `exports["./wc/auto"]` path）、peer 非精确 pin、版本不匹配（消息含双方版本）、`zw-` 保留前缀、重复 tag（`components[1].tag`）、CEM 事件/part 漂移、manifest/CEM 未支持 schema、wrapper 运行时依赖缺失、导出文件缺失、`files` 白名单缺失或泄漏 `src`、插件 apiVersion 不匹配、输出属主冲突、重复插件 id、registry schemaVersion 1 拒绝、license/authors 缺失、author URL 非 http(s)、item 诊断路径。
 
