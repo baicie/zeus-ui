@@ -168,7 +168,17 @@ function main(): void {
     const source = read(file)
 
     for (const content of contents) {
-      if (source.includes(content)) {
+      // `zeus.components.json` is the generated WebC manifest and stays
+      // allowed; only the retired root config file is stale.
+      const pattern =
+        content === 'components.json'
+          ? /(^|[^.\w-])components\.json\b/m
+          : content
+      const matched =
+        typeof pattern === 'string'
+          ? source.includes(pattern)
+          : pattern.test(source)
+      if (matched) {
         errors.push(`${file} must not contain stale content "${content}"`)
       }
     }

@@ -222,49 +222,53 @@ const requiredChineseDocs: RequiredDoc[] = [
   },
 ]
 
-const forbiddenPatterns = [
-  {
-    pattern: '@zeus-ui',
-    message: 'old @zeus-ui package scope must not appear in docs',
-  },
-  {
-    pattern: '@zeus-web/react',
-    message: 'old aggregate @zeus-web/react package must not appear in docs',
-  },
-  {
-    pattern: '@zeus-web/vue',
-    message: 'old aggregate @zeus-web/vue package must not appear in docs',
-  },
-  {
-    pattern: '@zeus-web/headless',
-    message: 'old aggregate @zeus-web/headless package must not appear in docs',
-  },
-  {
-    pattern: 'components.json',
-    message: 'old components.json config must not appear in public docs',
-  },
-  {
-    pattern: 'src/styles/globals.css',
-    message: 'old globals.css config path must not appear in public docs',
-  },
-  {
-    pattern: 'src/lib/utils.ts',
-    message:
-      'old utils.ts registry utility path must not appear in public docs',
-  },
-  {
-    pattern: 'registry:ui',
-    message: 'old registry:ui schema must not appear in public docs',
-  },
-  {
-    pattern: 'registry:lib',
-    message: 'old registry:lib schema must not appear in public docs',
-  },
-  {
-    pattern: 'default/lib/utils.ts',
-    message: 'old default/lib/utils.ts path must not appear in public docs',
-  },
-]
+const forbiddenPatterns: Array<{ pattern: string | RegExp; message: string }> =
+  [
+    {
+      pattern: '@zeus-ui',
+      message: 'old @zeus-ui package scope must not appear in docs',
+    },
+    {
+      pattern: '@zeus-web/react',
+      message: 'old aggregate @zeus-web/react package must not appear in docs',
+    },
+    {
+      pattern: '@zeus-web/vue',
+      message: 'old aggregate @zeus-web/vue package must not appear in docs',
+    },
+    {
+      pattern: '@zeus-web/headless',
+      message:
+        'old aggregate @zeus-web/headless package must not appear in docs',
+    },
+    {
+      // `zeus.components.json` is the generated WebC manifest and must stay
+      // allowed; only the retired root config file is forbidden.
+      pattern: /(^|[^.\w-])components\.json\b/m,
+      message: 'old components.json config must not appear in public docs',
+    },
+    {
+      pattern: 'src/styles/globals.css',
+      message: 'old globals.css config path must not appear in public docs',
+    },
+    {
+      pattern: 'src/lib/utils.ts',
+      message:
+        'old utils.ts registry utility path must not appear in public docs',
+    },
+    {
+      pattern: 'registry:ui',
+      message: 'old registry:ui schema must not appear in public docs',
+    },
+    {
+      pattern: 'registry:lib',
+      message: 'old registry:lib schema must not appear in public docs',
+    },
+    {
+      pattern: 'default/lib/utils.ts',
+      message: 'old default/lib/utils.ts path must not appear in public docs',
+    },
+  ]
 
 function filePath(relativePath: string): string {
   return resolve(docsRoot, relativePath)
@@ -280,7 +284,12 @@ function checkForbiddenPatterns(path: string, source: string): string[] {
   const errors: string[] = []
 
   for (const item of forbiddenPatterns) {
-    if (source.includes(item.pattern)) {
+    const pattern = item.pattern
+    const matched =
+      typeof pattern === 'string'
+        ? source.includes(pattern)
+        : pattern.test(source)
+    if (matched) {
       errors.push(`apps/docs/${path}: ${item.message}`)
     }
   }

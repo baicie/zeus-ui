@@ -94,6 +94,7 @@
     "check:cli-add": "tsx scripts/checks/cli/check-cli-add.ts",
     "check:cli-update-diff": "tsx scripts/checks/cli/check-cli-update-diff.ts",
     "check:cli-consumer": "tsx scripts/checks/cli/check-cli-consumer.ts",
+    "check:author-consumer": "tsx scripts/checks/cli/check-author-consumer.ts",
     "check:cli-maintenance": "vitest --project unit packages/cli/__tests__ --run",
     "check:registry": "tsx scripts/checks/registry/check-registry.ts",
     "check:showcase-metadata": "tsx scripts/checks/examples/check-showcase-metadata.ts",

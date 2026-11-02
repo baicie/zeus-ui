@@ -31,6 +31,8 @@ interface RegistryManifest {
   schemaVersion: number
   name: string
   version: string
+  license: string
+  authors: Array<{ name: string; url?: string; email?: string }>
   items: RegistryItem[]
 }
 
@@ -42,6 +44,7 @@ const requiredFiles = [
   'tsconfig.json',
   'src/index.ts',
   'src/schema.ts',
+  'src/author.ts',
   'registry.json',
   'quality.json',
   'components.json',
@@ -101,6 +104,7 @@ const requiredFiles = [
   'scripts/copy-registry-assets.mjs',
   'scripts/generate-component-contracts.mjs',
   '__tests__/registry-package.spec.ts',
+  '__tests__/author-contract.spec.ts',
   'src/quality.ts',
   'src/component-schema.ts',
 ]
@@ -210,6 +214,7 @@ function checkPackageJson(errors: string[]): void {
   const requiredExports = [
     '.',
     './schema',
+    './author',
     './registry.json',
     './quality',
     './quality.json',
@@ -319,8 +324,16 @@ function checkManifestShape(
   manifest: RegistryManifest,
   errors: string[],
 ): void {
-  if (manifest.schemaVersion !== 1) {
-    errors.push('registry.json schemaVersion must be 1')
+  if (manifest.schemaVersion !== 2) {
+    errors.push('registry.json schemaVersion must be 2')
+  }
+
+  if (!manifest.license) {
+    errors.push('registry.json license is required')
+  }
+
+  if (!Array.isArray(manifest.authors) || manifest.authors.length === 0) {
+    errors.push('registry.json must list at least one author')
   }
 
   if (manifest.name !== '@zeus-web/registry') {
