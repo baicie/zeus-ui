@@ -917,3 +917,31 @@ Composables：`useController`、`useAiState`、`useOwnedController`、`useIds`�
 `defineAiFileChangeTree`、`defineAiDiffViewer`、`defineAiTestReport`、`defineAiChangesetActions`、`defineAiElements`；
 子入口 `./define`（客户端，副作用注册全部）。元素 `zw-ai-*` 只通过 DOM property 接收控制器与数据；事件
 `zw-ai-dismiss`、`zw-ai-select` 不携带敏感数据。
+
+## `@zeus-web/registry`
+
+Source component registry plus the third-party author contract.
+
+### 根入口 API
+
+`Registry` / `RegistryItem` / `RegistryFile` / `RegistryAuthor` 类型；`validateRegistry`（返回
+`{ valid, errors, diagnostics }`）。registry manifest 当前为 `schemaVersion: 2`，`license`（SPDX 形状）与
+`authors`（至少一条，`name` 必填，`url` 需 http(s)）为必填；`schemaVersion: 1` 显式拒绝，不做静默迁移。
+
+### `./schema` API
+
+`RegistryManifest`、`RegistryAuthor`、`RegistryValidationResult`、`AuthorDiagnostic`、`validateRegistry`。
+
+### `./author` API
+
+第三方作者契约（详见 `docs/internal/authoring-sdk.md`）：
+
+- 常量：`authorContractVersion`、`pluginApiVersion`、`authorZeusBaselineVersion`、`reservedTagPrefix`。
+- 校验：`validateComponentPackage`、`validateOutputPluginMetadata`。
+- 插件产物：`createAuthorPluginReport`、`createAuthorPluginAsset`。
+- 类型：`AuthorPackageJson`、`AuthorPackageMetadata`、`AuthorOutputPluginMetadata`、`AuthorComponentManifest`、
+  `AuthorCustomElementsManifest`、`AuthorComponentPackageInput`、`AuthorDiagnostic`、`AuthorValidationResult`。
+
+诊断统一为 `{ code, path, message }`，`path` 是 JSON path（如 `exports["./wc/auto"]`、`components[1].tag`）。
+组件包必须声明 WC 入口、`./wc/auto`、`./custom-elements.json`、`./zeus.components.json` 四个必需导出，
+可选 `./react` / `./vue` wrapper；`files` 只允许 `dist`；`peerDependencies["@zeus-js/zeus"]` 必须精确 pin。

@@ -18,6 +18,8 @@ CLI 负责 React/Vue 源码 Registry 工作流。
 | `zweb theme`               | 列出、检查和应用主题预设。                                      |
 | `zweb ai`                  | 生成 AI 可读的元数据和使用指南。                                |
 | `zweb icon`                | 管理图标元数据和代码片段。                                      |
+| `zweb author`              | 校验第三方组件包或 output plugin 包。                           |
+| `zweb registry`            | 校验 registry manifest。                                        |
 
 ## init
 
@@ -203,3 +205,33 @@ pnpm dlx @zeus-web/cli ai --cursor
 | `--output <file>` | 写入自定义文件。                    |
 | `--overwrite`     | 替换已有文件。                      |
 | `--dry-run`       | 只输出计划，不写入文件。            |
+
+## author
+
+发布到 npm 之前校验包形状。
+
+```bash
+zweb author check
+zweb author check ./dist-package --json
+zweb author check --zeus-version 0.1.1-beta.20
+```
+
+| 选项                 | 说明                                          |
+| -------------------- | --------------------------------------------- |
+| `--dir <dir>`        | 包目录，默认当前目录。                        |
+| `--zeus-version <v>` | 与指定消费者版本比对，而不是读 node_modules。 |
+| `--json`             | 输出 `{ valid, diagnostics }`。               |
+| `--cwd <dir>`        | 以该目录解析相对路径。                        |
+
+校验内容包括 `exports` 发布形状、只允许 `dist` 的 `files` 白名单、精确的 `@zeus-js/zeus` peer pin、组件 manifest、CEM 漂移以及 `zeus.plugins` 元信息。失败时退出码为 1。
+
+## registry
+
+校验 registry manifest。
+
+```bash
+zweb registry validate
+zweb registry validate ./registry.json --json
+```
+
+`schemaVersion` 必须为 `2`；版本 `1` 会被拒绝并给出迁移提示。

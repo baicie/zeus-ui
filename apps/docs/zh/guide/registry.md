@@ -162,3 +162,54 @@ Registry 会复制由应用管理的源码。
 需要在 React/Vue 应用中自定义时，请使用 Registry 源码。
 
 需要无框架的带样式自定义元素时，请使用 `@zeus-web/ui`。
+
+## Registry manifest schema
+
+`registry.json` 使用 `schemaVersion: 2`。合法 manifest 必须声明来源信息：
+
+```json
+{
+  "schemaVersion": 2,
+  "name": "@zeus-web/registry",
+  "version": "1.0.0",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Zeus Web Contributors",
+      "url": "https://github.com/baicie/zeus-ui"
+    }
+  ],
+  "items": []
+}
+```
+
+`schemaVersion: 1` 会被直接拒绝，不提供静默迁移。
+
+校验任意 registry manifest（包括第三方）：
+
+```bash
+zweb registry validate
+zweb registry validate ./registry.json --json
+```
+
+## 发布第三方组件包
+
+用 `zweb add` 复制源码，与发布 custom element 包，是两种不同的产品能力，而不是同一实现的两种说法：
+
+| 模式                  | 分发的产物                               | 归属     | 升级方式                    |
+| --------------------- | ---------------------------------------- | -------- | --------------------------- |
+| Registry 源码复制     | `.tsx` / `.vue` 模板                     | 你的 app | `zweb update`，保留本地修改 |
+| **Custom element 包** | `dist/wc/*`、CEM、DTS、React/Vue wrapper | 包作者   | 提升包版本并重新安装        |
+
+`zweb add` 从不生成 custom element。CE 包由作者在自己的仓库里用 `@zeus-js/bundler-plugin` 与 `@zeus-js/output-wc` 构建，再发布到 npm。
+
+第三方包必须声明稳定的发布形状：`exports` 提供 WC 入口、`./wc/auto`、`./custom-elements.json`、`./zeus.components.json`，以及 `./react` 与 `./vue` wrapper；`files: ["dist"]`；并精确 pin `@zeus-js/zeus` peer。发布前先校验：
+
+```bash
+zweb author check
+zweb author check ./dist-package --json
+```
+
+`zweb author check` 以 `{ code, path, message }` 输出诊断；当消费者 Zeus 版本与 peer pin 不一致时失败。
+
+完整契约、诊断码、插件元信息与安全说明见仓库内 `docs/internal/authoring-sdk.md`。
