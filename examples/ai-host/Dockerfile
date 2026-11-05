@@ -13,6 +13,7 @@ USER zeus
 ENV ZEUS_AI_DB=/data/ai.sqlite
 ENV ZEUS_AI_HOST=0.0.0.0
 ENV ZEUS_AI_WORKSPACE=/data/workspace
+ENV ZEUS_AI_WORKSPACE_ID=reference
 ENV PORT=8788
 EXPOSE 8788
 VOLUME ["/data"]
