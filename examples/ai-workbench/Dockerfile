@@ -16,7 +16,7 @@ RUN pnpm build
 ARG ZEUS_AI_HOST_ORIGIN=""
 ENV ZEUS_AI_HOST_ORIGIN=$ZEUS_AI_HOST_ORIGIN
 RUN pnpm --filter @zeus-web/example-ai-workbench build
-RUN node --import tsx scripts/release/build-info.ts \
+RUN node scripts/checks/build-info.mjs \
   --product ai-workbench \
   --dist examples/ai-workbench/dist \
   --core-commit "$ZEUS_CORE_COMMIT" \
