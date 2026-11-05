@@ -1,6 +1,6 @@
 # 从 V1 Chat / AgentConsole 迁移到 AI Headless V2（AI2-511）
 
-> 状态：**Proposed**。V2 各包仍为 `private`，旧包 `@zeus-web/chat`、`@zeus-web/agent-console` 保持不变、继续可用（见 [legacy-decision.md](./legacy-decision.md)）。
+> 状态：**Proposed**。V2 各包已纳入发布矩阵，API 在 beta 阶段仍可能有破坏性变更；旧包 `@zeus-web/chat`、`@zeus-web/agent-console` 保持不变、继续可用（见 [legacy-decision.md](./legacy-decision.md)）。
 
 ## 1. 先理解差异
 

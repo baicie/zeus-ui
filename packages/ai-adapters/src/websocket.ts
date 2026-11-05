@@ -272,6 +272,7 @@ export function createWebSocketHostAdapter(
       streamId: string,
       afterSeq: number,
       signal?: AbortSignal,
+      onOpen?: () => void,
     ): AsyncIterable<AnyDomainEvent> {
       async function* iterate(): AsyncGenerator<AnyDomainEvent> {
         let id = `sub-${nextId++}`
@@ -299,6 +300,7 @@ export function createWebSocketHostAdapter(
 
         async function send(): Promise<void> {
           const active = await connect()
+          onOpen?.()
           // A fresh id per (re)subscribe: frames still in flight for the
           // previous one must not be mistaken for this stream's next seq.
           subscriptions.delete(id)

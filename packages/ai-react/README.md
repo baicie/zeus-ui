@@ -2,7 +2,7 @@
 
 Zeus AI Headless V2 的 React 适配（AI2-501）。**原生 React 渲染**，不依赖 Web Component 运行时；import 时不访问 DOM，可用于 SSR。
 
-- 包状态：**Proposed / 实验性**，`private`。peer：`react >= 18`。
+- 包状态：**Proposed / 实验性**，以 beta 版本随仓库统一发布。peer：`react >= 18`。
 
 ## Hooks
 

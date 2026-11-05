@@ -1,10 +1,7 @@
 // @vitest-environment jsdom
 
-import type {
-  DataGridCellRenderer,
-  DataGridCellRendererInput,
-  DataGridCellRendererSlot,
-} from '../src/core/cell-renderer-adapter'
+import type { DataGridCellRenderer, DataGridCellRendererInput } from '../src'
+import type { DataGridCellRendererSlot } from '../src/core/cell-renderer-adapter'
 
 import { createRequire } from 'node:module'
 

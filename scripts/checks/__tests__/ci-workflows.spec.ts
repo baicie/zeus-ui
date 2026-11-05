@@ -79,6 +79,8 @@ describe('ci workflow contract', () => {
     expect(getObject(jobs, 'unit-test-windows')['timeout-minutes']).toBe(25)
     expect(getObject(jobs, 'build-output')['timeout-minutes']).toBe(20)
     expect(getObject(jobs, 'lint-and-test-dts')['timeout-minutes']).toBe(15)
+    expect(getObject(jobs, 'ai-headless')['timeout-minutes']).toBe(15)
+    expect(getObject(jobs, 'ai-headless-browser')['timeout-minutes']).toBe(30)
   })
 
   it('runs advanced component runtime tests after a frozen install', () => {
@@ -96,6 +98,30 @@ describe('ci workflow contract', () => {
         command.includes('--project e2e --run e2e/advanced'),
       ),
     ).toEqual(['pnpm exec vitest --project e2e --run e2e/advanced'])
+  })
+
+  it('runs the AI suites, tarball consumer check and three-engine story E2E', () => {
+    const jobs = getObject(readWorkflow('test.yml'), 'jobs')
+    const browserJob = getObject(jobs, 'ai-headless-browser')
+
+    expect(getRunCommands(getObject(jobs, 'ai-headless'))).toEqual([
+      'pnpm install --frozen-lockfile',
+      'pnpm exec vitest --project e2e --run e2e/ai',
+      'pnpm ai:pack-check',
+    ])
+    expect(getRunCommands(browserJob)).toEqual(
+      expect.arrayContaining([
+        'pnpm --filter @zeus-web/example-ai-showcase build',
+        'pnpm exec playwright install --with-deps chromium firefox webkit',
+        'pnpm test-e2e:ai',
+      ]),
+    )
+    expect(
+      getNamedStep(
+        browserJob,
+        'Run AI story E2E in Chromium, Firefox and WebKit',
+      ).env,
+    ).toEqual({ AI_E2E_BROWSERS: 'chromium,firefox,webkit' })
   })
 
   it('uses an explicit Bash shell so artifact logging pipelines preserve failures', () => {

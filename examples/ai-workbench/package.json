@@ -1,0 +1,23 @@
+{
+  "name": "@zeus-web/example-ai-workbench",
+  "type": "module",
+  "private": true,
+  "description": "Zeus Native AI Workbench shell over the trusted AI reference host.",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5191",
+    "build": "vite build",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@zeus-js/runtime-dom": "0.1.1-beta.20",
+    "@zeus-js/zeus": "0.1.1-beta.20",
+    "@zeus-web/ai-adapters": "workspace:*",
+    "@zeus-web/ai-core": "workspace:*",
+    "@zeus-web/ai-wc": "workspace:*"
+  },
+  "devDependencies": {
+    "@zeus-js/vite-plugin": "0.0.5",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16"
+  }
+}

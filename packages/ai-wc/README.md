@@ -2,7 +2,7 @@
 
 Zeus AI Headless V2 的 Web Component 适配（AI2-503）：`zw-ai-*` 自定义元素。
 
-- 包状态：**Proposed / 实验性**，`private`。不依赖 React / Vue。
+- 包状态：**Proposed / 实验性**，以 beta 版本随仓库统一发布。不依赖 React / Vue。
 
 ## 规则
 

@@ -278,6 +278,7 @@ export function createSseHostAdapter(
       streamId: string,
       afterSeq: number,
       signal?: AbortSignal,
+      onOpen?: () => void,
     ): AsyncIterable<AnyDomainEvent> {
       async function* iterate(): AsyncGenerator<AnyDomainEvent> {
         const guard = createSequenceGuard(streamId, afterSeq)
@@ -314,6 +315,7 @@ export function createSseHostAdapter(
               if (!retryable) throw error
               lastError = error
             } else {
+              onOpen?.()
               for await (const event of readEvents(response, signal)) {
                 const verdict = guard.check(event)
 

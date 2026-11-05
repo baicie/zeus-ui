@@ -2,7 +2,7 @@
 
 Zeus AI Headless V2 的框架无关交互原语（AI2-206 ~ AI2-210、AI2-304 ~ AI2-306、AI2-403 ~ AI2-406、AI2-512）。
 
-- 包状态：**Proposed / 实验性**，`private`。
+- 包状态：**Proposed / 实验性**，以 beta 版本随仓库统一发布。
 - 不访问 DOM、不依赖任何 UI 框架，SSR 中 import 安全。
 
 ## 原语如何工作

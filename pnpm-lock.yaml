@@ -327,6 +327,25 @@ importers:
         specifier: ^4.1.9
         version: 4.1.9(@types/node@26.0.0)(jsdom@29.1.1)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
 
+  examples/ai-host:
+    dependencies:
+      '@zeus-web/ai-adapters':
+        specifier: workspace:*
+        version: link:../../packages/ai-adapters
+      '@zeus-web/ai-core':
+        specifier: workspace:*
+        version: link:../../packages/ai-core
+    devDependencies:
+      '@types/node':
+        specifier: ^26.0.0
+        version: 26.0.0
+      tsx:
+        specifier: ^4.22.4
+        version: 4.22.4
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+
   examples/ai-showcase:
     dependencies:
       '@zeus-web/ai-core':
@@ -363,6 +382,34 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.0.2
         version: 6.0.2(vite@8.3.4(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vite:
+        specifier: ^8.0.16
+        version: 8.3.4(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0)
+
+  examples/ai-workbench:
+    dependencies:
+      '@zeus-js/runtime-dom':
+        specifier: 0.1.1-beta.20
+        version: 0.1.1-beta.20
+      '@zeus-js/zeus':
+        specifier: 0.1.1-beta.20
+        version: 0.1.1-beta.20
+      '@zeus-web/ai-adapters':
+        specifier: workspace:*
+        version: link:../../packages/ai-adapters
+      '@zeus-web/ai-core':
+        specifier: workspace:*
+        version: link:../../packages/ai-core
+      '@zeus-web/ai-wc':
+        specifier: workspace:*
+        version: link:../../packages/ai-wc
+    devDependencies:
+      '@zeus-js/vite-plugin':
+        specifier: 0.0.5
+        version: 0.0.5(vite@8.3.4(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -4341,6 +4388,12 @@ packages:
 
   '@zeus-js/signal@0.1.1-beta.20':
     resolution: {integrity: sha512-mq+QmN8vpq2b/QcxVtV61NCyEd+SlxVI13opyDr/BfJNx/2hVHxn2Xbnv3nCYGZyA6C2LLKSyAtjVXS/mxslHQ==}
+
+  '@zeus-js/vite-plugin@0.0.5':
+    resolution: {integrity: sha512-jOdFGP/GO5Hs7cxldnHbKD2w7dITysSLAjSEYt/K4aXna7ClAL7c6Dh2XP9MLcITDaAHXmFbI4oliODS0dFq+Q==}
+    engines: {node: ^22.18.0 || >=24.11.0}
+    peerDependencies:
+      vite: ^8.2.1
 
   '@zeus-js/web-c-runtime@0.1.1-beta.20':
     resolution: {integrity: sha512-Yhl3jWNkNoIpkNm0Tpzebvr66R7pZ7Vq9HF+2HvHJnrKCONVEjqegYzkqLLAmq1LLpvyElrC0/8ww2u8nrPM9g==}
@@ -8958,6 +9011,12 @@ snapshots:
   '@zeus-js/signal@0.1.1-beta.20':
     dependencies:
       '@zeus-js/shared': 0.1.1-beta.20
+
+  '@zeus-js/vite-plugin@0.0.5(vite@8.3.4(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0))':
+    dependencies:
+      '@babel/parser': 8.0.0
+      '@zeus-js/compiler-native': 0.1.1-beta.20
+      vite: 8.3.4(@types/node@26.0.0)(esbuild@0.28.1)(tsx@4.22.4)(yaml@2.9.0)
 
   '@zeus-js/web-c-runtime@0.1.1-beta.20':
     dependencies:

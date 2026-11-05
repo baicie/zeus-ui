@@ -1,4 +1,8 @@
 import type { VirtualItem, VirtualRange } from '@zeus-web/virtual'
+import type {
+  DataGridCellRenderer as CoreDataGridCellRenderer,
+  DataGridCellRendererInput as CoreDataGridCellRendererInput,
+} from './core/cell-renderer-types'
 import type { DataGridRowKey } from './core/data-grid-row-key'
 
 export type DataGridCellValue =
@@ -12,6 +16,18 @@ export type DataGridCellValue =
 export type DataGridRowData = Record<string, unknown>
 
 export type DataGridColumnAlign = 'start' | 'center' | 'end'
+
+export type DataGridCellRendererInput<
+  TRow = DataGridRowData,
+  TValue = unknown,
+> = CoreDataGridCellRendererInput<TRow, TValue>
+
+export type DataGridCellRenderer<
+  TRow = DataGridRowData,
+  TValue = unknown,
+  THandle = unknown,
+  TContainer = HTMLElement,
+> = CoreDataGridCellRenderer<TRow, TValue, THandle, TContainer>
 
 export type DataGridSortDirection = 'asc' | 'desc'
 
@@ -101,6 +117,12 @@ export interface DataGridColumn {
   sortable?: boolean
   hidden?: boolean
   resizable?: boolean
+  cellRenderer?: DataGridCellRenderer<
+    DataGridRowData,
+    unknown,
+    unknown,
+    HTMLElement
+  >
 }
 
 export interface NormalizedDataGridColumn {
@@ -114,6 +136,12 @@ export interface NormalizedDataGridColumn {
   sortable: boolean
   hidden: boolean
   resizable: boolean
+  cellRenderer?: DataGridCellRenderer<
+    DataGridRowData,
+    unknown,
+    unknown,
+    HTMLElement
+  >
 }
 
 export interface DataGridRow {

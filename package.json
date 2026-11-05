@@ -44,6 +44,7 @@
     "release:verify": "tsx scripts/checks/release/check-release-readiness.ts",
     "release:verify:strict": "tsx scripts/checks/release/check-release-readiness.ts --strict",
     "release:verify:pack": "tsx scripts/checks/release/check-release-tarballs.ts",
+    "release:joint-readiness": "tsx scripts/checks/release/joint-readiness.ts",
     "release:capture:latest": "tsx scripts/checks/release/capture-published-latest.ts",
     "release:verify:published": "tsx scripts/checks/release/check-published-packages.ts",
     "release:final": "tsx scripts/checks/release/check-release-final.ts",
@@ -110,7 +111,8 @@
     "site:check": "pnpm check:zeus-beta-alignment && pnpm check:component-coverage && pnpm check:registry && pnpm check:showcase-metadata && pnpm check:showcase-implementation && pnpm check:product-layers && pnpm check:ui-package && pnpm check:product-contract && pnpm docs:check && pnpm docs:build:deps && pnpm docs:build && pnpm examples:check && pnpm showcase:test",
     "site:build": "pnpm docs:build && pnpm examples:build",
     "link:zeus-js": "tsx scripts/commands/link-local-zeus.ts",
-    "unlink:zeus-js": "tsx scripts/commands/unlink-local-zeus.ts && pnpm install"
+    "unlink:zeus-js": "tsx scripts/commands/unlink-local-zeus.ts && pnpm install",
+    "check:ai-workbench": "tsx scripts/checks/ai/check-ai-workbench.ts"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.0.0",

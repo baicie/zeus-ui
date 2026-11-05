@@ -346,6 +346,13 @@ function setupDialogContent(
   const isOpen = () => Boolean(dialog?.getOpen())
 
   const handleKeyDown = (event: KeyboardEvent) => {
+    const targetContent =
+      event.target instanceof Element
+        ? event.target.closest('[data-slot="dialog-content"]')
+        : null
+    const ownContent = panel.closest('[data-slot="dialog-content"]')
+    if (targetContent && ownContent && targetContent !== ownContent) return
+
     if (event.key === 'Escape') {
       event.preventDefault()
       dialog?.setOpen(false, event)
