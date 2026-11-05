@@ -103,10 +103,13 @@ jobs:
       - name: Cache DataGrid framework renderer browsers
         uses: actions/cache@v4
         with:
-          key: ${{ runner.os }}-playwright-framework-renderer-v1-${{ env.PLAYWRIGHT_VERSION }}
+          # v2: the v1 cache holds a WebKit build from an older runner image
+          # that expects libicu74, which the current image no longer provides.
+          # Bump the key so the browsers are reinstalled for this image.
+          key: ${{ runner.os }}-playwright-framework-renderer-v2-${{ env.PLAYWRIGHT_VERSION }}
           path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
           restore-keys: |
-            ${{ runner.os }}-playwright-framework-renderer-v1-
+            ${{ runner.os }}-playwright-framework-renderer-v2-
       - name: Install DataGrid framework renderer browsers
         run: pnpm exec playwright install --with-deps chromium firefox webkit
       - name: Run DataGrid framework renderer browser E2E
