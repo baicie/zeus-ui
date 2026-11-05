@@ -1,11 +1,12 @@
 FROM node:24.18.0-bookworm-slim
 WORKDIR /app
 RUN corepack enable
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.json ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.json rolldown.config.ts ./
 COPY packages ./packages
 COPY scripts ./scripts
 COPY examples/ai-host ./examples/ai-host
 RUN pnpm install --frozen-lockfile
+RUN pnpm build
 RUN useradd --system --uid 10001 --create-home zeus
 RUN mkdir -p /data && chown -R zeus:zeus /data /app
 USER zeus
