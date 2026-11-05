@@ -11,6 +11,7 @@ RUN useradd --system --uid 10001 --create-home zeus
 RUN mkdir -p /data && chown -R zeus:zeus /data /app
 USER zeus
 ENV ZEUS_AI_DB=/data/ai.sqlite
+ENV ZEUS_AI_HOST=0.0.0.0
 ENV ZEUS_AI_WORKSPACE=/data/workspace
 ENV PORT=8788
 EXPOSE 8788
