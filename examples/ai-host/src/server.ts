@@ -8,6 +8,7 @@ import { createProtectedWorkspace } from './workspace'
 export interface StartAiHostOptions {
   readonly databaseFile?: string
   readonly workspaceRoot?: string
+  readonly workspaceId?: string
   readonly port?: number
   readonly hostname?: string
   readonly allowedOrigins?: readonly string[]
@@ -24,7 +25,7 @@ export async function startAiHost(options: StartAiHostOptions = {}) {
     path.resolve(import.meta.dirname, '../.data/workspace')
   const database = openHostDatabase(databaseFile)
   const workspace = createProtectedWorkspace({
-    id: 'reference',
+    id: options.workspaceId ?? process.env.ZEUS_AI_WORKSPACE_ID ?? 'reference',
     root: workspaceRoot,
   })
   const host = createPersistentHost({ database })
@@ -37,7 +38,7 @@ export async function startAiHost(options: StartAiHostOptions = {}) {
     server.inner.once('error', reject)
     server.inner.listen(
       options.port ?? Number(process.env.PORT ?? 8788),
-      options.hostname ?? '127.0.0.1',
+      options.hostname ?? process.env.ZEUS_AI_HOST ?? '127.0.0.1',
       () => {
         server.inner.off('error', reject)
         resolve()
@@ -48,7 +49,7 @@ export async function startAiHost(options: StartAiHostOptions = {}) {
   if (!address || typeof address === 'string')
     throw new Error('No AI host port')
   return {
-    origin: `http://${options.hostname ?? '127.0.0.1'}:${address.port}`,
+    origin: `http://${options.hostname ?? process.env.ZEUS_AI_HOST ?? '127.0.0.1'}:${address.port}`,
     async close() {
       await server.close()
       host.close()
