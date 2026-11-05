@@ -1,0 +1,21 @@
+{
+  "name": "@zeus-web/example-ai-host",
+  "type": "module",
+  "private": true,
+  "description": "Trusted Node reference host for Zeus AI Headless V2 (SSE, commands, approvals, replay persistence).",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "start": "tsx src/server.ts",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest --root ../.. --project unit examples/ai-host/__tests__"
+  },
+  "dependencies": {
+    "@zeus-web/ai-adapters": "workspace:*",
+    "@zeus-web/ai-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}

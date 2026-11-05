@@ -13,6 +13,32 @@ export type DataGridRowData = Record<string, unknown>
 
 export type DataGridColumnAlign = 'start' | 'center' | 'end'
 
+export interface DataGridCellRendererInput<
+  TRow = DataGridRowData,
+  TValue = unknown,
+> {
+  rowKey: DataGridRowKey
+  columnId: string
+  row: TRow
+  value: TValue
+}
+
+export interface DataGridCellRenderer<
+  TRow = DataGridRowData,
+  TValue = unknown,
+  THandle = unknown,
+  TContainer = HTMLElement,
+> {
+  /* eslint-disable ts/method-signature-style -- bivariant handles keep framework-specific adapters assignable. */
+  mount(
+    container: TContainer,
+    input: DataGridCellRendererInput<TRow, TValue>,
+  ): THandle
+  update(handle: THandle, input: DataGridCellRendererInput<TRow, TValue>): void
+  dispose(handle: THandle): void
+  /* eslint-enable ts/method-signature-style */
+}
+
 export type DataGridSortDirection = 'asc' | 'desc'
 
 export type DataGridSelectionMode = 'none' | 'single' | 'multiple'
@@ -101,6 +127,12 @@ export interface DataGridColumn {
   sortable?: boolean
   hidden?: boolean
   resizable?: boolean
+  cellRenderer?: DataGridCellRenderer<
+    DataGridRowData,
+    unknown,
+    unknown,
+    HTMLElement
+  >
 }
 
 export interface NormalizedDataGridColumn {
@@ -114,6 +146,12 @@ export interface NormalizedDataGridColumn {
   sortable: boolean
   hidden: boolean
   resizable: boolean
+  cellRenderer?: DataGridCellRenderer<
+    DataGridRowData,
+    unknown,
+    unknown,
+    HTMLElement
+  >
 }
 
 export interface DataGridRow {

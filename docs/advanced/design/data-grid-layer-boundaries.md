@@ -32,6 +32,17 @@ WC Host 的连接边界由 `createDataGridHostAdapter` 显式拥有。它只协�
 
 浏览器 fixture `e2e/advanced/data-grid/framework-renderer-browser.spec.ts` 在 Chromium、Firefox 和 WebKit 验证 mount/update、断开清理、外部 Portal/Teleport target 保留及重连；CI 通过 `pnpm data-grid:framework-e2e` 运行三引擎矩阵。
 
-## 后续边界
+## Public cell renderer
 
-此切片不表示完整的五层拆分已经完成。Data Grid 仍由 `data-grid.tsx` 提供唯一生产渲染入口，公开的 `cellRenderer` 字段尚未冻结为稳定 ABI；React/Vue 节点仍必须通过显式 adapter 管理，不能写入 WC property、Manifest 或普通 Slot。
+`DataGridColumn.cellRenderer` 已接入生产渲染入口。它是框架中立的
+`mount/update/dispose` 协议，接收 grid 拥有的 cell container 和
+`{ rowKey, columnId, row, value }` 输入；React/Vue 节点仍必须由显式
+框架 adapter 创建，`row`/`value` 不包含 VNode、ReactNode 或函数闭包。
+
+可见范围提交后会按 `(rowKey, columnId)` reconcile：稳定 key、renderer
+identity 与 container 复用同一 handle 并调用 `update`；renderer 或容器变化
+先 dispose 再 mount；离屏或断开连接时释放 handle。`virtual: true` 时 DOM
+pooling 保持容器 identity，因此数据更新走 update 而不是重建框架 root。
+
+此切片仍不表示完整五层拆分完成。Data Grid 仍由 `data-grid.tsx` 提供唯一
+生产渲染入口；React/Vue adapter 需要新提案才能成为 WC ABI 的自动组件协议。

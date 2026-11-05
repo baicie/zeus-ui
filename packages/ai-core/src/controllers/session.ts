@@ -134,6 +134,10 @@ export function createAiSession(options: AiSessionOptions): AiSession {
           options.streamId,
           store.getCursor(),
           signal,
+          () => {
+            failures = 0
+            view.update({ connection: 'live', lastError: undefined })
+          },
         )) {
           if (signal.aborted) return
           view.update({ connection: 'live', lastError: undefined })

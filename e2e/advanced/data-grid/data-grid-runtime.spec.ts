@@ -1,3 +1,10 @@
+import type { Ref } from 'vue'
+import type {
+  DataGridCellRenderer,
+  DataGridCellRendererInput,
+  DataGridRowData,
+} from '../../../packages/advanced/data-grid/src'
+
 import type {
   DataGridActiveCellChangeDetail,
   DataGridColumnResizeDetail,
@@ -5,6 +12,8 @@ import type {
   DataGridSelectionChangeDetail,
   DataGridSortChangeDetail,
 } from './data-grid-runtime-harness'
+import { createRequire } from 'node:module'
+import path from 'node:path'
 import { batch } from '@zeus-js/zeus'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -19,9 +28,26 @@ import {
   mountDataGrid,
   nextFrame,
   runtimeColumns,
+  runtimeRows,
   setElementClientHeight,
   setElementClientWidth,
 } from './data-grid-runtime-harness'
+
+const requireFromDataGrid = createRequire(
+  path.join(process.cwd(), 'packages/advanced/data-grid/package.json'),
+)
+const React = requireFromDataGrid('react') as typeof import('react')
+const { flushSync } = requireFromDataGrid('react-dom') as {
+  flushSync: (callback: () => void) => void
+}
+interface ReactRoot {
+  render: (node: unknown) => void
+  unmount: () => void
+}
+const { createRoot } = requireFromDataGrid('react-dom/client') as {
+  createRoot: (container: Element) => ReactRoot
+}
+const Vue = requireFromDataGrid('vue') as typeof import('vue')
 
 const initialModelDiagnostics = vi.hoisted(() => ({
   createRowModelCallSizes: [] as number[],
@@ -133,6 +159,329 @@ describe('zw-data-grid runtime', () => {
     ])
     expect(initialModelDiagnostics.rowModels[0].wrapperCount).toBeGreaterThan(0)
     expect(initialModelDiagnostics.rowModels[0].wrapperCount).toBeLessThan(100)
+  })
+
+  it('reconciles public cell renderers across updates, removal and reconnect', async () => {
+    interface Handle {
+      button: HTMLButtonElement
+      container: HTMLElement
+    }
+
+    const mounted: Handle[] = []
+    const disposed: Handle[] = []
+    let updates = 0
+    const renderer: DataGridCellRenderer<
+      DataGridRowData,
+      unknown,
+      Handle,
+      HTMLElement
+    > = {
+      mount(container, input) {
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.textContent = String(input.value)
+        container.append(button)
+        const handle = { button, container }
+        mounted.push(handle)
+        return handle
+      },
+      update(handle, input) {
+        updates += 1
+        handle.button.textContent = String(input.value)
+      },
+      dispose(handle) {
+        disposed.push(handle)
+        handle.container.replaceChildren()
+      },
+    }
+
+    const columns = runtimeColumns.map(column =>
+      column.id === 'name' ? { ...column, cellRenderer: renderer } : column,
+    )
+    const grid = await mountDataGrid({
+      columns,
+      virtual: true,
+      selectionMode: 'single',
+    })
+    await nextFrame()
+
+    expect(mounted).toHaveLength(3)
+    const firstButton = getCell(grid, 'u1', 'name').querySelector('button')
+    expect(firstButton?.textContent).toBe('Ada Lovelace')
+    expect(getCell(grid, 'u1', 'age').textContent).toContain('30')
+    firstButton?.focus()
+    expect(document.activeElement).toBe(firstButton)
+    click(getCell(grid, 'u1', 'name'))
+    expect(
+      getCell(grid, 'u1', 'name')
+        .closest('[data-slot="data-grid-row"]')
+        ?.hasAttribute('data-selected'),
+    ).toBe(true)
+
+    const updatedRows: DataGridRowData[] = [
+      { ...runtimeRows[0], name: 'Ada Updated' },
+      { ...runtimeRows[1], name: 'Grace Updated' },
+      { ...runtimeRows[2], name: 'Alan Updated' },
+    ]
+    grid.rows = updatedRows
+    await nextFrame()
+
+    expect(updates).toBe(3)
+    expect(getCell(grid, 'u1', 'name').querySelector('button')).toBe(
+      firstButton,
+    )
+    expect(firstButton?.textContent).toBe('Ada Updated')
+    expect(document.activeElement).toBe(firstButton)
+    expect(
+      getCell(grid, 'u1', 'name')
+        .closest('[data-slot="data-grid-row"]')
+        ?.hasAttribute('data-selected'),
+    ).toBe(true)
+
+    grid.rows = updatedRows.slice(0, 2)
+    await nextFrame()
+    expect(disposed).toHaveLength(1)
+
+    grid.remove()
+    await nextFrame()
+    expect(disposed).toHaveLength(3)
+
+    document.body.append(grid)
+    await nextFrame()
+    expect(mounted).toHaveLength(5)
+    expect(
+      getCell(grid, 'u1', 'name').querySelector('button')?.textContent,
+    ).toBe('Ada Updated')
+  })
+
+  it('mounts a React renderer through the public column cellRenderer', async () => {
+    interface Handle {
+      container: HTMLElement
+      root: ReactRoot
+    }
+
+    const mounted: Handle[] = []
+    const disposed: Handle[] = []
+    const render = (
+      handle: Handle,
+      input: { rowKey: string | number; value: unknown },
+    ) =>
+      flushSync(() => {
+        handle.root.render(
+          React.createElement(
+            'button',
+            { 'data-row-key': input.rowKey, type: 'button' },
+            String(input.value),
+          ),
+        )
+      })
+    const renderer: DataGridCellRenderer<
+      DataGridRowData,
+      unknown,
+      Handle,
+      HTMLElement
+    > = {
+      mount(container, input) {
+        const root = createRoot(container)
+        const handle = { container, root }
+        render(handle, input)
+        mounted.push(handle)
+        return handle
+      },
+      update(handle, input) {
+        render(handle, input)
+      },
+      dispose(handle) {
+        handle.root.unmount()
+        disposed.push(handle)
+      },
+    }
+    const columns = runtimeColumns.map(column =>
+      column.id === 'name' ? { ...column, cellRenderer: renderer } : column,
+    )
+    const grid = await mountDataGrid({ columns, virtual: true })
+    await nextFrame()
+
+    expect(mounted).toHaveLength(3)
+    const cellSelector =
+      '[data-slot="data-grid-cell"][data-row-key="u1"][data-column-id="name"]'
+    const firstButton = grid.querySelector(`${cellSelector} button`)
+    expect(firstButton?.textContent).toBe('Ada Lovelace')
+
+    grid.rows = [
+      { ...runtimeRows[0], name: 'Ada React' },
+      { ...runtimeRows[1], name: 'Grace React' },
+      { ...runtimeRows[2], name: 'Alan React' },
+    ]
+    await nextFrame()
+    expect(mounted).toHaveLength(3)
+    expect(grid.querySelector(`${cellSelector} button`)).toBe(firstButton)
+    expect(firstButton?.textContent).toBe('Ada React')
+
+    grid.remove()
+    await nextFrame()
+    expect(disposed).toHaveLength(3)
+
+    document.body.append(grid)
+    await nextFrame()
+    expect(mounted).toHaveLength(6)
+    expect(grid.querySelector(`${cellSelector} button`)?.textContent).toBe(
+      'Ada React',
+    )
+  })
+
+  it('mounts a Vue renderer through the public column cellRenderer', async () => {
+    interface Handle {
+      app: ReturnType<typeof Vue.createApp>
+      container: HTMLElement
+      state: Ref<DataGridCellRendererInput<DataGridRowData, unknown>>
+    }
+
+    const mounted: Handle[] = []
+    const disposed: Handle[] = []
+    const renderer: DataGridCellRenderer<
+      DataGridRowData,
+      unknown,
+      Handle,
+      HTMLElement
+    > = {
+      mount(container, input) {
+        const state = Vue.ref(input)
+        const app = Vue.createApp(
+          Vue.defineComponent({
+            setup() {
+              return () =>
+                Vue.h(
+                  'button',
+                  {
+                    'data-row-key': state.value.rowKey,
+                    type: 'button',
+                  },
+                  String(state.value.value),
+                )
+            },
+          }),
+        )
+        app.mount(container)
+        const handle = { app, container, state }
+        mounted.push(handle)
+        return handle
+      },
+      update(handle, input) {
+        handle.state.value = input
+      },
+      dispose(handle) {
+        handle.app.unmount()
+        disposed.push(handle)
+      },
+    }
+    const columns = runtimeColumns.map(column =>
+      column.id === 'name' ? { ...column, cellRenderer: renderer } : column,
+    )
+    const grid = await mountDataGrid({ columns, virtual: true })
+    await nextFrame()
+
+    expect(mounted).toHaveLength(3)
+    const cellSelector =
+      '[data-slot="data-grid-cell"][data-row-key="u1"][data-column-id="name"]'
+    const firstButton = grid.querySelector(`${cellSelector} button`)
+    expect(firstButton?.textContent).toBe('Ada Lovelace')
+
+    grid.rows = [
+      { ...runtimeRows[0], name: 'Ada Vue' },
+      { ...runtimeRows[1], name: 'Grace Vue' },
+      { ...runtimeRows[2], name: 'Alan Vue' },
+    ]
+    await nextFrame()
+    expect(mounted).toHaveLength(3)
+    expect(grid.querySelector(`${cellSelector} button`)).toBe(firstButton)
+    expect(firstButton?.textContent).toBe('Ada Vue')
+
+    grid.remove()
+    await nextFrame()
+    expect(disposed).toHaveLength(3)
+
+    document.body.append(grid)
+    await nextFrame()
+    expect(mounted).toHaveLength(6)
+    expect(grid.querySelector(`${cellSelector} button`)?.textContent).toBe(
+      'Ada Vue',
+    )
+  })
+
+  it('recycles public cell renderers when virtual rows leave and reenter the viewport', async () => {
+    interface Handle {
+      container: HTMLElement
+    }
+
+    const mounted: Handle[] = []
+    const disposed: Handle[] = []
+    const renderer: DataGridCellRenderer<
+      DataGridRowData,
+      unknown,
+      Handle,
+      HTMLElement
+    > = {
+      mount(container, input) {
+        const text = document.createElement('span')
+        text.textContent = String(input.value)
+        container.append(text)
+        const handle = { container }
+        mounted.push(handle)
+        return handle
+      },
+      update(handle, input) {
+        handle.container.firstElementChild!.textContent = String(input.value)
+      },
+      dispose(handle) {
+        handle.container.replaceChildren()
+        disposed.push(handle)
+      },
+    }
+    const rows: DataGridRowData[] = Array.from({ length: 100 }, (_, index) => ({
+      id: `row-${index}`,
+      name: `Row ${index}`,
+    }))
+    const grid = await mountDataGrid({
+      rows,
+      columns: [
+        {
+          id: 'name',
+          header: 'Name',
+          field: 'name',
+          cellRenderer: renderer,
+        },
+      ],
+      virtual: true,
+      rowHeight: 40,
+      overscan: 1,
+      overscanColumns: 0,
+    })
+    const viewport = getViewport(grid)
+    setElementClientHeight(viewport, 80)
+    setElementClientWidth(viewport, 160)
+    grid.refreshViewport()
+    await nextFrame()
+
+    const initialMountCount = mounted.length
+    expect(initialMountCount).toBeGreaterThan(0)
+    expect(initialMountCount).toBeLessThan(rows.length)
+
+    grid.scrollToOffset(2_000)
+    await nextFrame()
+    expect(disposed.length).toBeGreaterThan(0)
+    expect(mounted.length).toBeGreaterThan(initialMountCount)
+    const firstWindowButtons = grid.querySelectorAll(
+      '[data-slot="data-grid-cell-content"] button, [data-slot="data-grid-cell-content"] span',
+    )
+    expect(firstWindowButtons.length).toBe(mounted.length - disposed.length)
+    expect(firstWindowButtons.length).toBeLessThan(rows.length)
+
+    const mountedBeforeReturn = mounted.length
+    grid.scrollToOffset(0)
+    await nextFrame()
+    expect(disposed.length).toBeGreaterThan(0)
+    expect(mounted.length).toBeGreaterThan(mountedBeforeReturn)
   })
 
   it('reuses modeled rows when first mount has no active sort', async () => {

@@ -586,6 +586,44 @@ interface DataGridDiagnostics {
 }
 ```
 
+列可以声明框架中立的 `cellRenderer`：
+
+```ts
+interface DataGridCellRenderer<
+  TRow,
+  TValue,
+  THandle,
+  TContainer = HTMLElement,
+> {
+  mount(
+    container: TContainer,
+    input: {
+      rowKey: string | number
+      columnId: string
+      row: TRow
+      value: TValue
+    },
+  ): THandle
+  update(
+    handle: THandle,
+    input: {
+      rowKey: string | number
+      columnId: string
+      row: TRow
+      value: TValue
+    },
+  ): void
+  dispose(handle: THandle): void
+}
+```
+
+`row` 是 row data，`value` 是当前列字段值；二者不包含 ReactNode、VNode 或
+框架实例。React/Vue 消费者应通过
+`@zeus-js/output-react-wrapper/renderer` / `@zeus-js/output-vue-wrapper/renderer`
+提供的 adapter 在 grid-owned container 内创建框架 root。可见范围 reconcile
+对稳定 `(rowKey, columnId)` 调用 `update`，renderer/容器变化或离屏时调用
+`dispose`；`virtual: true` 时使用 DOM pooling 保持容器 identity。
+
 `onModelBuild` 报告 model version、row/column 总量、可见列数量、sort state 是否启用、是否直接复用
 row model、row key 索引条目数，以及建模阶段 eager 创建的 row wrapper 数量。
 `onCommit` 报告真实 input event timestamp（无原始输入的 mount/API commit 为 `undefined`）、handler、range

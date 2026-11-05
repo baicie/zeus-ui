@@ -1,7 +1,9 @@
 {
   "extends": "./scripts/config/tsconfig.base.json",
   "compilerOptions": {
+    "target": "ES2022",
     "jsxImportSource": "@zeus-js/zeus",
+    "module": "ESNext",
     "types": ["vitest/globals", "node"],
     "noEmit": true,
     "outDir": "temp",
@@ -21,6 +23,9 @@
     "apps/**/*",
     "apps/docs/.vitepress/**/*",
     "examples/showcase-shared/src/**/*",
+    "examples/ai-host/src/**/*",
+    "examples/ai-host/__tests__/**/*",
+    "examples/ai-workbench/src/**/*",
     "e2e/**/*"
   ],
   "exclude": [

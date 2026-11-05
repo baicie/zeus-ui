@@ -21,7 +21,10 @@ function nextRender(): Promise<void> {
     .then(() => new Promise(resolve => setTimeout(resolve, 0)))
 }
 
-async function createDialog(): Promise<RuntimeDialog> {
+async function createDialog(
+  parent: HTMLElement = document.body,
+  titleText = 'Settings',
+): Promise<RuntimeDialog> {
   await Promise.all([
     customElements.whenDefined('zw-dialog'),
     customElements.whenDefined('zw-dialog-content'),
@@ -31,7 +34,7 @@ async function createDialog(): Promise<RuntimeDialog> {
 
   const dialog = document.createElement('zw-dialog') as RuntimeDialog
   dialog.open = true
-  document.body.append(dialog)
+  parent.append(dialog)
   // Wait for the root projection before adding lazy child elements; otherwise
   // its initial light-DOM render can disconnect them while they are loading.
   await dialog.componentOnReady()
@@ -51,7 +54,7 @@ async function createDialog(): Promise<RuntimeDialog> {
   const title = document.createElement('zw-dialog-title') as HTMLElement & {
     componentOnReady?: () => Promise<unknown>
   }
-  title.textContent = 'Settings'
+  title.textContent = titleText
   const button = document.createElement('button')
   button.textContent = 'Inside'
   content.append(title, button)
@@ -117,5 +120,43 @@ describe('dialog runtime accessibility', () => {
     const overlay = dialog.querySelector('zw-dialog-overlay')
 
     expect(overlay).not.toBeNull()
+  })
+
+  it('keeps focus and Escape scoped to the nested dialog', async () => {
+    const outer = await createDialog(document.body, 'Outer')
+    const outerContent = outer.querySelector<HTMLElement>(
+      '[data-slot="dialog-content"]',
+    )!
+    const nested = await createDialog(outerContent, 'Nested')
+    const nestedContent = nested.querySelector<HTMLElement>(
+      '[data-slot="dialog-content"]',
+    )!
+    const first = nestedContent.querySelector<HTMLButtonElement>('button')!
+    const second = document.createElement('button')
+    second.textContent = 'Second'
+    nestedContent.append(second)
+    await nextRender()
+
+    second.focus()
+    second.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Tab',
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+    expect(document.activeElement).toBe(first)
+
+    first.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Escape',
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+    await nextRender()
+
+    expect(nested.open).toBe(false)
+    expect(outer.open).toBe(true)
   })
 })

@@ -1,7 +1,11 @@
 import type { BrowserType } from '@playwright/test'
 
+import { execFileSync } from 'node:child_process'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import path from 'node:path'
+
 import { chromium, firefox, webkit } from '@playwright/test'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it, onTestFailed } from 'vitest'
 
 const fixtureUrl = 'http://127.0.0.1:5177/'
 
@@ -12,15 +16,44 @@ const browsers: Array<{ name: string; engine: BrowserType }> = [
 ]
 
 const runningBrowsers: Array<Awaited<ReturnType<BrowserType['launch']>>> = []
+const report: Array<{ browser: string; status: string; error?: string }> = []
+
+function writeReport(): void {
+  const output = path.resolve('temp/data-grid-framework-e2e')
+  mkdirSync(output, { recursive: true })
+  writeFileSync(
+    path.join(output, 'report.json'),
+    `${JSON.stringify(
+      {
+        createdAt: new Date().toISOString(),
+        sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], {
+          cwd: process.cwd(),
+          encoding: 'utf8',
+        }).trim(),
+        results: report,
+        passed:
+          report.length === browsers.length &&
+          report.every(entry => entry.status === 'passed'),
+      },
+      null,
+      2,
+    )}\n`,
+  )
+}
 
 afterAll(async () => {
   await Promise.all(runningBrowsers.map(browser => browser.close()))
+  writeReport()
 })
 
 describe.each(browsers)(
   '$name DataGrid framework renderer browser fixture',
-  ({ engine }) => {
+  ({ name, engine }) => {
     it('updates keyed cells, clears framework roots on disconnect, and reconnects', async () => {
+      let failure: string | undefined
+      onTestFailed(error => {
+        failure = String(error)
+      })
       const browser = await engine.launch({ headless: true })
       runningBrowsers.push(browser)
       const page = await browser.newPage()
@@ -94,7 +127,13 @@ describe.each(browsers)(
           vueDisposed: 1,
         })
       } finally {
-        await page.close()
+        try {
+          await page.close()
+        } finally {
+          if (failure)
+            report.push({ browser: name, status: 'failed', error: failure })
+          else report.push({ browser: name, status: 'passed' })
+        }
       }
     })
   },

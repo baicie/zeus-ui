@@ -1,33 +1,7 @@
+import type { DataGridCellRenderer, DataGridCellRendererInput } from '../types'
 import type { DataGridRowKey } from './data-grid-row-key'
 
-/**
- * The framework-neutral payload handed to a cell renderer.
- *
- * This is intentionally internal. A React/Vue adapter owns the framework
- * handle and the grid only owns its visible-cell lifetime.
- */
-export interface DataGridCellRendererInput<TRow = unknown, TValue = unknown> {
-  rowKey: DataGridRowKey
-  columnId: string
-  row: TRow
-  value: TValue
-}
-
-export interface DataGridCellRenderer<
-  TRow = unknown,
-  TValue = unknown,
-  THandle = unknown,
-  TContainer = unknown,
-> {
-  /* eslint-disable ts/method-signature-style -- bivariant handles keep framework-specific adapters assignable. */
-  mount(
-    container: TContainer,
-    input: DataGridCellRendererInput<TRow, TValue>,
-  ): THandle
-  update(handle: THandle, input: DataGridCellRendererInput<TRow, TValue>): void
-  dispose(handle: THandle): void
-  /* eslint-enable ts/method-signature-style */
-}
+export type { DataGridCellRenderer, DataGridCellRendererInput }
 
 export interface DataGridCellRendererSlot<
   TRow = unknown,

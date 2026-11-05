@@ -7,6 +7,9 @@ import { createZeusPeerRequirement } from '../../release/zeus-peer-requirement'
 
 const DEFAULT_EXPECTED_ZEUS_VERSION = '0.1.1-beta.20'
 const ZEUS_SCOPE = '@zeus-js/'
+const INDEPENDENT_PACKAGE_VERSIONS: Readonly<Record<string, string>> = {
+  '@zeus-js/vite-plugin': '0.0.5',
+}
 
 const DEP_FIELDS = [
   'dependencies',
@@ -133,7 +136,9 @@ function checkPackageJsons(options: {
           continue
         }
 
-        if (actual !== expectedVersion) {
+        const allowedVersion =
+          INDEPENDENT_PACKAGE_VERSIONS[dependencyName] ?? expectedVersion
+        if (actual !== allowedVersion) {
           problems.push({
             type: 'zeus-version-mismatch',
             file: relFile,
@@ -141,7 +146,7 @@ function checkPackageJsons(options: {
             field,
             dependencyName,
             actual,
-            expected: expectedVersion,
+            expected: allowedVersion,
           })
         }
 
@@ -175,7 +180,9 @@ function checkPackageJsons(options: {
           continue
         }
 
-        if (actual !== expectedVersion) {
+        const allowedVersion =
+          INDEPENDENT_PACKAGE_VERSIONS[dependencyName] ?? expectedVersion
+        if (actual !== allowedVersion) {
           problems.push({
             type: 'zeus-version-mismatch',
             file: relFile,
@@ -183,7 +190,7 @@ function checkPackageJsons(options: {
             field,
             dependencyName,
             actual,
-            expected: expectedVersion,
+            expected: allowedVersion,
           })
         }
       }

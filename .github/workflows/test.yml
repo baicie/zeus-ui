@@ -113,6 +113,12 @@ jobs:
         run: |
           pnpm exec tsc -p e2e/advanced/data-grid/framework-renderer/tsconfig.json
           pnpm data-grid:framework-e2e
+      - name: Preserve DataGrid renderer report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-grid-framework-e2e
+          path: temp/data-grid-framework-e2e/report.json
 
   unit-test-windows:
     runs-on: windows-latest

@@ -99,7 +99,9 @@ export function getTimelineParts(
 
   return {
     root: part({
-      role: 'feed',
+      // An empty feed has no required `article` child. Use a status landmark
+      // until there is at least one message, which keeps the label valid.
+      role: total > 0 ? 'feed' : 'status',
       'aria-label': options.label,
       'aria-busy': ariaBool(options.busy),
       'data-following': view.following ? '' : undefined,

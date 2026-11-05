@@ -31,6 +31,8 @@ export interface AiHostAdapter {
     streamId: string,
     afterSeq: number,
     signal?: AbortSignal,
+    /** Fires once the transport has an open, authenticated stream. */
+    onOpen?: () => void,
   ) => AsyncIterable<AnyDomainEvent>
   getSnapshot: (
     scope: SnapshotScope,

@@ -6,6 +6,7 @@ import type {
   DataGridRowCollection,
   DataGridRowModel,
 } from '../core'
+import type { DataGridCellRendererSlot } from '../core/cell-renderer-adapter'
 import type {
   DataGridActiveCell,
   DataGridActiveCellChangeDetail,
@@ -92,6 +93,7 @@ import {
   shouldUpdateDataGridVirtualSnapshot,
   sortDataGridRowCollection,
 } from '../core'
+import { createDataGridCellRendererAdapter } from '../core/cell-renderer-adapter'
 import {
   createDataGridControlledStateTracker,
   DataGridControlledStateChange,
@@ -420,6 +422,12 @@ function setup(
   let disableHeaderColumnPoolingForCurrentRange = false
   let disableBodyColumnPoolingForCurrentRange = false
   let preserveScheduledHeaderFocusForDataRebuild = false
+  const cellRendererAdapter = createDataGridCellRendererAdapter<
+    DataGridRowData,
+    unknown,
+    HTMLElement
+  >()
+  let cellRendererReconcileQueued = false
 
   const fallbackRows: DataGridRowData[] = []
   const fallbackColumns: DataGridColumn[] = []
@@ -679,6 +687,54 @@ function setup(
     )
   }
 
+  const reconcileCellRenderers = (): void => {
+    if (!viewport) return
+
+    const slots: DataGridCellRendererSlot<
+      DataGridRowData,
+      unknown,
+      HTMLElement
+    >[] = []
+
+    for (const rowItem of currentSnapshot.items) {
+      const row = rowItem.data
+      if (!row) continue
+
+      for (const columnItem of currentColumnSnapshot.items) {
+        const renderer = columnItem.data.cellRenderer
+        if (!renderer) continue
+
+        const container = queryCell(
+          row.key,
+          columnItem.data.id,
+        )?.querySelector<HTMLElement>('[data-slot="data-grid-cell-content"]')
+        if (!container) continue
+
+        slots.push({
+          container,
+          renderer,
+          input: {
+            rowKey: row.key,
+            columnId: columnItem.data.id,
+            row: row.data,
+            value: getDataGridCellValue(row, columnItem.data.field),
+          },
+        })
+      }
+    }
+
+    cellRendererAdapter.reconcile(slots)
+  }
+
+  const scheduleCellRendererReconcile = (): void => {
+    if (cellRendererReconcileQueued) return
+    cellRendererReconcileQueued = true
+    queueMicrotask(() => {
+      cellRendererReconcileQueued = false
+      reconcileCellRenderers()
+    })
+  }
+
   const focusCellElement = (rowKey: DataGridRowKey, columnId: string): void => {
     queryCell(rowKey, columnId)?.focus()
   }
@@ -686,7 +742,13 @@ function setup(
   const focusActiveCellElement = (): void => {
     if (!activeCell) return
 
-    focusCellElement(activeCell.rowKey, activeCell.columnId)
+    const cell = queryCell(activeCell.rowKey, activeCell.columnId)
+    if (!cell) return
+
+    const activeElement = cell.ownerDocument.activeElement
+    if (activeElement && cell.contains(activeElement)) return
+
+    cell.focus()
   }
 
   const isActiveCellElementFocused = (): boolean => {
@@ -791,6 +853,14 @@ function setup(
 
   const hasFocusedBodyDescendant = (): boolean => {
     return getFocusedViewportState().body
+  }
+
+  const hasFocusedCustomCellRenderer = (): boolean => {
+    const activeElement = viewport?.ownerDocument.activeElement
+    const cell = activeElement?.closest<HTMLElement>(
+      '[data-slot="data-grid-cell"]',
+    )
+    return Boolean(cell?.querySelector('[data-slot="data-grid-cell-content"]'))
   }
 
   const getFocusedHeaderTarget = (): FocusedDataGridHeaderTarget | undefined =>
@@ -1422,10 +1492,17 @@ function setup(
       headerFocusScheduler.cancel()
     }
 
-    disableRowPoolingForCurrentRange = hasFocusedBodyForCurrentRange
+    const preserveCustomRendererFocus =
+      source === 'data' &&
+      hasFocusedBodyForCurrentRange &&
+      hasFocusedCustomCellRenderer()
+
+    disableRowPoolingForCurrentRange =
+      hasFocusedBodyForCurrentRange && !preserveCustomRendererFocus
     disableHeaderColumnPoolingForCurrentRange =
       focusedHeaderTarget !== undefined
-    disableBodyColumnPoolingForCurrentRange = hasFocusedBodyForCurrentRange
+    disableBodyColumnPoolingForCurrentRange =
+      hasFocusedBodyForCurrentRange && !preserveCustomRendererFocus
 
     preserveFocusedBodyDomPoolForCurrentRange = false
 
@@ -1513,6 +1590,7 @@ function setup(
       updateColumnSnapshotIfChanged(nextColumnSnapshot)
     })
     const signalPublishEndTime = commitObserver ? getDiagnosticTime() : 0
+    scheduleCellRendererReconcile()
     if (source === 'data') {
       if (hasFocusedBodyForCurrentRange) focusScheduler.flush()
       if (focusedHeaderTarget) headerFocusScheduler.flush()
@@ -1638,6 +1716,7 @@ function setup(
   const hostAdapter = createDataGridHostAdapter({
     viewportController,
     scheduler,
+    renderer: cellRendererAdapter,
   })
 
   const beginDiagnosticsNodeChurn = (): boolean => {
@@ -2881,14 +2960,22 @@ function setup(
                         )
                       }}
                     >
-                      <DataGridCellValue
-                        read={() =>
-                          getDataGridCellValue(
-                            rowItem.data,
-                            columnItem.data.field,
-                          )
-                        }
-                      />
+                      {columnItem.data.cellRenderer ? (
+                        <div
+                          part="cell-content"
+                          data-slot="data-grid-cell-content"
+                          style={{ display: 'contents' }}
+                        />
+                      ) : (
+                        <DataGridCellValue
+                          read={() =>
+                            getDataGridCellValue(
+                              rowItem.data,
+                              columnItem.data.field,
+                            )
+                          }
+                        />
+                      )}
                     </div>
                   )}
                 </For>
