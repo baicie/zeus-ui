@@ -1,7 +1,13 @@
-import type { DataGridCellRenderer, DataGridCellRendererInput } from '../types'
+import type {
+  DataGridCellRenderer,
+  DataGridCellRendererInput,
+} from './cell-renderer-types'
 import type { DataGridRowKey } from './data-grid-row-key'
 
-export type { DataGridCellRenderer, DataGridCellRendererInput }
+export type {
+  DataGridCellRenderer,
+  DataGridCellRendererInput,
+} from './cell-renderer-types'
 
 export interface DataGridCellRendererSlot<
   TRow = unknown,

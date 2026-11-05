@@ -1,4 +1,8 @@
 import type { VirtualItem, VirtualRange } from '@zeus-web/virtual'
+import type {
+  DataGridCellRenderer as CoreDataGridCellRenderer,
+  DataGridCellRendererInput as CoreDataGridCellRendererInput,
+} from './core/cell-renderer-types'
 import type { DataGridRowKey } from './core/data-grid-row-key'
 
 export type DataGridCellValue =
@@ -13,31 +17,17 @@ export type DataGridRowData = Record<string, unknown>
 
 export type DataGridColumnAlign = 'start' | 'center' | 'end'
 
-export interface DataGridCellRendererInput<
+export type DataGridCellRendererInput<
   TRow = DataGridRowData,
   TValue = unknown,
-> {
-  rowKey: DataGridRowKey
-  columnId: string
-  row: TRow
-  value: TValue
-}
+> = CoreDataGridCellRendererInput<TRow, TValue>
 
-export interface DataGridCellRenderer<
+export type DataGridCellRenderer<
   TRow = DataGridRowData,
   TValue = unknown,
   THandle = unknown,
   TContainer = HTMLElement,
-> {
-  /* eslint-disable ts/method-signature-style -- bivariant handles keep framework-specific adapters assignable. */
-  mount(
-    container: TContainer,
-    input: DataGridCellRendererInput<TRow, TValue>,
-  ): THandle
-  update(handle: THandle, input: DataGridCellRendererInput<TRow, TValue>): void
-  dispose(handle: THandle): void
-  /* eslint-enable ts/method-signature-style */
-}
+> = CoreDataGridCellRenderer<TRow, TValue, THandle, TContainer>
 
 export type DataGridSortDirection = 'asc' | 'desc'
 
