@@ -2,7 +2,7 @@
 
 依据：Zeus 0.2.0 Full-Platform Design Kit v1.0（`zeus-ui` 切片 PR-02、24、25、26、
 32、33、35、37）。本仓工作分支：`codex/ai-headless-ci-gates`，基于 `main@7cab4ab`；
-当前本地提交 `da286ba`，工作树干净。
+当前本地提交 `4f15398`，工作树干净。
 
 状态：`完成` 有代码、测试或浏览器证据；`部分` 写明缺口；`未执行` 写明原因。
 
@@ -55,8 +55,9 @@ DataGrid 公开 `columns[].cellRenderer` 已接入生产渲染路径：普通 DO
 
 ## 2026-11-05 收口复核
 
-本地集成已提交为 `da286ba`。本机 Node 22.12 下 `check`、`lint`、`format-check` 通过；
-带 `--experimental-sqlite` 的 Node 单测 134 文件 / 1060 项通过；`data-grid:framework-e2e`
-三引擎 3/3 通过；`check:ai-workbench` 三引擎通过。联合门禁现绑定报告 HEAD 并校验 HTTPS
-唯一 URL；真实 `release:joint-readiness` 的本地报告检查全部通过，仅剩 `clean-worktrees`
-（Core 的 `Cargo.toml`）、人工 A11y、Win/Linux、联合发布审批与四个线上 URL。
+本地集成已提交为 `da286ba`，其后 CI 修复提交为 `47751c0`（cell renderer 类型与组件 JSX
+隔离）和 `4f15398`（Windows 清理前关闭 AI Host）。本机 Node 22.12 下 `check`、`lint`、
+`format-check` 通过；带 `--experimental-sqlite` 的 Node 单测 134 文件 / 1060 项通过；
+`data-grid:framework-e2e` 三引擎 3/3 通过；`check:ai-workbench` 三引擎通过。联合门禁现绑定
+报告 HEAD 并校验 HTTPS 唯一 URL；真实 `release:joint-readiness` 的本地报告检查全部通过，
+仅剩 `clean-worktrees`（Core 的 `Cargo.toml`）、人工 A11y、Win/Linux、联合发布审批与四个线上 URL。
