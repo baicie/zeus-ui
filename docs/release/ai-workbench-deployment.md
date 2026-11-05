@@ -42,7 +42,8 @@ docker compose up -d --build
 compose 启动：
 
 - `ai-host`：Node 24，非 root，SQLite 与 workspace 位于 `/data` 卷，健康检查
-  `/health`，只允许 `ZEUS_AI_ORIGINS` 中的来源。
+  `/health`，只允许 `ZEUS_AI_ORIGINS` 中的来源。`ZEUS_AI_WORKSPACE_ID` 必须
+  等于验收租户 id，在线验收会把它与 `--tenant` 比对。
 - `ai-workbench`：nginx 静态外壳，`/ai-host/` 反向代理到 `ai-host:8788`，
   SSE 关闭 buffering，端口 8083。
 
@@ -64,8 +65,17 @@ pnpm check:ai-workbench
 真实部署后由 Core 的独立验收器执行：
 
 ```bash
-pnpm check:deployment-acceptance --manifest temp/release/deployment.json
+ZEUS_ACCEPTANCE_AI_REPLAY=true \
+ZEUS_ACCEPTANCE_TENANT=acceptance-2026-11-05 \
+  pnpm check:deployment-acceptance \
+    --manifest temp/release/deployment.json \
+    --provenance temp/release/provenance.json \
+    --write-mode isolated \
+    --tenant acceptance-2026-11-05
 ```
+
+AI Workbench 的 `build-info.json` 必须与 CI provenance 的 artifact digest 和
+manifest 一致；镜像以 `@sha256:...` 固定。
 
 AI Workbench 的 manifest commit 必须是 UI commit，而不是 Core commit。
 验收器会真正加载页面、发送一条消息并确认它进入时间线；只有全部产品通过
