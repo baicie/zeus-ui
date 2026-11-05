@@ -1,3 +1,4 @@
+/* eslint-disable style/quote-props -- Prettier unquotes non-hyphenated keys. */
 // Build metadata for the AI Workbench image. Keep the algorithm identical to
 // the Core scripts/release/build-info.ts so CI provenance can verify it.
 import { createHash } from 'node:crypto'
@@ -16,7 +17,10 @@ const { values } = parseArgs({
   },
 })
 
-const products = (values.product ?? '').split(',').map(value => value.trim()).filter(Boolean)
+const products = (values.product ?? '')
+  .split(',')
+  .map(value => value.trim())
+  .filter(Boolean)
 for (const [name, value] of [
   ['product', products.length > 0],
   ['dist', values.dist],
@@ -29,13 +33,16 @@ for (const [name, value] of [
 
 const dist = path.resolve(values.dist)
 const files = []
-const walk = (directory, prefix) => {
+function walk(directory, prefix) {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
     const relative = prefix ? `${prefix}/${entry.name}` : entry.name
-    if (relative === 'build-info.json') continue
+    if (relative === 'build-info.json') {
+      continue
+    }
     const absolute = path.join(directory, entry.name)
-    if (entry.isDirectory()) walk(absolute, relative)
-    else if (entry.isFile()) {
+    if (entry.isDirectory()) {
+      walk(absolute, relative)
+    } else if (entry.isFile()) {
       const content = fs.readFileSync(absolute)
       files.push({
         path: relative,
@@ -59,5 +66,8 @@ const info = {
   artifactDigest: `sha256:${hash.digest('hex')}`,
   files,
 }
-fs.writeFileSync(path.join(dist, 'build-info.json'), `${JSON.stringify(info, null, 2)}\n`)
+fs.writeFileSync(
+  path.join(dist, 'build-info.json'),
+  `${JSON.stringify(info, null, 2)}\n`,
+)
 console.log(`build-info ${info.products.join(',')}: ${info.artifactDigest}`)
