@@ -89,6 +89,10 @@ describe('aI reference host protocol', () => {
     expect(resumed instanceof Response || resumed instanceof Error).toBe(true)
     const replay = await fetch(`${second.origin}/snapshots?streamId=reference`)
     expect((await replay.json()).events.length).toBeGreaterThan(0)
+    // Windows cannot remove a directory while SQLite still holds the database
+    // handle, so close the restarted host before cleaning up the fixture.
+    await second.close()
+    running.splice(running.indexOf(second), 1)
     rmSync(directory, { recursive: true, force: true })
   })
 
