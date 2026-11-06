@@ -53,4 +53,23 @@ Compose 拓扑：AI Host 仅 `expose: 8788`，Workbench 绑定
   故障注入；不得宣称已通过容量/DoS 验收。
 - `ZEUS_ACCEPTANCE_AI_REPLAY` 仍只是旧验收脚本开关，不是安全边界；安全边界
   是 Bearer Token + tenant/role + workspace 隔离。
-- 未执行 Docker image build；Compose 配置与 nginx 模板已检查。
+- Docker image build 与容器栈已执行；真实公网 8443/TLS 仍未执行。
+
+## Docker / 容器验证（本地）
+
+```text
+zeus-ai-host:r42       sha256:f87a6848eb72...
+zeus-ai-workbench:r42  sha256:87888ddeaca22608caf6a5ea00e1cd0763aa9e07cac16bc867741695a2dde4e5
+ai-host: internal 8788, healthy
+ai-workbench: 127.0.0.1:18083 -> 80
+```
+
+- Workbench nginx 模板通过 `ZEUS_AI_UPSTREAM_TOKEN` 在服务端注入
+  `Authorization: Bearer ...`；浏览器和 Node 测试请求不带 Token。
+- `GET /ai-host/workspace` 经 Workbench nginx 返回 200，证明注入链路生效；
+  Host 本身没有发布端口。
+- Chromium 容器 E2E：SSE 消息、changeset propose、approval resolve、workspace
+  写入 `notes/workbench.txt`、test-report 全部通过；无页面错误。
+- AI Host 容器启动时 `/health` 正常且 `ZEUS_AI_TOKENS` 缺失/为空会导致
+  authenticated endpoints 401（compose 用 `:?` 强制要求 Token）。
+- 该栈只绑定 loopback，用于 Host Validation 预演，未增加公网服务。
