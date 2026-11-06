@@ -29,6 +29,7 @@ ARG ZEUS_UI_COMMIT
 ARG ZEUS_VERSION
 LABEL org.opencontainers.image.revision=$ZEUS_UI_COMMIT \
   org.opencontainers.image.version=$ZEUS_VERSION
-COPY examples/ai-workbench/deploy/nginx.conf /etc/nginx/conf.d/default.conf
+COPY examples/ai-workbench/deploy/nginx.conf /etc/nginx/templates/default.conf.template
+ENV NGINX_ENVSUBST_FILTER=ZEUS_AI_UPSTREAM_TOKEN
 COPY --from=build /app/examples/ai-workbench/dist /usr/share/nginx/html
 EXPOSE 80

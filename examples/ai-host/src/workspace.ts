@@ -1,12 +1,25 @@
 import { Buffer } from 'node:buffer'
-import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { createHash, randomUUID } from 'node:crypto'
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from 'node:fs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
 export interface WorkspaceRoot {
   readonly id: string
   readonly root: string
+  /** Replay/demo only; live workspaces must require an independent approver. */
+  readonly allowSelfApproval?: boolean
+}
+
+export interface WorkspaceActor {
+  readonly userId: string
+  readonly role?: string
 }
 
 export interface PendingApproval {
@@ -15,6 +28,11 @@ export interface PendingApproval {
   readonly revision: number
   readonly title: string
   readonly summary: string
+  readonly workspaceId: string
+  readonly requestedBy: string
+  readonly createdAt: string
+  readonly resolvedBy?: string
+  readonly resolvedAt?: string
   readonly files: readonly {
     readonly path: string
     readonly content: string
@@ -35,16 +53,19 @@ export interface ProtectedWorkspace {
   readonly displayName: string
   propose: (
     files: readonly { path: string; content: string }[],
+    requestedBy?: string,
   ) => PendingApproval
   approve: (
     id: string,
     revision: number,
     approved: boolean,
+    approver?: WorkspaceActor,
   ) => Promise<ApprovalOutcome>
   resolve: (
     id: string,
     revision: number,
     decision: 'approved' | 'rejected',
+    approver?: WorkspaceActor,
   ) => Promise<ApprovalOutcome>
   pending: () => readonly PendingApproval[]
   snapshot: () => Promise<readonly { path: string; digest: string }[]>
@@ -52,14 +73,17 @@ export interface ProtectedWorkspace {
 
 const MAX_FILE_BYTES = 128 * 1024
 const MAX_FILES = 16
+const APPROVAL_FILE = '.zeus-approvals.json'
+const MAX_APPROVAL_RECORDS = 1_000
 
 export function createProtectedWorkspace(
   options: WorkspaceRoot,
 ): ProtectedWorkspace {
   const root = path.resolve(options.root)
-  fs.mkdir(root, { recursive: true }).catch(() => undefined)
-  const approvals = new Map<string, PendingApproval>()
-  let approvalCounter = 0
+  mkdirSync(root, { recursive: true })
+  const approvalFile = path.join(root, APPROVAL_FILE)
+  const approvals = loadApprovals(approvalFile)
+  const allowSelfApproval = options.allowSelfApproval === true
 
   function safePath(relative: string): string {
     if (
@@ -81,10 +105,21 @@ export function createProtectedWorkspace(
     return absolute
   }
 
+  function persist(): void {
+    const values = [...approvals.values()]
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+      .slice(-MAX_APPROVAL_RECORDS)
+    const temporary = `${approvalFile}.tmp`
+    writeFileSync(temporary, `${JSON.stringify(values, null, 2)}\n`, {
+      mode: 0o600,
+    })
+    renameSync(temporary, approvalFile)
+  }
+
   return {
     id: options.id,
     displayName: path.basename(root),
-    propose(files) {
+    propose(files, requestedBy = 'unknown') {
       if (files.length === 0 || files.length > MAX_FILES) {
         throw new Error('ZEUS_AI_WORKSPACE_BATCH')
       }
@@ -94,13 +129,16 @@ export function createProtectedWorkspace(
           throw new Error('ZEUS_AI_WORKSPACE_FILE_SIZE')
         }
       }
-      const id = `approval-${++approvalCounter}`
+      const id = `approval-${randomUUID()}`
       const approval: PendingApproval = {
         id,
-        executionId: `execution-${approvalCounter}`,
+        executionId: `execution-${randomUUID()}`,
         revision: 1,
         title: 'Apply workspace changes',
         summary: `Write ${files.length} file(s) under ${options.id}`,
+        workspaceId: options.id,
+        requestedBy,
+        createdAt: new Date().toISOString(),
         files: files.map(file => {
           let previous = ''
           try {
@@ -113,12 +151,18 @@ export function createProtectedWorkspace(
         status: 'pending',
       }
       approvals.set(id, approval)
+      persist()
       return approval
     },
-    async approve(id, revision, approved) {
-      return this.resolve(id, revision, approved ? 'approved' : 'rejected')
+    async approve(id, revision, approved, approver) {
+      return this.resolve(
+        id,
+        revision,
+        approved ? 'approved' : 'rejected',
+        approver,
+      )
     },
-    async resolve(id, revision, decision) {
+    async resolve(id, revision, decision, approver) {
       const approval = approvals.get(id)
       if (!approval) {
         return {
@@ -141,12 +185,29 @@ export function createProtectedWorkspace(
           message: 'Approval revision is stale.',
         }
       }
+      if (!approver || approver.userId.length === 0) {
+        return {
+          ok: false,
+          code: 'ZEUS_AI_APPROVAL_IDENTITY',
+          message: 'An authenticated approver is required.',
+        }
+      }
+      if (!allowSelfApproval && approver.userId === approval.requestedBy) {
+        return {
+          ok: false,
+          code: 'ZEUS_AI_APPROVAL_SELF',
+          message: 'The proposer cannot approve their own changeset.',
+        }
+      }
       if (decision === 'rejected') {
         approvals.set(id, {
           ...approval,
           status: 'rejected',
           revision: revision + 1,
+          resolvedBy: approver.userId,
+          resolvedAt: new Date().toISOString(),
         })
+        persist()
         return { ok: true, status: 'rejected' }
       }
       const staged: Array<{ absolute: string; content: string }> = []
@@ -163,7 +224,10 @@ export function createProtectedWorkspace(
         ...approval,
         status: 'approved',
         revision: revision + 1,
+        resolvedBy: approver.userId,
+        resolvedAt: new Date().toISOString(),
       })
+      persist()
       return { ok: true, status: 'applied' }
     },
     pending() {
@@ -193,4 +257,27 @@ export function createProtectedWorkspace(
       return result.sort((left, right) => left.path.localeCompare(right.path))
     },
   }
+}
+
+function loadApprovals(file: string): Map<string, PendingApproval> {
+  const approvals = new Map<string, PendingApproval>()
+  if (!existsSync(file)) return approvals
+  try {
+    const value = JSON.parse(readFileSync(file, 'utf8')) as unknown
+    if (!Array.isArray(value)) return approvals
+    for (const entry of value) {
+      if (
+        entry &&
+        typeof entry === 'object' &&
+        typeof (entry as PendingApproval).id === 'string' &&
+        typeof (entry as PendingApproval).revision === 'number' &&
+        Array.isArray((entry as PendingApproval).files)
+      ) {
+        approvals.set((entry as PendingApproval).id, entry as PendingApproval)
+      }
+    }
+  } catch {
+    throw new Error('ZEUS_AI_APPROVAL_CORRUPT')
+  }
+  return approvals
 }
