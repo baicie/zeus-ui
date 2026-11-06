@@ -73,3 +73,19 @@ ai-workbench: 127.0.0.1:18083 -> 80
 - AI Host 容器启动时 `/health` 正常且 `ZEUS_AI_TOKENS` 缺失/为空会导致
   authenticated endpoints 401（compose 用 `:?` 强制要求 Token）。
 - 该栈只绑定 loopback，用于 Host Validation 预演，未增加公网服务。
+
+## 独立域名 Host Validation（公网，只读演示）
+
+- 域名：`https://ai.moonbyte.top:8443`，Cloudflare DNS-only A 记录指向
+  `82.156.234.84`；Let's Encrypt 证书 SAN 覆盖 `admin.moonbyte.top` /
+  `ai.moonbyte.top`；Caddy 终止 TLS，转 `127.0.0.1:18091`。
+- 公网 Workbench 使用 **viewer-only** token，由 nginx 在服务端注入；浏览器
+  不带 Token。实测：`/ai-host/workspace` 200，`message.send` 200，
+  `changeset.propose` 403，workspace 文件保持为空（未出现测试写入）。
+- 因此公网 AI 是只读 replay demo：可以聊天/SSE，不能匿名写真实 workspace
+  或审批；完整 approval/write 演示只在本地 admin-token 容器栈验证。
+- AI Host 容器仍无公网端口；Workbench 才暴露 8443。HSTS 已在 dedicated
+  hostname 上启用。
+- 当前镜像是从 AI PR 分支构建的 `zeus-ai-host:r42-deploy` /
+  `zeus-ai-workbench:r42-deploy`（UI commit `bbcdfcb`），不是 UI main merge
+  commit；合并 #123 后应从 main 重建。
