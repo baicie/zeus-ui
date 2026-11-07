@@ -148,7 +148,10 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
     }
 
     if (url.pathname === '/health' && method === 'GET') {
-      sendJson(response, 200, { ok: true })
+      sendJson(response, 200, {
+        ok: true,
+        workspace: states.keys().next().value ?? 'reference',
+      })
       return
     }
 
