@@ -10,7 +10,59 @@
  */
 import type { HostDatabase, PersistentHost } from './store'
 
+import fs from 'node:fs'
+import path from 'node:path'
+
 export const PUBLIC_REPLAY_SEED_VERSION = 'public-replay-v1'
+const PUBLIC_REPLAY_DIR = 'public-replay'
+
+export interface PublicReplayRoot {
+  readonly workspaceRoot: string
+  readonly root: string
+  readonly seedVersion: string
+}
+
+/**
+ * Public replay never deletes the configured workspace root. Each seed version
+ * gets its own generation directory under `<workspace>/public-replay/<seed>`,
+ * so a version bump cannot recursively delete valuable files and a failed
+ * start leaves the previous generation intact.
+ */
+export function resolvePublicReplayRoot(
+  workspaceRoot: string,
+  seedVersion = PUBLIC_REPLAY_SEED_VERSION,
+): PublicReplayRoot {
+  if (!path.isAbsolute(workspaceRoot)) {
+    throw new Error('public replay workspace root must be absolute')
+  }
+  const absolute = path.resolve(workspaceRoot)
+  if (absolute === '/' || absolute === '/data') {
+    throw new Error('public replay workspace root is too broad')
+  }
+  fs.mkdirSync(absolute, { recursive: true, mode: 0o700 })
+  const stat = fs.lstatSync(absolute)
+  if (stat.isSymbolicLink() || !stat.isDirectory()) {
+    throw new Error('public replay workspace root must be a real directory')
+  }
+  const realWorkspace = fs.realpathSync(absolute)
+  if (realWorkspace === '/' || realWorkspace === '/data') {
+    throw new Error('public replay workspace root is too broad')
+  }
+  const root = path.join(realWorkspace, PUBLIC_REPLAY_DIR, seedVersion)
+  if (!root.startsWith(`${realWorkspace}${path.sep}`)) {
+    throw new Error('public replay generation escapes the workspace root')
+  }
+  fs.mkdirSync(root, { recursive: true, mode: 0o700 })
+  const statRoot = fs.lstatSync(root)
+  if (statRoot.isSymbolicLink() || !statRoot.isDirectory()) {
+    throw new Error('public replay generation must be a real directory')
+  }
+  const realRoot = fs.realpathSync(root)
+  if (!realRoot.startsWith(`${realWorkspace}${path.sep}`)) {
+    throw new Error('public replay generation escapes the workspace root')
+  }
+  return { workspaceRoot: realWorkspace, root: realRoot, seedVersion }
+}
 
 export function resetPublicReplayDatabase(
   database: HostDatabase,

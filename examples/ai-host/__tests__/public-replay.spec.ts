@@ -5,12 +5,14 @@ import {
   mkdirSync,
   mkdtempSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
+import { resolvePublicReplayRoot } from '../src/public-replay'
 import { startAiHost } from '../src/server'
 
 const VIEWER_A = 'viewer-a-token-0123456789'
@@ -365,7 +367,40 @@ describe('public replay isolation', () => {
     const body = await snapshot()
     expect(JSON.stringify(body)).not.toContain('legacy-visitor-secret')
     expect(body.events.length).toBe(3)
-    expect(existsSync(path.join(legacyWorkspace, 'visitor.txt'))).toBe(false)
+    expect(existsSync(path.join(legacyWorkspace, 'visitor.txt'))).toBe(true)
+  })
+
+  it('uses isolated generation directories and never deletes the workspace root', () => {
+    const workspace = directory()
+    const v1 = resolvePublicReplayRoot(workspace, 'v1')
+    expect(v1.root).toBe(path.join(workspace, 'public-replay', 'v1'))
+    writeFileSync(path.join(v1.root, 'important.txt'), 'keep me')
+    const v2 = resolvePublicReplayRoot(workspace, 'v2')
+    expect(v2.root).not.toBe(v1.root)
+    expect(existsSync(path.join(v1.root, 'important.txt'))).toBe(true)
+    expect(existsSync(path.join(v2.root, 'important.txt'))).toBe(false)
+  })
+
+  it('rejects broad roots and symlink escapes', () => {
+    expect(() => resolvePublicReplayRoot('/', 'v1')).toThrow('too broad')
+    expect(() => resolvePublicReplayRoot('/data', 'v1')).toThrow('too broad')
+    const root = directory()
+    const real = path.join(root, 'real')
+    mkdirSync(real)
+    const link = path.join(root, 'link')
+    symlinkSync(real, link)
+    expect(() => resolvePublicReplayRoot(link, 'v1')).toThrow(
+      'must be a real directory',
+    )
+    const workspace = path.join(root, 'workspace')
+    mkdirSync(workspace)
+    mkdirSync(path.join(workspace, 'public-replay'))
+    const other = path.join(root, 'other')
+    mkdirSync(other)
+    symlinkSync(other, path.join(workspace, 'public-replay', 'v1'))
+    expect(() => resolvePublicReplayRoot(workspace, 'v1')).toThrow(
+      'must be a real directory',
+    )
   })
 
   it('enforces per-IP SSE and request limits behind the proxy', async () => {
