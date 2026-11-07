@@ -46,6 +46,10 @@ export interface HostDatabase {
     idempotencyKey: string,
   ) => { command: Command; ack: CommandAck } | undefined
   latestSeq: (streamId: string) => number
+  getMeta: (key: string) => string | undefined
+  setMeta: (key: string, value: string) => void
+  /** Deletes every replay event and command; used by the public seed reset. */
+  clearReplay: () => void
   close: () => void
 }
 
@@ -69,6 +73,10 @@ export function openHostDatabase(file: string): HostDatabase {
       command TEXT NOT NULL,
       ack TEXT NOT NULL,
       created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS meta (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
     );
   `)
   return {
@@ -130,6 +138,27 @@ export function openHostDatabase(file: string): HostDatabase {
         .prepare('SELECT MAX(seq) AS seq FROM events WHERE stream_id = ?')
         .get(streamId) as { seq: number | null }
       return row.seq ?? 0
+    },
+    getMeta(key) {
+      const row = db
+        .prepare('SELECT value FROM meta WHERE key = ?')
+        .get(key) as { value: string } | undefined
+      return row?.value
+    },
+    setMeta(key, value) {
+      db.prepare(
+        'INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      ).run(key, value)
+    },
+    clearReplay() {
+      db.exec('BEGIN')
+      try {
+        db.exec('DELETE FROM events; DELETE FROM commands;')
+        db.exec('COMMIT')
+      } catch (error) {
+        db.exec('ROLLBACK')
+        throw error
+      }
     },
     close: () => db.close(),
   }
@@ -268,9 +297,17 @@ export function createPersistentHost(
       return iterate()
     },
     getSnapshot(scope: SnapshotScope): Promise<HostSnapshotPayload> {
-      void scope
-      const events = database.events(streamId)
-      return Promise.resolve(buildHostSnapshot(streamId, events))
+      const id =
+        scope &&
+        typeof scope === 'object' &&
+        'kind' in scope &&
+        scope.kind === 'stream' &&
+        'id' in scope &&
+        typeof scope.id === 'string'
+          ? scope.id
+          : streamId
+      const events = database.events(id)
+      return Promise.resolve(buildHostSnapshot(id, events))
     },
     close(): void {
       disposed = true

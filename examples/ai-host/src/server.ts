@@ -1,9 +1,14 @@
 import type { AiTokenConfig, AiTokenRecord } from './auth'
+import { mkdirSync, rmSync } from 'node:fs'
 import path from 'node:path'
 
 import process from 'node:process'
 import { parseAiTokens, tokenRecordsFromConfig } from './auth'
 import { createAiHostServer } from './protocol-server'
+import {
+  resetPublicReplayDatabase,
+  seedPublicReplayConversation,
+} from './public-replay'
 import { createPersistentHost, openHostDatabase } from './store'
 import { createProtectedWorkspace } from './workspace'
 
@@ -22,6 +27,10 @@ export interface StartAiHostOptions {
   readonly tokens?: readonly AiTokenConfig[]
   readonly tenants?: readonly AiTenantConfig[]
   readonly mode?: 'live' | 'replay'
+  readonly publicReplay?: boolean
+  readonly allowedStreams?: readonly string[]
+  readonly trustProxy?: boolean
+  readonly maxSseClientsPerIp?: number
   readonly maxRequestsPerMinute?: number
   readonly maxSseClientsPerTenant?: number
   readonly maxAssetsPerTenant?: number
@@ -32,6 +41,10 @@ export interface StartAiHostOptions {
 export async function startAiHost(options: StartAiHostOptions = {}) {
   const mode =
     options.mode ?? (process.env.ZEUS_AI_MODE === 'live' ? 'live' : 'replay')
+  const publicReplay =
+    options.publicReplay ?? process.env.ZEUS_AI_PUBLIC_REPLAY === 'true'
+  const trustProxy =
+    options.trustProxy ?? process.env.ZEUS_AI_TRUST_PROXY === 'true'
   const tokens = resolveTokens(options.tokens)
   const tenantConfigs = resolveTenants(options)
   const runtimes = new Map<
@@ -44,12 +57,23 @@ export async function startAiHost(options: StartAiHostOptions = {}) {
   >()
   for (const tenant of tenantConfigs) {
     const database = openHostDatabase(tenant.databaseFile)
+    if (publicReplay) {
+      const reset = resetPublicReplayDatabase(database)
+      if (reset) {
+        // A writable deployment may have left visitor files or approvals in
+        // the shared workspace. The public demo starts from a clean root.
+        rmSync(tenant.workspaceRoot, { recursive: true, force: true })
+        mkdirSync(tenant.workspaceRoot, { recursive: true, mode: 0o700 })
+      }
+    }
+    const host = createPersistentHost({ database, streamId: 'reference' })
+    if (publicReplay) seedPublicReplayConversation(host)
     const runtime = {
-      host: createPersistentHost({ database, streamId: 'reference' }),
+      host,
       workspace: createProtectedWorkspace({
         id: tenant.id,
         root: tenant.workspaceRoot,
-        allowSelfApproval: mode === 'replay',
+        allowSelfApproval: mode === 'replay' && !publicReplay,
       }),
       database,
     }
@@ -64,6 +88,14 @@ export async function startAiHost(options: StartAiHostOptions = {}) {
     ),
     tokens,
     mode,
+    publicReplay,
+    trustProxy,
+    ...(options.allowedStreams
+      ? { allowedStreams: options.allowedStreams }
+      : {}),
+    ...(options.maxSseClientsPerIp === undefined
+      ? {}
+      : { maxSseClientsPerIp: options.maxSseClientsPerIp }),
     allowedOrigins: options.allowedOrigins ?? allowedOriginsFromEnvironment(),
     ...(options.maxRequestsPerMinute === undefined
       ? {}
@@ -98,6 +130,7 @@ export async function startAiHost(options: StartAiHostOptions = {}) {
   return {
     origin: `http://${options.hostname ?? process.env.ZEUS_AI_HOST ?? '127.0.0.1'}:${address.port}`,
     mode,
+    publicReplay,
     tokens: tokens.length,
     async close() {
       await server.close()

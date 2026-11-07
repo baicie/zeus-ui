@@ -15,7 +15,16 @@ body {
 .workbench {
   min-height: 100vh;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.replay-banner {
+  margin: 0;
+  padding: 10px 28px;
+  background: #fef3c7;
+  color: #78350f;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #fde68a;
 }
 
 .topbar {
