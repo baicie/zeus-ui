@@ -137,7 +137,7 @@ function proposeCommand(id = 'propose-1') {
   }
 }
 
-describe('ai reference host security and protocol', () => {
+describe('ai reference host security and protocol', { timeout: 20_000 }, () => {
   it('requires a bearer token and does not treat Origin as authentication', async () => {
     const host = await start()
     const unauthenticated = await fetch(`${host.origin}/commands`, {

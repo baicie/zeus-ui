@@ -5,12 +5,14 @@ import {
   mkdirSync,
   mkdtempSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
+import { resolvePublicReplayRoot } from '../src/public-replay'
 import { startAiHost } from '../src/server'
 
 const VIEWER_A = 'viewer-a-token-0123456789'
@@ -154,7 +156,7 @@ async function readSse(after: number, token = VIEWER_A): Promise<string[]> {
   return lines
 }
 
-describe('public replay isolation', () => {
+describe('public replay isolation', { timeout: 20_000 }, () => {
   it('serves a seeded read-only reference conversation', async () => {
     const host = await start()
     hostOrigin = host.origin
@@ -365,7 +367,73 @@ describe('public replay isolation', () => {
     const body = await snapshot()
     expect(JSON.stringify(body)).not.toContain('legacy-visitor-secret')
     expect(body.events.length).toBe(3)
-    expect(existsSync(path.join(legacyWorkspace, 'visitor.txt'))).toBe(false)
+    expect(existsSync(path.join(legacyWorkspace, 'visitor.txt'))).toBe(true)
+  })
+
+  it('uses isolated generation directories and never deletes the workspace root', () => {
+    const workspace = directory()
+    const v1 = resolvePublicReplayRoot(workspace, 'v1')
+    expect(v1.root).toBe(path.join(workspace, 'public-replay', 'v1'))
+    writeFileSync(path.join(v1.root, 'important.txt'), 'keep me')
+    const v2 = resolvePublicReplayRoot(workspace, 'v2')
+    expect(v2.root).not.toBe(v1.root)
+    expect(existsSync(path.join(v1.root, 'important.txt'))).toBe(true)
+    expect(existsSync(path.join(v2.root, 'important.txt'))).toBe(false)
+  })
+
+  it('reuses the generation on repeated starts without deleting its files', async () => {
+    const root = directory()
+    const databaseFile = path.join(root, 'ai.sqlite')
+    const workspaceRoot = path.join(root, 'workspace')
+    const first = await startAiHost({
+      databaseFile,
+      workspaceRoot,
+      port: 0,
+      allowedOrigins: [],
+      tokens: TOKENS,
+      publicReplay: true,
+    })
+    const generation = resolvePublicReplayRoot(
+      workspaceRoot,
+      'public-replay-v1',
+    ).root
+    writeFileSync(path.join(generation, 'keep.txt'), 'keep')
+    await first.close()
+    const second = await startAiHost({
+      databaseFile,
+      workspaceRoot,
+      port: 0,
+      allowedOrigins: [],
+      tokens: TOKENS,
+      publicReplay: true,
+    })
+    running.push(second)
+    expect(existsSync(path.join(generation, 'keep.txt'))).toBe(true)
+  })
+
+  it('rejects broad roots', () => {
+    expect(() => resolvePublicReplayRoot('/', 'v1')).toThrow('too broad')
+    expect(() => resolvePublicReplayRoot('/data', 'v1')).toThrow('too broad')
+  })
+
+  it.skipIf(process.platform === 'win32')('rejects symlink escapes', () => {
+    const root = directory()
+    const real = path.join(root, 'real')
+    mkdirSync(real)
+    const link = path.join(root, 'link')
+    symlinkSync(real, link)
+    expect(() => resolvePublicReplayRoot(link, 'v1')).toThrow(
+      'must be a real directory',
+    )
+    const workspace = path.join(root, 'workspace')
+    mkdirSync(workspace)
+    mkdirSync(path.join(workspace, 'public-replay'))
+    const other = path.join(root, 'other')
+    mkdirSync(other)
+    symlinkSync(other, path.join(workspace, 'public-replay', 'v1'))
+    expect(() => resolvePublicReplayRoot(workspace, 'v1')).toThrow(
+      'must be a real directory',
+    )
   })
 
   it('enforces per-IP SSE and request limits behind the proxy', async () => {

@@ -1,5 +1,4 @@
 import type { AiTokenConfig, AiTokenRecord } from './auth'
-import { mkdirSync, rmSync } from 'node:fs'
 import path from 'node:path'
 
 import process from 'node:process'
@@ -7,6 +6,7 @@ import { parseAiTokens, tokenRecordsFromConfig } from './auth'
 import { createAiHostServer } from './protocol-server'
 import {
   resetPublicReplayDatabase,
+  resolvePublicReplayRoot,
   seedPublicReplayConversation,
 } from './public-replay'
 import { createPersistentHost, openHostDatabase } from './store'
@@ -57,14 +57,12 @@ export async function startAiHost(options: StartAiHostOptions = {}) {
   >()
   for (const tenant of tenantConfigs) {
     const database = openHostDatabase(tenant.databaseFile)
+    let workspaceRoot = tenant.workspaceRoot
     if (publicReplay) {
-      const reset = resetPublicReplayDatabase(database)
-      if (reset) {
-        // A writable deployment may have left visitor files or approvals in
-        // the shared workspace. The public demo starts from a clean root.
-        rmSync(tenant.workspaceRoot, { recursive: true, force: true })
-        mkdirSync(tenant.workspaceRoot, { recursive: true, mode: 0o700 })
-      }
+      // Generation directories keep old demo data and visitor files intact;
+      // only the SQLite event log is reset for the new seed version.
+      workspaceRoot = resolvePublicReplayRoot(tenant.workspaceRoot).root
+      resetPublicReplayDatabase(database)
     }
     const host = createPersistentHost({ database, streamId: 'reference' })
     if (publicReplay) seedPublicReplayConversation(host)
@@ -72,7 +70,7 @@ export async function startAiHost(options: StartAiHostOptions = {}) {
       host,
       workspace: createProtectedWorkspace({
         id: tenant.id,
-        root: tenant.workspaceRoot,
+        root: workspaceRoot,
         allowSelfApproval: mode === 'replay' && !publicReplay,
       }),
       database,
