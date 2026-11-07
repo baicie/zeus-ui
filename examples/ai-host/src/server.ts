@@ -1,5 +1,5 @@
 import type { AiTokenConfig, AiTokenRecord } from './auth'
-import { rmSync } from 'node:fs'
+import { mkdirSync, rmSync } from 'node:fs'
 import path from 'node:path'
 
 import process from 'node:process'
@@ -60,10 +60,10 @@ export async function startAiHost(options: StartAiHostOptions = {}) {
     if (publicReplay) {
       const reset = resetPublicReplayDatabase(database)
       if (reset) {
-        // Old approvals may reference files written by earlier visitors.
-        rmSync(path.join(tenant.workspaceRoot, '.zeus-approvals.json'), {
-          force: true,
-        })
+        // A writable deployment may have left visitor files or approvals in
+        // the shared workspace. The public demo starts from a clean root.
+        rmSync(tenant.workspaceRoot, { recursive: true, force: true })
+        mkdirSync(tenant.workspaceRoot, { recursive: true, mode: 0o700 })
       }
     }
     const host = createPersistentHost({ database, streamId: 'reference' })

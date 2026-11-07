@@ -1,6 +1,12 @@
 import type { AiTokenConfig } from '../src/auth'
 import { Buffer } from 'node:buffer'
-import { mkdtempSync, rmSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -342,12 +348,24 @@ describe('public replay isolation', () => {
       }),
     })
     expect(legacyWrite.status).toBe(200)
+    const legacyWorkspace = path.join(root, 'workspace')
+    mkdirSync(legacyWorkspace, { recursive: true })
+    writeFileSync(path.join(legacyWorkspace, 'visitor.txt'), 'legacy file')
 
-    const host = await start({ databaseFile })
+    const host = await startAiHost({
+      databaseFile,
+      workspaceRoot: legacyWorkspace,
+      port: 0,
+      allowedOrigins: ['https://ai.example.test:8443'],
+      tokens: TOKENS,
+      publicReplay: true,
+    })
+    running.push(host)
     hostOrigin = host.origin
     const body = await snapshot()
     expect(JSON.stringify(body)).not.toContain('legacy-visitor-secret')
     expect(body.events.length).toBe(3)
+    expect(existsSync(path.join(legacyWorkspace, 'visitor.txt'))).toBe(false)
   })
 
   it('enforces per-IP SSE and request limits behind the proxy', async () => {
