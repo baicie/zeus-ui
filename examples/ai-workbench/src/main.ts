@@ -43,6 +43,7 @@ declare const __ZEUS_AI_HOST__: string
 const configuredHost = __ZEUS_AI_HOST__ || undefined
 const hostBaseUrl = configuredHost ?? `${location.origin}/ai-host`
 const host = createSseHostAdapter({ baseUrl: hostBaseUrl })
+let readOnly = false
 const session = createAiSession({
   host,
   streamId: 'reference',
@@ -71,6 +72,14 @@ header.innerHTML = `
   <div class="status" data-testid="connection" data-connection="idle">idle</div>
 `
 shell.append(header)
+
+const replayBanner = document.createElement('p')
+replayBanner.className = 'replay-banner'
+replayBanner.dataset.testid = 'public-replay'
+replayBanner.textContent =
+  'Public replay · read-only. Sending messages, proposing and approving are disabled.'
+replayBanner.hidden = true
+shell.append(replayBanner)
 
 const layout = document.createElement('div')
 layout.className = 'layout'
@@ -212,6 +221,7 @@ function createComposerElement(): HTMLElement {
   ) as AiElementInstance & { controller: unknown }
   element.controller = composer
   element.setAttribute('label', 'Ask the agent')
+  if (readOnly) element.setAttribute('disabled', '')
   element.dataset.testid = 'composer'
   element.classList.add('composer')
   const fileLabel = document.createElement('label')
@@ -221,6 +231,7 @@ function createComposerElement(): HTMLElement {
   fileInput.type = 'file'
   fileInput.accept = 'text/plain,application/json,image/png,image/jpeg'
   fileInput.dataset.testid = 'attach-file'
+  fileInput.disabled = readOnly
   fileLabel.append(fileInput)
   const attachStatus = document.createElement('span')
   attachStatus.className = 'attach-status'
@@ -338,6 +349,31 @@ session.subscribe(
   },
 )
 session.connect()
+
+function applyReadOnly(): void {
+  replayBanner.hidden = !readOnly
+  const composerControl = composerElement.querySelector('zw-ai-composer')
+  if (composerControl) {
+    if (readOnly) composerControl.setAttribute('disabled', '')
+    else composerControl.removeAttribute('disabled')
+  }
+  propose.disabled = readOnly
+  runChecks.disabled = readOnly
+  newConversation.disabled = readOnly
+}
+
+void fetch(`${hostBaseUrl}/health`)
+  .then(response => (response.ok ? response.json() : undefined))
+  .then((health: { readOnly?: unknown } | undefined) => {
+    if (health?.readOnly === true) {
+      readOnly = true
+      applyReadOnly()
+    }
+  })
+  .catch(() => {
+    // The Host remains the security boundary; a failed health probe only
+    // leaves the UI in its default enabled state and writes still return 403.
+  })
 
 function refreshApprovals(): void {
   const pending = [...session.store.getState().approvals.values()].filter(

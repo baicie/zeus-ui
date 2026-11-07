@@ -1,4 +1,13 @@
 FROM node:24.18.0-bookworm-slim
+ARG ZEUS_CORE_COMMIT
+ARG ZEUS_UI_COMMIT
+ARG ZEUS_VERSION
+ARG ZEUS_BUILD_TIME
+LABEL org.opencontainers.image.revision=$ZEUS_UI_COMMIT \
+  org.opencontainers.image.version=$ZEUS_VERSION \
+  top.moonbyte.zeus.core-commit=$ZEUS_CORE_COMMIT \
+  top.moonbyte.zeus.ui-commit=$ZEUS_UI_COMMIT \
+  top.moonbyte.zeus.build-time=$ZEUS_BUILD_TIME
 WORKDIR /app
 RUN corepack enable
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.json rolldown.config.ts ./

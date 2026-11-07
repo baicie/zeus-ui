@@ -56,8 +56,17 @@ Persistence uses `node:sqlite`. Events and command acknowledgements survive a
 restart; the SSE cursor replays only events newer than `Last-Event-ID`/`after`.
 `message.send` creates a conversation before its first message so a snapshot
 cannot be folded from an orphaned message. Replay mode is a controlled demo
-with an isolated workspace; public anonymous callers cannot write anything
-because every command requires a scoped bearer token.
+with an isolated workspace; every command requires a scoped bearer token.
+
+A public Workbench proxy injects the same viewer token into every anonymous
+request, so a bearer token alone is **not** per-visitor isolation. Public
+deployments must set `ZEUS_AI_PUBLIC_REPLAY=true`: the Host then rejects every
+mutating request with `403 AI_HOST_PUBLIC_REPLAY_READ_ONLY`, serves only the
+seeded `reference` stream, and clears events written by earlier writable
+deployments. `/health` reports `{ mode, publicReplay, readOnly, interactive }`
+so the Workbench can render a read-only state. Interactive chat, proposals and
+approvals are supported only for local/demo deployments with an explicit
+non-public token.
 
 ## Verify
 

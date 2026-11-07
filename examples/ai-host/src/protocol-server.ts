@@ -30,6 +30,18 @@ export interface AiHostServerOptions {
   readonly tokens: readonly AiTokenRecord[]
   readonly allowedOrigins?: readonly string[]
   readonly mode?: 'live' | 'replay'
+  /**
+   * Strictly non-writable public replay. Every mutating request is rejected
+   * before routing and only the seeded stream is readable. There is no
+   * per-visitor identity behind a shared proxy token, so this is the only
+   * safe way to expose the Workbench anonymously.
+   */
+  readonly publicReplay?: boolean
+  /** Stream ids a client may read. Defaults to the seeded `reference` stream. */
+  readonly allowedStreams?: readonly string[]
+  /** Trust the Workbench-injected X-Forwarded-For for per-IP rate limits. */
+  readonly trustProxy?: boolean
+  readonly maxSseClientsPerIp?: number
   readonly commandDelayMs?: number
   readonly maxRequestsPerMinute?: number
   readonly maxSseClientsPerTenant?: number
@@ -98,6 +110,11 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
   const assetTtlMs = options.assetTtlMs ?? DEFAULT_ASSET_TTL_MS
   const toolTimeoutMs = options.toolTimeoutMs ?? DEFAULT_TOOL_TIMEOUT_MS
   const mode = options.mode ?? 'replay'
+  const publicReplay = options.publicReplay === true
+  const allowedStreams = new Set(options.allowedStreams ?? ['reference'])
+  const trustProxy = options.trustProxy === true
+  const maxSseClientsPerIp = options.maxSseClientsPerIp ?? 4
+  const sseClientsByIp = new Map<string, number>()
 
   const server = http.createServer((request, response) => {
     void handle(request, response).catch(error => {
@@ -126,16 +143,17 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
     const url = new URL(request.url ?? '/', 'http://localhost')
     const origin = request.headers.origin
     const allowed = options.allowedOrigins ?? []
-    if (origin && allowed.length > 0 && !allowed.includes(origin)) {
+    // A browser Origin must always be on the allowlist. Falling back to `*`
+    // for an authenticated endpoint silently widens CORS.
+    if (origin && !allowed.includes(origin)) {
       sendJson(response, 403, {
         error: { code: 'AI_HOST_ORIGIN', message: 'Origin is not allowed.' },
       })
       return
     }
-    response.setHeader(
-      'Access-Control-Allow-Origin',
-      origin && allowed.includes(origin) ? origin : (allowed[0] ?? '*'),
-    )
+    if (origin) {
+      response.setHeader('Access-Control-Allow-Origin', origin)
+    }
     response.setHeader('Vary', 'Origin')
     if (method === 'OPTIONS') {
       response.writeHead(204, {
@@ -151,6 +169,11 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
       sendJson(response, 200, {
         ok: true,
         workspace: states.keys().next().value ?? 'reference',
+        mode,
+        publicReplay,
+        readOnly: publicReplay,
+        interactive: !publicReplay,
+        streamId: 'reference',
       })
       return
     }
@@ -176,11 +199,34 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
       })
       return
     }
-    if (!maxRequests.allow(`${principal.tenantId}:${principal.userId}`)) {
+    const clientIp = trustProxy ? forwardedClientIp(request) : undefined
+    const rateKey =
+      publicReplay && clientIp
+        ? `public:${clientIp}`
+        : `${principal.tenantId}:${principal.userId}`
+    if (!maxRequests.allow(rateKey)) {
       sendJson(response, 429, {
         error: {
           code: 'AI_HOST_RATE_LIMITED',
           message: 'Too many requests. Retry later.',
+        },
+      })
+      return
+    }
+
+    // Public replay is read-only at the transport boundary. This guard runs
+    // before every route so a future POST endpoint cannot accidentally become
+    // writable, and it covers unknown paths too.
+    if (
+      publicReplay &&
+      method !== 'GET' &&
+      method !== 'HEAD' &&
+      method !== 'OPTIONS'
+    ) {
+      sendJson(response, 403, {
+        error: {
+          code: 'AI_HOST_PUBLIC_REPLAY_READ_ONLY',
+          message: 'The public replay demo is read-only.',
         },
       })
       return
@@ -266,7 +312,7 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
     }
     if (url.pathname === '/commands' && method === 'POST') {
       const command = (await readJson(request)) as Command
-      const denied = authorizeCommand(principal, command, mode)
+      const denied = authorizeCommand(principal, command, mode, publicReplay)
       if (denied) {
         sendJson(response, denied.status, {
           error: { code: denied.code, message: denied.message },
@@ -294,7 +340,25 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
         return
       }
       const streamId = url.searchParams.get('streamId') ?? 'reference'
-      const after = Number(url.searchParams.get('after') ?? 0)
+      if (!allowedStreams.has(streamId)) {
+        sendJson(response, 404, {
+          error: {
+            code: 'AI_HOST_STREAM_NOT_FOUND',
+            message: 'Stream not found.',
+          },
+        })
+        return
+      }
+      const after = parseCursor(url.searchParams.get('after'), 0)
+      if (after === undefined) {
+        sendJson(response, 400, {
+          error: {
+            code: 'AI_HOST_CURSOR_INVALID',
+            message: 'after must be a non-negative integer.',
+          },
+        })
+        return
+      }
       const snapshot = await state.runtime.host.getSnapshot({
         kind: 'stream',
         id: streamId,
@@ -306,6 +370,17 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
       return
     }
     if (/^\/assets\/[^/]+$/.test(url.pathname) && method === 'GET') {
+      // Public replay never serves visitor-uploaded or approval assets: the
+      // seeded demo is text-only and uploads are rejected above.
+      if (publicReplay) {
+        sendJson(response, 404, {
+          error: {
+            code: 'AI_HOST_ASSET_NOT_FOUND',
+            message: 'Asset not found.',
+          },
+        })
+        return
+      }
       const id = decodeURIComponent(url.pathname.split('/')[2]!)
       pruneAssets(state)
       const asset = state.assets.get(id)
@@ -395,6 +470,41 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
         return
       }
       const streamId = decodeURIComponent(url.pathname.split('/')[2]!)
+      if (!allowedStreams.has(streamId)) {
+        sendJson(response, 404, {
+          error: {
+            code: 'AI_HOST_STREAM_NOT_FOUND',
+            message: 'Stream not found.',
+          },
+        })
+        return
+      }
+      const cursor = parseCursor(
+        rawHeader(request, 'last-event-id') ?? url.searchParams.get('after'),
+        0,
+      )
+      if (cursor === undefined) {
+        sendJson(response, 400, {
+          error: {
+            code: 'AI_HOST_CURSOR_INVALID',
+            message: 'after must be a non-negative integer.',
+          },
+        })
+        return
+      }
+      if (publicReplay && clientIp) {
+        const current = sseClientsByIp.get(clientIp) ?? 0
+        if (current >= maxSseClientsPerIp) {
+          sendJson(response, 429, {
+            error: {
+              code: 'AI_HOST_SSE_LIMIT',
+              message: 'SSE connection limit reached for this client.',
+            },
+          })
+          return
+        }
+        sseClientsByIp.set(clientIp, current + 1)
+      }
       response.writeHead(200, {
         'Content-Type': 'text/event-stream; charset=utf-8',
         'Cache-Control': 'no-cache, no-transform',
@@ -408,11 +518,7 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
         response,
         streamId,
         tenantId: principal.tenantId,
-        after: Number(
-          rawHeader(request, 'last-event-id') ??
-            url.searchParams.get('after') ??
-            0,
-        ),
+        after: cursor,
         closed: false,
         pending: '',
         flushScheduled: false,
@@ -421,6 +527,11 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
       request.on('close', () => {
         client.closed = true
         state.clients.delete(client)
+        if (publicReplay && clientIp) {
+          const current = sseClientsByIp.get(clientIp) ?? 0
+          if (current <= 1) sseClientsByIp.delete(clientIp)
+          else sseClientsByIp.set(clientIp, current - 1)
+        }
       })
       for (const event of state.runtime.host.events(streamId, client.after)) {
         client.after = event.seq
@@ -809,16 +920,39 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
   }
 }
 
+const SUPPORTED_COMMANDS = new Set([
+  'message.send',
+  'changeset.propose',
+  'approval.resolve',
+])
+
 function authorizeCommand(
   principal: AiPrincipal,
   command: Command,
   mode: 'live' | 'replay',
+  publicReplay: boolean,
 ): { status: number; code: string; message: string } | undefined {
+  if (publicReplay) {
+    return {
+      status: 403,
+      code: 'AI_HOST_PUBLIC_REPLAY_READ_ONLY',
+      message: 'The public replay demo is read-only.',
+    }
+  }
   if (mode === 'live') {
     return {
       status: 503,
       code: 'AI_HOST_LIVE_NOT_CONFIGURED',
       message: 'Live mode requires a configured authenticated provider.',
+    }
+  }
+  // Fail closed for command types this Host does not implement. The mock host
+  // accepts unknown commands by default, so this allowlist is the boundary.
+  if (!SUPPORTED_COMMANDS.has(command.type)) {
+    return {
+      status: 400,
+      code: 'AI_HOST_COMMAND_UNKNOWN',
+      message: `Unsupported command type: ${String(command.type)}`,
     }
   }
   if (command.type === 'changeset.propose') {
@@ -867,6 +1001,28 @@ function rawHeader(
 ): string | undefined {
   const value = request.headers[name]
   return Array.isArray(value) ? value[0] : value
+}
+
+function parseCursor(
+  value: string | null | undefined,
+  fallback: number,
+): number | undefined {
+  if (value === null || value === undefined || value === '') return fallback
+  if (!/^\d{1,15}$/.test(value)) return undefined
+  const parsed = Number(value)
+  return Number.isSafeInteger(parsed) ? parsed : undefined
+}
+
+/**
+ * The Workbench nginx overwrites X-Forwarded-For with the direct client
+ * address. Only enable trustProxy behind that proxy; otherwise the header is
+ * spoofable and must not influence limits.
+ */
+function forwardedClientIp(request: http.IncomingMessage): string | undefined {
+  const value = rawHeader(request, 'x-forwarded-for')
+  if (!value) return undefined
+  const first = value.split(',')[0]?.trim()
+  return first && first.length <= 64 ? first : undefined
 }
 
 function sendJson(
