@@ -37,6 +37,8 @@ services:
       - /var/cache/nginx
       - /var/run
       - /tmp
+      # nginx envsubst renders the upstream token into this read-only path.
+      - /etc/nginx/conf.d
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
