@@ -381,6 +381,36 @@ describe('public replay isolation', () => {
     expect(existsSync(path.join(v2.root, 'important.txt'))).toBe(false)
   })
 
+  it('reuses the generation on repeated starts without deleting its files', async () => {
+    const root = directory()
+    const databaseFile = path.join(root, 'ai.sqlite')
+    const workspaceRoot = path.join(root, 'workspace')
+    const first = await startAiHost({
+      databaseFile,
+      workspaceRoot,
+      port: 0,
+      allowedOrigins: [],
+      tokens: TOKENS,
+      publicReplay: true,
+    })
+    const generation = resolvePublicReplayRoot(
+      workspaceRoot,
+      'public-replay-v1',
+    ).root
+    writeFileSync(path.join(generation, 'keep.txt'), 'keep')
+    await first.close()
+    const second = await startAiHost({
+      databaseFile,
+      workspaceRoot,
+      port: 0,
+      allowedOrigins: [],
+      tokens: TOKENS,
+      publicReplay: true,
+    })
+    running.push(second)
+    expect(existsSync(path.join(generation, 'keep.txt'))).toBe(true)
+  })
+
   it('rejects broad roots', () => {
     expect(() => resolvePublicReplayRoot('/', 'v1')).toThrow('too broad')
     expect(() => resolvePublicReplayRoot('/data', 'v1')).toThrow('too broad')
