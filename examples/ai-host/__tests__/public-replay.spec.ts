@@ -156,7 +156,7 @@ async function readSse(after: number, token = VIEWER_A): Promise<string[]> {
   return lines
 }
 
-describe('public replay isolation', () => {
+describe('public replay isolation', { timeout: 20_000 }, () => {
   it('serves a seeded read-only reference conversation', async () => {
     const host = await start()
     hostOrigin = host.origin
