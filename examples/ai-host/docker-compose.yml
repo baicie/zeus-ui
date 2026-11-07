@@ -3,14 +3,16 @@ services:
     build:
       context: ../..
       dockerfile: examples/ai-host/Dockerfile
-    ports:
-      - '8788:8788'
+    expose:
+      - '8788'
     environment:
       ZEUS_AI_DB: /data/ai.sqlite
       ZEUS_AI_HOST: 0.0.0.0
       ZEUS_AI_WORKSPACE: /data/workspace
       ZEUS_AI_WORKSPACE_ID: ${ZEUS_AI_WORKSPACE_ID:-reference}
-      ZEUS_AI_ORIGINS: http://127.0.0.1:5191,http://localhost:5191,http://localhost:8083
+      ZEUS_AI_MODE: ${ZEUS_AI_MODE:-replay}
+      ZEUS_AI_TOKENS: ${ZEUS_AI_TOKENS:?Set ZEUS_AI_TOKENS JSON}
+      ZEUS_AI_ORIGINS: ${ZEUS_AI_ORIGINS:-http://127.0.0.1:5191,http://localhost:5191,http://localhost:8083}
     read_only: true
     tmpfs:
       - /tmp
@@ -25,9 +27,11 @@ services:
       context: ../..
       dockerfile: examples/ai-workbench/Dockerfile
     ports:
-      - '8083:80'
+      - '127.0.0.1:8083:80'
     depends_on:
       - ai-host
+    environment:
+      ZEUS_AI_UPSTREAM_TOKEN: ${ZEUS_AI_UPSTREAM_TOKEN:?Set ZEUS_AI_UPSTREAM_TOKEN}
     read_only: true
     tmpfs:
       - /var/cache/nginx

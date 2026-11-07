@@ -13,6 +13,7 @@ import { createServer } from 'vite'
 import { expectNoAccessibilityViolations } from '../../../e2e/showcase/utils/accessibility'
 import { startAiHost } from '../../../examples/ai-host/src/server'
 
+const AI_WORKBENCH_TOKEN = 'workbench-token-0123456789'
 const root = path.resolve(import.meta.dirname, '../../..')
 const output = path.join(root, 'temp/ai-workbench')
 const engines = { chromium, firefox, webkit }
@@ -62,6 +63,7 @@ function executableFor(engine: keyof typeof engines): string | undefined {
 async function main(): Promise<void> {
   await fs.mkdir(output, { recursive: true })
   process.env.ZEUS_AI_HOST_ORIGIN = `http://127.0.0.1:${hostPort}`
+  process.env.ZEUS_AI_UPSTREAM_TOKEN = AI_WORKBENCH_TOKEN
   const dev = await createServer({
     root: path.join(root, 'examples/ai-workbench'),
     configFile: path.join(root, 'examples/ai-workbench/vite.config.ts'),
@@ -89,7 +91,12 @@ async function main(): Promise<void> {
           headless: true,
           executablePath: executableFor(name as keyof typeof engines),
         })
-        page = await browser.newPage()
+        const context = await browser.newContext({
+          extraHTTPHeaders: {
+            Authorization: `Bearer ${AI_WORKBENCH_TOKEN}`,
+          },
+        })
+        page = await context.newPage()
         page.on('pageerror', error => errors.push(error.message))
         page.on('console', message => {
           if (message.type() === 'error' || message.type() === 'warning') {
@@ -109,6 +116,14 @@ async function main(): Promise<void> {
           port: hostPort,
           hostname: '127.0.0.1',
           allowedOrigins: [`http://127.0.0.1:${port}`],
+          tokens: [
+            {
+              token: AI_WORKBENCH_TOKEN,
+              tenantId: 'reference',
+              userId: 'workbench-admin',
+              role: 'admin',
+            },
+          ],
         })
         try {
           await page.goto(`http://127.0.0.1:${port}/`)
@@ -187,7 +202,9 @@ async function main(): Promise<void> {
             'No pending approvals',
           )
           const workspace = (await (
-            await fetch(`${host.origin}/workspace`)
+            await fetch(`${host.origin}/workspace`, {
+              headers: { Authorization: `Bearer ${AI_WORKBENCH_TOKEN}` },
+            })
           ).json()) as { files: Array<{ path: string }> }
           expect(workspace.files.map(file => file.path)).toContain(
             'notes/workbench.txt',

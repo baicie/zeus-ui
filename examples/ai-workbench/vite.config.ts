@@ -30,6 +30,13 @@ export default defineConfig({
         target: process.env.ZEUS_AI_HOST_ORIGIN ?? 'http://127.0.0.1:8788',
         changeOrigin: true,
         rewrite: path => path.replace(/^\/ai-host/, ''),
+        // Local parity with the production nginx ingress: inject the Host
+        // credential server-side instead of exposing it to browser JS.
+        headers: process.env.ZEUS_AI_UPSTREAM_TOKEN
+          ? {
+              Authorization: `Bearer ${process.env.ZEUS_AI_UPSTREAM_TOKEN}`,
+            }
+          : {},
       },
     },
   },

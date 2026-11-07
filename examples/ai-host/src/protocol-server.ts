@@ -7,20 +7,36 @@ import type {
   Message,
 } from '@zeus-web/ai-core'
 
+import type { AiPrincipal, AiTokenRecord } from './auth'
 import type { PersistentHost } from './store'
-
 import type { ProtectedWorkspace } from './workspace'
-import { Buffer } from 'node:buffer'
-import http from 'node:http'
-import { countDiffLines, createUnifiedDiff } from './diff'
 
-export interface AiHostServerOptions {
+import { Buffer } from 'node:buffer'
+import { randomUUID } from 'node:crypto'
+import http from 'node:http'
+
+import { authenticateBearer, requireAiRole } from './auth'
+import { countDiffLines, createUnifiedDiff } from './diff'
+import { FixedWindowLimiter } from './rate-limit'
+
+export interface AiTenantRuntime {
+  readonly id: string
   readonly host: PersistentHost
   readonly workspace: ProtectedWorkspace
-  readonly port?: number
-  readonly hostname?: string
+}
+
+export interface AiHostServerOptions {
+  readonly tenants: ReadonlyMap<string, AiTenantRuntime>
+  readonly tokens: readonly AiTokenRecord[]
   readonly allowedOrigins?: readonly string[]
+  readonly mode?: 'live' | 'replay'
   readonly commandDelayMs?: number
+  readonly maxRequestsPerMinute?: number
+  readonly maxSseClientsPerTenant?: number
+  readonly maxAssetsPerTenant?: number
+  readonly maxAssetBytes?: number
+  readonly assetTtlMs?: number
+  readonly toolTimeoutMs?: number
 }
 
 export interface AiHostServer {
@@ -31,41 +47,57 @@ export interface AiHostServer {
 }
 
 const MAX_BODY_BYTES = 512 * 1024
+const DEFAULT_TOOL_TIMEOUT_MS = 15_000
+const DEFAULT_ASSET_TTL_MS = 60 * 60 * 1000
 
 interface StreamClient {
   readonly response: http.ServerResponse
   readonly streamId: string
+  tenantId: string
   after: number
   closed: boolean
   pending: string
   flushScheduled: boolean
 }
 
-export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
-  const clients = new Set<StreamClient>()
-  const knownConversations = new Set<string>()
-  const assets = new Map<
+interface TenantState {
+  readonly runtime: AiTenantRuntime
+  readonly clients: Set<StreamClient>
+  readonly conversations: Set<string>
+  readonly assets: Map<
     string,
     {
       readonly mimeType: string
       readonly bytes: Uint8Array
       readonly name: string
+      readonly createdAt: number
     }
-  >()
+  >
+  assetBytes: number
+}
 
-  function emit<T extends AnyDomainEvent>(
-    type: T['type'],
-    entity: T['entity'],
-    payload: T['payload'],
-  ): void {
-    const event = options.host.append(type, entity, payload) as T
-    for (const client of clients) {
-      if (event.streamId === client.streamId && event.seq > client.after) {
-        client.after = event.seq
-        writeEvent(client, event)
-      }
-    }
+export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
+  const states = new Map<string, TenantState>()
+  for (const [id, runtime] of options.tenants) {
+    states.set(id, {
+      runtime,
+      clients: new Set(),
+      conversations: new Set(),
+      assets: new Map(),
+      assetBytes: 0,
+    })
   }
+  const maxRequests = new FixedWindowLimiter({
+    limit: options.maxRequestsPerMinute ?? 120,
+    windowMs: 60_000,
+    maxEntries: 10_000,
+  })
+  const maxSseClientsPerTenant = options.maxSseClientsPerTenant ?? 8
+  const maxAssetsPerTenant = options.maxAssetsPerTenant ?? 64
+  const maxAssetBytes = options.maxAssetBytes ?? 128 * 1024
+  const assetTtlMs = options.assetTtlMs ?? DEFAULT_ASSET_TTL_MS
+  const toolTimeoutMs = options.toolTimeoutMs ?? DEFAULT_TOOL_TIMEOUT_MS
+  const mode = options.mode ?? 'replay'
 
   const server = http.createServer((request, response) => {
     void handle(request, response).catch(error => {
@@ -108,7 +140,7 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
     if (method === 'OPTIONS') {
       response.writeHead(204, {
         'Access-Control-Allow-Headers':
-          'Content-Type, Last-Event-ID, Idempotency-Key',
+          'Authorization, Content-Type, Last-Event-ID, Idempotency-Key',
         'Access-Control-Allow-Methods': 'GET, POST',
       })
       response.end()
@@ -116,10 +148,51 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
     }
 
     if (url.pathname === '/health' && method === 'GET') {
-      sendJson(response, 200, { ok: true, workspace: options.workspace.id })
+      sendJson(response, 200, { ok: true })
       return
     }
+
+    const principal = authenticateBearer(request, options.tokens)
+    if (!principal) {
+      response.setHeader('WWW-Authenticate', 'Bearer')
+      sendJson(response, 401, {
+        error: {
+          code: 'AI_HOST_AUTH_REQUIRED',
+          message: 'A valid bearer token is required.',
+        },
+      })
+      return
+    }
+    const state = states.get(principal.tenantId)
+    if (!state) {
+      sendJson(response, 403, {
+        error: {
+          code: 'AI_HOST_TENANT_FORBIDDEN',
+          message: 'Token is not valid for this tenant.',
+        },
+      })
+      return
+    }
+    if (!maxRequests.allow(`${principal.tenantId}:${principal.userId}`)) {
+      sendJson(response, 429, {
+        error: {
+          code: 'AI_HOST_RATE_LIMITED',
+          message: 'Too many requests. Retry later.',
+        },
+      })
+      return
+    }
+
     if (url.pathname === '/assets' && method === 'POST') {
+      if (!requireAiRole(principal, ['editor', 'admin'])) {
+        sendJson(response, 403, {
+          error: {
+            code: 'AI_HOST_FORBIDDEN',
+            message: 'Asset upload requires editor access.',
+          },
+        })
+        return
+      }
       const body = (await readJson(request)) as {
         name?: unknown
         mimeType?: unknown
@@ -128,7 +201,7 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
       const name = typeof body.name === 'string' ? body.name : ''
       const mimeType = typeof body.mimeType === 'string' ? body.mimeType : ''
       const data = typeof body.data === 'string' ? body.data : ''
-      const allowed = new Set([
+      const allowedTypes = new Set([
         'text/plain',
         'application/json',
         'image/png',
@@ -139,7 +212,7 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
         name.length > 128 ||
         name.includes('/') ||
         name.includes('\\') ||
-        !allowed.has(mimeType) ||
+        !allowedTypes.has(mimeType) ||
         data.length === 0
       ) {
         sendJson(response, 400, {
@@ -151,18 +224,38 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
         })
         return
       }
-      const bytes = Buffer.from(data, 'base64')
-      if (bytes.byteLength === 0 || bytes.byteLength > 128 * 1024) {
-        sendJson(response, 413, {
+      pruneAssets(state)
+      if (state.assets.size >= maxAssetsPerTenant) {
+        sendJson(response, 429, {
           error: {
-            code: 'AI_HOST_ASSET_SIZE',
-            message: 'Asset exceeds the 128 KiB limit.',
+            code: 'AI_HOST_ASSET_LIMIT',
+            message: 'Asset quota is exhausted.',
           },
         })
         return
       }
-      const id = `asset-${assets.size + 1}`
-      assets.set(id, { mimeType, bytes: new Uint8Array(bytes), name })
+      const bytes = Buffer.from(data, 'base64')
+      if (
+        bytes.byteLength === 0 ||
+        bytes.byteLength > maxAssetBytes ||
+        state.assetBytes + bytes.byteLength > maxAssetBytes * 4
+      ) {
+        sendJson(response, 413, {
+          error: {
+            code: 'AI_HOST_ASSET_SIZE',
+            message: 'Asset exceeds the per-tenant limit.',
+          },
+        })
+        return
+      }
+      const id = `asset-${randomUUID()}`
+      state.assets.set(id, {
+        mimeType,
+        bytes: new Uint8Array(bytes),
+        name,
+        createdAt: Date.now(),
+      })
+      state.assetBytes += bytes.byteLength
       sendJson(response, 200, {
         asset: { id, mimeType, size: bytes.byteLength },
       })
@@ -170,27 +263,49 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
     }
     if (url.pathname === '/commands' && method === 'POST') {
       const command = (await readJson(request)) as Command
-      const ack = await options.host.execute(command)
-      await afterCommand(command, ack)
+      const denied = authorizeCommand(principal, command, mode)
+      if (denied) {
+        sendJson(response, denied.status, {
+          error: { code: denied.code, message: denied.message },
+        })
+        return
+      }
+      const ack = await withTimeout(
+        state.runtime.host.execute(command),
+        toolTimeoutMs,
+      )
+      await afterCommand(state, principal, command, ack)
       sendJson(response, 200, ack)
       return
     }
     if (url.pathname === '/snapshots' && method === 'GET') {
+      if (
+        !requireAiRole(principal, ['viewer', 'editor', 'approver', 'admin'])
+      ) {
+        sendJson(response, 403, {
+          error: {
+            code: 'AI_HOST_FORBIDDEN',
+            message: 'Read access required.',
+          },
+        })
+        return
+      }
       const streamId = url.searchParams.get('streamId') ?? 'reference'
       const after = Number(url.searchParams.get('after') ?? 0)
-      const snapshot = await options.host.getSnapshot({
+      const snapshot = await state.runtime.host.getSnapshot({
         kind: 'stream',
         id: streamId,
       })
       sendJson(response, 200, {
         ...snapshot,
-        events: options.host.events(streamId, after),
+        events: state.runtime.host.events(streamId, after),
       })
       return
     }
     if (/^\/assets\/[^/]+$/.test(url.pathname) && method === 'GET') {
       const id = decodeURIComponent(url.pathname.split('/')[2]!)
-      const asset = assets.get(id)
+      pruneAssets(state)
+      const asset = state.assets.get(id)
       if (!asset) {
         sendJson(response, 404, {
           error: {
@@ -209,17 +324,27 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
       return
     }
     if (url.pathname === '/test-report' && method === 'POST') {
-      const files = await options.workspace.snapshot()
+      if (!requireAiRole(principal, ['editor', 'admin'])) {
+        sendJson(response, 403, {
+          error: {
+            code: 'AI_HOST_FORBIDDEN',
+            message: 'Test reports require editor access.',
+          },
+        })
+        return
+      }
+      const files = await state.runtime.workspace.snapshot()
       const target = files.find(file => file.path === 'notes/workbench.txt')
       const passed = target !== undefined
-      const outputId = `test-output-${Date.now()}`
+      const outputId = `test-output-${randomUUID()}`
       const output = passed
         ? 'workspace contains notes/workbench.txt'
         : 'workspace is missing notes/workbench.txt'
-      assets.set(outputId, {
+      state.assets.set(outputId, {
         mimeType: 'text/plain; charset=utf-8',
         bytes: new TextEncoder().encode(`${output}\n`),
         name: 'workbench-check.txt',
+        createdAt: Date.now(),
       })
       sendJson(response, 200, {
         report: {
@@ -246,6 +371,26 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
       return
     }
     if (/^\/streams\/[^/]+\/events$/.test(url.pathname) && method === 'GET') {
+      if (
+        !requireAiRole(principal, ['viewer', 'editor', 'approver', 'admin'])
+      ) {
+        sendJson(response, 403, {
+          error: {
+            code: 'AI_HOST_FORBIDDEN',
+            message: 'Read access required.',
+          },
+        })
+        return
+      }
+      if (state.clients.size >= maxSseClientsPerTenant) {
+        sendJson(response, 429, {
+          error: {
+            code: 'AI_HOST_SSE_LIMIT',
+            message: 'SSE connection limit reached for this tenant.',
+          },
+        })
+        return
+      }
       const streamId = decodeURIComponent(url.pathname.split('/')[2]!)
       response.writeHead(200, {
         'Content-Type': 'text/event-stream; charset=utf-8',
@@ -259,6 +404,7 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
       const client: StreamClient = {
         response,
         streamId,
+        tenantId: principal.tenantId,
         after: Number(
           rawHeader(request, 'last-event-id') ??
             url.searchParams.get('after') ??
@@ -268,32 +414,53 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
         pending: '',
         flushScheduled: false,
       }
-      clients.add(client)
+      state.clients.add(client)
       request.on('close', () => {
         client.closed = true
-        clients.delete(client)
+        state.clients.delete(client)
       })
-      for (const event of options.host.events(streamId, client.after)) {
+      for (const event of state.runtime.host.events(streamId, client.after)) {
         client.after = event.seq
         writeEvent(client, event)
       }
       return
     }
     if (url.pathname === '/workspace' && method === 'GET') {
+      if (
+        !requireAiRole(principal, ['viewer', 'editor', 'approver', 'admin'])
+      ) {
+        sendJson(response, 403, {
+          error: {
+            code: 'AI_HOST_FORBIDDEN',
+            message: 'Read access required.',
+          },
+        })
+        return
+      }
       sendJson(response, 200, {
-        workspace: options.workspace.id,
-        files: await options.workspace.snapshot(),
-        approvals: options.workspace.pending().map(item => ({
+        workspace: state.runtime.workspace.id,
+        files: await state.runtime.workspace.snapshot(),
+        approvals: state.runtime.workspace.pending().map(item => ({
           id: item.id,
           executionId: item.executionId,
           revision: item.revision,
           title: item.title,
           summary: item.summary,
+          requestedBy: item.requestedBy,
         })),
       })
       return
     }
     if (url.pathname === '/approvals' && method === 'POST') {
+      if (!requireAiRole(principal, ['approver', 'admin'])) {
+        sendJson(response, 403, {
+          error: {
+            code: 'AI_HOST_FORBIDDEN',
+            message: 'Approval requires approver access.',
+          },
+        })
+        return
+      }
       const body = (await readJson(request)) as {
         id?: unknown
         revision?: unknown
@@ -312,10 +479,11 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
         })
         return
       }
-      const result = await options.workspace.resolve(
+      const result = await state.runtime.workspace.resolve(
         body.id,
         body.revision,
         body.approved ? 'approved' : 'rejected',
+        { userId: principal.userId, role: principal.role },
       )
       if (!result.ok) {
         sendJson(
@@ -336,13 +504,16 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
   }
 
   async function afterCommand(
+    state: TenantState,
+    principal: AiPrincipal,
     command: Command,
     ack: CommandAck,
   ): Promise<void> {
     if (!ack.accepted) return
     if (command.type === 'message.send') {
-      if (!knownConversations.has(command.target.id)) {
+      if (!state.conversations.has(command.target.id)) {
         emit(
+          state,
           'conversation.upserted',
           { kind: 'conversation', id: command.target.id },
           {
@@ -353,18 +524,18 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
             },
           },
         )
-        knownConversations.add(command.target.id)
+        state.conversations.add(command.target.id)
       }
       const payload = command.payload as {
         text?: unknown
         attachments?: Array<{ id?: unknown }>
       }
       const text = typeof payload.text === 'string' ? payload.text : ''
-      const nextSeq = options.host.latestSeq('reference') + 1
+      const nextSeq = state.runtime.host.latestSeq('reference') + 1
       const attachmentParts = (payload.attachments ?? []).flatMap(
         (attachment, index) => {
           if (typeof attachment.id !== 'string') return []
-          const asset = assets.get(attachment.id)
+          const asset = state.assets.get(attachment.id)
           if (!asset) return []
           const isImage = asset.mimeType.startsWith('image/')
           return [
@@ -411,9 +582,16 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
         ],
         status: 'complete',
         revision: 1,
-        createdAt: new Date(Date.now()).toISOString(),
+        createdAt: new Date().toISOString(),
       }
-      emit('message.created', { kind: 'message', id: message.id }, { message })
+      emit(
+        state,
+        'message.created',
+        { kind: 'message', id: message.id },
+        {
+          message,
+        },
+      )
       return
     }
     if (command.type === 'changeset.propose') {
@@ -425,15 +603,19 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
           typeof file.path === 'string' && typeof file.content === 'string',
       )
       try {
-        const approval = options.workspace.propose(files)
+        const approval = state.runtime.workspace.propose(
+          files,
+          principal.userId,
+        )
         emit(
+          state,
           'execution.started',
           { kind: 'execution', id: approval.executionId },
           {
             execution: {
               id: approval.executionId,
               kind: 'agent',
-              workspaceId: options.workspace.id,
+              workspaceId: state.runtime.workspace.id,
               status: 'awaiting-approval',
               createdAt: new Date().toISOString(),
               revision: 1,
@@ -448,7 +630,7 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
           summary: approval.summary,
           operation: {
             kind: 'changeset.apply',
-            target: `workspace:${options.workspace.id}`,
+            target: `workspace:${state.runtime.workspace.id}`,
           },
           scope: 'workspace',
           risk: 'high',
@@ -456,9 +638,12 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
           revision: approval.revision,
         }
         emit(
+          state,
           'approval.requested',
           { kind: 'approval', id: approval.id },
-          { approval: approvalRequest },
+          {
+            approval: approvalRequest,
+          },
         )
         const changeSetFiles = approval.files.map((file, index) => {
           const diff = createUnifiedDiff({
@@ -468,10 +653,11 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
           })
           const assetId = `${approval.id}-diff-${index}`
           const bytes = new TextEncoder().encode(diff)
-          assets.set(assetId, {
+          state.assets.set(assetId, {
             mimeType: 'text/x-diff; charset=utf-8',
             bytes,
             name: file.path,
+            createdAt: Date.now(),
           })
           const stats = countDiffLines(diff)
           return {
@@ -491,28 +677,33 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
         const changeSet: ChangeSet = {
           id: `changeset-${approval.id}`,
           executionId: approval.executionId,
-          workspaceId: options.workspace.id,
+          workspaceId: state.runtime.workspace.id,
           baseRevision: 'workspace-head',
           files: changeSetFiles,
           status: 'ready',
           revision: 1,
         }
         emit(
+          state,
           'changeset.updated',
           { kind: 'changeset', id: changeSet.id },
-          { changeset: changeSet },
-        )
-      } catch {
-        emit(
-          'execution.status.changed',
-          { kind: 'execution', id: 'execution-1' },
           {
-            id: 'execution-1',
+            changeset: changeSet,
+          },
+        )
+      } catch (error) {
+        emit(
+          state,
+          'execution.status.changed',
+          { kind: 'execution', id: 'execution-failed' },
+          {
+            id: 'execution-failed',
             from: 'running',
             to: 'failed',
             revision: 2,
           },
         )
+        throw error
       }
     }
     if (command.type === 'approval.resolve') {
@@ -526,6 +717,7 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
         command.expectedRevision === undefined
       ) {
         emit(
+          state,
           'approval.resolved',
           { kind: 'approval', id: command.target.id },
           {
@@ -536,12 +728,14 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
         )
         return
       }
-      const outcome = await options.workspace.resolve(
+      const outcome = await state.runtime.workspace.resolve(
         command.target.id,
         command.expectedRevision,
         payload.decision,
+        { userId: principal.userId, role: principal.role },
       )
       emit(
+        state,
         'approval.resolved',
         { kind: 'approval', id: command.target.id },
         {
@@ -554,6 +748,21 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
           revision: command.expectedRevision + 1,
         },
       )
+    }
+  }
+
+  function emit<T extends AnyDomainEvent>(
+    state: TenantState,
+    type: T['type'],
+    entity: T['entity'],
+    payload: T['payload'],
+  ): void {
+    const event = state.runtime.host.append(type, entity, payload) as T
+    for (const client of state.clients) {
+      if (event.streamId === client.streamId && event.seq > client.after) {
+        client.after = event.seq
+        writeEvent(client, event)
+      }
     }
   }
 
@@ -571,18 +780,82 @@ export function createAiHostServer(options: AiHostServerOptions): AiHostServer {
     })
   }
 
+  function pruneAssets(state: TenantState): void {
+    const cutoff = Date.now() - assetTtlMs
+    for (const [id, asset] of state.assets) {
+      if (asset.createdAt < cutoff) {
+        state.assets.delete(id)
+        state.assetBytes -= asset.bytes.byteLength
+      }
+    }
+  }
+
   return {
     port: 0,
     origin: '',
     inner: server,
     async close() {
-      for (const client of clients) client.response.end()
-      clients.clear()
+      for (const state of states.values()) {
+        for (const client of state.clients) client.response.end()
+        state.clients.clear()
+      }
       await new Promise<void>((resolve, reject) =>
         server.close(error => (error ? reject(error) : resolve())),
       )
     },
   }
+}
+
+function authorizeCommand(
+  principal: AiPrincipal,
+  command: Command,
+  mode: 'live' | 'replay',
+): { status: number; code: string; message: string } | undefined {
+  if (mode === 'live') {
+    return {
+      status: 503,
+      code: 'AI_HOST_LIVE_NOT_CONFIGURED',
+      message: 'Live mode requires a configured authenticated provider.',
+    }
+  }
+  if (command.type === 'changeset.propose') {
+    return requireAiRole(principal, ['editor', 'admin'])
+      ? undefined
+      : {
+          status: 403,
+          code: 'AI_HOST_FORBIDDEN',
+          message: 'Changeset proposals require editor access.',
+        }
+  }
+  if (command.type === 'approval.resolve') {
+    return requireAiRole(principal, ['approver', 'admin'])
+      ? undefined
+      : {
+          status: 403,
+          code: 'AI_HOST_FORBIDDEN',
+          message: 'Approval requires approver access.',
+        }
+  }
+  return undefined
+}
+
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => {
+        reject(
+          Object.assign(new Error('Tool execution timed out.'), {
+            status: 504,
+            code: 'AI_HOST_TOOL_TIMEOUT',
+          }),
+        )
+      }, timeoutMs).unref?.()
+    }),
+  ])
 }
 
 function rawHeader(
@@ -601,11 +874,21 @@ function sendJson(
   response.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'no-referrer',
+    'X-Frame-Options': 'DENY',
   })
   response.end(JSON.stringify(body))
 }
 
 async function readJson(request: http.IncomingMessage): Promise<unknown> {
+  const contentType = request.headers['content-type'] ?? ''
+  if (!contentType.includes('application/json')) {
+    throw Object.assign(new Error('Content-Type must be application/json.'), {
+      status: 415,
+      code: 'AI_HOST_JSON_REQUIRED',
+    })
+  }
   let size = 0
   const chunks: Buffer[] = []
   for await (const chunk of request) {
@@ -619,5 +902,13 @@ async function readJson(request: http.IncomingMessage): Promise<unknown> {
     }
     chunks.push(buffer)
   }
-  return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+  if (size === 0) return {}
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+  } catch {
+    throw Object.assign(new Error('Request body is not valid JSON.'), {
+      status: 400,
+      code: 'AI_HOST_INVALID_JSON',
+    })
+  }
 }
