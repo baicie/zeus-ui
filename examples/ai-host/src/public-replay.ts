@@ -36,7 +36,11 @@ export function resolvePublicReplayRoot(
     throw new Error('public replay workspace root must be absolute')
   }
   const absolute = path.resolve(workspaceRoot)
-  if (absolute === '/' || absolute === '/data') {
+  const broadRoots = new Set([
+    path.normalize(path.parse(absolute).root),
+    path.normalize(path.resolve('/data')),
+  ])
+  if (broadRoots.has(path.normalize(absolute))) {
     throw new Error('public replay workspace root is too broad')
   }
   fs.mkdirSync(absolute, { recursive: true, mode: 0o700 })
@@ -45,7 +49,7 @@ export function resolvePublicReplayRoot(
     throw new Error('public replay workspace root must be a real directory')
   }
   const realWorkspace = fs.realpathSync(absolute)
-  if (realWorkspace === '/' || realWorkspace === '/data') {
+  if (broadRoots.has(path.normalize(realWorkspace))) {
     throw new Error('public replay workspace root is too broad')
   }
   const root = path.join(realWorkspace, PUBLIC_REPLAY_DIR, seedVersion)

@@ -381,9 +381,12 @@ describe('public replay isolation', () => {
     expect(existsSync(path.join(v2.root, 'important.txt'))).toBe(false)
   })
 
-  it('rejects broad roots and symlink escapes', () => {
+  it('rejects broad roots', () => {
     expect(() => resolvePublicReplayRoot('/', 'v1')).toThrow('too broad')
     expect(() => resolvePublicReplayRoot('/data', 'v1')).toThrow('too broad')
+  })
+
+  it.skipIf(process.platform === 'win32')('rejects symlink escapes', () => {
     const root = directory()
     const real = path.join(root, 'real')
     mkdirSync(real)
