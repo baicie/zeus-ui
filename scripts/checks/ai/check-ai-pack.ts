@@ -69,9 +69,11 @@ interface Manifest {
   name: string
   version: string
   type?: string
+  private?: boolean
   files?: string[]
   dependencies?: Record<string, string>
   peerDependencies?: Record<string, string>
+  publishConfig?: { access?: string; provenance?: boolean }
   exports: Record<string, { types: string; import: string }>
 }
 
@@ -138,6 +140,22 @@ try {
     const text = JSON.stringify(manifest)
     if (text.includes('workspace:'))
       fail(`${pkg.name}: packed manifest still has workspace: ranges`)
+    // PR-26 publish policy: the packed manifest must be publishable as-is.
+    if (!/^\d+\.\d+\.\d+-\w/.test(String(manifest.version))) {
+      fail(
+        `${pkg.name}: version ${manifest.version} is not an explicit prerelease`,
+      )
+    }
+    if (manifest.private === true)
+      fail(`${pkg.name}: must not be private; the AI packages publish to npm`)
+    if (
+      manifest.publishConfig?.access !== 'public' ||
+      manifest.publishConfig?.provenance !== true
+    ) {
+      fail(
+        `${pkg.name}: publishConfig must be { access: "public", provenance: true }`,
+      )
+    }
     if (manifest.type !== 'module')
       fail(`${pkg.name}: not an ES module package`)
 
