@@ -64,7 +64,6 @@ export function validatePackageRules(
 
   validateZeusDependencyBoundary(pkg, errors, {
     allowComponentRuntimeDependencies: isPrimitive || isAdvanced,
-    allowCompatRuntimeDependency: isCompat,
   })
 
   if (isPrimitive) {
@@ -91,7 +90,6 @@ function validateZeusDependencyBoundary(
   errors: string[],
   options: {
     allowComponentRuntimeDependencies: boolean
-    allowCompatRuntimeDependency: boolean
   },
 ): void {
   const allowedComponentRuntimeDependencies = new Set([
@@ -118,17 +116,12 @@ function validateZeusDependencyBoundary(
         options.allowComponentRuntimeDependencies &&
         field === 'dependencies' &&
         allowedComponentRuntimeDependencies.has(name)
-      const isAllowedCompatRuntimeDependency =
-        options.allowCompatRuntimeDependency &&
-        field === 'dependencies' &&
-        name === '@zeus-js/runtime-dom'
       const isAllowedToolingDependency =
         field === 'dependencies' && allowedToolingDependencies.has(name)
 
       if (
         isAllowedPeer ||
         isAllowedComponentRuntimeDependency ||
-        isAllowedCompatRuntimeDependency ||
         isAllowedToolingDependency
       ) {
         continue
@@ -320,10 +313,6 @@ function validateCompatPackage(
 ): void {
   if (!pkg.peerDependencies || !pkg.peerDependencies['@zeus-js/zeus']) {
     errors.push(`${pkg.name}: must peer depend on @zeus-js/zeus`)
-  }
-
-  if (!pkg.dependencies || !pkg.dependencies['@zeus-js/runtime-dom']) {
-    errors.push(`${pkg.name}: must depend on @zeus-js/runtime-dom`)
   }
 
   for (const key of ['.', './capabilities']) {

@@ -30,6 +30,8 @@ interface RegistryManifest {
   schemaVersion: number
   name: string
   version: string
+  license: string
+  authors: Array<{ name: string; url?: string; email?: string }>
   items: RegistryItem[]
 }
 
@@ -118,6 +120,7 @@ function checkRegistry(errors: string[]): void {
   const requiredExports = [
     '.',
     './schema',
+    './author',
     './registry.json',
     './quality',
     './quality.json',
@@ -141,8 +144,14 @@ function checkRegistry(errors: string[]): void {
     if (!pkg.scripts?.[s]) errors.push(`missing script ${s}`)
   }
 
-  if (manifest.schemaVersion !== 1) {
-    errors.push('registry.json schemaVersion must be 1')
+  if (manifest.schemaVersion !== 2) {
+    errors.push('registry.json schemaVersion must be 2')
+  }
+  if (!manifest.license) {
+    errors.push('registry.json license is required')
+  }
+  if (!Array.isArray(manifest.authors) || manifest.authors.length === 0) {
+    errors.push('registry.json must list at least one author')
   }
   if (manifest.name !== '@zeus-web/registry') {
     errors.push('registry.json name must be @zeus-web/registry')
@@ -1013,10 +1022,20 @@ function checkThemeWorkflow(errors: string[]): void {
       'export function createThemeCss',
       'assertCustomThemeName',
       'assertHslValue',
+      'createThemeBlockCss',
+    ],
+    errors,
+  )
+  mustContain(
+    'packages/themes/src/generate.ts',
+    [
       'nativeAliasTokens.map',
       '--zw-',
       '--zeus-',
       'var(--',
+      'color-scheme: ',
+      'prefers-color-scheme: dark',
+      "[data-mode='dark']",
     ],
     errors,
   )

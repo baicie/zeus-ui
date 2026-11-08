@@ -42,7 +42,9 @@ function writeConfig(root: string, framework: 'react' | 'vue' = 'react') {
 }
 
 const registry: Registry = {
-  schemaVersion: 1,
+  schemaVersion: 2,
+  license: 'MIT',
+  authors: [{ name: 'Test Author' }],
   name: '@zeus-web/registry',
   version: '0.0.0',
   items: [
@@ -495,7 +497,9 @@ describe('@zeus-web/cli add', () => {
       writeFileSync(
         resolve(registryRoot, 'registry.json'),
         JSON.stringify({
-          schemaVersion: 1,
+          schemaVersion: 2,
+          license: 'MIT',
+          authors: [{ name: 'Test Author' }],
           name: '@example/registry',
           version: '2.0.0',
           items: [

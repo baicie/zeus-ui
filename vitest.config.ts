@@ -69,6 +69,82 @@ function advancedComponentsCompiler(): Plugin {
   }
 }
 
+/**
+ * Compiles `e2e/**\/*.native.tsx` fixtures with the Zeus DOM transform.
+ *
+ * The cross-host contract matrix consumes components through the Native host
+ * too, and that host must be produced by the real compiler: hand-written DOM
+ * would hide the event/attribute binding rules Native consumers depend on.
+ */
+function nativeContractCompiler(): Plugin {
+  return {
+    name: 'zeus:native-contract-compiler',
+    enforce: 'pre',
+    transform(code, id) {
+      if (!/[\\/]e2e[\\/].*\.native\.tsx$/.test(id)) return null
+
+      const result = transformModule({
+        source: code,
+        filename: id,
+        target: 'dom',
+        runtimeModule: '@zeus-js/runtime-dom',
+        delegateEvents: true,
+        sourceMap: true,
+      })
+      const diagnostic = result.diagnostics.find(
+        entry => entry.severity === 'error',
+      )
+
+      if (diagnostic) {
+        throw new Error(`${diagnostic.code}: ${diagnostic.message}`)
+      }
+
+      return {
+        code: result.code,
+        map: result.map,
+      }
+    },
+  }
+}
+
+/**
+ * Resolves `@zeus-web/<pkg>/react|vue|wc/auto` to the built dist entry.
+ *
+ * The cross-host contract matrix consumes the same wrapper sub-paths a real
+ * application imports, so the aliases point at `dist` instead of source.
+ */
+function crossHostWrapperAliases(): Alias[] {
+  const primitives = ['dialog', 'form-field', 'input', 'popover', 'select']
+  const advanced = ['data-grid']
+  const aliases: Alias[] = []
+
+  for (const pkg of primitives) {
+    for (const framework of ['react', 'vue'] as const) {
+      aliases.push({
+        find: new RegExp(`^@zeus-web/${pkg}/${framework}$`),
+        replacement: resolve(
+          process.cwd(),
+          `packages/primitives/${pkg}/dist/${framework}/index.js`,
+        ),
+      })
+    }
+  }
+
+  for (const pkg of advanced) {
+    for (const framework of ['react', 'vue'] as const) {
+      aliases.push({
+        find: new RegExp(`^@zeus-web/${pkg}/${framework}$`),
+        replacement: resolve(
+          process.cwd(),
+          `packages/advanced/${pkg}/dist/${framework}/index.js`,
+        ),
+      })
+    }
+  }
+
+  return aliases
+}
+
 function createDataGridRuntimeAliases(
   additionalAliases: Alias[] = [],
 ): Alias[] {
@@ -528,7 +604,7 @@ export default defineConfig({
 
       {
         extends: true,
-        plugins: [advancedComponentsCompiler()],
+        plugins: [advancedComponentsCompiler(), nativeContractCompiler()],
         test: {
           name: 'e2e',
           environment: 'jsdom',
@@ -543,6 +619,10 @@ export default defineConfig({
         resolve: {
           conditions: ['import', 'module', 'browser', 'default'],
           alias: createDataGridRuntimeAliases([
+            // Framework wrapper sub-paths resolve to the built dist entries,
+            // mirroring what an installed consumer imports. These must come
+            // before the workspace base aliases.
+            ...crossHostWrapperAliases(),
             {
               find: /^react$/,
               replacement: resolve(

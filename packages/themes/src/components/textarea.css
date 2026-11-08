@@ -1,0 +1,64 @@
+/* Derived from components.css by scripts/split-component-css.ts. */
+/* Requires tokens.css and one theme file (e.g. default.css). */
+
+zw-button,
+zw-input,
+zw-checkbox,
+zw-switch,
+zw-tabs,
+zw-dialog-trigger,
+zw-dialog-close,
+zw-select,
+zw-textarea,
+zw-radio-group,
+zw-label,
+zw-accordion,
+zw-alert,
+zw-avatar,
+zw-badge,
+zw-card,
+zw-collapsible,
+zw-progress,
+zw-separator,
+zw-skeleton,
+zw-tooltip,
+zw-agent-console,
+zw-chat,
+zw-data-grid,
+zw-revogrid-adapter,
+zw-virtual-list {
+  font: inherit;
+}
+
+zw-input,
+zw-select,
+zw-textarea {
+  display: block;
+  width: min(28rem, 100%);
+}
+
+zw-select [part='root'],
+zw-textarea [part='root'] {
+  display: grid;
+  gap: 0.35rem;
+}
+
+zw-textarea [data-slot='textarea'] {
+  width: 100%;
+  border: 1px solid hsl(var(--input));
+  border-radius: 0.65rem;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  padding: 0.625rem 0.75rem;
+  font: inherit;
+  outline: none;
+}
+
+zw-textarea [data-slot='textarea']:focus {
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.35);
+}
+
+zw-textarea [data-slot='textarea'] {
+  min-height: 6rem;
+  line-height: 1.5;
+}

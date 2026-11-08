@@ -381,23 +381,43 @@ function createThemeOverrideCss(config: ComponentsConfig): string {
 function createRegistryGlobalsBlock(config: ComponentsConfig): string {
   const lightColors = getThemeColors(config.style, 'light')
   const darkColors = getThemeColors(config.style, 'dark')
+  const darkMode = createDefaultThemeConfig(config.theme).darkMode
 
   const lightLines = [
     registryGlobalsStart,
     ':root {',
+    '  color-scheme: light;',
     ...semanticColorTokens.map(
       token => `  --zeus-${token}: ${lightColors[token]};`,
     ),
     '}',
     '',
-    '.dark {',
+  ]
+
+  const darkBody = [
+    '  color-scheme: dark;',
     ...semanticColorTokens.map(
       token => `  --zeus-${token}: ${darkColors[token]};`,
     ),
-    '}',
-    registryGlobalsEnd,
-    '',
   ]
+
+  if (darkMode === 'media') {
+    lightLines.push('@media (prefers-color-scheme: dark) {')
+    lightLines.push('  :root {')
+    lightLines.push(...darkBody.map(line => `  ${line}`))
+    lightLines.push('  }')
+    lightLines.push('}')
+  } else if (darkMode === 'data') {
+    lightLines.push("[data-mode='dark'] {")
+    lightLines.push(...darkBody)
+    lightLines.push('}')
+  } else {
+    lightLines.push('.dark {')
+    lightLines.push(...darkBody)
+    lightLines.push('}')
+  }
+
+  lightLines.push(registryGlobalsEnd, '')
 
   return lightLines.join('\n')
 }

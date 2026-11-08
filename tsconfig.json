@@ -31,6 +31,7 @@
   "exclude": [
     "packages/zeus-compat/__tests__/canary-capabilities.spec.ts",
     "e2e/advanced/data-grid/framework-renderer/**",
-    "e2e/advanced/data-grid/framework-renderer-browser.spec.ts"
+    "e2e/advanced/data-grid/framework-renderer-browser.spec.ts",
+    "e2e/contract"
   ]
 }

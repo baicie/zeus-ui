@@ -25,9 +25,11 @@ interface RegistryItem {
 }
 
 interface RegistryManifest {
-  schemaVersion: 1
+  schemaVersion: 2
   name: string
   version: string
+  license: string
+  authors: Array<{ name: string; url?: string; email?: string }>
   items: RegistryItem[]
 }
 

@@ -247,9 +247,11 @@ function verifyFileRegistry(): void {
     writeFileSync(
       join(registryRoot, 'registry.json'),
       JSON.stringify({
-        schemaVersion: 1,
+        schemaVersion: 2,
         name: '@example/registry',
         version: '1.0.0',
+        license: 'MIT',
+        authors: [{ name: 'Example UI' }],
         items: [
           {
             name: 'badge',

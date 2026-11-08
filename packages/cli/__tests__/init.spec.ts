@@ -174,11 +174,58 @@ describe('@zeus-web/cli init', () => {
       expect(css).toContain('/* zeus-web registry globals:start */')
       expect(css).toContain(':root {')
       expect(css).toContain('--zeus-destructive: 0 84.2% 60.2%;')
-      expect(css).toContain('.dark {')
+      // `darkMode: 'data'` emits the data selector and keeps `.dark` out.
+      expect(css).toContain("[data-mode='dark'] {")
+      expect(css).not.toContain('.dark {')
       expect(css).toContain('/* zeus-web theme overrides:start */')
       expect(css).toContain('--zeus-radius-md: 0.75rem;')
       expect(css).toContain('--zeus-primary: 220 90% 56%;')
       expect(css).toContain('--zw-theme-dark-mode: data;')
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('emits the dark block for the configured dark mode strategy', async () => {
+    const root = await createTempDir()
+
+    try {
+      const mediaConfig = createDefaultComponentsConfig({
+        style: 'zinc',
+        theme: { darkMode: 'media' },
+      })
+      const mediaResult = await ensureThemeCss({
+        cwd: root,
+        config: mediaConfig,
+        overwrite: true,
+      })
+      const mediaCss = readFileSync(
+        resolve(root, 'src/styles/zeus.css'),
+        'utf-8',
+      )
+
+      expect(mediaResult).toBe('created')
+      expect(mediaCss).toContain('@media (prefers-color-scheme: dark) {')
+      expect(mediaCss).toContain('color-scheme: dark;')
+      expect(mediaCss).not.toContain('.dark {')
+
+      const classConfig = createDefaultComponentsConfig({
+        style: 'zinc',
+        theme: { darkMode: 'class' },
+      })
+      const classResult = await ensureThemeCss({
+        cwd: root,
+        config: classConfig,
+        overwrite: true,
+      })
+      const classCss = readFileSync(
+        resolve(root, 'src/styles/zeus.css'),
+        'utf-8',
+      )
+
+      expect(classResult).toBe('updated')
+      expect(classCss).toContain('.dark {')
+      expect(classCss).not.toContain('@media (prefers-color-scheme: dark) {')
     } finally {
       await rm(root, { recursive: true, force: true })
     }

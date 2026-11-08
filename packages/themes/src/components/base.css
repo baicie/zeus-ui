@@ -1,0 +1,169 @@
+/* Derived from components.css by scripts/split-component-css.ts. */
+
+zw-button,
+zw-input,
+zw-checkbox,
+zw-switch,
+zw-tabs,
+zw-dialog-trigger,
+zw-dialog-close,
+zw-select,
+zw-textarea,
+zw-radio-group,
+zw-label,
+zw-accordion,
+zw-alert,
+zw-avatar,
+zw-badge,
+zw-card,
+zw-collapsible,
+zw-progress,
+zw-separator,
+zw-skeleton,
+zw-tooltip,
+zw-agent-console,
+zw-chat,
+zw-data-grid,
+zw-revogrid-adapter,
+zw-virtual-list {
+  font: inherit;
+}
+
+zw-input,
+zw-select,
+zw-textarea {
+  display: block;
+  width: min(28rem, 100%);
+}
+
+zw-select [part='root'],
+zw-textarea [part='root'] {
+  display: grid;
+  gap: 0.35rem;
+}
+
+zw-checkbox,
+zw-switch,
+zw-radio-group-item,
+zw-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+zw-checkbox [part='root'],
+zw-switch [part='root'],
+zw-radio-group-item [part='root'] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  cursor: pointer;
+}
+
+zw-checkbox [data-slot='checkbox-control'],
+zw-switch [data-slot='switch-control'],
+zw-radio-group-item [data-slot='radio-group-control'] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: hsl(var(--primary));
+}
+
+zw-accordion,
+zw-collapsible {
+  display: grid;
+  width: 100%;
+}
+
+zw-accordion-trigger,
+zw-collapsible-trigger {
+  display: block;
+}
+
+zw-accordion-trigger [data-slot='accordion-trigger-button'],
+zw-collapsible-trigger [data-slot='collapsible-trigger-button'] {
+  display: flex;
+  width: 100%;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 0;
+  background: transparent;
+  color: hsl(var(--foreground));
+  padding: 0.65rem 0;
+  font: inherit;
+  font-weight: 650;
+  text-align: start;
+  cursor: pointer;
+}
+
+zw-accordion-trigger [data-slot='accordion-trigger-button']::after,
+zw-collapsible-trigger [data-slot='collapsible-trigger-button']::after {
+  content: '';
+  width: 0.45rem;
+  height: 0.45rem;
+  flex: 0 0 auto;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-0.15rem) rotate(45deg);
+  transition: transform var(--zw-duration-fast) var(--zw-easing-standard);
+}
+
+zw-accordion-trigger[data-state='open']
+  [data-slot='accordion-trigger-button']::after,
+zw-collapsible-trigger[data-state='open']
+  [data-slot='collapsible-trigger-button']::after {
+  transform: translateY(0.15rem) rotate(225deg);
+}
+
+zw-accordion-content,
+zw-collapsible-content {
+  display: block;
+  padding: 0 0 0.85rem;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.55;
+}
+
+zw-accordion-content[hidden],
+zw-collapsible-content[hidden] {
+  display: none;
+}
+
+zw-data-grid,
+zw-chat,
+zw-virtual-list,
+zw-revogrid-adapter,
+zw-agent-console {
+  display: block;
+  min-width: 0;
+  color: hsl(var(--foreground));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  zw-skeleton[data-animated],
+  zw-progress[data-state='indeterminate'] [data-slot='progress-indicator'] {
+    animation: none;
+  }
+}
+
+@keyframes zw-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes zw-progress-indeterminate {
+  from {
+    transform: translateX(-110%);
+  }
+
+  to {
+    transform: translateX(300%);
+  }
+}

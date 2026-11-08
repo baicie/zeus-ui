@@ -1,0 +1,79 @@
+/* Derived from components.css by scripts/split-component-css.ts. */
+/* Requires tokens.css and one theme file (e.g. default.css). */
+
+zw-button,
+zw-input,
+zw-checkbox,
+zw-switch,
+zw-tabs,
+zw-dialog-trigger,
+zw-dialog-close,
+zw-select,
+zw-textarea,
+zw-radio-group,
+zw-label,
+zw-accordion,
+zw-alert,
+zw-avatar,
+zw-badge,
+zw-card,
+zw-collapsible,
+zw-progress,
+zw-separator,
+zw-skeleton,
+zw-tooltip,
+zw-agent-console,
+zw-chat,
+zw-data-grid,
+zw-revogrid-adapter,
+zw-virtual-list {
+  font: inherit;
+}
+
+zw-avatar {
+  display: inline-grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  overflow: hidden;
+  place-items: center;
+  border-radius: 999px;
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  font-weight: 700;
+  isolation: isolate;
+}
+
+zw-avatar[data-size='sm'] {
+  width: 2rem;
+  height: 2rem;
+  font-size: 0.75rem;
+}
+
+zw-avatar[data-size='lg'] {
+  width: 3rem;
+  height: 3rem;
+  font-size: 1rem;
+}
+
+zw-avatar[data-shape='square'] {
+  border-radius: 0.5rem;
+}
+
+zw-avatar-image,
+zw-avatar-fallback {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+}
+
+zw-avatar-image [data-slot='avatar-image'] {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+zw-avatar-fallback {
+  display: grid;
+  place-items: center;
+}

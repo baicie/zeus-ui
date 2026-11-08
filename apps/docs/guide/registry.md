@@ -152,3 +152,62 @@ The registry copies app-owned source.
 Use registry source for React/Vue app customization.
 
 Use `@zeus-web/ui` for no-framework styled custom elements.
+
+## Registry manifest schema
+
+`registry.json` uses `schemaVersion: 2`. A valid manifest declares provenance:
+
+```json
+{
+  "schemaVersion": 2,
+  "name": "@zeus-web/registry",
+  "version": "1.0.0",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Zeus Web Contributors",
+      "url": "https://github.com/baicie/zeus-ui"
+    }
+  ],
+  "items": []
+}
+```
+
+`schemaVersion: 1` is rejected without a silent migration path.
+
+Validate any registry manifest, including a third-party one:
+
+```bash
+zweb registry validate
+zweb registry validate ./registry.json --json
+```
+
+## Publishing a third-party component package
+
+Copying source with `zweb add` and publishing a custom element package are two
+different products, not two implementations of the same thing:
+
+| Mode                       | What ships                                | Owner              | Upgrade                              |
+| -------------------------- | ----------------------------------------- | ------------------ | ------------------------------------ |
+| Registry source copy       | `.tsx` / `.vue` templates                 | your app           | `zweb update`, local edits preserved |
+| **Custom element package** | `dist/wc/*`, CEM, DTS, React/Vue wrappers | the package author | bump the package version             |
+
+`zweb add` never produces a custom element. A CE package is built with
+`@zeus-js/bundler-plugin` and `@zeus-js/output-wc` in the author's own
+repository, then published to npm.
+
+Third-party packages must declare a stable publish shape: `exports` for the WC
+entry, `./wc/auto`, `./custom-elements.json`, `./zeus.components.json`, plus
+`./react` and `./vue` wrappers; `files: ["dist"]`; and an exact
+`@zeus-js/zeus` peer pin. Validate before publishing:
+
+```bash
+zweb author check
+zweb author check ./dist-package --json
+```
+
+`zweb author check` reports diagnostics as `{ code, path, message }` and fails
+on a consumer Zeus version that does not match the peer pin.
+
+See `docs/internal/authoring-sdk.md` in the repository for the full contract,
+diagnostic codes, plugin metadata and security notes.

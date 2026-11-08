@@ -1,12 +1,15 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
 import {
+  createBuiltinThemeFileCss,
   createThemeCss,
   darkModeStrategyNames,
+  darkThemeRegistry,
+  getThemeColors,
   getThemeCssImport,
   getThemeTokens,
   getThemeTokensJson,
@@ -17,12 +20,14 @@ import {
   motionPresetNames,
   motionPresets,
   motionTokens,
+  nativeAliasTokens,
   radiusPresetNames,
   radiusPresets,
   semanticColorTokens,
   themeCssExports,
   themeCssImports,
   themeNames,
+  themePalettes,
   themeRegistry,
 } from '../src'
 
@@ -50,6 +55,59 @@ describe('@zeus-web/themes', () => {
     expect(source).toContain("zw-button[data-variant='primary']")
     expect(source).toContain("zw-input [data-slot='input']")
     expect(source).toContain("zw-dialog-content [part='content']")
+  })
+
+  it('splits components.css into per-component files without losing rules', () => {
+    const source = readThemeFile('components.css')
+    const splitDir = resolve(themesSrcDir, 'components')
+    const files = readdirSync(splitDir).filter(file => file.endsWith('.css'))
+
+    expect(files).toContain('button.css')
+    expect(files).toContain('data-grid.css')
+
+    const joined = files
+      .map(file => readFileSync(resolve(splitDir, file), 'utf-8'))
+      .join('\n')
+    const normalized = joined.replace(/\s+/g, ' ')
+
+    const selectors = Array.from(source.matchAll(/^([^\n@}][^\n{]*)\{/gm)).map(
+      match => match[1].replace(/\s+/g, ' ').trim(),
+    )
+
+    expect(selectors.length).toBeGreaterThan(100)
+
+    for (const selector of selectors) {
+      const first = selector.split(',')[0].trim()
+      expect(normalized).toContain(first)
+    }
+  })
+
+  it('keeps per-component css free of physical layout properties', () => {
+    const splitDir = resolve(themesSrcDir, 'components')
+    const physical = [
+      /text-align:\s*(left|right);/,
+      /border-(left|right)(-[a-z]+)?:/,
+      /margin-(left|right):/,
+      /padding-(left|right):/,
+      /\b(float|direction):\s*(left|right|ltr|rtl);/,
+    ]
+
+    for (const file of readdirSync(splitDir)) {
+      if (!file.endsWith('.css')) continue
+
+      const source = readFileSync(resolve(splitDir, file), 'utf-8')
+
+      for (const pattern of physical) {
+        // Chevron/checkmark glyphs draw with physical borders on purpose: the
+        // glyph itself must not mirror, only its placement does.
+        const withoutGlyphs = source.replace(
+          /border-(left|right): 2px solid currentColor;/g,
+          '',
+        )
+
+        expect(withoutGlyphs).not.toMatch(pattern)
+      }
+    }
   })
 
   it('covers every documented component with default presentation css', () => {
@@ -159,6 +217,65 @@ describe('@zeus-web/themes', () => {
       expect(source).toContain('.dark')
       expect(source).toContain(`[data-theme='${theme}']`)
     }
+  })
+
+  it('keeps built-in theme css byte-identical to the generator output', () => {
+    for (const theme of themeNames) {
+      const expected = createBuiltinThemeFileCss(theme, themePalettes[theme])
+      expect(readThemeFile(`${theme}.css`)).toBe(expected)
+    }
+  })
+
+  it('keeps the color registries in sync with palettes.ts', () => {
+    for (const theme of themeNames) {
+      expect(themeRegistry[theme].colors).toEqual(themePalettes[theme].light)
+      expect(darkThemeRegistry[theme].colors).toEqual(themePalettes[theme].dark)
+      expect(getThemeColors(theme, 'light')).toEqual(themePalettes[theme].light)
+      expect(getThemeColors(theme, 'dark')).toEqual(themePalettes[theme].dark)
+    }
+  })
+
+  it('declares every native alias in every theme file', () => {
+    for (const theme of themeNames) {
+      const source = readThemeFile(`${theme}.css`)
+      for (const token of nativeAliasTokens) {
+        expect(source).toMatch(
+          new RegExp(`--zw-${token}: var\\(--${token}\\);`),
+        )
+      }
+      for (const token of semanticColorTokens) {
+        expect(source).toMatch(
+          new RegExp(`--zeus-${token}: var\\(--${token}\\);`),
+        )
+      }
+    }
+  })
+
+  it('declares color-scheme for light and dark blocks', () => {
+    for (const theme of themeNames) {
+      const source = readThemeFile(`${theme}.css`)
+      expect(source.match(/color-scheme: light;/g)).toHaveLength(1)
+      expect(source.match(/color-scheme: dark;/g)).toHaveLength(1)
+    }
+  })
+
+  it('generates dark selectors for the data and media strategies', () => {
+    const dataCss = createThemeCss('brand', 'default', {}, { darkMode: 'data' })
+    expect(dataCss).toContain("[data-theme='brand'][data-mode='dark'] {")
+    expect(dataCss).not.toContain('.dark')
+    expect(dataCss).toContain('color-scheme: dark;')
+
+    const mediaCss = createThemeCss(
+      'brand',
+      'default',
+      {},
+      {
+        darkMode: 'media',
+      },
+    )
+    expect(mediaCss).toContain('@media (prefers-color-scheme: dark) {')
+    expect(mediaCss).not.toContain('.dark')
+    expect(mediaCss).toContain('color-scheme: dark;')
   })
 
   it('exposes phase 13 token registries', () => {

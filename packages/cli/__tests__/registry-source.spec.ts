@@ -15,9 +15,11 @@ import { loadRegistrySource } from '../src/registry-source'
 
 function createManifest(name = '@acme/registry') {
   return {
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
     name,
     version: '1.2.3',
+    license: 'MIT',
+    authors: [{ name: 'Test Author' }],
     items: [
       {
         name: 'button',
