@@ -9,6 +9,10 @@ const defaultLimit = 48 * 1024
 const largerPackageLimits: Record<string, number> = {
   '@zeus-web/chat': 64 * 1024,
   '@zeus-web/data-grid': 64 * 1024,
+  // `zweb` is a Node CLI, not browser payload: its size costs install time
+  // only, never a consumer's bundle. The author SDK and registry validation
+  // commands (PR-25) add ~4.8 kB gzip of real command surface.
+  '@zeus-web/cli': 64 * 1024,
 }
 
 function collectJavaScriptFiles(directory: string): string[] {
