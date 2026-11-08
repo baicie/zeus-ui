@@ -2074,9 +2074,6 @@ importers:
 
   packages/zeus-compat:
     dependencies:
-      '@zeus-js/runtime-dom':
-        specifier: 0.1.1-beta.20
-        version: 0.1.1-beta.20
       '@zeus-js/zeus':
         specifier: 0.1.1-beta.20
         version: 0.1.1-beta.20

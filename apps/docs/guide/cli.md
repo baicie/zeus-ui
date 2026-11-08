@@ -18,6 +18,8 @@ The CLI owns the React/Vue source registry workflow.
 | `zweb theme`               | List, inspect or apply theme presets.                             |
 | `zweb ai`                  | Generate AI-readable metadata and usage guide.                    |
 | `zweb icon`                | Manage icon metadata and snippets.                                |
+| `zweb author`              | Validate a third-party component or output-plugin package.        |
+| `zweb registry`            | Validate a registry manifest.                                     |
 
 ## init
 
@@ -213,3 +215,35 @@ Options:
 | `--output <file>` | Write to a custom file.                |
 | `--overwrite`     | Replace existing file.                 |
 | `--dry-run`       | Print the plan without writing.        |
+
+## author
+
+Validate a package before publishing it to npm.
+
+```bash
+zweb author check
+zweb author check ./dist-package --json
+zweb author check --zeus-version 0.1.1-beta.20
+```
+
+| Option               | Description                                                 |
+| -------------------- | ----------------------------------------------------------- |
+| `--dir <dir>`        | Package directory. Defaults to the current directory.       |
+| `--zeus-version <v>` | Compare against a consumer version instead of node_modules. |
+| `--json`             | Print `{ valid, diagnostics }`.                             |
+| `--cwd <dir>`        | Resolve relative paths from this directory.                 |
+
+The check validates the `exports` publish shape, the dist-only `files`
+allowlist, the exact `@zeus-js/zeus` peer pin, the component manifest, the CEM
+drift and any `zeus.plugins` metadata. It exits with code 1 on failure.
+
+## registry
+
+Validate a registry manifest.
+
+```bash
+zweb registry validate
+zweb registry validate ./registry.json --json
+```
+
+`schemaVersion` must be `2`; version `1` is rejected with a migration message.

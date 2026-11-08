@@ -1,0 +1,91 @@
+/* Derived from components.css by scripts/split-component-css.ts. */
+/* Requires tokens.css and one theme file (e.g. default.css). */
+
+zw-button,
+zw-input,
+zw-checkbox,
+zw-switch,
+zw-tabs,
+zw-dialog-trigger,
+zw-dialog-close,
+zw-select,
+zw-textarea,
+zw-radio-group,
+zw-label,
+zw-accordion,
+zw-alert,
+zw-avatar,
+zw-badge,
+zw-card,
+zw-collapsible,
+zw-progress,
+zw-separator,
+zw-skeleton,
+zw-tooltip,
+zw-agent-console,
+zw-chat,
+zw-data-grid,
+zw-revogrid-adapter,
+zw-virtual-list {
+  font: inherit;
+}
+
+zw-tooltip {
+  position: relative;
+  display: inline-flex;
+}
+
+zw-tooltip-trigger,
+zw-tooltip-trigger [data-slot='tooltip-trigger-control'] {
+  display: inline-flex;
+}
+
+zw-tooltip-content {
+  position: absolute;
+  z-index: 60;
+  bottom: calc(100% + 0.5rem);
+  inset-inline-start: 50%;
+  width: max-content;
+  max-width: 18rem;
+  transform: translateX(-50%);
+  border-radius: 0.375rem;
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
+  padding: 0.4rem 0.6rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  box-shadow: 0 6px 18px hsl(var(--foreground) / 0.18);
+}
+
+/* RTL mirrors the translate direction: logical `start` + 50% is the same
+   anchor, but `translateX(-50%)` must flip with the writing mode. */
+zw-tooltip-content:dir(rtl) {
+  transform: translateX(50%);
+}
+
+zw-tooltip-content[data-side='bottom'] {
+  top: calc(100% + 0.5rem);
+  bottom: auto;
+}
+
+/* `data-side` stays physical: `left`/`right` describe where the tooltip is
+   placed, not the reading direction, so RTL does not remap them. */
+zw-tooltip-content[data-side='left'] {
+  top: 50%;
+  right: calc(100% + 0.5rem);
+  bottom: auto;
+  left: auto;
+  transform: translateY(-50%);
+}
+
+zw-tooltip-content[data-side='right'] {
+  top: 50%;
+  bottom: auto;
+  left: calc(100% + 0.5rem);
+  transform: translateY(-50%);
+}
+
+zw-tooltip-content[hidden] {
+  display: none;
+}

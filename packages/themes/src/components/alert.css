@@ -1,0 +1,75 @@
+/* Derived from components.css by scripts/split-component-css.ts. */
+/* Requires tokens.css and one theme file (e.g. default.css). */
+
+zw-button,
+zw-input,
+zw-checkbox,
+zw-switch,
+zw-tabs,
+zw-dialog-trigger,
+zw-dialog-close,
+zw-select,
+zw-textarea,
+zw-radio-group,
+zw-label,
+zw-accordion,
+zw-alert,
+zw-avatar,
+zw-badge,
+zw-card,
+zw-collapsible,
+zw-progress,
+zw-separator,
+zw-skeleton,
+zw-tooltip,
+zw-agent-console,
+zw-chat,
+zw-data-grid,
+zw-revogrid-adapter,
+zw-virtual-list {
+  font: inherit;
+}
+
+zw-alert {
+  display: grid;
+  gap: 0.25rem;
+  border: 1px solid hsl(var(--border));
+  border-inline-start-width: 0.25rem;
+  border-radius: 0.5rem;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  padding: 0.875rem 1rem;
+}
+
+zw-alert[data-variant='info'] {
+  border-inline-start-color: hsl(210 85% 50%);
+  background: hsl(210 85% 50% / 0.08);
+}
+
+zw-alert[data-variant='success'] {
+  border-inline-start-color: hsl(142 70% 38%);
+  background: hsl(142 70% 38% / 0.08);
+}
+
+zw-alert[data-variant='warning'] {
+  border-inline-start-color: hsl(42 92% 48%);
+  background: hsl(42 92% 48% / 0.1);
+}
+
+zw-alert[data-variant='danger'] {
+  border-inline-start-color: hsl(var(--destructive));
+  background: hsl(var(--destructive) / 0.08);
+}
+
+zw-alert-title {
+  display: block;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+zw-alert-description {
+  display: block;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  line-height: 1.5;
+}

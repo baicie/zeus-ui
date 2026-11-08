@@ -27,15 +27,17 @@
     "./zinc.css": "./dist/zinc.css",
     "./neutral.css": "./dist/neutral.css",
     "./stone.css": "./dist/stone.css",
-    "./components.css": "./dist/components.css"
+    "./components.css": "./dist/components.css",
+    "./components/*.css": "./dist/components/*.css"
   },
   "files": [
     "dist"
   ],
   "scripts": {
     "dev": "tsup src/index.ts --format esm --dts --clean --watch",
-    "build": "tsup src/index.ts --format esm --dts --clean && tsx scripts/copy-css.ts",
+    "build": "tsup src/index.ts --format esm --dts --clean && tsx scripts/emit-theme-css.ts && tsx scripts/split-component-css.ts && tsx scripts/copy-css.ts",
     "check": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest --root ../.. --project unit packages/themes/__tests__/themes.spec.ts"
+    "test": "vitest --root ../.. --project unit packages/themes/__tests__/themes.spec.ts",
+    "theme:check": "tsx scripts/emit-theme-css.ts --check"
   }
 }

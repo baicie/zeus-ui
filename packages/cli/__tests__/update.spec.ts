@@ -263,7 +263,9 @@ describe('@zeus-web/cli update', () => {
       writeFileSync(
         resolve(registryRoot, 'registry.json'),
         JSON.stringify({
-          schemaVersion: 1,
+          schemaVersion: 2,
+          license: 'MIT',
+          authors: [{ name: 'Test Author' }],
           name: '@example/registry',
           version: '1.0.0',
           items: [

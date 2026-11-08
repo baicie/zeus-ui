@@ -1,6 +1,6 @@
 # Zeus 包公共 API
 
-本文件是 Zeus 包公共 API 的唯一权威来源。当前覆盖 `@zeus-web/zeus-compat`、
+本文件是 Zeus 包公共 API 的唯一权威来源。当前覆盖 `@zeus-web/zeus-compat`、`@zeus-web/themes`、
 `@zeus-web/chat`、`@zeus-web/agent-console`、`@zeus-web/data-grid`、`@zeus-web/ai` 与 AI Headless V2
 （`@zeus-web/ai-*`，见文末）；尚未迁移到本文件的包继续保持现有发布出口，后续变更公共 API 时必须补充对应章节。
 
@@ -40,7 +40,9 @@ function validateAiMetadata(
 
 状态：`0.1.0` 发布准备，MVP 阶段，不承诺向后兼容。
 
-Zeus 兼容基线：`0.1.1-beta.20`。该包只转发 Zeus 当前公共 API，不暴露 Zeus 内部实现。
+Zeus 兼容基线：`0.1.1-beta.20`。该包只依赖 `@zeus-js/zeus` 与 `@zeus-js/zeus/capabilities`
+（peer），不依赖 `@zeus-js/runtime-dom` 等未列入 Zeus downstream contract 的入口，也不暴露 Zeus
+内部实现。
 
 入口：
 
@@ -59,13 +61,42 @@ context 值：`createContext`、`inject`、`provide`、`useContext`。
 
 DOM context 值：`provideDOMContext`、`resolveDOMContext`。
 
+DOM context 类型：`DOMContext`、`DOMContextResolution`。
+
+```ts
+type DOMContext<T = unknown> = Context<T>
+
+interface DOMContextResolution<T> {
+  found: boolean
+  value: T | undefined
+}
+
+function provideDOMContext<T>(
+  target: EventTarget,
+  context: DOMContext<T>,
+  value: T,
+): void
+function resolveDOMContext<T>(
+  host: HTMLElement,
+  context: DOMContext<T>,
+): DOMContextResolution<T>
+```
+
+这两个函数由本包实现，不再从 `@zeus-js/runtime-dom` 转发。它们使用 Zeus custom element
+的 DOM context 协议：子元素派发冒泡、`composed` 的 `zeus:context-request` 事件，`detail`
+带 `id`（context 的 `Symbol`）和 `resolve(value)`；最近的 provider 应答后停止传播。
+`defineElement({ consumes })` 与 `Context.Bridge` 使用同一事件，所以三者的值可以互相读取。
+`provideDOMContext` 必须在 owner scope（custom element setup 或 `createRoot`）内同步调用，
+scope 销毁时移除监听。lazy entry 之间用 `Symbol.for('<package>/context')` 保持同一 context
+身份。事件名和 `detail` 形状由 Zeus 仓库约定，见 PR-24 报告中给 Zeus 的契约建议。
+
 capability 值：`ZEUS_CAPABILITIES`、`getMissingZeusCompatRequirements`、
 `assertZeusCompatRequirements`。
 
 公共类型：`Component`、`Context`、`ContextBridgeProps`、`ContextProviderProps`、
 `DefineElementContext`、`DefineElementMeta`、`DefineElementOptions`、`DefineElementSetup`、
 `ForProps`、`HostProps`、`JSXValue`、`ShowProps`、`SlotProps`、`DOMContext`、
-`ZeusCapabilities`、`ZeusCompatRequirement`。
+`DOMContextResolution`、`ZeusCapabilities`、`ZeusCompatRequirement`。
 
 ```ts
 function getMissingZeusCompatRequirements(): ZeusCompatRequirement[]
@@ -86,6 +117,76 @@ function assertZeusCompatRequirements(): void
 
 历史 alias `computed`、`effect`、`nextTick`、`scope`、`state`、`untrack`、`watch` 已删除，且不提供
 兼容转发。
+
+## `@zeus-web/themes`
+
+状态：`0.1.0` 发布准备，MVP 阶段，不承诺向后兼容。
+
+主题 token 与组件展示样式的单一来源。语义颜色 token 定义在 `src/palettes.ts`，
+内置主题 CSS 由 `scripts/emit-theme-css.ts` 从该文件生成；手改 CSS 会被
+`theme:check` 与 `themes.spec.ts` 的字节级断言拦下。
+
+入口：
+
+- `@zeus-web/themes`（JS API）
+- `@zeus-web/themes/tokens.css`
+- `@zeus-web/themes/{default,slate,zinc,neutral,stone}.css`
+- `@zeus-web/themes/components.css`
+- `@zeus-web/themes/components/*.css`（按需的单组件 CSS）
+
+### CSS 契约
+
+每个主题文件包含：
+
+- 浅色块 `:root, [data-theme='<name>']`：`color-scheme: light`、19 个语义颜色
+  token（`--background` … `--ring`）、9 个 `--zw-*` 原生别名、19 个 `--zeus-*`
+  Registry 别名；
+- 暗色块（内置文件用 `.dark` 策略）：同样的三组变量，`color-scheme: dark`。
+
+`--zw-*` 与 `--zeus-*` 都指向同一批语义 token，分别供 WC 包与 Registry 源码使用。
+
+### JS API
+
+常量与类型：
+
+- `themeNames`、`themeCssImports`、`themeCssExports`、`themePackageName`
+- `semanticColorTokens`（19）、`nativeAliasTokens`（9）、`radiusTokens`、`motionTokens`
+- `radiusPresetNames` / `radiusPresets`、`motionPresetNames` / `motionPresets`
+- `darkModeStrategyNames = ['class', 'data', 'media']`、`themeModeNames = ['light', 'dark']`
+- 类型：`ThemeName`、`ThemeModeName`、`SemanticColorToken`、`NativeAliasToken`、
+  `RadiusToken`、`MotionToken`、`RadiusPresetName`、`MotionPresetName`、
+  `DarkModeStrategyName`、`ThemeTokenSet`、`ThemeColorOverrides`、`MotionPreset`
+
+调色板与注册表：
+
+- `themePalettes`：`Record<ThemeName, { light, dark }>`，权威颜色数据
+- `themeRegistry` / `darkThemeRegistry` / `themeModeRegistry`
+- `getThemeColors(theme, mode)`、`getThemeCssImport(theme)`、`getThemeTokens(theme)`、
+  `getThemeTokensJson()`
+
+生成：
+
+- `createThemeCss(name, baseTheme?, overrides?, options?)`：返回完整 CSS 文本，
+  `options.darkMode` 选 `class` / `data` / `media` 策略
+- `createThemeBlockCss(params)`、`createBuiltinThemeFileCss(name, palettes)`、
+  `generatedThemeCssMarker`
+- 守卫：`isThemeName`、`isRadiusPresetName`、`isMotionPresetName`、
+  `isDarkModeStrategyName`
+
+```ts
+import { createThemeCss } from '@zeus-web/themes'
+
+const css = createThemeCss(
+  'brand',
+  'slate',
+  { light: { primary: '12 80% 45%' }, dark: { primary: '12 70% 65%' } },
+  { darkMode: 'data' },
+)
+// 选择器: :root, [data-theme='brand'] 与 [data-mode='dark']
+```
+
+样式分发模式、暗色策略、RTL、CSP 与样式隔离的完整说明见
+[theming-and-distribution.md](./theming-and-distribution.md)。
 
 ## 所有组件包共享契约
 
@@ -854,3 +955,31 @@ Composables：`useController`、`useAiState`、`useOwnedController`、`useIds`�
 `defineAiFileChangeTree`、`defineAiDiffViewer`、`defineAiTestReport`、`defineAiChangesetActions`、`defineAiElements`；
 子入口 `./define`（客户端，副作用注册全部）。元素 `zw-ai-*` 只通过 DOM property 接收控制器与数据；事件
 `zw-ai-dismiss`、`zw-ai-select` 不携带敏感数据。
+
+## `@zeus-web/registry`
+
+Source component registry plus the third-party author contract.
+
+### 根入口 API
+
+`Registry` / `RegistryItem` / `RegistryFile` / `RegistryAuthor` 类型；`validateRegistry`（返回
+`{ valid, errors, diagnostics }`）。registry manifest 当前为 `schemaVersion: 2`，`license`（SPDX 形状）与
+`authors`（至少一条，`name` 必填，`url` 需 http(s)）为必填；`schemaVersion: 1` 显式拒绝，不做静默迁移。
+
+### `./schema` API
+
+`RegistryManifest`、`RegistryAuthor`、`RegistryValidationResult`、`AuthorDiagnostic`、`validateRegistry`。
+
+### `./author` API
+
+第三方作者契约（详见 `docs/internal/authoring-sdk.md`）：
+
+- 常量：`authorContractVersion`、`pluginApiVersion`、`authorZeusBaselineVersion`、`reservedTagPrefix`。
+- 校验：`validateComponentPackage`、`validateOutputPluginMetadata`。
+- 插件产物：`createAuthorPluginReport`、`createAuthorPluginAsset`。
+- 类型：`AuthorPackageJson`、`AuthorPackageMetadata`、`AuthorOutputPluginMetadata`、`AuthorComponentManifest`、
+  `AuthorCustomElementsManifest`、`AuthorComponentPackageInput`、`AuthorDiagnostic`、`AuthorValidationResult`。
+
+诊断统一为 `{ code, path, message }`，`path` 是 JSON path（如 `exports["./wc/auto"]`、`components[1].tag`）。
+组件包必须声明 WC 入口、`./wc/auto`、`./custom-elements.json`、`./zeus.components.json` 四个必需导出，
+可选 `./react` / `./vue` wrapper；`files` 只允许 `dist`；`peerDependencies["@zeus-js/zeus"]` 必须精确 pin。

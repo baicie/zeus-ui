@@ -1,4 +1,34 @@
 export type {
+  AuthorComponentManifest,
+  AuthorComponentManifestEntry,
+  AuthorComponentPackageInput,
+  AuthorCustomElementsManifest,
+  AuthorDiagnostic,
+  AuthorEventManifest,
+  AuthorOutputPluginMetadata,
+  AuthorPackageExport,
+  AuthorPackageJson,
+  AuthorPackageMetadata,
+  AuthorPluginAsset,
+  AuthorPluginMetadataInput,
+  AuthorPluginReport,
+  AuthorPropManifest,
+  AuthorSlotManifest,
+  AuthorValidationResult,
+} from './author'
+
+export {
+  authorContractVersion,
+  authorZeusBaselineVersion,
+  createAuthorPluginAsset,
+  createAuthorPluginReport,
+  pluginApiVersion,
+  reservedTagPrefix,
+  validateComponentPackage,
+  validateOutputPluginMetadata,
+} from './author'
+
+export type {
   ComponentEventSchema,
   ComponentPropSchema,
   ComponentSchemaFramework,
@@ -28,6 +58,7 @@ export {
 } from './quality'
 
 export type {
+  RegistryAuthor,
   RegistryFile,
   RegistryFile as RegistryItemFile,
   RegistryFramework,

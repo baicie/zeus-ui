@@ -3,11 +3,13 @@
 import pc from 'picocolors'
 import { add } from './commands/add'
 import { ai } from './commands/ai'
+import { author } from './commands/author'
 import { diff } from './commands/diff'
 import { doctor } from './commands/doctor'
 import { icon } from './commands/icon'
 import { init } from './commands/init'
 import { list } from './commands/list'
+import { registry } from './commands/registry'
 import { remove } from './commands/remove'
 import { theme } from './commands/theme'
 import { update } from './commands/update'
@@ -45,6 +47,12 @@ async function main() {
       break
     case 'ai':
       await ai(args)
+      break
+    case 'author':
+      await author(args)
+      break
+    case 'registry':
+      await registry(args)
       break
     case undefined:
     case '-h':
@@ -117,6 +125,11 @@ function printHelp() {
   console.log('  zweb ai')
   console.log('  zweb ai --cursor')
   console.log('  zweb ai --json')
+  console.log('  zweb author check')
+  console.log('  zweb author check ./dist-package --json')
+  console.log('  zweb author check --zeus-version 0.1.1-beta.20')
+  console.log('  zweb registry validate')
+  console.log('  zweb registry validate ./registry.json --json')
   console.log('')
   console.log('Options:')
   console.log('  --cwd <dir>                 Use a specific project directory')

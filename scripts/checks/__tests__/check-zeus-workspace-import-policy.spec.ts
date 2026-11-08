@@ -28,7 +28,7 @@ describe('check-zeus-workspace import policy', () => {
     expect(getExpectedZeusPeerRequirement('workspace:*')).toBeUndefined()
   })
 
-  it('allows zeus-compat to import upstream Zeus runtime APIs', () => {
+  it('allows zeus-compat to import the public Zeus entries only', () => {
     expect(
       isAllowedZeusImport('packages/zeus-compat/src/index.ts', '@zeus-js/zeus'),
     ).toBe(true)
@@ -40,12 +40,16 @@ describe('check-zeus-workspace import policy', () => {
       ),
     ).toBe(true)
 
-    expect(
-      isAllowedZeusImport(
-        'packages/zeus-compat/src/index.ts',
-        '@zeus-js/runtime-dom',
-      ),
-    ).toBe(true)
+    for (const specifier of [
+      '@zeus-js/runtime-dom',
+      '@zeus-js/web-c-runtime',
+      '@zeus-js/signal/internal',
+    ]) {
+      expect(
+        isAllowedZeusImport('packages/zeus-compat/src/index.ts', specifier),
+        specifier,
+      ).toBe(false)
+    }
   })
 
   it('allows zeus-compat tests to import upstream Zeus contract modules', () => {
@@ -217,6 +221,39 @@ const runtime = await import('@zeus-js/runtime-dom')
     expect(ZEUS_IMPORT_CHECKED_ROOTS).toContain('packages/advanced')
     expect(collectZeusImportViolations(root)).toEqual([
       'packages/advanced/chat/__tests__/chat-components.spec.ts: do not import @zeus-js/compiler directly. Use @zeus-web/zeus-compat instead.',
+    ])
+  })
+
+  it('scans the styled UI and AI Headless V2 packages', () => {
+    const root = mkdtempSync(join(tmpdir(), 'zeus-import-policy-'))
+    temporaryRoots.push(root)
+
+    const files = {
+      'packages/ui/src/index.ts': "import '@zeus-js/runtime-dom'\n",
+      'packages/ai-core/src/index.ts':
+        "import { ReactiveEffect } from '@zeus-js/signal/internal'\n",
+      'packages/ai-wc/src/element.ts': "import '@zeus-js/zeus'\n",
+    }
+    for (const [file, source] of Object.entries(files)) {
+      mkdirSync(join(root, file, '..'), { recursive: true })
+      writeFileSync(join(root, file), source)
+    }
+
+    for (const name of [
+      'ui',
+      'ai-core',
+      'ai-adapters',
+      'ai-primitives',
+      'ai-react',
+      'ai-vue',
+      'ai-wc',
+    ]) {
+      expect(ZEUS_IMPORT_CHECKED_ROOTS).toContain(`packages/${name}`)
+    }
+    expect(collectZeusImportViolations(root)).toEqual([
+      'packages/ui/src/index.ts: do not import @zeus-js/runtime-dom directly. Use @zeus-web/zeus-compat instead.',
+      'packages/ai-core/src/index.ts: do not import @zeus-js/signal/internal directly. Use @zeus-web/zeus-compat instead.',
+      'packages/ai-wc/src/element.ts: do not import @zeus-js/zeus directly. Use @zeus-web/zeus-compat instead.',
     ])
   })
 })

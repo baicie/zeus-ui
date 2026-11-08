@@ -37,7 +37,9 @@ function writeConfig(root: string) {
 }
 
 const registry: Registry = {
-  schemaVersion: 1,
+  schemaVersion: 2,
+  license: 'MIT',
+  authors: [{ name: 'Test Author' }],
   name: '@zeus-web/registry',
   version: '0.0.0',
   items: [

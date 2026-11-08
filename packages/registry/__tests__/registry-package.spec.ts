@@ -64,6 +64,7 @@ const publicRegistryItemNames = [
 const publicRegistryExports = [
   '.',
   './schema',
+  './author',
   './registry.json',
   './quality',
   './quality.json',
@@ -102,7 +103,7 @@ describe('@zeus-web/registry package contract', () => {
     const manifest = readManifest()
     const packageJson = JSON.parse(read('package.json')) as RegistryPackageJson
 
-    expect(manifest.schemaVersion).toBe(1)
+    expect(manifest.schemaVersion).toBe(2)
     expect(manifest.version).toBe(packageJson.version)
     expect(getRegistryItemNames(manifest)).toEqual(publicRegistryItemNames)
   })
@@ -266,7 +267,11 @@ describe('@zeus-web/registry package contract', () => {
     const manifest = readManifest()
     manifest.name = '@example/registry'
 
-    expect(validateRegistry(manifest)).toEqual({ valid: true, errors: [] })
+    expect(validateRegistry(manifest)).toEqual({
+      valid: true,
+      errors: [],
+      diagnostics: [],
+    })
 
     manifest.name = '../invalid'
     expect(validateRegistry(manifest)).toMatchObject({

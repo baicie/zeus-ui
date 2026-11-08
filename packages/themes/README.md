@@ -26,6 +26,43 @@ import '@zeus-web/themes/default.css'
 
 Provides design tokens and component-level CSS variables for Zeus Web.
 
+### Dark mode strategies
+
+Every theme file declares a light block for `:root, [data-theme='<name>']` and
+a dark block. Built-in files use the `class` strategy (`.dark`). Generate the
+other strategies with `createThemeCss`'s fourth argument:
+
+```ts
+import { createThemeCss } from '@zeus-web/themes'
+
+// `.dark` on <html> (default)
+createThemeCss('brand', 'slate', {}, { darkMode: 'class' })
+// [data-mode="dark"]
+createThemeCss('brand', 'slate', {}, { darkMode: 'data' })
+// prefers-color-scheme, no class or attribute needed
+createThemeCss('brand', 'slate', {}, { darkMode: 'media' })
+```
+
+Both blocks set `color-scheme` (`light` / `dark`) so native form controls and
+scrollbars follow the theme instead of staying light.
+
+### On-demand component CSS
+
+`@zeus-web/themes/components.css` ships the presentation for every component.
+To load only what you render, use the per-component files instead; each one
+requires `tokens.css` and one theme file:
+
+```ts
+import '@zeus-web/themes/tokens.css'
+import '@zeus-web/themes/default.css'
+import '@zeus-web/themes/components/button.css'
+import '@zeus-web/themes/components/dialog.css'
+```
+
+`components/base.css` holds the shared rules (font inheritance) when you need
+them separately. The files are derived from `components.css` by
+`scripts/split-component-css.ts`; do not edit them by hand.
+
 ### Generate a custom theme
 
 `createThemeCss` creates a light/dark CSS theme from a built-in palette. It

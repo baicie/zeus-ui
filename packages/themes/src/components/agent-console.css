@@ -1,0 +1,77 @@
+/* Derived from components.css by scripts/split-component-css.ts. */
+/* Requires tokens.css and one theme file (e.g. default.css). */
+
+zw-button,
+zw-input,
+zw-checkbox,
+zw-switch,
+zw-tabs,
+zw-dialog-trigger,
+zw-dialog-close,
+zw-select,
+zw-textarea,
+zw-radio-group,
+zw-label,
+zw-accordion,
+zw-alert,
+zw-avatar,
+zw-badge,
+zw-card,
+zw-collapsible,
+zw-progress,
+zw-separator,
+zw-skeleton,
+zw-tooltip,
+zw-agent-console,
+zw-chat,
+zw-data-grid,
+zw-revogrid-adapter,
+zw-virtual-list {
+  font: inherit;
+}
+
+zw-data-grid,
+zw-chat,
+zw-virtual-list,
+zw-revogrid-adapter,
+zw-agent-console {
+  display: block;
+  min-width: 0;
+  color: hsl(var(--foreground));
+}
+
+zw-agent-console [data-slot='agent-console-layout'] {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(14rem, 1fr);
+  overflow: hidden;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem;
+  background: hsl(var(--background));
+}
+
+zw-agent-console [data-slot='agent-console-timeline'] {
+  min-height: 20rem;
+  padding: 1rem;
+}
+
+zw-agent-console [data-slot='agent-console-tools'],
+zw-agent-console [data-slot='agent-console-artifacts'],
+zw-agent-console [data-slot='agent-console-diagnostics'] {
+  min-width: 0;
+  border-inline-start: 1px solid hsl(var(--border));
+  padding: 0.75rem;
+  background: hsl(var(--muted) / 0.35);
+}
+
+@media (max-width: 720px) {
+  zw-agent-console [data-slot='agent-console-layout'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  zw-agent-console [data-slot='agent-console-tools'],
+  zw-agent-console [data-slot='agent-console-artifacts'],
+  zw-agent-console [data-slot='agent-console-diagnostics'] {
+    border-top: 1px solid hsl(var(--border));
+    border-inline-start: 0;
+  }
+}
