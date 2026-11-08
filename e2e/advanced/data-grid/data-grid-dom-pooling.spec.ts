@@ -331,6 +331,30 @@ describe('zw-data-grid fixed-row DOM pooling', () => {
     expect(restoredHeader.getAttribute('data-column-id')).toBe(focusedColumnId)
   })
 
+  it('does not steal focus back from an outside target after scheduling active-cell focus restoration', async () => {
+    const columns = createColumns(3)
+    const grid = await mountDataGrid({
+      rows: [createWideRow(3)],
+      columns,
+      virtual: true,
+      rowHeight: 40,
+      overscan: 0,
+      overscanColumns: 0,
+      selectionMode: 'none',
+    })
+    const outsideButton = document.createElement('button')
+    outsideButton.type = 'button'
+    document.body.append(outsideButton)
+
+    grid.focusCell('row-0', 'column-0')
+    outsideButton.focus()
+    expect(document.activeElement).toBe(outsideButton)
+
+    await nextFrame()
+
+    expect(document.activeElement).toBe(outsideButton)
+  })
+
   it('does not steal focus back from an outside target after scheduling header focus restoration', async () => {
     const wideColumns = createColumns(30)
     const grid = await mountDataGrid({

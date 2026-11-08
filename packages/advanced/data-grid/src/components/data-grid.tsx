@@ -883,7 +883,20 @@ function setup(
   }
 
   const scheduleFocusActiveCellElement = (): void => {
+    const ownerDocument = viewport?.ownerDocument
+    const scheduledActiveElement = ownerDocument?.activeElement
     focusScheduler.schedule(() => {
+      const activeElement = ownerDocument?.activeElement
+      // Do not steal focus from an outside control that the user focused
+      // after this restoration was scheduled. Explicit focusCell calls keep
+      // working because the scheduled element is the current one.
+      if (
+        activeElement &&
+        activeElement !== ownerDocument?.body &&
+        activeElement !== scheduledActiveElement
+      ) {
+        return
+      }
       focusActiveCellElement()
     })
   }
