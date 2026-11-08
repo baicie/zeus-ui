@@ -88,6 +88,66 @@ describe('input controlled state', () => {
     expect(native.value).toBe('Grace')
   })
 
+  it('accepts an asynchronous controlled write-back', async () => {
+    const input = await createInput()
+    input.value = 'Ada'
+    input.addEventListener('value-change', event => {
+      const value = (event as CustomEvent<{ value: string }>).detail.value
+      setTimeout(() => {
+        input.value = value
+      }, 0)
+    })
+    await nextRender()
+
+    const native = getNativeInput(input)
+    native.value = 'Grace'
+    native.dispatchEvent(new InputEvent('input', { bubbles: true }))
+    await nextRender()
+    await nextRender()
+
+    expect(input.value).toBe('Grace')
+    expect(native.value).toBe('Grace')
+  })
+
+  it('keeps the latest value through rapid input and deletion', async () => {
+    const input = await createInput()
+    input.value = 'Ada'
+    input.addEventListener('value-change', event => {
+      input.value = (event as CustomEvent<{ value: string }>).detail.value
+    })
+    await nextRender()
+    const native = getNativeInput(input)
+
+    for (const value of ['G', 'Gr', 'Gra', 'Grac', 'Grace']) {
+      native.value = value
+      native.dispatchEvent(new InputEvent('input', { bubbles: true }))
+    }
+    await nextRender()
+    expect(native.value).toBe('Grace')
+
+    native.value = ''
+    native.dispatchEvent(new InputEvent('input', { bubbles: true }))
+    await nextRender()
+    expect(input.value).toBe('')
+    expect(native.value).toBe('')
+  })
+
+  it('does not reset on a same-value input event', async () => {
+    const input = await createInput()
+    input.value = 'Ada'
+    input.addEventListener('value-change', event => {
+      input.value = (event as CustomEvent<{ value: string }>).detail.value
+    })
+    await nextRender()
+    const native = getNativeInput(input)
+
+    native.value = 'Ada'
+    native.dispatchEvent(new InputEvent('input', { bubbles: true }))
+    await nextRender()
+    expect(input.value).toBe('Ada')
+    expect(native.value).toBe('Ada')
+  })
+
   it('does not let later defaultValue updates replace an uncontrolled value', async () => {
     const input = await createInput('Ada')
 
