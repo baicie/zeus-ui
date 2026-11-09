@@ -12,6 +12,9 @@ on:
       release_sha:
         required: true
         type: string
+      core_commit:
+        required: true
+        type: string
     secrets:
       NPM_PUBLISH_TOKEN:
         required: true
@@ -27,9 +30,14 @@ on:
         type: choice
         options:
           - beta
+          - rc
           - latest
       release_sha:
         description: Immutable release commit SHA
+        required: true
+        type: string
+      core_commit:
+        description: Immutable paired Zeus Core commit SHA
         required: true
         type: string
 
@@ -47,16 +55,35 @@ jobs:
     steps:
       - name: Verify dispatch context
         run: |
-          case "$VERSION" in
-            *-*) test "$TAG" = "beta" ;;
-            *) test "$TAG" = "latest" ;;
-          esac
+          channel_of() {
+            case "$1" in
+              *-canary.*) echo canary ;;
+              *-rc.*) echo rc ;;
+              *-beta.*) echo beta ;;
+              *-*) echo invalid ;;
+              *) echo latest ;;
+            esac
+          }
+          expected="$(channel_of "$VERSION")"
+          if [ "$expected" = invalid ]; then
+            echo "::error::unsupported prerelease identifier in $VERSION"
+            exit 1
+          fi
+          if [ "$TAG" != "$expected" ]; then
+            echo "::error::version $VERSION must publish under dist-tag $expected, not $TAG"
+            exit 1
+          fi
           test "$GITHUB_REF" = "refs/tags/v$VERSION"
           test "$GITHUB_SHA" = "$RELEASE_SHA"
+          if ! [[ "$CORE_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::core_commit must be a full 40-character SHA"
+            exit 1
+          fi
         env:
           VERSION: ${{ inputs.version }}
           TAG: ${{ inputs.tag }}
           RELEASE_SHA: ${{ inputs.release_sha }}
+          CORE_COMMIT: ${{ inputs.core_commit }}
 
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -93,6 +120,31 @@ jobs:
       - name: Verify release tarballs
         run: pnpm release:verify:pack
 
+      # A version string is not evidence of the Core candidate. The pairing
+      # record committed for this exact version must name this UI commit, the
+      # paired Core version and commit, the channel, and every @zeus-js/* pin
+      # must match. The Core tag is re-resolved and must point at that commit.
+      - name: Verify immutable Core/UI pairing
+        run: |
+          pnpm exec tsx scripts/checks/release/check-release-pairing.ts \
+            --version "$VERSION" \
+            --release-sha "$RELEASE_SHA" \
+            --core-commit "$CORE_COMMIT" \
+            --out "$PAIRING_REPORT"
+        env:
+          VERSION: ${{ inputs.version }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          CORE_COMMIT: ${{ inputs.core_commit }}
+          PAIRING_REPORT: ${{ runner.temp }}/release-pairing.json
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Preserve pairing evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ui-release-pairing
+          path: ${{ runner.temp }}/release-pairing.json
+          if-no-files-found: error
+
       - name: Revalidate release tag
         run: |
           # A lightweight tag resolves straight to a commit, while an annotated
@@ -108,13 +160,38 @@ jobs:
           RELEASE_SHA: ${{ inputs.release_sha }}
           GH_TOKEN: ${{ github.token }}
 
+      # `@baicie/release` decides "already published" from `npm view`'s exit
+      # code, so a registry outage is indistinguishable from a missing version
+      # and the publish loop would retry packages that already exist. This
+      # preflight separates 200 / 404 / everything-else and fails closed, and
+      # its report is the recovery record for a partially published release.
+      - name: Verify registry reachability and the recovery set
+        run: >-
+          pnpm exec tsx scripts/checks/release/check-publish-preflight.ts
+          --version "$VERSION"
+          --tag "$TAG"
+          --out "$PREFLIGHT_REPORT"
+        env:
+          VERSION: ${{ inputs.version }}
+          TAG: ${{ inputs.tag }}
+          PREFLIGHT_REPORT: ${{ runner.temp }}/publish-preflight.json
+
+      - name: Preserve publish preflight evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ui-publish-preflight
+          path: ${{ runner.temp }}/publish-preflight.json
+          if-no-files-found: error
+
       - name: Capture latest dist-tag baseline
         run: pnpm release:capture:latest --output "$LATEST_BASELINE"
         env:
           LATEST_BASELINE: ${{ runner.temp }}/published-latest-baseline.json
 
       - name: Publish package
-        run: pnpm run ci-publish --version "$VERSION" --tag "$TAG"
+        run: |
+          pnpm exec tsx scripts/checks/release/check-release-channel.ts --version "$VERSION" --tag "$TAG" --context publish
+          pnpm run ci-publish --version "$VERSION" --tag "$TAG"
         env:
           VERSION: ${{ inputs.version }}
           TAG: ${{ inputs.tag }}

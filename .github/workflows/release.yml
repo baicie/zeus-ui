@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version, for example 0.1.0-beta.0 or 0.1.0'
+        description: 'Release version, for example 0.1.0-beta.0, 0.2.0-rc.0 or 0.2.0'
         required: true
         type: string
       tag:
@@ -14,6 +14,7 @@ on:
         type: choice
         options:
           - beta
+          - rc
           - latest
       dry_run:
         description: Run with --dry-run (no commit, no publish)
@@ -39,12 +40,31 @@ jobs:
       - name: Verify release context
         run: test "$GITHUB_REF" = "refs/heads/main"
 
+      # The version decides the channel; an explicit tag that disagrees with it
+      # is a release-channel error. This job intentionally checks out nothing,
+      # so the rule below is self-contained shell. scripts/checks/release/
+      # check-release-channel.ts enforces the identical rule in the CLI guard
+      # and its unit tests keep the two in sync.
       - name: Verify release channel
         run: |
-          case "$VERSION" in
-            *-*) test "$TAG" = "beta" ;;
-            *) test "$TAG" = "latest" ;;
-          esac
+          channel_of() {
+            case "$1" in
+              *-canary.*) echo canary ;;
+              *-rc.*) echo rc ;;
+              *-beta.*) echo beta ;;
+              *-*) echo invalid ;;
+              *) echo latest ;;
+            esac
+          }
+          expected="$(channel_of "$VERSION")"
+          if [ "$expected" = invalid ]; then
+            echo "::error::unsupported prerelease identifier in $VERSION"
+            exit 1
+          fi
+          if [ "$TAG" != "$expected" ]; then
+            echo "::error::version $VERSION must publish under dist-tag $expected, not $TAG"
+            exit 1
+          fi
 
   dry-run:
     needs: validate-context
@@ -89,6 +109,7 @@ jobs:
       contents: write
     outputs:
       release_sha: ${{ steps.tag_release.outputs.sha }}
+      core_commit: ${{ steps.pairing_core.outputs.core_commit }}
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
       VERSION: ${{ inputs.version }}
@@ -134,6 +155,30 @@ jobs:
           "
           test -z "$(git status --porcelain)"
 
+      # The committed pairing record is what binds this UI release to a Core
+      # candidate. It is read here, before the tag exists, so an unpairable
+      # version can never be tagged in the first place.
+      - name: Verify immutable Core/UI pairing
+        id: pairing_core
+        run: |
+          pnpm exec tsx scripts/checks/release/check-release-pairing.ts \
+            --version "$VERSION" \
+            --release-sha "$GITHUB_SHA" \
+            --out "$PAIRING_REPORT"
+          core_commit="$(node -p "require('./release-pairing/$VERSION.json').coreCommit")"
+          echo "core_commit=$core_commit" >> "$GITHUB_OUTPUT"
+        env:
+          VERSION: ${{ inputs.version }}
+          PAIRING_REPORT: ${{ runner.temp }}/release-pairing.json
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Preserve pairing evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ui-release-pairing-release
+          path: ${{ runner.temp }}/release-pairing.json
+          if-no-files-found: error
+
       - name: Tag release
         id: tag_release
         run: |
@@ -168,8 +213,25 @@ jobs:
       VERSION: ${{ inputs.version }}
       TAG: ${{ inputs.tag }}
       RELEASE_SHA: ${{ needs.release.outputs.release_sha }}
+      CORE_COMMIT: ${{ needs.release.outputs.core_commit }}
 
     steps:
+      # The Core commit comes from the pairing record read by the release job;
+      # a moved Core branch or a hand-typed SHA can never be dispatched. The
+      # tag is re-resolved here so the dispatch proves the Core release the UI
+      # was built against is the one that actually exists.
+      - name: Verify the Core release is immutable
+        run: |
+          if ! [[ "$CORE_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::pairing record coreCommit is not a full SHA"
+            exit 1
+          fi
+          test "$(gh api "repos/baicie/zeus/commits/v$VERSION" --jq '.sha')" = "$CORE_COMMIT"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          CORE_COMMIT: ${{ needs.release.outputs.core_commit }}
+
       - name: Dispatch publish workflow
         run: |
           gh workflow run publish.yml \
@@ -177,6 +239,11 @@ jobs:
             --ref "v$VERSION" \
             --raw-field version="$VERSION" \
             --raw-field tag="$TAG" \
-            --raw-field release_sha="$RELEASE_SHA"
+            --raw-field release_sha="$RELEASE_SHA" \
+            --raw-field core_commit="$CORE_COMMIT"
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          TAG: ${{ inputs.tag }}
+          RELEASE_SHA: ${{ needs.release.outputs.release_sha }}
+          CORE_COMMIT: ${{ needs.release.outputs.core_commit }}

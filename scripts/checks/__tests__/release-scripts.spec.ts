@@ -6,10 +6,15 @@ import { parse } from 'yaml'
 import {
   CHECKOUT_ACTION_REF,
   githubExpression,
+  pairingCommand,
   PNPM_SETUP_ACTION_REF,
+  publishPreflightCommand,
+  RELEASE_DIST_TAGS,
+  releaseChannelScript,
   revalidateReleaseTagScript,
   SETUP_NODE_ACTION_REF,
   shellVariable,
+  UPLOAD_ARTIFACT_ACTION_REF,
 } from '../release/check-release-workflows'
 
 interface WorkflowObject {
@@ -235,6 +240,14 @@ describe('release script contract', () => {
     const dryRun = getNamedStep(dryRunJob, 'Dry-run release')
     const realRelease = getNamedStep(release, 'Verify prepared release')
     const tagRelease = getNamedStep(release, 'Tag release')
+    const pairingStep = getNamedStep(
+      release,
+      'Verify immutable Core/UI pairing',
+    )
+    const coreImmutableStep = getNamedStep(
+      dispatchPublish,
+      'Verify the Core release is immutable',
+    )
     const dispatchPublishStep = getNamedStep(
       dispatchPublish,
       'Dispatch publish workflow',
@@ -254,7 +267,8 @@ describe('release script contract', () => {
     expect(releaseCommands).toHaveLength(0)
     expect(inlinePublishCommands).toHaveLength(0)
     expect(versionInput).toEqual({
-      description: 'Release version, for example 0.1.0-beta.0 or 0.1.0',
+      description:
+        'Release version, for example 0.1.0-beta.0, 0.2.0-rc.0 or 0.2.0',
       required: true,
       type: 'string',
     })
@@ -263,7 +277,7 @@ describe('release script contract', () => {
       required: true,
       default: 'beta',
       type: 'choice',
-      options: ['beta', 'latest'],
+      options: [...RELEASE_DIST_TAGS],
     })
     expect(dryRunInput).toEqual({
       description: 'Run with --dry-run (no commit, no publish)',
@@ -279,6 +293,7 @@ describe('release script contract', () => {
     })
     expect(validateContext['runs-on']).toBe('ubuntu-latest')
     expect(getObject(validateContext, 'permissions')).toEqual({})
+    // The channel job checks out nothing, so the shell rule stays self-contained.
     expect(getActionRefs(validateContext)).toEqual([])
     expect(getObject(validateContext, 'env')).toEqual({
       VERSION: githubExpression('inputs.version'),
@@ -287,14 +302,7 @@ describe('release script contract', () => {
     expect(validateContextStep.run).toBe(
       'test "$GITHUB_REF" = "refs/heads/main"',
     )
-    expect(String(validateChannelStep.run).trim()).toBe(
-      [
-        'case "$VERSION" in',
-        '  *-*) test "$TAG" = "beta" ;;',
-        '  *) test "$TAG" = "latest" ;;',
-        'esac',
-      ].join('\n'),
-    )
+    expect(String(validateChannelStep.run).trim()).toBe(releaseChannelScript())
     expect(dryRunJob.needs).toBe('validate-context')
     expect(dryRunJob.if).toBe(
       githubExpression(
@@ -331,13 +339,17 @@ describe('release script contract', () => {
     expect(getObject(release, 'permissions')).toEqual({ contents: 'write' })
     expect(getObject(release, 'outputs')).toEqual({
       release_sha: githubExpression('steps.tag_release.outputs.sha'),
+      core_commit: githubExpression('steps.pairing_core.outputs.core_commit'),
     })
     expect(getObject(release, 'env')).toEqual({
       PUPPETEER_SKIP_DOWNLOAD: 'true',
       VERSION: githubExpression('inputs.version'),
       TAG: githubExpression('inputs.tag'),
     })
-    expect(getActionRefs(release)).toEqual(RELEASE_ACTION_REFS)
+    expect(getActionRefs(release)).toEqual([
+      ...RELEASE_ACTION_REFS,
+      UPLOAD_ARTIFACT_ACTION_REF,
+    ])
     expect(getObject(checkout, 'with')).toEqual({
       'fetch-depth': 0,
       ref: 'main',
@@ -378,11 +390,12 @@ describe('release script contract', () => {
     expect(getObject(tagRelease, 'env')).toEqual({
       GH_TOKEN: githubExpression('github.token'),
     })
+    // Only the two steps that read GitHub state carry the workflow token.
     expect(
       releaseSteps
         .filter(step => JSON.stringify(step.env || '').includes('github.token'))
         .map(step => step.name),
-    ).toEqual(['Tag release'])
+    ).toEqual(['Verify immutable Core/UI pairing', 'Tag release'])
     expect(JSON.stringify(release)).not.toContain('NPM_TOKEN')
     expect(JSON.stringify(release)).not.toContain('NODE_AUTH_TOKEN')
 
@@ -401,6 +414,7 @@ describe('release script contract', () => {
       VERSION: githubExpression('inputs.version'),
       TAG: githubExpression('inputs.tag'),
       RELEASE_SHA: githubExpression('needs.release.outputs.release_sha'),
+      CORE_COMMIT: githubExpression('needs.release.outputs.core_commit'),
     })
     expect(getActionRefs(dispatchPublish)).toEqual([])
     expect(String(dispatchPublishStep.run).trim()).toBe(
@@ -410,11 +424,16 @@ describe('release script contract', () => {
         '  --ref "v$VERSION" \\',
         '  --raw-field version="$VERSION" \\',
         '  --raw-field tag="$TAG" \\',
-        '  --raw-field release_sha="$RELEASE_SHA"',
+        '  --raw-field release_sha="$RELEASE_SHA" \\',
+        '  --raw-field core_commit="$CORE_COMMIT"',
       ].join('\n'),
     )
     expect(getObject(dispatchPublishStep, 'env')).toEqual({
       GH_TOKEN: githubExpression('github.token'),
+      VERSION: githubExpression('inputs.version'),
+      TAG: githubExpression('inputs.tag'),
+      RELEASE_SHA: githubExpression('needs.release.outputs.release_sha'),
+      CORE_COMMIT: githubExpression('needs.release.outputs.core_commit'),
     })
     expect(getStepOrder(validateContext)).toEqual([
       'Verify release context',
@@ -435,20 +454,20 @@ describe('release script contract', () => {
       SETUP_NODE_ACTION_REF,
       'pnpm install --frozen-lockfile',
       'Verify prepared release',
+      'Verify immutable Core/UI pairing',
+      'Preserve pairing evidence',
       'Tag release',
     ])
-    expect(getStepOrder(dispatchPublish)).toEqual(['Dispatch publish workflow'])
+    expect(getStepOrder(dispatchPublish)).toEqual([
+      'Verify the Core release is immutable',
+      'Dispatch publish workflow',
+    ])
     ;[validateContext, dryRunJob, release, dispatchPublish].forEach(
       expectFailClosedRunSteps,
     )
     expect(getRunCommands(validateContext)).toEqual([
       'test "$GITHUB_REF" = "refs/heads/main"',
-      [
-        'case "$VERSION" in',
-        '  *-*) test "$TAG" = "beta" ;;',
-        '  *) test "$TAG" = "latest" ;;',
-        'esac',
-      ].join('\n'),
+      releaseChannelScript(),
     ])
     expect(getRunCommands(dryRunJob)).toEqual([
       'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
@@ -459,9 +478,11 @@ describe('release script contract', () => {
       'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
       'pnpm install --frozen-lockfile',
       String(realRelease.run).trim(),
+      String(pairingStep.run).trim(),
       String(tagRelease.run).trim(),
     ])
     expect(getRunCommands(dispatchPublish)).toEqual([
+      String(coreImmutableStep.run).trim(),
       String(dispatchPublishStep.run).trim(),
     ])
     expect(source).not.toContain('github.event.inputs')
@@ -547,10 +568,15 @@ describe('release script contract', () => {
         description: 'npm dist-tag',
         required: true,
         type: 'choice',
-        options: ['beta', 'latest'],
+        options: [...RELEASE_DIST_TAGS],
       },
       release_sha: {
         description: 'Immutable release commit SHA',
+        required: true,
+        type: 'string',
+      },
+      core_commit: {
+        description: 'Immutable paired Zeus Core commit SHA',
         required: true,
         type: 'string',
       },
@@ -564,22 +590,30 @@ describe('release script contract', () => {
       contents: 'read',
       'id-token': 'write',
     })
-    expect(getActionRefs(publish)).toEqual(RELEASE_ACTION_REFS)
+    // The publish job uploads pairing evidence, so it also uses the pinned
+    // upload-artifact action alongside the three release actions.
+    expect(getActionRefs(publish)).toEqual([
+      ...RELEASE_ACTION_REFS,
+      UPLOAD_ARTIFACT_ACTION_REF,
+      UPLOAD_ARTIFACT_ACTION_REF,
+    ])
     expect(publish.environment).toBe('Release')
     expect(String(verifyContext.run).trim()).toBe(
       [
-        'case "$VERSION" in',
-        '  *-*) test "$TAG" = "beta" ;;',
-        '  *) test "$TAG" = "latest" ;;',
-        'esac',
+        releaseChannelScript(),
         'test "$GITHUB_REF" = "refs/tags/v$VERSION"',
         'test "$GITHUB_SHA" = "$RELEASE_SHA"',
+        'if ! [[ "$CORE_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then',
+        '  echo "::error::core_commit must be a full 40-character SHA"',
+        '  exit 1',
+        'fi',
       ].join('\n'),
     )
     expect(getObject(verifyContext, 'env')).toEqual({
       VERSION: githubExpression('inputs.version'),
       TAG: githubExpression('inputs.tag'),
       RELEASE_SHA: githubExpression('inputs.release_sha'),
+      CORE_COMMIT: githubExpression('inputs.core_commit'),
     })
     expect(getObject(checkout, 'with')).toEqual({
       'fetch-depth': 0,
@@ -603,12 +637,13 @@ describe('release script contract', () => {
     expect(verifyTagIndex).toBeLessThan(installIndex)
     expect(runCommands).toEqual([
       [
-        'case "$VERSION" in',
-        '  *-*) test "$TAG" = "beta" ;;',
-        '  *) test "$TAG" = "latest" ;;',
-        'esac',
+        releaseChannelScript(),
         'test "$GITHUB_REF" = "refs/tags/v$VERSION"',
         'test "$GITHUB_SHA" = "$RELEASE_SHA"',
+        'if ! [[ "$CORE_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then',
+        '  echo "::error::core_commit must be a full 40-character SHA"',
+        '  exit 1',
+        'fi',
       ].join('\n'),
       [
         'test "$(git rev-parse HEAD)" = "$RELEASE_SHA"',
@@ -620,9 +655,14 @@ describe('release script contract', () => {
       'pnpm build',
       'pnpm check:build-output',
       'pnpm release:verify:pack',
+      pairingCommand(),
       revalidateReleaseTagScript('$VERSION'),
+      publishPreflightCommand(),
       'pnpm release:capture:latest --output "$LATEST_BASELINE"',
-      'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
+      [
+        'pnpm exec tsx scripts/checks/release/check-release-channel.ts --version "$VERSION" --tag "$TAG" --context publish',
+        'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
+      ].join('\n'),
       'pnpm release:verify:published --version "$VERSION" --tag "$TAG" --latest-baseline "$LATEST_BASELINE" --release-sha "$RELEASE_SHA"',
     ])
     expect(captureLatestBaseline.id).toBeUndefined()
@@ -634,8 +674,11 @@ describe('release script contract', () => {
         'runner.temp',
       )}/published-latest-baseline.json`,
     })
-    expect(publishStep.run).toBe(
-      'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
+    expect(String(publishStep.run).trim()).toBe(
+      [
+        'pnpm exec tsx scripts/checks/release/check-release-channel.ts --version "$VERSION" --tag "$TAG" --context publish',
+        'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
+      ].join('\n'),
     )
     expect(String(revalidateTag.run).trim()).toBe(
       revalidateReleaseTagScript('$VERSION'),
@@ -655,7 +698,11 @@ describe('release script contract', () => {
       'Build packages',
       'Verify build outputs',
       'Verify release tarballs',
+      'Verify immutable Core/UI pairing',
+      'Preserve pairing evidence',
       'Revalidate release tag',
+      'Verify registry reachability and the recovery set',
+      'Preserve publish preflight evidence',
       'Capture latest dist-tag baseline',
       'Publish package',
       'Verify published packages',
