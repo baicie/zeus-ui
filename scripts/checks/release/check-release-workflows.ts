@@ -14,6 +14,8 @@ export const PNPM_SETUP_ACTION_REF =
   'pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1'
 export const SETUP_NODE_ACTION_REF =
   'actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444'
+export const UPLOAD_ARTIFACT_ACTION_REF =
+  'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02'
 
 const RELEASE_ACTION_REFS = [
   CHECKOUT_ACTION_REF,
@@ -79,6 +81,48 @@ export function githubExpression(value: string): string {
 export function shellVariable(value: string): string {
   const dollar = String.fromCharCode(36)
   return `${dollar}{${value}}`
+}
+
+/**
+ * The version decides the npm dist-tag. This shell is the workflow-side copy of
+ * the rule in `scripts/release/channel.ts`; `releaseChannelCases()` documents
+ * the mapping both implementations must agree on, and the unit tests assert
+ * every case against `resolveChannel()`.
+ */
+export function releaseChannelScript(): string {
+  return [
+    'channel_of() {',
+    '  case "$1" in',
+    '    *-canary.*) echo canary ;;',
+    '    *-rc.*) echo rc ;;',
+    '    *-beta.*) echo beta ;;',
+    '    *-*) echo invalid ;;',
+    '    *) echo latest ;;',
+    '  esac',
+    '}',
+    'expected="$(channel_of "$VERSION")"',
+    'if [ "$expected" = invalid ]; then',
+    '  echo "::error::unsupported prerelease identifier in $VERSION"',
+    '  exit 1',
+    'fi',
+    'if [ "$TAG" != "$expected" ]; then',
+    '  echo "::error::version $VERSION must publish under dist-tag $expected, not $TAG"',
+    '  exit 1',
+    'fi',
+  ].join('\n')
+}
+
+export const RELEASE_DIST_TAGS = ['beta', 'rc', 'latest'] as const
+
+/** The publish job's Core/UI pinning gate, asserted verbatim by the checker. */
+export function pairingCommand(version = '$VERSION'): string {
+  return [
+    'pnpm exec tsx scripts/checks/release/check-release-pairing.ts \\',
+    `  --version "${version}" \\`,
+    '  --release-sha "$RELEASE_SHA" \\',
+    '  --core-commit "$CORE_COMMIT" \\',
+    '  --out "$PAIRING_REPORT"',
+  ].join('\n')
 }
 
 /**
@@ -313,6 +357,16 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
     'Tag release',
     'release.jobs.release',
   )
+  const releasePairing = getNamedStep(
+    release,
+    'Verify immutable Core/UI pairing',
+    'release.jobs.release',
+  )
+  const coreImmutable = getNamedStep(
+    dispatchPublish,
+    'Verify the Core release is immutable',
+    'release.jobs.dispatch-publish',
+  )
   const dispatchPublishStep = getNamedStep(
     dispatchPublish,
     'Dispatch publish workflow',
@@ -352,7 +406,8 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
   expectEqual(
     getObject(inputs, 'version', 'release.on.workflow_dispatch.inputs'),
     {
-      description: 'Release version, for example 0.1.0-beta.0 or 0.1.0',
+      description:
+        'Release version, for example 0.1.0-beta.0, 0.2.0-rc.0 or 0.2.0',
       required: true,
       type: 'string',
     },
@@ -366,7 +421,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
       required: true,
       default: 'beta',
       type: 'choice',
-      options: ['beta', 'latest'],
+      options: [...RELEASE_DIST_TAGS],
     },
     'release.on.workflow_dispatch.inputs.tag',
     errors,
@@ -433,12 +488,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
   )
   expectEqual(
     String(validateChannelStep.run).trim(),
-    [
-      'case "$VERSION" in',
-      '  *-*) test "$TAG" = "beta" ;;',
-      '  *) test "$TAG" = "latest" ;;',
-      'esac',
-    ].join('\n'),
+    releaseChannelScript(),
     'release.jobs.validate-context.steps.Verify release channel.run',
     errors,
   )
@@ -543,6 +593,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
     getObject(release, 'outputs', 'release.jobs.release'),
     {
       release_sha: githubExpression('steps.tag_release.outputs.sha'),
+      core_commit: githubExpression('steps.pairing_core.outputs.core_commit'),
     },
     'release.jobs.release.outputs',
     errors,
@@ -559,7 +610,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
   )
   expectEqual(
     getActionRefs(release, 'release.jobs.release'),
-    RELEASE_ACTION_REFS,
+    [...RELEASE_ACTION_REFS, UPLOAD_ARTIFACT_ACTION_REF],
     'release.jobs.release action refs',
     errors,
   )
@@ -649,11 +700,12 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
     'release.jobs.release.steps.Tag release.env',
     errors,
   )
+  // Only the steps that read GitHub state carry the workflow token.
   expectEqual(
     releaseSteps
       .filter(step => JSON.stringify(step.env || '').includes('github.token'))
       .map(step => step.name),
-    ['Tag release'],
+    ['Verify immutable Core/UI pairing', 'Tag release'],
     'release.jobs.release GitHub token steps',
     errors,
   )
@@ -702,6 +754,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
       VERSION: githubExpression('inputs.version'),
       TAG: githubExpression('inputs.tag'),
       RELEASE_SHA: githubExpression('needs.release.outputs.release_sha'),
+      CORE_COMMIT: githubExpression('needs.release.outputs.core_commit'),
     },
     'release.jobs.dispatch-publish.env',
     errors,
@@ -720,7 +773,8 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
       '  --ref "v$VERSION" \\',
       '  --raw-field version="$VERSION" \\',
       '  --raw-field tag="$TAG" \\',
-      '  --raw-field release_sha="$RELEASE_SHA"',
+      '  --raw-field release_sha="$RELEASE_SHA" \\',
+      '  --raw-field core_commit="$CORE_COMMIT"',
     ].join('\n'),
     'release.jobs.dispatch-publish.steps.Dispatch publish workflow.run',
     errors,
@@ -731,7 +785,13 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
       'env',
       'release.jobs.dispatch-publish.steps.Dispatch publish workflow',
     ),
-    { GH_TOKEN: githubExpression('github.token') },
+    {
+      GH_TOKEN: githubExpression('github.token'),
+      VERSION: githubExpression('inputs.version'),
+      TAG: githubExpression('inputs.tag'),
+      RELEASE_SHA: githubExpression('needs.release.outputs.release_sha'),
+      CORE_COMMIT: githubExpression('needs.release.outputs.core_commit'),
+    },
     'release.jobs.dispatch-publish.steps.Dispatch publish workflow.env',
     errors,
   )
@@ -763,6 +823,8 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
       SETUP_NODE_ACTION_REF,
       'pnpm install --frozen-lockfile',
       'Verify prepared release',
+      'Verify immutable Core/UI pairing',
+      'Preserve pairing evidence',
       'Tag release',
     ],
     'release.jobs.release step order',
@@ -770,7 +832,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
   )
   expectEqual(
     getStepOrder(dispatchPublish, 'release.jobs.dispatch-publish'),
-    ['Dispatch publish workflow'],
+    ['Verify the Core release is immutable', 'Dispatch publish workflow'],
     'release.jobs.dispatch-publish step order',
     errors,
   )
@@ -788,15 +850,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
   )
   expectEqual(
     getRunCommands(validateContext, 'release.jobs.validate-context'),
-    [
-      'test "$GITHUB_REF" = "refs/heads/main"',
-      [
-        'case "$VERSION" in',
-        '  *-*) test "$TAG" = "beta" ;;',
-        '  *) test "$TAG" = "latest" ;;',
-        'esac',
-      ].join('\n'),
-    ],
+    ['test "$GITHUB_REF" = "refs/heads/main"', releaseChannelScript()],
     'release.jobs.validate-context run command order',
     errors,
   )
@@ -816,6 +870,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
       'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
       'pnpm install --frozen-lockfile',
       String(realRelease.run).trim(),
+      String(releasePairing.run).trim(),
       String(tagRelease.run).trim(),
     ],
     'release.jobs.release run command order',
@@ -823,7 +878,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
   )
   expectEqual(
     getRunCommands(dispatchPublish, 'release.jobs.dispatch-publish'),
-    [String(dispatchPublishStep.run).trim()],
+    [String(coreImmutable.run).trim(), String(dispatchPublishStep.run).trim()],
     'release.jobs.dispatch-publish run command order',
     errors,
   )
@@ -959,6 +1014,12 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
     errors,
   )
   expectEqual(
+    getObject(inputs, 'core_commit', 'publish.on.workflow_call.inputs'),
+    { required: true, type: 'string' },
+    'publish.on.workflow_call.inputs.core_commit',
+    errors,
+  )
+  expectEqual(
     dispatchInputs,
     {
       version: {
@@ -970,10 +1031,15 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
         description: 'npm dist-tag',
         required: true,
         type: 'choice',
-        options: ['beta', 'latest'],
+        options: [...RELEASE_DIST_TAGS],
       },
       release_sha: {
         description: 'Immutable release commit SHA',
+        required: true,
+        type: 'string',
+      },
+      core_commit: {
+        description: 'Immutable paired Zeus Core commit SHA',
         required: true,
         type: 'string',
       },
@@ -1004,7 +1070,7 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
   )
   expectEqual(
     getActionRefs(publish, 'publish.jobs.publish'),
-    RELEASE_ACTION_REFS,
+    [...RELEASE_ACTION_REFS, UPLOAD_ARTIFACT_ACTION_REF],
     'publish.jobs.publish action refs',
     errors,
   )
@@ -1017,12 +1083,13 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
   expectEqual(
     String(verifyContext.run).trim(),
     [
-      'case "$VERSION" in',
-      '  *-*) test "$TAG" = "beta" ;;',
-      '  *) test "$TAG" = "latest" ;;',
-      'esac',
+      releaseChannelScript(),
       'test "$GITHUB_REF" = "refs/tags/v$VERSION"',
       'test "$GITHUB_SHA" = "$RELEASE_SHA"',
+      'if ! [[ "$CORE_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then',
+      '  echo "::error::core_commit must be a full 40-character SHA"',
+      '  exit 1',
+      'fi',
     ].join('\n'),
     'publish.jobs.publish.steps.Verify dispatch context.run',
     errors,
@@ -1037,6 +1104,7 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       VERSION: githubExpression('inputs.version'),
       TAG: githubExpression('inputs.tag'),
       RELEASE_SHA: githubExpression('inputs.release_sha'),
+      CORE_COMMIT: githubExpression('inputs.core_commit'),
     },
     'publish.jobs.publish.steps.Verify dispatch context.env',
     errors,
@@ -1097,12 +1165,13 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
     runCommands,
     [
       [
-        'case "$VERSION" in',
-        '  *-*) test "$TAG" = "beta" ;;',
-        '  *) test "$TAG" = "latest" ;;',
-        'esac',
+        releaseChannelScript(),
         'test "$GITHUB_REF" = "refs/tags/v$VERSION"',
         'test "$GITHUB_SHA" = "$RELEASE_SHA"',
+        'if ! [[ "$CORE_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then',
+        '  echo "::error::core_commit must be a full 40-character SHA"',
+        '  exit 1',
+        'fi',
       ].join('\n'),
       [
         'test "$(git rev-parse HEAD)" = "$RELEASE_SHA"',
@@ -1114,9 +1183,13 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       'pnpm build',
       'pnpm check:build-output',
       'pnpm release:verify:pack',
+      pairingCommand(),
       revalidateReleaseTagScript('$VERSION'),
       'pnpm release:capture:latest --output "$LATEST_BASELINE"',
-      'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
+      [
+        'pnpm exec tsx scripts/checks/release/check-release-channel.ts --version "$VERSION" --tag "$TAG" --context publish',
+        'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
+      ].join('\n'),
       'pnpm release:verify:published --version "$VERSION" --tag "$TAG" --latest-baseline "$LATEST_BASELINE" --release-sha "$RELEASE_SHA"',
     ],
     'publish.jobs.publish run command order',
@@ -1180,6 +1253,8 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       'Build packages',
       'Verify build outputs',
       'Verify release tarballs',
+      'Verify immutable Core/UI pairing',
+      'Preserve pairing evidence',
       'Revalidate release tag',
       'Capture latest dist-tag baseline',
       'Publish package',
@@ -1190,8 +1265,11 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
   )
   expectFailClosedRunSteps(publish, 'publish.jobs.publish', errors)
   expectEqual(
-    publishStep.run,
-    'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
+    String(publishStep.run).trim(),
+    [
+      'pnpm exec tsx scripts/checks/release/check-release-channel.ts --version "$VERSION" --tag "$TAG" --context publish',
+      'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
+    ].join('\n'),
     'publish.jobs.publish.steps.Publish package.run',
     errors,
   )
@@ -1203,6 +1281,44 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       NODE_AUTH_TOKEN: githubExpression('secrets.NPM_PUBLISH_TOKEN'),
     },
     'publish.jobs.publish.steps.Publish package.env',
+    errors,
+  )
+
+  const verifyPairing = getNamedStep(
+    publish,
+    'Verify immutable Core/UI pairing',
+    'publish.jobs.publish',
+  )
+  expectEqual(
+    String(verifyPairing.run).trim(),
+    pairingCommand(),
+    'publish.jobs.publish.steps.Verify immutable Core/UI pairing.run',
+    errors,
+  )
+  expectEqual(
+    getObject(
+      verifyPairing,
+      'env',
+      'publish.jobs.publish.steps.Verify immutable Core/UI pairing',
+    ),
+    {
+      VERSION: githubExpression('inputs.version'),
+      RELEASE_SHA: githubExpression('inputs.release_sha'),
+      CORE_COMMIT: githubExpression('inputs.core_commit'),
+      PAIRING_REPORT: `${githubExpression('runner.temp')}/release-pairing.json`,
+      GH_TOKEN: githubExpression('github.token'),
+    },
+    'publish.jobs.publish.steps.Verify immutable Core/UI pairing.env',
+    errors,
+  )
+  // Packing must be verified before the publish gate, and the gate must run
+  // before the only step that can write to the npm registry.
+  const pairingIndex = publishSteps.indexOf(verifyPairing)
+  expectEqual(
+    installIndex < pairingIndex &&
+      pairingIndex < publishSteps.indexOf(publishStep),
+    true,
+    'publish.jobs.publish pairing gate position',
     errors,
   )
   expectEqual(
