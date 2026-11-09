@@ -231,7 +231,7 @@ Core 报告与 `isolated-registry-drill.ts` 的 finding。
 | 项目                                                  | 原因                                                                                            |
 | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | 真实 GitHub Actions 运行（release.yml / publish.yml） | 需要推送分支并在受保护 `Release` environment 下 dispatch；无授权，标记 `BLOCKED_BY_ENVIRONMENT` |
-| 真实 npm 发布与 dist-tag 写入                         | 操作红线禁止；`OFFLINE_REHEARSAL_PASS` 由 Core 侧隔离 Registry 演练覆盖                         |
+| 真实 npm 发布与 dist-tag 写入                         | 操作红线禁止；隔离 registry 演练为 `OFFLINE_REHEARSAL_PASS`，不等同真实发布成功                 |
 | `pnpm site:check` / `showcase:ci` 全量                | 与本轮发布契约改动无耦合，且耗时长；CI 会执行                                                   |
 | macOS/Windows/Linux 三平台矩阵                        | 仅本机 macOS arm64；其余为 `NOT_RUN`                                                            |
 
