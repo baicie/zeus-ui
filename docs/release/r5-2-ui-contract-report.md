@@ -176,7 +176,7 @@ pnpm exec eslint <changed files>
 
 - `scripts/checks/__tests__/release/` — 57 passed
 - `release-scripts.spec.ts` — 6 passed
-- `packages/cli/__tests__/` — 157 passed
+- `packages/cli/__tests__/` — PR-B 分支上 15 个文件 157 passed（含新增 15 项）；PR-A 分支上为 142 passed
 - `tsc --noEmit` — 通过
 - `check-phase24-release` — `Phase 24 release check passed.`
 - `check-product-contract` — `Product contract check passed.`
