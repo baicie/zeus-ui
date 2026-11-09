@@ -12,16 +12,11 @@ import {
   getLockedFileHash,
   getLockedRegistryHash,
   hashFile,
-  hashString,
   readComponentsLock,
   resolveLockedTarget,
 } from '../lock'
 import { loadRegistrySource } from '../registry-source'
-import {
-  createAddPlan,
-  listAvailableComponents,
-  rewriteRegistrySource,
-} from './add'
+import { createAddPlan, listAvailableComponents } from './add'
 
 export type DiffStatus =
   | 'untracked-missing'
@@ -141,13 +136,20 @@ function dedupeAddPlanFiles(plans: AddPlan[]): AddPlan['files'] {
   return Array.from(byTarget.values())
 }
 
+/**
+ * Reads a resource through the plan's shared snapshot cache. `diff` and the
+ * `update` that follows it therefore see one request per resource, and the
+ * `registrySource` that `update` writes is the exact text it hashes.
+ */
 async function readRegistryFileSource(params: {
   plan: AddPlan
   source: string
-  config: ReturnType<typeof readComponentsConfig>
-}): Promise<string> {
-  const raw = await params.plan.readSource(params.source)
-  return rewriteRegistrySource(raw, params.config)
+}): Promise<{ source: string; registryHash: string }> {
+  const snapshot = await params.plan.snapshots.get(params.source)
+  return {
+    source: snapshot.content,
+    registryHash: snapshot.registryHash,
+  }
 }
 
 function getDiffStatus(params: {
@@ -182,7 +184,6 @@ export async function createDiffEntries(params: {
   cwd: string
   plans: AddPlan[]
 }): Promise<DiffEntry[]> {
-  const config = readComponentsConfig(params.cwd)
   const lock = readComponentsLock(params.cwd)
 
   const entries: DiffEntry[] = []
@@ -190,12 +191,12 @@ export async function createDiffEntries(params: {
   for (const plan of params.plans) {
     for (const file of dedupeAddPlanFiles([plan])) {
       const resolvedTarget = resolveLockedTarget(params.cwd, file.target)
-      const registrySource = await readRegistryFileSource({
+      const snapshot = await readRegistryFileSource({
         plan,
         source: file.source,
-        config,
       })
-      const registryHash = hashString(registrySource)
+      const registrySource = snapshot.source
+      const registryHash = snapshot.registryHash
       const exists = existsSync(resolvedTarget)
       const lockedFileHash = getLockedFileHash({
         lock,
