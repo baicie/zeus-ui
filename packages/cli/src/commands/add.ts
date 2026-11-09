@@ -67,10 +67,38 @@ interface RegistryFilePlan {
   action: 'create' | 'overwrite' | 'skip'
 }
 
+/**
+ * A registry resource captured exactly once per operation.
+ *
+ * `content` is the rewritten text that will be written to disk, and
+ * `registryHash` is the hash of those same bytes. Reading the resource twice
+ * (once for the write, once for the lock) lets a remote registry change
+ * between the two requests, which produced a lock that described bytes the
+ * project never received.
+ */
+export interface RegistryResourceSnapshot {
+  content: string
+  registryHash: string
+}
+
+/**
+ * One capture per resource for the whole operation.
+ *
+ * `add` previously read every registry resource twice: once to write the file
+ * and once to compute `registryHashes`. On a remote registry the second request
+ * could return different bytes, leaving a lock that described content the
+ * project never received. The cache makes the write and the hash share one
+ * read; a rejected read is not cached, so a transient failure can be retried.
+ */
+export interface RegistrySnapshotCache {
+  get: (source: string) => Promise<RegistryResourceSnapshot>
+}
+
 export interface AddPlan {
   component: string
   registry: RegistrySourceSnapshot
   readSource: LoadedRegistrySource['readSource']
+  snapshots: RegistrySnapshotCache
   componentPath?: string
   dependencies: string[]
   registryDependencies: string[]
@@ -405,11 +433,13 @@ function toAddPlan(params: {
   overwrite: boolean
   registry: RegistrySourceSnapshot
   readSource: LoadedRegistrySource['readSource']
+  snapshots: RegistrySnapshotCache
 }): AddPlan {
   return {
     component: params.item.name,
     registry: params.registry,
     readSource: params.readSource,
+    snapshots: params.snapshots,
     componentPath: params.componentPath,
     dependencies: [...params.item.dependencies],
     registryDependencies: [...params.item.registryDependencies],
@@ -427,6 +457,29 @@ function toAddPlan(params: {
           overwrite: params.overwrite,
         }),
       ),
+  }
+}
+
+function createSnapshotCache(params: {
+  config: ComponentsConfig
+  readSource: LoadedRegistrySource['readSource']
+}): RegistrySnapshotCache {
+  const cache = new Map<string, Promise<RegistryResourceSnapshot>>()
+
+  return {
+    get(source) {
+      const existing = cache.get(source)
+      if (existing) return existing
+
+      const pending = params.readSource(source).then(raw => {
+        const content = rewriteRegistrySource(raw, params.config)
+        return { content, registryHash: hashString(content) }
+      })
+      // A rejected read must not poison the cache: the next attempt re-reads.
+      pending.catch(() => cache.delete(source))
+      cache.set(source, pending)
+      return pending
+    },
   }
 }
 
@@ -454,6 +507,7 @@ function dedupePlans(plans: AddPlan[]): AddPlan[] {
       ),
       registry: plan.registry,
       readSource: plan.readSource,
+      snapshots: plan.snapshots,
       componentPath: plan.componentPath,
       files: dedupeFilePlans([...existing.files, ...plan.files]),
     })
@@ -510,6 +564,10 @@ export function createAddPlan(params: {
   const cwd = params.cwd ?? process.cwd()
   const config = params.config ?? readComponentsConfig(cwd)
   const overwrite = params.overwrite ?? false
+  const snapshots = createSnapshotCache({
+    config,
+    readSource: loadedSource.readSource,
+  })
 
   const collected = new Map<string, RegistryItem>()
 
@@ -539,6 +597,7 @@ export function createAddPlan(params: {
         overwrite,
         registry: loadedSource.source,
         readSource: loadedSource.readSource,
+        snapshots,
       }),
     ),
   )
@@ -619,40 +678,43 @@ function printAddPlan(params: {
 }
 
 async function writeFilePlan(params: {
-  config: ComponentsConfig
   file: RegistryFilePlan
-  readSource: LoadedRegistrySource['readSource']
+  snapshots: RegistrySnapshotCache
   overwrite: boolean
 }): Promise<'written' | 'skipped'> {
   if (existsSync(params.file.absoluteTarget) && !params.overwrite) {
     return 'skipped'
   }
 
-  const raw = await params.readSource(params.file.source)
-  const source = rewriteRegistrySource(raw, params.config)
+  // Resolve the content before creating directories or touching the disk, so a
+  // failed download never starts a destructive overwrite.
+  const snapshot = await params.snapshots.get(params.file.source)
 
   await mkdir(dirname(params.file.absoluteTarget), {
     recursive: true,
   })
 
-  await writeFile(params.file.absoluteTarget, source, 'utf-8')
+  // The snapshot is shared with `createRegistryHashes`, so the file and its
+  // registry hash describe the same bytes even if the registry changed since.
+  await writeFile(params.file.absoluteTarget, snapshot.content, 'utf-8')
 
   return 'written'
 }
 
 async function writePlans(params: {
-  config: ComponentsConfig
   plans: AddPlan[]
   overwrite: boolean
 }): Promise<AddResult> {
+  // Resolve every conflict before the first write so a failure cannot leave a
+  // half-written component behind.
+  const planned = flattenPlannedFiles(params.plans)
   const written: string[] = []
   const skipped: string[] = []
 
-  for (const { plan, file } of flattenPlannedFiles(params.plans)) {
+  for (const { plan, file } of planned) {
     const result = await writeFilePlan({
-      config: params.config,
       file,
-      readSource: plan.readSource,
+      snapshots: plan.snapshots,
       overwrite: params.overwrite,
     })
 
@@ -666,16 +728,21 @@ async function writePlans(params: {
   }
 }
 
-async function createRegistryHashes(params: {
-  config: ComponentsConfig
-  plans: AddPlan[]
-}): Promise<Record<string, string>> {
+/**
+ * Hashes come from the same snapshots `writePlans` wrote, so a registry that
+ * changed between two requests can no longer produce a lock that describes
+ * bytes the project never received. Only files that were actually written are
+ * hashed by `updateComponentsLockFromPlans`, which is why a failed or skipped
+ * write never leaves a lock entry claiming success.
+ */
+async function createRegistryHashes(
+  plans: AddPlan[],
+): Promise<Record<string, string>> {
   const hashes: Record<string, string> = {}
 
-  for (const { plan, file } of flattenPlannedFiles(params.plans)) {
-    const raw = await plan.readSource(file.source)
-    const source = rewriteRegistrySource(raw, params.config)
-    hashes[file.target] = hashString(source)
+  for (const { plan, file } of flattenPlannedFiles(plans)) {
+    const snapshot = await plan.snapshots.get(file.source)
+    hashes[file.target] = snapshot.registryHash
   }
 
   return hashes
@@ -685,16 +752,12 @@ async function updateLock(params: {
   cwd: string
   plans: AddPlan[]
   writtenTargets: string[]
-  config: ComponentsConfig
 }): Promise<void> {
   await updateComponentsLockFromPlans({
     cwd: params.cwd,
     plans: params.plans,
     writtenTargets: params.writtenTargets,
-    registryHashes: await createRegistryHashes({
-      config: params.config,
-      plans: params.plans,
-    }),
+    registryHashes: await createRegistryHashes(params.plans),
   })
 }
 
@@ -744,7 +807,6 @@ export async function add(args: string[]) {
     }
 
     const result = await writePlans({
-      config,
       plans,
       overwrite: parsed.options.overwrite,
     })
@@ -755,7 +817,6 @@ export async function add(args: string[]) {
       cwd: parsed.options.cwd,
       plans,
       writtenTargets: result.written,
-      config,
     })
 
     if (dependencies.length > 0 && !parsed.options.skipDeps) {
