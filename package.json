@@ -47,6 +47,7 @@
     "release:verify:pack": "tsx scripts/checks/release/check-release-tarballs.ts",
     "check:release-pairing": "tsx scripts/checks/release/check-release-pairing.ts",
     "check:release-channel": "tsx scripts/checks/release/check-release-channel.ts",
+    "check:publish-preflight": "tsx scripts/checks/release/check-publish-preflight.ts",
     "release:joint-readiness": "tsx scripts/checks/release/joint-readiness.ts",
     "release:capture:latest": "tsx scripts/checks/release/capture-published-latest.ts",
     "release:verify:published": "tsx scripts/checks/release/check-published-packages.ts",

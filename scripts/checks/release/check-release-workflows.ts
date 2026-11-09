@@ -115,6 +115,13 @@ export function releaseChannelScript(): string {
 export const RELEASE_DIST_TAGS = ['beta', 'rc', 'latest'] as const
 
 /** The publish job's Core/UI pinning gate, asserted verbatim by the checker. */
+/** The publish job's registry reachability preflight. */
+export function publishPreflightCommand(): string {
+  return [
+    'pnpm exec tsx scripts/checks/release/check-publish-preflight.ts --version "$VERSION" --tag "$TAG" --out "$PREFLIGHT_REPORT"',
+  ].join('\n')
+}
+
 export function pairingCommand(version = '$VERSION'): string {
   return [
     'pnpm exec tsx scripts/checks/release/check-release-pairing.ts \\',
@@ -1070,7 +1077,12 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
   )
   expectEqual(
     getActionRefs(publish, 'publish.jobs.publish'),
-    [...RELEASE_ACTION_REFS, UPLOAD_ARTIFACT_ACTION_REF],
+    // Both evidence artifacts use the same pinned action.
+    [
+      ...RELEASE_ACTION_REFS,
+      UPLOAD_ARTIFACT_ACTION_REF,
+      UPLOAD_ARTIFACT_ACTION_REF,
+    ],
     'publish.jobs.publish action refs',
     errors,
   )
@@ -1185,6 +1197,7 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       'pnpm release:verify:pack',
       pairingCommand(),
       revalidateReleaseTagScript('$VERSION'),
+      publishPreflightCommand(),
       'pnpm release:capture:latest --output "$LATEST_BASELINE"',
       [
         'pnpm exec tsx scripts/checks/release/check-release-channel.ts --version "$VERSION" --tag "$TAG" --context publish',
@@ -1256,6 +1269,8 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       'Verify immutable Core/UI pairing',
       'Preserve pairing evidence',
       'Revalidate release tag',
+      'Verify registry reachability and the recovery set',
+      'Preserve publish preflight evidence',
       'Capture latest dist-tag baseline',
       'Publish package',
       'Verify published packages',

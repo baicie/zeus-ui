@@ -160,6 +160,29 @@ jobs:
           RELEASE_SHA: ${{ inputs.release_sha }}
           GH_TOKEN: ${{ github.token }}
 
+      # `@baicie/release` decides "already published" from `npm view`'s exit
+      # code, so a registry outage is indistinguishable from a missing version
+      # and the publish loop would retry packages that already exist. This
+      # preflight separates 200 / 404 / everything-else and fails closed, and
+      # its report is the recovery record for a partially published release.
+      - name: Verify registry reachability and the recovery set
+        run: >-
+          pnpm exec tsx scripts/checks/release/check-publish-preflight.ts
+          --version "$VERSION"
+          --tag "$TAG"
+          --out "$PREFLIGHT_REPORT"
+        env:
+          VERSION: ${{ inputs.version }}
+          TAG: ${{ inputs.tag }}
+          PREFLIGHT_REPORT: ${{ runner.temp }}/publish-preflight.json
+
+      - name: Preserve publish preflight evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ui-publish-preflight
+          path: ${{ runner.temp }}/publish-preflight.json
+          if-no-files-found: error
+
       - name: Capture latest dist-tag baseline
         run: pnpm release:capture:latest --output "$LATEST_BASELINE"
         env:

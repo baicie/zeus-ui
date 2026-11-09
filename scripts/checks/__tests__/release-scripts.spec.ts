@@ -8,6 +8,7 @@ import {
   githubExpression,
   pairingCommand,
   PNPM_SETUP_ACTION_REF,
+  publishPreflightCommand,
   RELEASE_DIST_TAGS,
   releaseChannelScript,
   revalidateReleaseTagScript,
@@ -594,6 +595,7 @@ describe('release script contract', () => {
     expect(getActionRefs(publish)).toEqual([
       ...RELEASE_ACTION_REFS,
       UPLOAD_ARTIFACT_ACTION_REF,
+      UPLOAD_ARTIFACT_ACTION_REF,
     ])
     expect(publish.environment).toBe('Release')
     expect(String(verifyContext.run).trim()).toBe(
@@ -655,6 +657,7 @@ describe('release script contract', () => {
       'pnpm release:verify:pack',
       pairingCommand(),
       revalidateReleaseTagScript('$VERSION'),
+      publishPreflightCommand(),
       'pnpm release:capture:latest --output "$LATEST_BASELINE"',
       [
         'pnpm exec tsx scripts/checks/release/check-release-channel.ts --version "$VERSION" --tag "$TAG" --context publish',
@@ -698,6 +701,8 @@ describe('release script contract', () => {
       'Verify immutable Core/UI pairing',
       'Preserve pairing evidence',
       'Revalidate release tag',
+      'Verify registry reachability and the recovery set',
+      'Preserve publish preflight evidence',
       'Capture latest dist-tag baseline',
       'Publish package',
       'Verify published packages',

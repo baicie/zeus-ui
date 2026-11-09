@@ -100,7 +100,24 @@ shell `case` 恰好拦住了它，但 CLI 本身没有防线。
 - 编码路径（`%2e%2e`）、绝对路径、反斜杠等在发请求前被 `assertSafeRegistrySourcePath`
   拒绝。
 
-### 2.5 P2 — 未在本轮修改的项
+### 2.5 P1 — Registry 故障会被当作“版本尚未发布”（已修复，PR-A）
+
+`@baicie/release@0.4.0` 的 `skipExisting` 通过 `npm view <name>@<version> version`
+的**退出码**判断版本是否存在。registry 故障、token 过期、DNS 失败与非零退出码
+无法区分，于是发布循环会把已发布版本当成“不存在”再次发布；npm 返回 409，而 CLI
+把 409 归为可重试错误，一次故障会演变成重试风暴而不是明确失败。
+
+新增 `check-publish-preflight.ts`，在 `publish.yml` 的 `Capture latest dist-tag
+baseline` 之前运行：
+
+- HTTP 200 → `PUBLISHED`（重试必须跳过）；
+- 显式 404 → `ABSENT`（重试必须发布）；
+- 其他（401/403/5xx/网络错误）→ `FAILED`，整个发布不启动；
+- 版本与 channel 不一致时直接拒绝；
+- 只发 GET，从不写 registry；报告 `temp/release/publish-preflight.json` 即
+  部分发布后的恢复清单，作为 artifact 保留。
+
+### 2.6 P2 — 未在本轮修改的项
 
 - `capture-published-latest.ts` 对 404 返回 `published: false`，其余非 2xx 抛错，
   已经 fail closed；未改。
@@ -157,7 +174,7 @@ pnpm exec eslint <changed files>
 
 实际结果：
 
-- `scripts/checks/__tests__/release/` — 41 passed
+- `scripts/checks/__tests__/release/` — 57 passed
 - `release-scripts.spec.ts` — 6 passed
 - `packages/cli/__tests__/` — 157 passed
 - `tsc --noEmit` — 通过
