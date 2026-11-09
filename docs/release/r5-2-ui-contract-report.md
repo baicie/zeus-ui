@@ -7,14 +7,13 @@
 
 ## 1. 基线
 
-| 项目                       | 值                                                                                                      |
-| -------------------------- | ------------------------------------------------------------------------------------------------------- |
-| UI main HEAD（审查基线）   | `77f52c8be2310f6f88057c416011db75c0a70758`                                                              |
-| Core main HEAD（审查基线） | `d93b4a0c3a346d51ae515286dea28158bfe0b643`                                                              |
-| UI PR-A 分支               | `fix/r52-rc-channel-and-immutable-pairing` @ `6a63a96`                                                  |
-| PR-A / PR-B                | [#131](https://github.com/baicie/zeus-ui/pull/131) / [#132](https://github.com/baicie/zeus-ui/pull/132) |
-| UI PR-B 分支               | `fix/r52-registry-atomic-snapshots` @ `11bfe09`                                                         |
-| 本机 Node                  | 24.16.0（`package.json` engines 要求 `^22.18.0 \|\| >=24.11.0`）                                        |
+| 项目                       | 值                                                                                                                    |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| UI main HEAD（审查基线）   | `77f52c8be2310f6f88057c416011db75c0a70758`                                                                            |
+| Core main HEAD（审查基线） | `d93b4a0c3a346d51ae515286dea28158bfe0b643`                                                                            |
+| UI PR-A 分支               | `fix/r52-rc-channel-and-immutable-pairing`（PR [#131](https://github.com/baicie/zeus-ui/pull/131)，以分支 HEAD 为准） |
+| UI PR-B 分支               | `fix/r52-registry-atomic-snapshots`（PR [#132](https://github.com/baicie/zeus-ui/pull/132)，以分支 HEAD 为准）        |
+| 本机 Node                  | 24.16.0（`package.json` engines 要求 `^22.18.0 \|\| >=24.11.0`）                                                      |
 
 两个仓库的 `main` 在本次审查期间均未移动；所有分支都从 `origin/main` 新建，未直接修改 `main`。
 
