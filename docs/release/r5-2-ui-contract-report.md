@@ -205,6 +205,26 @@ pnpm exec eslint <changed files>
 | UI 版本与审批记录不符                         | `check-release-pairing.spec.ts` `rejects a mismatched UI version`     |
 | 错误 Core SHA                                 | `rejects a record bound to a different Core commit than the Core tag` |
 
+## 4.1 隔离 npm Registry 实证
+
+用 Verdaccio 6.11.1（`127.0.0.1:4873`，独立存储，无 uplink，与
+registry.npmjs.org 完全隔离）和真实 `0.2.0-rc.0` 候选 tarball 验证：
+
+| 场景                                         | 实际结果                                                         |
+| -------------------------------------------- | ---------------------------------------------------------------- |
+| `npm publish --tag rc`                       | 成功，`rc` dist-tag 指向 `0.2.0-rc.0`                            |
+| 重复发布同版本                               | `EPUBLISHCONFLICT`，npm 拒绝覆盖                                 |
+| `check-publish-preflight.ts` 对可达 registry | `49 packages: 0 published, 46 absent, 0 failed`，PASS            |
+| `check-publish-preflight.ts` 对宕机 registry | `46 failed`，FAIL，发布不启动                                    |
+| `check-release-pairing.ts` 对真实 git 记录   | 从对象库读到自洽记录后，正确列出 160 个未对齐的 `@zeus-js/*` pin |
+
+**关键实证**：首次发布时即使显式传 `--tag rc`，npm 仍会把 `latest` 一并指向
+`0.2.0-rc.0`（四个被测包 dist-tags 均为
+`{"latest":"0.2.0-rc.0","rc":"0.2.0-rc.0"}`）。这不是本仓库的 bug，但说明
+“RC 发布绝不意外修改 npm latest”无法只靠 `--tag` 保证——首次发布后必须由
+受保护的 `repair:latest-tags` 修复，或对首次发布单独处理。该风险已记入
+Core 报告与 `isolated-registry-drill.ts` 的 finding。
+
 ## 5. 未执行测试及原因
 
 | 项目                                                  | 原因                                                                                            |
