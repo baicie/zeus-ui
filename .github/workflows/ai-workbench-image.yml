@@ -117,6 +117,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # The deployment host pulls from a domestic registry: a large image from
+      # ghcr.io does not finish inside the SSH session, and mirrors only help
+      # while they happen to have the blob. Pushing to TCR moves the cross-border
+      # transfer into the publish step, and the host pulls over the cloud network.
+      - name: Login to TCR
+        if: github.event_name != 'pull_request' && vars.TCR_IMAGE != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.TCR_IMAGE }}
+          username: ${{ secrets.TCR_USERNAME }}
+          password: ${{ secrets.TCR_PASSWORD }}
+
       - name: Build and push the Host
         id: build_host
         uses: docker/build-push-action@v6
@@ -128,6 +140,8 @@ jobs:
           tags: |
             ${{ env.HOST_IMAGE }}:${{ steps.vars.outputs.tag }}
             ${{ env.HOST_IMAGE }}:sha-${{ github.sha }}
+            ${{ vars.TCR_IMAGE != '' && format('{0}-host:{1}', vars.TCR_IMAGE, steps.vars.outputs.tag) || '' }}
+            ${{ vars.TCR_IMAGE != '' && format('{0}-host:sha-{1}', vars.TCR_IMAGE, github.sha) || '' }}
           build-args: |
             ZEUS_CORE_COMMIT=${{ steps.core.outputs.sha }}
             ZEUS_UI_COMMIT=${{ github.sha }}
@@ -153,6 +167,8 @@ jobs:
             ${{ env.WORKBENCH_IMAGE }}:${{ steps.vars.outputs.tag }}
             ${{ env.WORKBENCH_IMAGE }}:sha-${{ github.sha }}
             ${{ env.WORKBENCH_IMAGE }}:${{ steps.vars.outputs.date_tag }}
+            ${{ vars.TCR_IMAGE != '' && format('{0}-workbench:{1}', vars.TCR_IMAGE, steps.vars.outputs.tag) || '' }}
+            ${{ vars.TCR_IMAGE != '' && format('{0}-workbench:sha-{1}', vars.TCR_IMAGE, github.sha) || '' }}
           build-args: |
             ZEUS_CORE_COMMIT=${{ steps.core.outputs.sha }}
             ZEUS_UI_COMMIT=${{ github.sha }}
@@ -188,6 +204,10 @@ jobs:
       IMAGE_DIGEST: ${{ needs.build-and-publish.outputs.workbench_digest }}
       HOST_IMAGE_REF: ${{ needs.build-and-publish.outputs.host_image }}
       HOST_IMAGE_DIGEST: ${{ needs.build-and-publish.outputs.host_digest }}
+      # When TCR is configured the host pulls from it instead of ghcr.io.
+      TCR_IMAGE: ${{ vars.TCR_IMAGE }}
+      TCR_USERNAME: ${{ secrets.TCR_USERNAME }}
+      TCR_PASSWORD: ${{ secrets.TCR_PASSWORD }}
       DEPLOY_HOST: ${{ vars.ZEUS_WORKBENCH_DEPLOY_HOST }}
       DEPLOY_USER: ${{ vars.ZEUS_WORKBENCH_DEPLOY_USER || 'ubuntu' }}
       DEPLOY_PORT: ${{ vars.ZEUS_WORKBENCH_DEPLOY_PORT || '22' }}
@@ -274,10 +294,12 @@ jobs:
           "${SSH[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' -- \
             "${IMAGE_REF}" "${DEPLOY_TAG}" "${IMAGE_DIGEST}" \
             "${HOST_IMAGE_REF}" "${HOST_IMAGE_DIGEST}" \
-            "${CONTAINER}" "${HOST_CONTAINER}" "${DEPLOY_DIR}" "${HEALTH_URL}" "${GHCR_MIRRORS}" <<'REMOTE'
+            "${CONTAINER}" "${HOST_CONTAINER}" "${DEPLOY_DIR}" "${HEALTH_URL}" "${GHCR_MIRRORS}" \
+            "${TCR_IMAGE}" "${TCR_USERNAME}" "${TCR_PASSWORD}" <<'REMOTE'
           set -euo pipefail
           IMAGE="$1"; TAG="$2"; DIGEST="$3"; HOST_IMAGE="$4"; HOST_DIGEST="$5"
           CONTAINER="$6"; HOST_CONTAINER="$7"; DIR="$8"; HEALTH="$9"; MIRRORS="${10}"
+          TCR="${11}"; TCR_USER="${12}"; TCR_PASS="${13}"
           CANONICAL="${IMAGE}:${TAG}"
           HOST_CANONICAL="${HOST_IMAGE}:${TAG}"
 
@@ -290,18 +312,28 @@ jobs:
             exit 1
           fi
 
-          # Mirrors first: from mainland China a ghcr.io blob download routinely
-          # takes longer than the SSH session tolerates, while the mirror serves
-          # the same digest from cache. The digest is what makes this safe — a
-          # mirror cannot substitute different content for it.
+          # A domestic registry the host reaches over the cloud network comes
+          # first; ghcr.io is the last resort because the cross-border transfer
+          # is what times out.
+          if [[ -n "${TCR}" && -n "${TCR_USER}" && -n "${TCR_PASS}" ]]; then
+            if [[ "${DOCKER[0]}" == "sudo" ]]; then
+              printf '%s' "${TCR_PASS}" |
+                sudo -n docker login "${TCR}" -u "${TCR_USER}" --password-stdin >/dev/null
+            else
+              printf '%s' "${TCR_PASS}" |
+                docker login "${TCR}" -u "${TCR_USER}" --password-stdin >/dev/null
+            fi
+            echo "==> logged in to ${TCR}"
+          fi
+
           pull_pinned() {
-            local image="$1" digest="$2" tag="$3" canonical="$4"
+            local image="$1" digest="$2" tag="$3" canonical="$4" tcr_ref="$5"
             local repo_path="${image#ghcr.io/}"
             local candidates=()
+            [[ -n "${TCR}" && -n "${tcr_ref}" ]] && candidates+=("${tcr_ref}:${tag}")
             if [[ -n "${MIRRORS}" ]]; then
-              local mirror_list=()
+              local mirror_list=() m
               IFS=',' read -r -a mirror_list <<< "${MIRRORS}"
-              local m
               for m in "${mirror_list[@]}"; do
                 m="${m// /}"
                 [[ -z "$m" ]] && continue
@@ -325,8 +357,8 @@ jobs:
             return 1
           }
 
-          pull_pinned "${IMAGE}" "${DIGEST}" "${TAG}" "${CANONICAL}"
-          pull_pinned "${HOST_IMAGE}" "${HOST_DIGEST}" "${TAG}" "${HOST_CANONICAL}"
+          pull_pinned "${IMAGE}" "${DIGEST}" "${TAG}" "${CANONICAL}" "${TCR:+${TCR}-workbench}"
+          pull_pinned "${HOST_IMAGE}" "${HOST_DIGEST}" "${TAG}" "${HOST_CANONICAL}" "${TCR:+${TCR}-host}"
 
           if [[ "${DOCKER[0]}" == "sudo" ]]; then
             RUN=(sudo -n env "IMAGE_REPO=${IMAGE}" "IMAGE_TAG=${TAG}" "HOST_IMAGE_REPO=${HOST_IMAGE}" "HOST_IMAGE_TAG=${TAG}" "CONTAINER_NAME=${CONTAINER}" "HOST_CONTAINER=${HOST_CONTAINER}" "COMPOSE_PROJECT_NAME=${CONTAINER}" "AI_DATA_DIR=/home/ubuntu/zeus-ai/data" docker)
