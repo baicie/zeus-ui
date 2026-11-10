@@ -23,6 +23,11 @@ services:
     # Not published: only the workbench reaches it, over the compose network.
     expose:
       - '8788'
+    env_file:
+      # Docker reads these as KEY=VALUE, so a JSON value does not have to be
+      # shell-quoted. Sourcing them in the deploy script would execute the
+      # array as a command.
+      - ${HOST_ENV_FILE:-/home/ubuntu/zeus-ai/host.env}
     environment:
       PORT: '8788'
       ZEUS_AI_DB: /data/ai-host.sqlite
@@ -37,7 +42,6 @@ services:
       ZEUS_AI_WORKSPACE_ID: ${ZEUS_AI_WORKSPACE_ID:-reference}
       ZEUS_AI_ORIGINS: ${ZEUS_AI_ORIGINS:-https://ai.moonbyte.top:8443}
       # Bearer tokens are per-tenant; the value is a JSON array.
-      ZEUS_AI_TOKENS: ${ZEUS_AI_TOKENS:?Set ZEUS_AI_TOKENS in ai-workbench.env}
     read_only: true
     tmpfs:
       - /tmp
@@ -73,9 +77,10 @@ services:
       - '127.0.0.1:8083:80'
     depends_on:
       - ai-host
+    env_file:
+      - ${WORKBENCH_ENV_FILE:-/home/ubuntu/zeus-ai/workbench.env}
     environment:
       # Injected into the /ai-host/ proxy header, never sent to the browser.
-      ZEUS_AI_UPSTREAM_TOKEN: ${ZEUS_AI_UPSTREAM_TOKEN:?Set ZEUS_AI_UPSTREAM_TOKEN in ai-workbench.env}
       # Optional: CSP source list for BYOK. Unset keeps connect-src 'self'.
       ZEUS_BYOK_CONNECT_SRC: ${ZEUS_BYOK_CONNECT_SRC:-}
     read_only: true
