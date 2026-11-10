@@ -933,11 +933,7 @@ zw-ai-message-timeline [data-zw-ai='message'] [data-part='markdown'] pre {
   overflow-x: auto;
 }
 
-zw-ai-message-timeline
-  [data-zw-ai='message']
-  [data-part='markdown']
-  pre
-  code {
+zw-ai-message-timeline [data-zw-ai='message'] [data-part='markdown'] pre code {
   padding: 0;
   border: 0;
   background: none;
@@ -948,7 +944,8 @@ zw-ai-message-timeline [data-zw-ai='message'][data-author='user'] {
   align-items: flex-end;
 }
 
-zw-ai-message-timeline [data-zw-ai='message'][data-author='user']
+zw-ai-message-timeline
+  [data-zw-ai='message'][data-author='user']
   [data-part='content'] {
   padding: var(--wb-space-3) var(--wb-space-4);
   border-radius: var(--wb-radius-lg);
@@ -958,7 +955,8 @@ zw-ai-message-timeline [data-zw-ai='message'][data-author='user']
 }
 
 /* Assistant turns read as page content, not a bubble. */
-zw-ai-message-timeline [data-zw-ai='message'][data-author='assistant']
+zw-ai-message-timeline
+  [data-zw-ai='message'][data-author='assistant']
   [data-part='content'] {
   background: var(--wb-bubble-assistant);
 }
@@ -973,7 +971,9 @@ zw-ai-message-timeline [data-zw-ai='message'] [data-part='actions'] {
 }
 
 zw-ai-message-timeline [data-zw-ai='message']:hover [data-part='actions'],
-zw-ai-message-timeline [data-zw-ai='message']:focus-within [data-part='actions'] {
+zw-ai-message-timeline
+  [data-zw-ai='message']:focus-within
+  [data-part='actions'] {
   opacity: 1;
 }
 
@@ -985,7 +985,10 @@ zw-ai-message-timeline [data-zw-ai='message'] [data-part='actions'] button {
   font-size: var(--wb-font-xs);
 }
 
-zw-ai-message-timeline [data-zw-ai='message'] [data-part='actions'] button:hover {
+zw-ai-message-timeline
+  [data-zw-ai='message']
+  [data-part='actions']
+  button:hover {
   background: var(--wb-surface-hover);
   color: var(--wb-text-primary);
 }
@@ -1188,9 +1191,7 @@ zw-ai-message-timeline [data-zw-ai='message'] [data-part='actions'] button:hover
   font-weight: 500;
 }
 
-.side-body
-  zw-ai-approval-prompt
-  button[data-action='approve'] {
+.side-body zw-ai-approval-prompt button[data-action='approve'] {
   border-color: var(--wb-accent-default);
   background: var(--wb-accent-default);
   color: var(--wb-accent-contrast);
