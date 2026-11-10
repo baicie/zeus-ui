@@ -121,11 +121,30 @@ jobs:
       # ghcr.io does not finish inside the SSH session, and mirrors only help
       # while they happen to have the blob. Pushing to TCR moves the cross-border
       # transfer into the publish step, and the host pulls over the cloud network.
+      #
+      # TCR_IMAGE is a repository prefix: the tags below append `-host` and
+      # `-workbench`. `docker login` wants only the registry host, so it is
+      # split here rather than asking operators to keep two variables in step.
+      - name: Resolve the TCR registry host
+        id: tcr
+        if: github.event_name != 'pull_request' && vars.TCR_IMAGE != ''
+        env:
+          TCR_IMAGE: ${{ vars.TCR_IMAGE }}
+        run: |
+          set -euo pipefail
+          host="${TCR_IMAGE%%/*}"
+          if [[ ! "$host" =~ ^[A-Za-z0-9.-]+$ ]]; then
+            echo "::error::TCR_IMAGE does not start with a registry host: '$TCR_IMAGE'"
+            exit 1
+          fi
+          echo "host=${host}" >> "$GITHUB_OUTPUT"
+          echo "TCR: registry ${host}, repository prefix ${TCR_IMAGE}"
+
       - name: Login to TCR
         if: github.event_name != 'pull_request' && vars.TCR_IMAGE != ''
         uses: docker/login-action@v3
         with:
-          registry: ${{ vars.TCR_IMAGE }}
+          registry: ${{ steps.tcr.outputs.host }}
           username: ${{ secrets.TCR_USERNAME }}
           password: ${{ secrets.TCR_PASSWORD }}
 
@@ -215,6 +234,9 @@ jobs:
       CONTAINER: ${{ vars.ZEUS_WORKBENCH_CONTAINER || 'zeus-ai-workbench' }}
       HOST_CONTAINER: ${{ vars.ZEUS_AI_HOST_CONTAINER || 'zeus-ai-host' }}
       HEALTH_URL: http://127.0.0.1:8083/healthz
+      # The commit the images must carry. A tag can point at an older build
+      # after an interrupted publish, so identity is read from the label.
+      EXPECTED_REVISION: ${{ github.sha }}
       GHCR_MIRRORS: ${{ vars.GHCR_MIRRORS || 'ghcr.nju.edu.cn' }}
       SSH_KEY: ${{ secrets.ZEUS_WORKBENCH_DEPLOY_SSH_KEY }}
       SSH_PASSWORD: ${{ secrets.ZEUS_WORKBENCH_DEPLOY_SSH_PASSWORD }}
@@ -295,13 +317,15 @@ jobs:
             "${IMAGE_REF}" "${DEPLOY_TAG}" "${IMAGE_DIGEST}" \
             "${HOST_IMAGE_REF}" "${HOST_IMAGE_DIGEST}" \
             "${CONTAINER}" "${HOST_CONTAINER}" "${DEPLOY_DIR}" "${HEALTH_URL}" "${GHCR_MIRRORS}" \
-            "${TCR_IMAGE}" "${TCR_USERNAME}" "${TCR_PASSWORD}" <<'REMOTE'
+            "${TCR_IMAGE}" "${TCR_USERNAME}" "${TCR_PASSWORD}" \
+            "${EXPECTED_REVISION}" <<'REMOTE'
           set -euo pipefail
           IMAGE="$1"; TAG="$2"; DIGEST="$3"; HOST_IMAGE="$4"; HOST_DIGEST="$5"
           CONTAINER="$6"; HOST_CONTAINER="$7"; DIR="$8"; HEALTH="$9"; MIRRORS="${10}"
           # Optional: unset when TCR is not configured. `set -u` would abort
           # the whole script on an unbound positional, so default each to empty.
           TCR="${11:-}"; TCR_USER="${12:-}"; TCR_PASS="${13:-}"
+          EXPECTED_REVISION="${14:-}"
           CANONICAL="${IMAGE}:${TAG}"
           HOST_CANONICAL="${HOST_IMAGE}:${TAG}"
 
@@ -318,14 +342,18 @@ jobs:
           # first; ghcr.io is the last resort because the cross-border transfer
           # is what times out.
           if [[ -n "${TCR}" && -n "${TCR_USER}" && -n "${TCR_PASS}" ]]; then
+            # TCR points at a repository prefix, but docker authenticates a
+            # registry. Logging in to the full path asks the daemon for
+            # `<path>/v2/` and answers 404, so only the host is used here.
+            TCR_HOST="${TCR%%/*}"
             if [[ "${DOCKER[0]}" == "sudo" ]]; then
               printf '%s' "${TCR_PASS}" |
-                sudo -n docker login "${TCR}" -u "${TCR_USER}" --password-stdin >/dev/null
+                sudo -n docker login "${TCR_HOST}" -u "${TCR_USER}" --password-stdin >/dev/null
             else
               printf '%s' "${TCR_PASS}" |
-                docker login "${TCR}" -u "${TCR_USER}" --password-stdin >/dev/null
+                docker login "${TCR_HOST}" -u "${TCR_USER}" --password-stdin >/dev/null
             fi
-            echo "==> logged in to ${TCR}"
+            echo "==> logged in to ${TCR_HOST}"
           fi
 
           pull_pinned() {
@@ -362,6 +390,21 @@ jobs:
           pull_pinned "${IMAGE}" "${DIGEST}" "${TAG}" "${CANONICAL}" "${TCR:+${TCR}-workbench}"
           pull_pinned "${HOST_IMAGE}" "${HOST_DIGEST}" "${TAG}" "${HOST_CANONICAL}" "${TCR:+${TCR}-host}"
 
+          # A tag is not an identity. When TCR is configured the image comes
+          # from there, and a stalled publish can leave that tag pointing at the
+          # previous commit — the deploy would then "succeed" while rolling back
+          # production. The build stamps the commit into a label, so check it.
+          if [[ -n "${EXPECTED_REVISION:-}" ]]; then
+            for ref in "${CANONICAL}" "${HOST_CANONICAL}"; do
+              got="$("${DOCKER[@]}" inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "${ref}" 2>/dev/null || true)"
+              if [[ "${got}" != "${EXPECTED_REVISION}" ]]; then
+                echo "::error::${ref} is revision '${got}', expected '${EXPECTED_REVISION}'"
+                exit 1
+              fi
+              echo "==> ${ref} @ ${got:0:8}"
+            done
+          fi
+
           if [[ "${DOCKER[0]}" == "sudo" ]]; then
             RUN=(sudo -n env "IMAGE_REPO=${IMAGE}" "IMAGE_TAG=${TAG}" "HOST_IMAGE_REPO=${HOST_IMAGE}" "HOST_IMAGE_TAG=${TAG}" "CONTAINER_NAME=${CONTAINER}" "HOST_CONTAINER=${HOST_CONTAINER}" "COMPOSE_PROJECT_NAME=${CONTAINER}" "AI_DATA_DIR=/home/ubuntu/zeus-ai/data" docker)
           else
@@ -374,6 +417,24 @@ jobs:
           # but not for the shell: sourcing it would try to run the array as a
           # command and abort the deploy under `set -e`.
           "${RUN[@]}" compose -f docker-compose.deploy.yml up -d --pull never --remove-orphans --force-recreate
+
+          # `up --remove-orphans` only knows the containers of *this* compose
+          # project. The production pair was originally started with `docker
+          # run` and carries no compose labels, so compose never sees it: the
+          # old Host kept serving the ingress while a second Host opened the
+          # same SQLite file. Retire by hazard, not by naming convention — any
+          # container mounting this deployment's data directory is a second
+          # writer of the same database.
+          data_dir="/home/ubuntu/zeus-ai/data"
+          for victim in $("${DOCKER[@]}" ps -aq 2>/dev/null || true); do
+            name="$("${DOCKER[@]}" inspect --format '{{.Name}}' "${victim}" 2>/dev/null | sed 's#^/##')" || continue
+            [[ -z "${name}" ]] && continue
+            [[ "${name}" == "${CONTAINER}" || "${name}" == "${HOST_CONTAINER}" ]] && continue
+            mounts="$("${DOCKER[@]}" inspect --format '{{range .Mounts}}{{.Source}} {{end}}' "${name}" 2>/dev/null || true)"
+            [[ "${mounts}" != *"${data_dir}"* ]] && continue
+            echo "==> retiring ${name}: another writer of ${data_dir}"
+            "${DOCKER[@]}" rm -f "${name}" >/dev/null 2>&1 || true
+          done
 
           for attempt in $(seq 1 30); do
             sleep 2
@@ -388,6 +449,40 @@ jobs:
           "${DOCKER[@]}" logs --tail 50 "${HOST_CONTAINER}" || true
           exit 1
           REMOTE
+
+      # A container swap is not a deployment. The ingress decides what the
+      # public actually gets, and it is operator-owned configuration that CI
+      # must not rewrite. So instead of assuming, ask the public URL which
+      # commit it serves and fail when it is not this one: a green deploy that
+      # leaves the old build live is the exact failure this step exists for.
+      - name: Verify the public site serves this commit
+        if: vars.ZEUS_PUBLIC_SITE_URL != ''
+        run: |
+          set -euo pipefail
+          url="${ZEUS_PUBLIC_SITE_URL%/}/build-info.json"
+          for attempt in $(seq 1 10); do
+            if body="$(curl -fsS --max-time 15 "${url}" 2>/dev/null)"; then
+              served="$(printf '%s' "${body}" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{process.stdout.write(JSON.parse(s).uiCommit||'')}catch{}})")"
+              if [[ "${served}" == "${GITHUB_SHA}" ]]; then
+                echo "==> ${ZEUS_PUBLIC_SITE_URL} serves ${served}"
+                exit 0
+              fi
+              echo "    ${url} serves '${served:-<unknown>}', waiting for ${GITHUB_SHA:0:8}"
+            else
+              echo "    ${url} not reachable yet"
+            fi
+            sleep 6
+          done
+          {
+            echo "::error::The public site does not serve ${GITHUB_SHA}."
+            echo "Containers were replaced, but the ingress still points at an older build."
+            echo "Point ${ZEUS_PUBLIC_SITE_URL} at the container published on 127.0.0.1:8083."
+          } >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+          echo "::error::The public site does not serve ${GITHUB_SHA}; the ingress still points at an older build"
+          exit 1
+        env:
+          ZEUS_PUBLIC_SITE_URL: ${{ vars.ZEUS_PUBLIC_SITE_URL }}
+          GITHUB_SHA: ${{ github.sha }}
 
       - name: Cleanup credentials
         if: always()
