@@ -30,6 +30,14 @@ ARG ZEUS_VERSION
 LABEL org.opencontainers.image.revision=$ZEUS_UI_COMMIT \
   org.opencontainers.image.version=$ZEUS_VERSION
 COPY examples/ai-workbench/deploy/nginx.conf /etc/nginx/templates/default.conf.template
-ENV NGINX_ENVSUBST_FILTER=ZEUS_AI_UPSTREAM_TOKEN
+COPY examples/ai-workbench/deploy/entrypoint.sh /usr/local/bin/zeus-workbench-entrypoint.sh
+RUN chmod +x /usr/local/bin/zeus-workbench-entrypoint.sh
+# Both variables reach the template: the Host bearer token injected into the
+# proxy header, and the operator's opt-in CSP source list for BYOK. A name that
+# is not in this filter is left literal in the rendered config.
+ENV NGINX_ENVSUBST_FILTER='^(ZEUS_AI_UPSTREAM_TOKEN|ZEUS_BYOK_CONNECT_SRC_SPACED)$'
 COPY --from=build /app/examples/ai-workbench/dist /usr/share/nginx/html
 EXPOSE 80
+# Normalises the operator's value before nginx renders templates.
+ENTRYPOINT ["/usr/local/bin/zeus-workbench-entrypoint.sh"]
+CMD ["nginx", "-g", "daemon off;"]

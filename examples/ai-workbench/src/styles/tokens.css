@@ -1,0 +1,151 @@
+/**
+ * Workbench design tokens.
+ *
+ * A calm, neutral product surface for a chat application: quiet greys for the
+ * chrome, one accent for the active controls, and a separate bubble surface for
+ * assistant and user messages. Nothing here is decorative — the accent appears
+ * only on primary actions, the selected session and focus, so "this is
+ * interactive" reads the same everywhere.
+ *
+ * Both themes carry the full set; no selector below this file may name a
+ * colour.
+ */
+
+:root,
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --wb-surface-sunken: #f7f8f9;
+  --wb-surface-base: #ffffff;
+  --wb-surface-raised: #ffffff;
+  --wb-surface-hover: #f1f3f5;
+  --wb-surface-active: #e8ecef;
+  --wb-surface-inset: #f4f5f7;
+
+  --wb-border-subtle: #eceff2;
+  --wb-border-default: #dde2e7;
+  --wb-border-strong: #c4ccd3;
+
+  --wb-text-primary: #14181c;
+  --wb-text-secondary: #4c5862;
+  --wb-text-muted: #5f6b75;
+  --wb-text-inverse: #ffffff;
+
+  --wb-accent-subtle: #e9f3ff;
+  --wb-accent-default: #2563a8;
+  --wb-accent-strong: #1d4e85;
+  --wb-accent-contrast: #ffffff;
+
+  --wb-danger-subtle: #fdeceb;
+  --wb-danger-default: #b9382c;
+  --wb-success-subtle: #e8f5ec;
+  --wb-success-default: #1a7a48;
+  --wb-warning-subtle: #fdf3e0;
+  --wb-warning-default: #91600a;
+
+  /* Message surfaces: the assistant sits on the page, the user on a bubble. */
+  --wb-bubble-user: #eef2f7;
+  --wb-bubble-assistant: transparent;
+
+  --wb-sidebar-surface: #fbfbfc;
+  --wb-composer-surface: #ffffff;
+
+  --wb-focus-ring: #2563a8;
+  --wb-scrim: rgba(20, 24, 28, 0.4);
+
+  --wb-shadow-sm: 0 1px 2px rgba(20, 24, 28, 0.06);
+  --wb-shadow-md: 0 6px 18px rgba(20, 24, 28, 0.09);
+  --wb-shadow-lg: 0 18px 44px rgba(20, 24, 28, 0.14);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --wb-surface-sunken: #0c0f12;
+  --wb-surface-base: #121619;
+  --wb-surface-raised: #171c20;
+  --wb-surface-hover: #1c2227;
+  --wb-surface-active: #232a30;
+  --wb-surface-inset: #0f1316;
+
+  --wb-border-subtle: #1d2328;
+  --wb-border-default: #2a3238;
+  --wb-border-strong: #3a444b;
+
+  --wb-text-primary: #e6eaee;
+  --wb-text-secondary: #a7b2bb;
+  --wb-text-muted: #94a0aa;
+  --wb-text-inverse: #0c0f12;
+
+  --wb-accent-subtle: #12263c;
+  --wb-accent-default: #6aa9e9;
+  --wb-accent-strong: #8cbdf0;
+  --wb-accent-contrast: #07172a;
+
+  --wb-danger-subtle: #3a1c19;
+  --wb-danger-default: #f08b80;
+  --wb-success-subtle: #12301f;
+  --wb-success-default: #5ec98d;
+  --wb-warning-subtle: #33260f;
+  --wb-warning-default: #e0aa4e;
+
+  --wb-bubble-user: #1d262e;
+  --wb-bubble-assistant: transparent;
+
+  --wb-sidebar-surface: #0f1316;
+  --wb-composer-surface: #171c20;
+
+  --wb-focus-ring: #6aa9e9;
+  --wb-scrim: rgba(0, 0, 0, 0.6);
+
+  --wb-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --wb-shadow-md: 0 6px 18px rgba(0, 0, 0, 0.45);
+  --wb-shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.55);
+}
+
+:root {
+  --wb-space-1: 4px;
+  --wb-space-2: 8px;
+  --wb-space-3: 12px;
+  --wb-space-4: 16px;
+  --wb-space-5: 20px;
+  --wb-space-6: 24px;
+  --wb-space-8: 32px;
+  --wb-space-10: 40px;
+
+  --wb-radius-sm: 6px;
+  --wb-radius-md: 10px;
+  --wb-radius-lg: 14px;
+  --wb-radius-full: 999px;
+
+  --wb-control-height: 36px;
+
+  --wb-font-sans:
+    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC',
+    'PingFang SC', system-ui, sans-serif;
+  --wb-font-mono:
+    ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+
+  --wb-font-xs: 12px;
+  --wb-font-sm: 13px;
+  --wb-font-base: 14px;
+  --wb-font-lg: 16px;
+  --wb-font-xl: 20px;
+  --wb-font-2xl: 24px;
+
+  --wb-line-base: 1.6;
+
+  /* Layout */
+  --wb-sidebar-width: 260px;
+  --wb-inspector-width: 380px;
+  --wb-thread-max: 760px;
+
+  --wb-duration: 140ms;
+  --wb-ease: cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --wb-duration: 0ms;
+  }
+}

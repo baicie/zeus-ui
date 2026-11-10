@@ -1,0 +1,108 @@
+# Server-side compose for the AI Workbench and its reference Host. This is a
+# *release artifact*: it never builds anything, it only pulls images CI
+# published to GHCR.
+#
+# `.github/workflows/ai-workbench-image.yml` uploads this file to
+#   ${DEPLOY_DIR}/docker-compose.deploy.yml   (default /home/ubuntu/zeus-ai-workbench)
+# and then runs `docker compose -f docker-compose.deploy.yml up -d --pull never`
+# with IMAGE_REPO / IMAGE_TAG / HOST_IMAGE_REPO / HOST_IMAGE_TAG in the
+# environment.
+#
+# The Host is part of this deployment because the workbench's `/ai-host/` proxy
+# targets it by service name. Publishing the workbench without the Host would
+# leave every command and SSE stream failing to connect.
+#
+# Credentials stay in the two files the host already uses — `host.env` for the
+# Host and `workbench.env` for the proxy token. The workflow sources both and
+# never writes them, so a rotation is an explicit act.
+services:
+  ai-host:
+    image: ${HOST_IMAGE_REPO:-ghcr.io/baicie/zeus-ai-host}:${HOST_IMAGE_TAG:-main}
+    container_name: ${HOST_CONTAINER:-zeus-ai-host}
+    restart: unless-stopped
+    # Not published: only the workbench reaches it, over the compose network.
+    expose:
+      - '8788'
+    environment:
+      PORT: '8788'
+      ZEUS_AI_DB: /data/ai-host.sqlite
+      ZEUS_AI_WORKSPACE: /data/workspace
+      ZEUS_AI_MODE: ${ZEUS_AI_MODE:-replay}
+      # Public replay is the security boundary for the published demo: it makes
+      # the Host refuse every mutation and serve only the seeded stream. It was
+      # already on; dropping it from this file would silently reopen writes.
+      ZEUS_AI_PUBLIC_REPLAY: ${ZEUS_AI_PUBLIC_REPLAY:-true}
+      # The ingress is the only source of the client address.
+      ZEUS_AI_TRUST_PROXY: ${ZEUS_AI_TRUST_PROXY:-true}
+      ZEUS_AI_WORKSPACE_ID: ${ZEUS_AI_WORKSPACE_ID:-reference}
+      ZEUS_AI_ORIGINS: ${ZEUS_AI_ORIGINS:-https://ai.moonbyte.top:8443}
+      # Bearer tokens are per-tenant; the value is a JSON array.
+      ZEUS_AI_TOKENS: ${ZEUS_AI_TOKENS:?Set ZEUS_AI_TOKENS in ai-workbench.env}
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - ${AI_DATA_DIR:-/home/ubuntu/zeus-ai/data}:/data
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 320m
+    cpus: 0.50
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8788/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  ai-workbench:
+    image: ${IMAGE_REPO:-ghcr.io/baicie/zeus-ai-workbench}:${IMAGE_TAG:-main}
+    container_name: ${CONTAINER_NAME:-zeus-ai-workbench}
+    restart: unless-stopped
+    # Loopback-only; TLS terminates at the trusted ingress.
+    ports:
+      - '127.0.0.1:8083:80'
+    depends_on:
+      - ai-host
+    environment:
+      # Injected into the /ai-host/ proxy header, never sent to the browser.
+      ZEUS_AI_UPSTREAM_TOKEN: ${ZEUS_AI_UPSTREAM_TOKEN:?Set ZEUS_AI_UPSTREAM_TOKEN in ai-workbench.env}
+      # Optional: CSP source list for BYOK. Unset keeps connect-src 'self'.
+      ZEUS_BYOK_CONNECT_SRC: ${ZEUS_BYOK_CONNECT_SRC:-}
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+      # nginx envsubst renders the template into this read-only path.
+      - /etc/nginx/conf.d
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    cpus: 0.50
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - -q
+        - -O
+        - /dev/null
+        - http://127.0.0.1/healthz
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
