@@ -19,6 +19,7 @@
  */
 
 import type { ProviderProfile } from './profiles'
+import { beginAttempt, cspBlockedFor } from './csp'
 import { DEFAULT_CHAT_PATH } from './profiles'
 
 export interface ChatMessage {
@@ -152,6 +153,22 @@ function isNetworkFailure(error: unknown): boolean {
   )
 }
 
+/**
+ * Explains a request the page's own Content-Security-Policy stopped.
+ *
+ * This is a deployment problem, not a gateway problem, and the message says so:
+ * telling someone to fix CORS when CSP is the blocker sends them to the wrong
+ * place entirely.
+ */
+function cspHint(target: string): GatewayError {
+  return new GatewayError(
+    `The deployment's Content-Security-Policy blocked the request to ${target}.`,
+    {
+      hint: 'This page is not allowed to open connections to that origin. The operator must add it to the workbench connect-src policy, or point BYOK at a relay that is already allowed.',
+    },
+  )
+}
+
 function corsHint(target: string): GatewayError {
   return new GatewayError(`The browser could not reach ${target}.`, {
     hint:
@@ -172,6 +189,8 @@ async function request(
   const onAbort = (): void => controller.abort()
   signal.addEventListener('abort', onAbort, { once: true })
   const url = kind === 'models' ? modelsEndpoint(profile) : endpoint(profile)
+  // Clear stale violations so only this attempt's can be attributed.
+  beginAttempt()
   try {
     const response = await fetch(url, {
       method: 'GET',
@@ -196,7 +215,20 @@ async function request(
         { hint: 'Raise the timeout, or reduce the max output tokens.' },
       )
     }
-    if (isNetworkFailure(error)) throw corsHint(endpoint(profile))
+    if (isNetworkFailure(error)) {
+      // A blocked `fetch` and a CORS rejection look identical to the caller.
+      // The violation event tells them apart, and the fix differs: one is the
+      // deployment's `connect-src`, the other is the gateway's allowlist.
+      //
+      // The event is dispatched on a task boundary in some engines, so give it
+      // one turn before deciding. Without this the CSP case falls through to
+      // the CORS message, which sends the reader to the wrong fix.
+      const target =
+        kind === 'models' ? modelsEndpoint(profile) : endpoint(profile)
+      await new Promise<void>(resolve => setTimeout(resolve, 0))
+      if (cspBlockedFor(target)) throw cspHint(target)
+      throw corsHint(target)
+    }
     throw error
   } finally {
     clearTimeout(timer)

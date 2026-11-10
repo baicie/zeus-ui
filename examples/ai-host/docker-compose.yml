@@ -32,6 +32,8 @@ services:
       - ai-host
     environment:
       ZEUS_AI_UPSTREAM_TOKEN: ${ZEUS_AI_UPSTREAM_TOKEN:?Set ZEUS_AI_UPSTREAM_TOKEN}
+      # Optional: CSP source list for BYOK. Unset keeps connect-src 'self'.
+      ZEUS_BYOK_CONNECT_SRC: ${ZEUS_BYOK_CONNECT_SRC:-}
     read_only: true
     tmpfs:
       - /var/cache/nginx
