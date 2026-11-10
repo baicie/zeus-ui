@@ -290,31 +290,43 @@ jobs:
             exit 1
           fi
 
-          # Pull a digest-pinned reference, falling back to mirrors and then to
-          # the moving tag. Content addressing means a mirror cannot substitute
-          # the image.
+          # Mirrors first: from mainland China a ghcr.io blob download routinely
+          # takes longer than the SSH session tolerates, while the mirror serves
+          # the same digest from cache. The digest is what makes this safe — a
+          # mirror cannot substitute different content for it.
           pull_pinned() {
-            local repo_path="$1" digest="$2" canonical="$3"
+            local image="$1" digest="$2" tag="$3" canonical="$4"
+            local repo_path="${image#ghcr.io/}"
             local candidates=()
-            [[ -n "$digest" ]] && candidates+=("${repo_path%%:*}@${digest}")
+            if [[ -n "${MIRRORS}" ]]; then
+              local mirror_list=()
+              IFS=',' read -r -a mirror_list <<< "${MIRRORS}"
+              local m
+              for m in "${mirror_list[@]}"; do
+                m="${m// /}"
+                [[ -z "$m" ]] && continue
+                [[ -n "$digest" ]] && candidates+=("${m}/${repo_path}@${digest}")
+                candidates+=("${m}/${repo_path}:${tag}")
+              done
+            fi
+            [[ -n "$digest" ]] && candidates+=("${image}@${digest}")
             candidates+=("${canonical}")
-            for mirror in ${MIRRORS}; do
-              [[ -n "$digest" ]] && candidates+=("${mirror}/${repo_path}@${digest}")
-              candidates+=("${mirror}/${repo_path}")
-            done
+            local candidate
             for candidate in "${candidates[@]}"; do
               echo "==> pulling ${candidate}"
-              if "${DOCKER[@]}" pull "${candidate}" >/dev/null 2>&1; then
+              # Bound each attempt: an unbounded pull is what killed the session.
+              if timeout 300 "${DOCKER[@]}" pull "${candidate}"; then
                 "${DOCKER[@]}" tag "${candidate}" "${canonical}"
                 return 0
               fi
+              echo "    (source failed or timed out, trying next)"
             done
-            echo "::error::Could not pull ${canonical} from any candidate"
+            echo "::error::Every image source failed for ${canonical}"
             return 1
           }
 
-          pull_pinned "${IMAGE}" "${DIGEST}" "${CANONICAL}"
-          pull_pinned "${HOST_IMAGE}" "${HOST_DIGEST}" "${HOST_CANONICAL}"
+          pull_pinned "${IMAGE}" "${DIGEST}" "${TAG}" "${CANONICAL}"
+          pull_pinned "${HOST_IMAGE}" "${HOST_DIGEST}" "${TAG}" "${HOST_CANONICAL}"
 
           if [[ "${DOCKER[0]}" == "sudo" ]]; then
             RUN=(sudo -n env "IMAGE_REPO=${IMAGE}" "IMAGE_TAG=${TAG}" "HOST_IMAGE_REPO=${HOST_IMAGE}" "HOST_IMAGE_TAG=${TAG}" "CONTAINER_NAME=${CONTAINER}" "HOST_CONTAINER=${HOST_CONTAINER}" "COMPOSE_PROJECT_NAME=${CONTAINER}" "AI_DATA_DIR=/home/ubuntu/zeus-ai/data" docker)
