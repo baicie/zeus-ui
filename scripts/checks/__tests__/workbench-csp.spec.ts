@@ -129,6 +129,42 @@ describe('workbench CSP', () => {
     }
   })
 
+  it('rejects sources that would widen the policy to the whole network', () => {
+    // `connect-src 'self' *` allows everything, which is the opposite of what
+    // this control is for. A wildcard, a bare scheme and a wildcard host all
+    // have to fail.
+    for (const wide of [
+      '*',
+      'https:',
+      'https://*',
+      'https://*.example.com',
+      'http://*',
+      'http://0.0.0.0',
+    ]) {
+      expect(normalise(wide).rejected, wide).toBe(true)
+    }
+  })
+
+  it('accepts only origin-shaped sources', () => {
+    for (const ok of [
+      'https://api.openai.com',
+      'https://gateway.example.com:8443',
+      'http://localhost:11434',
+      'http://127.0.0.1:11434',
+    ]) {
+      expect(normalise(ok).rejected, ok).toBe(false)
+    }
+    // A path is not an origin; plain HTTP is loopback-only; credentials are not
+    // part of an origin.
+    for (const bad of [
+      'https://api.example.com/v1',
+      'http://gateway.example.com',
+      'https://user:pass@example.com',
+    ]) {
+      expect(normalise(bad).rejected, bad).toBe(true)
+    }
+  })
+
   it('keeps the envsubst filter in step with the template variables', () => {
     const dockerfile = fs.readFileSync(dockerfilePath, 'utf8')
     const filter = /NGINX_ENVSUBST_FILTER=(?:'([^']+)'|"([^"]+)"|(\S+))/.exec(
