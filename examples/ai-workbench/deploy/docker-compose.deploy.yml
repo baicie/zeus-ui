@@ -41,7 +41,9 @@ services:
     cpus: 0.50
     logging:
       driver: json-file
-      options: { max-size: 10m, max-file: '3' }
+      options:
+        max-size: 10m
+        max-file: '3'
     healthcheck:
       test:
         - CMD
@@ -81,9 +83,17 @@ services:
     cpus: 0.50
     logging:
       driver: json-file
-      options: { max-size: 10m, max-file: '3' }
+      options:
+        max-size: 10m
+        max-file: '3'
     healthcheck:
-      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1/healthz']
+      test:
+        - CMD
+        - wget
+        - -q
+        - -O
+        - /dev/null
+        - http://127.0.0.1/healthz
       interval: 30s
       timeout: 5s
       retries: 3

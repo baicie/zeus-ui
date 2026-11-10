@@ -65,9 +65,9 @@ export function mountByokChat(options: ByokChatOptions): () => void {
   emptyAction.className = 'btn btn-primary'
   emptyAction.dataset.testid = 'byok-open-settings'
   emptyAction.textContent = 'Open provider settings'
-  emptyAction.addEventListener('click', () =>
-    window.dispatchEvent(new CustomEvent('byok:open-settings')),
-  )
+  emptyAction.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('byok:open-settings'))
+  })
   empty.append(emptyMark, emptyTitle, emptyCopy, emptyAction)
 
   /* -------------------------------------------------------------- composer */

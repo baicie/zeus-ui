@@ -188,10 +188,10 @@ async function runBrowser(
     await page.getByTestId('byok-input').fill('hello gateway')
     await page.getByTestId('byok-send').click()
     await page.waitForFunction(
-      () =>
-        document
-          .querySelector('[data-testid="byok-thread"]')
-          ?.textContent?.includes('echo: hello gateway') === true,
+      () => {
+        const view = document.querySelector('[data-testid="byok-thread"]')
+        return view?.textContent?.includes('echo: hello gateway') === true
+      },
       null,
       { timeout: 20_000 },
     )
@@ -207,11 +207,10 @@ async function runBrowser(
     await page.getByTestId('byok-stop').waitFor({ timeout: 10_000 })
     await page.getByTestId('byok-stop').click()
     await page.waitForFunction(
-      () =>
-        document
-          .querySelector('[data-testid="byok-thread"]')
-          ?.textContent?.toLowerCase()
-          .includes('stopped') === true,
+      () => {
+        const view = document.querySelector('[data-testid="byok-thread"]')
+        return view?.textContent?.toLowerCase().includes('stopped') === true
+      },
       null,
       { timeout: 15_000 },
     )
@@ -230,10 +229,10 @@ async function runBrowser(
       await page.getByTestId('byok-input').fill(`test ${model}`)
       await page.getByTestId('byok-send').click()
       await page.waitForFunction(
-        text =>
-          document
-            .querySelector('[data-testid="byok-thread"]')
-            ?.textContent?.includes(text) === true,
+        text => {
+          const view = document.querySelector('[data-testid="byok-thread"]')
+          return view?.textContent?.includes(text) === true
+        },
         expected,
         { timeout: 15_000 },
       )
@@ -288,10 +287,10 @@ async function runBrowser(
     await page.getByTestId('mode-byok').click()
     await page.getByTestId('byok-chat').waitFor()
     await page.waitForFunction(
-      () =>
-        document
-          .querySelector('[data-testid="byok-thread"]')
-          ?.textContent?.includes('echo: hello gateway') === true,
+      () => {
+        const view = document.querySelector('[data-testid="byok-thread"]')
+        return view?.textContent?.includes('echo: hello gateway') === true
+      },
       null,
       { timeout: 15_000 },
     )
