@@ -117,7 +117,8 @@
     "site:build": "pnpm docs:build && pnpm examples:build",
     "link:zeus-js": "tsx scripts/commands/link-local-zeus.ts",
     "unlink:zeus-js": "tsx scripts/commands/unlink-local-zeus.ts && pnpm install",
-    "check:ai-workbench": "tsx scripts/checks/ai/check-ai-workbench.ts"
+    "check:ai-workbench": "tsx scripts/checks/ai/check-ai-workbench.ts",
+    "check:ai-workbench-byok": "tsx scripts/checks/ai/check-ai-workbench-byok.ts"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.0.0",

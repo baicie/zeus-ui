@@ -138,10 +138,21 @@ async function main(): Promise<void> {
             ),
           ).toBe(true)
           await expect(page.getByTestId('composer')).toBeVisible()
+          // The activity panel is closed by default so a plain chat keeps the
+          // full width. Open it before asserting the review controls fit: the
+          // check is that the panel's controls are reachable at 640px, not
+          // that they are always on screen.
+          await expect(page.getByTestId('propose-change')).toBeHidden()
+          await page.getByTestId('inspector-toggle').click()
           await expect(page.getByTestId('propose-change')).toBeVisible()
           await page.setViewportSize({ width: 1280, height: 900 })
           const zoomEvidence = await page.evaluate(() => {
             document.documentElement.style.zoom = '2'
+            // The zoom in effect, so scaled rects can be compared sanely.
+            // A plain expression avoids the transpiler helper that a nested
+            // arrow would inject into the page context.
+            const zoom =
+              Number(getComputedStyle(document.documentElement).zoom) || 1
             const composer = document.querySelector<HTMLElement>(
               '[data-testid="composer"]',
             )
@@ -158,13 +169,18 @@ async function main(): Promise<void> {
                 composerRect &&
                 composerRect.width > 0 &&
                 composerRect.height > 0 &&
-                composerRect.right <= document.documentElement.clientWidth + 1,
+                // Under `zoom`, `getBoundingClientRect` reports scaled
+                // coordinates while `clientWidth` stays in CSS pixels, so the
+                // comparison must be done in the same space.
+                composerRect.right <=
+                  document.documentElement.clientWidth * zoom + 1,
               ),
               proposeVisible: Boolean(
                 proposeRect &&
                 proposeRect.width > 0 &&
                 proposeRect.height > 0 &&
-                proposeRect.right <= document.documentElement.clientWidth + 1,
+                proposeRect.right <=
+                  document.documentElement.clientWidth * zoom + 1,
               ),
             }
           })
@@ -185,6 +201,9 @@ async function main(): Promise<void> {
           )
 
           await page.getByTestId('propose-change').click()
+          // The activity panel groups approvals, changes and tests into tabs.
+          // Switch to Changes before asserting on the diff.
+          await page.getByTestId('side-tab-changes').click()
           await expect(
             page.getByTestId('change-tree').getByText('workbench.txt'),
           ).toBeVisible()
@@ -192,6 +211,7 @@ async function main(): Promise<void> {
           await expect(page.getByTestId('diff-viewer')).toContainText(
             'Approved through the Zeus Native Workbench',
           )
+          await page.getByTestId('side-tab-activity').click()
           await expect(
             page.locator('zw-ai-approval-prompt button[data-action="approve"]'),
           ).toBeVisible()
@@ -209,6 +229,7 @@ async function main(): Promise<void> {
           expect(workspace.files.map(file => file.path)).toContain(
             'notes/workbench.txt',
           )
+          await page.getByTestId('side-tab-tests').click()
           await page.getByTestId('run-checks').click()
           await expect(page.getByTestId('test-report')).toContainText(
             '1 passed, 0 failed, 0 skipped',

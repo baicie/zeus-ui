@@ -25,6 +25,9 @@ import {
   defineAiTestReport,
 } from '@zeus-web/ai-wc'
 
+import { mountByokChat } from './byok/chat-view'
+import { mountProviderPanel } from './byok/provider-panel'
+
 import './styles.css'
 
 defineAiComposer()
@@ -64,13 +67,83 @@ shell.className = 'workbench'
 
 const header = document.createElement('header')
 header.className = 'topbar'
-header.innerHTML = `
-  <div>
-    <p class="eyebrow">Zeus Native · AI Headless V2</p>
-    <h1>AI Workbench</h1>
-  </div>
-  <div class="status" data-testid="connection" data-connection="idle">idle</div>
-`
+
+const sidebarToggle = document.createElement('button')
+sidebarToggle.type = 'button'
+sidebarToggle.className = 'icon-button sidebar-toggle'
+sidebarToggle.setAttribute('aria-label', 'Toggle sessions')
+sidebarToggle.dataset.testid = 'sidebar-toggle'
+sidebarToggle.textContent = '\u2261'
+/**
+ * Opens or closes the session drawer. It reads the live element rather than
+ * closing over `layout`, which is initialised further down the module.
+ */
+function toggleSessions(): void {
+  document.querySelector('.layout')?.classList.toggle('sessions-open')
+}
+sidebarToggle.addEventListener('click', () => toggleSessions())
+
+const brand = document.createElement('div')
+brand.className = 'topbar-brand'
+const brandGlyph = document.createElement('span')
+brandGlyph.className = 'brand-glyph'
+brandGlyph.setAttribute('aria-hidden', 'true')
+brandGlyph.textContent = 'Z'
+const brandName = document.createElement('h1')
+brandName.textContent = 'AI Workbench'
+brand.append(brandGlyph, brandName)
+
+const modeSwitch = document.createElement('div')
+modeSwitch.className = 'mode-switch'
+modeSwitch.setAttribute('role', 'group')
+modeSwitch.setAttribute('aria-label', 'Run mode')
+const hostModeButton = document.createElement('button')
+hostModeButton.type = 'button'
+hostModeButton.className = 'mode-option'
+hostModeButton.dataset.testid = 'mode-host'
+hostModeButton.textContent = 'Host'
+const byokModeButton = document.createElement('button')
+byokModeButton.type = 'button'
+byokModeButton.className = 'mode-option'
+byokModeButton.dataset.testid = 'mode-byok'
+byokModeButton.textContent = 'BYOK'
+const settingsButton = document.createElement('button')
+settingsButton.type = 'button'
+settingsButton.className = 'mode-option'
+settingsButton.dataset.testid = 'open-settings'
+settingsButton.textContent = 'Settings'
+modeSwitch.append(hostModeButton, byokModeButton, settingsButton)
+
+const topbarActions = document.createElement('div')
+topbarActions.className = 'topbar-actions'
+
+const inspectorToggle = document.createElement('button')
+inspectorToggle.type = 'button'
+inspectorToggle.className = 'inspector-toggle'
+inspectorToggle.dataset.testid = 'inspector-toggle'
+inspectorToggle.setAttribute('aria-expanded', 'false')
+inspectorToggle.textContent = 'Activity'
+
+const inspectorBadge = document.createElement('span')
+inspectorBadge.className = 'inspector-badge'
+inspectorBadge.hidden = true
+inspectorToggle.append(inspectorBadge)
+
+const connection = document.createElement('div')
+connection.className = 'status'
+connection.dataset.testid = 'connection'
+connection.dataset.connection = 'idle'
+connection.textContent = 'idle'
+
+const themeToggle = document.createElement('button')
+themeToggle.type = 'button'
+themeToggle.className = 'icon-button'
+themeToggle.dataset.testid = 'theme-toggle'
+themeToggle.setAttribute('aria-label', 'Toggle colour scheme')
+themeToggle.textContent = '\u25D1'
+
+topbarActions.append(inspectorToggle, connection, themeToggle)
+header.append(sidebarToggle, brand, modeSwitch, topbarActions)
 shell.append(header)
 
 const replayBanner = document.createElement('p')
@@ -87,11 +160,21 @@ layout.className = 'layout'
 const sessionPane = document.createElement('aside')
 sessionPane.className = 'sessions'
 sessionPane.setAttribute('aria-label', 'Sessions')
+
+const sessionsHeader = document.createElement('div')
+sessionsHeader.className = 'sessions-header'
 const newConversation = document.createElement('button')
 newConversation.type = 'button'
 newConversation.className = 'new-conversation'
 newConversation.dataset.testid = 'new-conversation'
-newConversation.textContent = 'New session'
+newConversation.textContent = 'New chat'
+sessionsHeader.append(newConversation)
+
+const sessionsScroll = document.createElement('div')
+sessionsScroll.className = 'sessions-scroll'
+const sessionsLabel = document.createElement('p')
+sessionsLabel.className = 'sessions-label'
+sessionsLabel.textContent = 'Recent'
 const conversationList = document.createElement(
   'zw-ai-conversation-list',
 ) as AiElementInstance & {
@@ -100,18 +183,72 @@ const conversationList = document.createElement(
 }
 conversationList.dataset.testid = 'conversation-list'
 conversationList.className = 'conversation-list'
-sessionPane.append(newConversation, conversationList)
+sessionsScroll.append(sessionsLabel, conversationList)
+sessionPane.append(sessionsHeader, sessionsScroll)
 
 const conversationPane = document.createElement('section')
 conversationPane.className = 'conversation'
 conversationPane.dataset.testid = 'conversation'
+
+const conversationHead = document.createElement('div')
+conversationHead.className = 'conversation-head'
+const conversationTitle = document.createElement('p')
+conversationTitle.className = 'conversation-title'
+const conversationMode = document.createElement('span')
+conversationMode.className = 'conversation-mode'
+conversationMode.textContent = 'Host · SSE'
+conversationHead.append(conversationTitle, conversationMode)
+
+// Welcome block shown until the conversation has a message. It sits beside the
+// timeline rather than inside it so the published element is not forked.
+const welcome = document.createElement('div')
+welcome.className = 'welcome'
+welcome.dataset.testid = 'welcome'
+const welcomeMark = document.createElement('div')
+welcomeMark.className = 'welcome-mark'
+welcomeMark.setAttribute('aria-hidden', 'true')
+welcomeMark.textContent = 'Z'
+const welcomeTitle = document.createElement('p')
+welcomeTitle.className = 'welcome-title'
+welcomeTitle.textContent = 'What should we build?'
+const welcomeCopy = document.createElement('p')
+welcomeCopy.className = 'welcome-copy'
+welcomeCopy.textContent =
+  'Ask the agent to make a change. Protected writes arrive as an approval, and the diff stays in the activity panel.'
+welcome.append(welcomeMark, welcomeTitle, welcomeCopy)
+
 let timeline = createTimeline()
 let composerElement = createComposerElement()
-conversationPane.append(timeline, composerElement)
+conversationPane.append(conversationHead, welcome, timeline, composerElement)
 
 const side = document.createElement('aside')
 side.className = 'side'
-side.setAttribute('aria-label', 'Workspace review')
+side.setAttribute('aria-label', 'Agent activity')
+// Closed by default: a chat with no agent activity gets the full width.
+side.hidden = true
+
+const sideHead = document.createElement('div')
+sideHead.className = 'side-head'
+const sideTitle = document.createElement('span')
+sideTitle.className = 'side-section-title'
+sideTitle.textContent = 'Agent activity'
+const sideClose = document.createElement('button')
+sideClose.type = 'button'
+sideClose.className = 'icon-button'
+sideClose.style.marginLeft = 'auto'
+sideClose.setAttribute('aria-label', 'Close activity panel')
+sideClose.dataset.testid = 'inspector-close'
+sideClose.textContent = '\u00D7'
+sideHead.append(sideTitle, sideClose)
+
+// Tabs keep the four review surfaces in one panel instead of three stacked
+// columns. Only the selected pane is shown; all data bindings stay live.
+const sideTabs = document.createElement('div')
+sideTabs.className = 'side-tabs'
+sideTabs.setAttribute('role', 'tablist')
+const sideBody = document.createElement('div')
+sideBody.className = 'side-body'
+
 const propose = document.createElement('button')
 propose.type = 'button'
 propose.dataset.testid = 'propose-change'
@@ -146,15 +283,55 @@ const testReport = document.createElement(
 testReport.dataset.testid = 'test-report'
 testReport.className = 'test-report'
 runChecks.addEventListener('click', () => void loadTestReport())
-side.append(
-  propose,
-  approval,
-  reviewHeading,
-  changeTree,
-  diffViewer,
-  runChecks,
-  testReport,
-)
+const reviewPane = document.createElement('div')
+reviewPane.className = 'review-pane'
+reviewPane.style.display = 'flex'
+reviewPane.style.flexDirection = 'column'
+reviewPane.style.gap = 'var(--wb-space-3)'
+reviewPane.append(reviewHeading, changeTree, diffViewer)
+
+const testsPane = document.createElement('div')
+testsPane.className = 'tests-pane'
+testsPane.style.display = 'none'
+testsPane.style.flexDirection = 'column'
+testsPane.style.gap = 'var(--wb-space-3)'
+testsPane.append(runChecks, testReport)
+
+type SideTabId = 'activity' | 'changes' | 'tests'
+const sidePanes: Array<{ id: SideTabId; label: string; pane: HTMLElement }> = [
+  { id: 'activity', label: 'Approvals', pane: approval },
+  { id: 'changes', label: 'Changes', pane: reviewPane },
+  { id: 'tests', label: 'Tests', pane: testsPane },
+]
+
+const sideTabButtons = new Map<SideTabId, HTMLButtonElement>()
+for (const entry of sidePanes) {
+  const tab = document.createElement('button')
+  tab.type = 'button'
+  tab.className = 'side-tab'
+  tab.setAttribute('role', 'tab')
+  tab.dataset.testid = `side-tab-${entry.id}`
+  tab.textContent = entry.label
+  tab.addEventListener('click', () => selectSideTab(entry.id))
+  sideTabButtons.set(entry.id, tab)
+  sideTabs.append(tab)
+  if (entry.id !== 'activity') entry.pane.hidden = true
+  sideBody.append(entry.pane)
+}
+
+function selectSideTab(id: SideTabId): void {
+  for (const entry of sidePanes) {
+    const selected = entry.id === id
+    const tab = sideTabButtons.get(entry.id)
+    if (tab) tab.setAttribute('aria-selected', String(selected))
+    // `hidden` must not fight the inline display used for the flex panes.
+    entry.pane.hidden = !selected
+    entry.pane.style.display = selected ? 'flex' : 'none'
+  }
+}
+
+selectSideTab('activity')
+side.append(sideHead, sideTabs, sideBody, propose)
 
 async function loadTestReport(): Promise<void> {
   runChecks.disabled = true
@@ -313,7 +490,7 @@ function activateConversation(id: string): void {
   conversationList.selectedId = id
   conversationList.conversations = [...knownConversations.values()]
   conversationList.requestRender()
-  updateGlobalWorkbench()
+  updateConversationTitle()
 }
 
 let conversationCounter = 1
@@ -338,9 +515,9 @@ conversationList.addEventListener('zw-ai-select', event => {
   if (detail?.conversationId) activateConversation(detail.conversationId)
 })
 
-const connection = header.querySelector<HTMLElement>(
-  '[data-testid="connection"]',
-)!
+/* ------------------------------------------------------- host connection */
+// The status pill reflects the session's own connection state; the Host stays
+// the authority for what the stream contains.
 session.subscribe(
   view => view.connection,
   state => {
@@ -380,10 +557,13 @@ function refreshApprovals(): void {
     item => item.status === 'pending',
   )
   approval.replaceChildren()
+  updateInspectorBadge()
   if (pending.length === 0) {
     approval.textContent = 'No pending approvals'
     return
   }
+  // A pending approval is the one thing that must not be missed.
+  openInspector('activity')
   for (const item of pending) {
     const prompt = document.createElement(
       'zw-ai-approval-prompt',
@@ -435,8 +615,17 @@ function refreshChangeSet(): void {
 refreshChangeSet()
 session.store.subscribe(
   state => `${state.changeSets.size}:${state.cursors.reference ?? 0}`,
-  () => refreshChangeSet(),
+  () => {
+    refreshChangeSet()
+    updateInspectorBadge()
+  },
 )
+
+inspectorToggle.addEventListener('click', () => {
+  if (side.hidden) openInspector()
+  else closeInspector()
+})
+sideClose.addEventListener('click', closeInspector)
 
 propose.addEventListener('click', () => {
   void session.execute(
@@ -457,6 +646,48 @@ propose.addEventListener('click', () => {
   )
 })
 
+/** Opens the activity panel, because an approval needs an answer. */
+function openInspector(tab?: 'activity' | 'changes' | 'tests'): void {
+  side.hidden = false
+  layout.classList.add('inspector-open')
+  inspectorToggle.setAttribute('aria-expanded', 'true')
+  if (tab) selectSideTab(tab)
+}
+
+function closeInspector(): void {
+  side.hidden = true
+  layout.classList.remove('inspector-open')
+  inspectorToggle.setAttribute('aria-expanded', 'false')
+}
+
+/** Keeps the "activity" badge in step with what is waiting on the user. */
+function updateInspectorBadge(): void {
+  const state = session.store.getState()
+  const pending = [...state.approvals.values()].filter(
+    item => item.status === 'pending',
+  ).length
+  const hasChanges = state.changeSets.size > 0
+  const total = pending + (hasChanges ? 1 : 0)
+  inspectorBadge.hidden = total === 0
+  inspectorBadge.textContent = String(total)
+  // Deliberately does not close the panel. A panel the user opened stays open
+  // until they close it; closing it here would fight the person using it.
+}
+
+/** The welcome block yields to the conversation once a message exists. */
+function updateWelcome(): void {
+  const state = session.store.getState()
+  // `conversationMessageIds` is a record keyed by conversation; the messages of
+  // the active conversation decide whether the welcome block still applies.
+  const ids = state.conversationMessageIds[conversationId] ?? []
+  welcome.hidden = ids.length > 0
+}
+
+function updateConversationTitle(): void {
+  conversationTitle.textContent =
+    knownConversations.get(conversationId)?.title ?? 'Conversation'
+}
+
 function updateGlobalWorkbench(): void {
   Object.assign(globalThis, {
     __aiWorkbench: {
@@ -470,4 +701,91 @@ function updateGlobalWorkbench(): void {
   })
 }
 
+updateWelcome()
+updateInspectorBadge()
 updateGlobalWorkbench()
+
+/* ---------------------------------------------------- host / byok modes */
+/*
+ * Two run modes share this shell.
+ *
+ * `host` is the agent: commands go to the Host over SSE, approvals gate writes,
+ * and the Host's snapshot is the only authority for what happened.
+ *
+ * `byok` is the user's own model: requests go from this browser to the gateway
+ * they configured, and messages live only in a local store. The two never share
+ * a transport, a permission model or a data store, which is why the mode is an
+ * explicit switch rather than a setting buried in a menu.
+ */
+let mode: 'host' | 'byok' = 'host'
+let disposeByok: (() => void) | undefined
+let disposeSettings: (() => void) | undefined
+
+const byokHost = document.createElement('div')
+byokHost.className = 'byok-host'
+byokHost.hidden = true
+layout.append(byokHost)
+
+const settingsHost = document.createElement('section')
+settingsHost.className = 'settings-page'
+settingsHost.dataset.testid = 'settings-page'
+settingsHost.hidden = true
+
+function setMode(next: 'host' | 'byok'): void {
+  mode = next
+  hostModeButton.classList.toggle('is-active', next === 'host')
+  byokModeButton.classList.toggle('is-active', next === 'byok')
+  hostModeButton.setAttribute('aria-pressed', String(next === 'host'))
+  byokModeButton.setAttribute('aria-pressed', String(next === 'byok'))
+
+  if (next === 'byok') {
+    closeInspector()
+    conversationPane.hidden = true
+    if (!disposeByok) {
+      // The view owns its element; it mounts into a host that stays in the grid
+      // so switching modes does not reflow the shell.
+      byokHost.hidden = false
+      disposeByok = mountByokChat({
+        mode: 'byok',
+        onModeChange: () => undefined,
+        host: byokHost,
+      })
+    }
+    byokHost.hidden = false
+    return
+  }
+
+  conversationPane.hidden = false
+  byokHost.hidden = true
+}
+
+let settingsOpen = false
+
+function toggleSettings(open: boolean): void {
+  if (open === settingsOpen) {
+    // Already in the requested state; nothing to re-render.
+    if (open) return
+  }
+  settingsOpen = open
+  settingsButton.setAttribute('aria-pressed', String(open))
+  if (open && !disposeSettings) {
+    disposeSettings = mountProviderPanel({ root: settingsHost })
+    layout.append(settingsHost)
+  }
+  settingsHost.hidden = !open
+  settingsButton.classList.toggle('is-active', open)
+  if (open) {
+    if (mode !== 'byok') setMode('byok')
+    conversationPane.hidden = true
+    byokHost.hidden = true
+  } else if (mode === 'byok') {
+    byokHost.hidden = false
+  }
+}
+
+hostModeButton.addEventListener('click', () => setMode('host'))
+byokModeButton.addEventListener('click', () => setMode('byok'))
+settingsButton.addEventListener('click', () => toggleSettings(true))
+window.addEventListener('byok:open-settings', () => toggleSettings(true))
+
+setMode('host')

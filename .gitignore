@@ -166,3 +166,7 @@ e2e/showcase/.artifacts
 examples/showcase-e2e/.artifacts
 playwright-report
 test-results
+
+# Local databases written by the reference Host and the gates
+*.sqlite
+.data/
