@@ -12,8 +12,9 @@
 # targets it by service name. Publishing the workbench without the Host would
 # leave every command and SSE stream failing to connect.
 #
-# Credentials live in `${DEPLOY_DIR}/ai-workbench.env`, written once by the
-# workflow and left untouched by later deploys.
+# Credentials stay in the two files the host already uses — `host.env` for the
+# Host and `workbench.env` for the proxy token. The workflow sources both and
+# never writes them, so a rotation is an explicit act.
 services:
   ai-host:
     image: ${HOST_IMAGE_REPO:-ghcr.io/baicie/zeus-ai-host}:${HOST_IMAGE_TAG:-main}
@@ -27,6 +28,13 @@ services:
       ZEUS_AI_DB: /data/ai-host.sqlite
       ZEUS_AI_WORKSPACE: /data/workspace
       ZEUS_AI_MODE: ${ZEUS_AI_MODE:-replay}
+      # Public replay is the security boundary for the published demo: it makes
+      # the Host refuse every mutation and serve only the seeded stream. It was
+      # already on; dropping it from this file would silently reopen writes.
+      ZEUS_AI_PUBLIC_REPLAY: ${ZEUS_AI_PUBLIC_REPLAY:-true}
+      # The ingress is the only source of the client address.
+      ZEUS_AI_TRUST_PROXY: ${ZEUS_AI_TRUST_PROXY:-true}
+      ZEUS_AI_WORKSPACE_ID: ${ZEUS_AI_WORKSPACE_ID:-reference}
       ZEUS_AI_ORIGINS: ${ZEUS_AI_ORIGINS:-https://ai.moonbyte.top:8443}
       # Bearer tokens are per-tenant; the value is a JSON array.
       ZEUS_AI_TOKENS: ${ZEUS_AI_TOKENS:?Set ZEUS_AI_TOKENS in ai-workbench.env}
@@ -34,7 +42,7 @@ services:
     tmpfs:
       - /tmp
     volumes:
-      - ${AI_DATA_DIR:-/home/ubuntu/zeus-ai-workbench/data}:/data
+      - ${AI_DATA_DIR:-/home/ubuntu/zeus-ai/data}:/data
     security_opt:
       - no-new-privileges:true
     mem_limit: 320m

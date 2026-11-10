@@ -191,7 +191,7 @@ jobs:
       DEPLOY_HOST: ${{ vars.ZEUS_WORKBENCH_DEPLOY_HOST }}
       DEPLOY_USER: ${{ vars.ZEUS_WORKBENCH_DEPLOY_USER || 'ubuntu' }}
       DEPLOY_PORT: ${{ vars.ZEUS_WORKBENCH_DEPLOY_PORT || '22' }}
-      DEPLOY_DIR: ${{ vars.ZEUS_WORKBENCH_DEPLOY_DIR || '/home/ubuntu/zeus-ai-workbench' }}
+      DEPLOY_DIR: ${{ vars.ZEUS_WORKBENCH_DEPLOY_DIR || '/home/ubuntu/zeus-ai' }}
       CONTAINER: ${{ vars.ZEUS_WORKBENCH_CONTAINER || 'zeus-ai-workbench' }}
       HOST_CONTAINER: ${{ vars.ZEUS_AI_HOST_CONTAINER || 'zeus-ai-host' }}
       HEALTH_URL: http://127.0.0.1:8083/healthz
@@ -244,25 +244,16 @@ jobs:
           mkdir -p "$DIR"
           printf '%s' "$COMPOSE" | base64 -d > "$DIR/docker-compose.deploy.yml"
           chmod 644 "$DIR/docker-compose.deploy.yml"
-          # The Host token and tenant config are the operator's, not CI's.
-          # Create the file once and never overwrite it.
-          if [[ ! -f "$DIR/ai-workbench.env" ]]; then
-            umask 077
-            cat > "$DIR/ai-workbench.env" <<'ENV'
-          # AI Workbench deployment secrets.
-          # ZEUS_AI_TOKENS must be a JSON array of tenant tokens. Generate one:
-          #   node -e "console.log(JSON.stringify([{token:require('crypto').randomBytes(32).toString('base64url'),tenantId:'reference',userId:'workbench',role:'admin'}]))"
-          # ZEUS_AI_UPSTREAM_TOKEN must equal one of those tokens.
-          ZEUS_AI_TOKENS=CHANGE_ME
-          ZEUS_AI_UPSTREAM_TOKEN=CHANGE_ME
-          ZEUS_AI_ORIGINS=https://ai.moonbyte.top:8443
-          # Optional: comma-free, space-separated CSP sources for BYOK.
-          ZEUS_BYOK_CONNECT_SRC=
-          ENV
-            echo "::warning::Created $DIR/ai-workbench.env with placeholders. Fill it in and re-run the deploy."
-          else
-            echo "ai-workbench.env already present; leaving it untouched"
-          fi
+          # Credentials are the operator's and already exist on this host. A
+          # deploy must not invent or overwrite them: rotating a token is a
+          # deliberate act, not a side effect of a release.
+          for required in host.env workbench.env; do
+            if [[ ! -f "$DIR/$required" ]]; then
+              echo "::error::$DIR/$required is missing. Create it from the deployment docs before deploying."
+              exit 1
+            fi
+          done
+          echo "credentials present: host.env, workbench.env"
           echo "compose 已就绪: $DIR/docker-compose.deploy.yml"
           REMOTE
 
@@ -326,15 +317,17 @@ jobs:
           pull_pinned "${HOST_IMAGE}" "${HOST_DIGEST}" "${HOST_CANONICAL}"
 
           if [[ "${DOCKER[0]}" == "sudo" ]]; then
-            RUN=(sudo -n env "IMAGE_REPO=${IMAGE}" "IMAGE_TAG=${TAG}" "HOST_IMAGE_REPO=${HOST_IMAGE}" "HOST_IMAGE_TAG=${TAG}" "CONTAINER_NAME=${CONTAINER}" "HOST_CONTAINER=${HOST_CONTAINER}" "COMPOSE_PROJECT_NAME=${CONTAINER}" "AI_DATA_DIR=${DIR}/data" docker)
+            RUN=(sudo -n env "IMAGE_REPO=${IMAGE}" "IMAGE_TAG=${TAG}" "HOST_IMAGE_REPO=${HOST_IMAGE}" "HOST_IMAGE_TAG=${TAG}" "CONTAINER_NAME=${CONTAINER}" "HOST_CONTAINER=${HOST_CONTAINER}" "COMPOSE_PROJECT_NAME=${CONTAINER}" "AI_DATA_DIR=/home/ubuntu/zeus-ai/data" docker)
           else
-            RUN=(env "IMAGE_REPO=${IMAGE}" "IMAGE_TAG=${TAG}" "HOST_IMAGE_REPO=${HOST_IMAGE}" "HOST_IMAGE_TAG=${TAG}" "CONTAINER_NAME=${CONTAINER}" "HOST_CONTAINER=${HOST_CONTAINER}" "COMPOSE_PROJECT_NAME=${CONTAINER}" "AI_DATA_DIR=${DIR}/data" docker)
+            RUN=(env "IMAGE_REPO=${IMAGE}" "IMAGE_TAG=${TAG}" "HOST_IMAGE_REPO=${HOST_IMAGE}" "HOST_IMAGE_TAG=${TAG}" "CONTAINER_NAME=${CONTAINER}" "HOST_CONTAINER=${HOST_CONTAINER}" "COMPOSE_PROJECT_NAME=${CONTAINER}" "AI_DATA_DIR=/home/ubuntu/zeus-ai/data" docker)
           fi
 
           cd "$DIR"
           set -a
           # shellcheck disable=SC1091
-          . ./ai-workbench.env
+          . ./host.env
+          # shellcheck disable=SC1091
+          . ./workbench.env
           set +a
           "${RUN[@]}" compose -f docker-compose.deploy.yml up -d --pull never --remove-orphans --force-recreate
 
