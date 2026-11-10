@@ -72,6 +72,24 @@ ingress（Caddy）是运维自己的配置，CI **不**改写它：端口从 `18
 容器名从 `-r44` 换成正式名，都属于需要人确认的动作。CI 的职责是把不一致**报出来**，
 而不是背着运维改配置。因此第一次切换到新容器仍需手动执行一次，之后流水线才能自证。
 
+手动切换时注意一个 Docker 陷阱：`Caddyfile` 是**单文件 bind mount**，挂载绑定的是
+**inode 而不是路径**。`sed -i` / `mv` 会创建新 inode，容器里看到的仍是旧文件，于是
+`caddy reload` 加载的是旧配置、`validate` 也永远通过——改了却毫无反应，且看不出任何
+错误。正确做法是原地覆盖（`> file`、`tee`、`cat new > file`），或把新文件
+`docker cp` 进容器可写目录后从那里 reload：
+
+```bash
+cp /home/ubuntu/caddy/Caddyfile /home/ubuntu/caddy/Caddyfile.bak-$(date +%F-%H%M%S)
+sed 's#127.0.0.1:18091#127.0.0.1:8083#' /home/ubuntu/caddy/Caddyfile > /tmp/cf.new
+sudo tee /home/ubuntu/caddy/Caddyfile < /tmp/cf.new > /dev/null   # 保留 inode
+docker cp /home/ubuntu/caddy/Caddyfile caddy:/tmp/Caddyfile.next
+docker exec caddy caddy validate --config /tmp/Caddyfile.next --adapter caddyfile
+docker exec caddy caddy reload   --config /tmp/Caddyfile.next --adapter caddyfile
+```
+
+Caddy 的 admin API（`localhost:2019`）**不能**直接改 `reverse_proxy.upstreams`：该模块
+不允许此路径的 traversal，会返回 `invalid traversal path`。不要在这上面绕弯路。
+
 ### 3.2 TCR 镜像源
 
 `TCR_IMAGE` 填**完整仓库路径**（`host/namespace/repo`），因为 workflow 会直接给它拼
