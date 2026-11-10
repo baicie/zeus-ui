@@ -369,12 +369,10 @@ jobs:
           fi
 
           cd "$DIR"
-          set -a
-          # shellcheck disable=SC1091
-          . ./host.env
-          # shellcheck disable=SC1091
-          . ./workbench.env
-          set +a
+          # The env files are handed to compose via `env_file`, not sourced here.
+          # A value like `ZEUS_AI_TOKENS=[{"token": "..."}]` is valid for Docker
+          # but not for the shell: sourcing it would try to run the array as a
+          # command and abort the deploy under `set -e`.
           "${RUN[@]}" compose -f docker-compose.deploy.yml up -d --pull never --remove-orphans --force-recreate
 
           for attempt in $(seq 1 30); do
