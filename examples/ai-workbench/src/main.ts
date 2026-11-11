@@ -27,6 +27,7 @@
 import type { ApprovalController, ReviewController } from '@zeus-web/ai-core'
 import type { AiElementInstance } from '@zeus-web/ai-wc'
 import { createSseHostAdapter } from '@zeus-web/ai-adapters'
+
 import {
   createAiSession,
   createApprovalController,
@@ -45,9 +46,10 @@ import {
   defineAiMessageTimeline,
   defineAiTestReport,
 } from '@zeus-web/ai-wc'
-
 import { mountByokChat } from './byok/chat-view'
+
 import { mountProviderPanel } from './byok/provider-panel'
+import { createDeferredDemoHost, isDemoBuild } from './demo-host'
 
 import './styles.css'
 
@@ -63,10 +65,17 @@ const root = document.querySelector<HTMLElement>('#app')
 if (!root) throw new Error('Missing #app root')
 
 declare const __ZEUS_AI_HOST__: string
+declare const __ZEUS_AI_DEMO__: boolean
+declare const __ZEUS_AI_DEMO_BASE__: string
 
 const configuredHost = __ZEUS_AI_HOST__ || undefined
 const hostBaseUrl = configuredHost ?? `${location.origin}/ai-host`
-const host = createSseHostAdapter({ baseUrl: hostBaseUrl })
+// The Pages demo replays a recording instead of talking to a Host; production
+// keeps the real SSE adapter. `isDemoBuild` is a build-time constant, so the
+// unused branch is eliminated from both bundles.
+const host = isDemoBuild
+  ? createDeferredDemoHost()
+  : createSseHostAdapter({ baseUrl: hostBaseUrl })
 let readOnly = false
 const session = createAiSession({
   host,
@@ -856,10 +865,19 @@ newChatButton.addEventListener('click', () => {
 session.subscribe(
   view => view.connection,
   state => {
-    connection.dataset.connection = state
-    connectionDot.dataset.connection = state
-    connectionText.textContent = state
-    connection.setAttribute('aria-label', `Host connection: ${state}`)
+    // The demo's transport is a recording replayed from memory, so it reaches
+    // the recorded state rather than a live one. Reporting "connecting" there
+    // would describe a state the session is not in.
+    const shown = isDemoBuild ? 'replay' : state
+    connection.dataset.connection = isDemoBuild ? 'live' : state
+    connectionDot.dataset.connection = isDemoBuild ? 'live' : state
+    connectionText.textContent = shown
+    connection.setAttribute(
+      'aria-label',
+      isDemoBuild
+        ? 'Host connection: replaying a recording'
+        : `Host connection: ${state}`,
+    )
   },
 )
 session.connect()
@@ -876,18 +894,30 @@ function applyReadOnly(): void {
   newChatButton.disabled = readOnly
 }
 
-void fetch(`${hostBaseUrl}/health`)
-  .then(response => (response.ok ? response.json() : undefined))
-  .then((health: { readOnly?: unknown } | undefined) => {
-    if (health?.readOnly === true) {
-      readOnly = true
-      applyReadOnly()
-    }
-  })
-  .catch(() => {
-    // The Host remains the security boundary; a failed health probe only
-    // leaves the UI in its default enabled state and writes still return 403.
-  })
+if (isDemoBuild) {
+  // The demo has no Host to probe. It is read-only by construction: the replay
+  // host rejects every command, so the composer must not pretend otherwise.
+  readOnly = true
+  applyReadOnly()
+  // Say it is a demo, not just that it is read-only: the visitor must not
+  // mistake a recorded replay for a live model.
+  replayBanner.textContent =
+    '只读演示 · 回放真实 Host 录制的事件流，不能发送消息、提案或审批。'
+  replayBanner.hidden = false
+} else {
+  void fetch(`${hostBaseUrl}/health`)
+    .then(response => (response.ok ? response.json() : undefined))
+    .then((health: { readOnly?: unknown } | undefined) => {
+      if (health?.readOnly === true) {
+        readOnly = true
+        applyReadOnly()
+      }
+    })
+    .catch(() => {
+      // The Host remains the security boundary; a failed health probe only
+      // leaves the UI in its default enabled state and writes still return 403.
+    })
+}
 
 function refreshApprovals(): void {
   const pending = [...session.store.getState().approvals.values()].filter(
