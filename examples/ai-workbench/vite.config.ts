@@ -5,10 +5,25 @@ import { defineConfig } from 'vite'
 
 const packages = resolve(__dirname, '../../packages')
 
+/**
+ * Two builds share this config:
+ *
+ * - production: the shell talks to the reference Host over `/ai-host/`.
+ * - demo (`ZEUS_AI_DEMO=1`, for GitHub Pages): the same source, served under
+ *   `<pages>/ai/`, replaying a recording of the real Host instead of calling
+ *   one. `demo-host.ts` holds the adapter; the flag only swaps the host and
+ *   moves the asset base.
+ */
+const demo = process.env.ZEUS_AI_DEMO === '1'
+const demoBase = process.env.ZEUS_AI_DEMO_BASE ?? '/zeus-demos/ai/'
+
 export default defineConfig({
   plugins: [],
+  base: demo ? demoBase : '/',
   define: {
     __ZEUS_AI_HOST__: JSON.stringify(process.env.ZEUS_AI_HOST_ORIGIN ?? ''),
+    __ZEUS_AI_DEMO__: JSON.stringify(demo),
+    __ZEUS_AI_DEMO_BASE__: JSON.stringify(demo ? demoBase : '/'),
   },
   resolve: {
     alias: [
