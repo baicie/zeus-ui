@@ -1,14 +1,18 @@
-/* eslint-disable no-restricted-globals, no-alert */
+/* eslint-disable no-restricted-globals */
 /**
- * BYOK chat view.
+ * BYOK chat view — the user's own OpenAI-compatible gateway, in the same
+ * ChatGPT-style surface as the Host chat.
  *
- * A second mode beside the Host agent. They share the shell and the visual
- * language, but nothing else: this view reads and writes only the local
- * conversation store and talks only to the user's gateway. Host replay state is
- * never mixed in, and these messages never reach the Host.
+ * What this view owns:
+ * - the centred 768px thread, with the user's message as a right-aligned bubble
+ *   and the assistant's reply as plain document text (as ChatGPT reads)
+ * - the composer at the bottom of that column
+ * - streaming into a single text node per turn, so a long answer does not
+ *   rebuild the message list on every chunk
+ * - inline errors with a retry action
  *
- * Streaming writes into a single text node per turn instead of re-rendering the
- * message list, so a long answer does not thrash the DOM.
+ * What it does not own: the shell, the sidebar, settings. Those belong to
+ * `main.ts`, and the two chat modes share them.
  */
 
 import type { ChatTurn, LocalConversation } from './conversations'
@@ -21,24 +25,18 @@ import { vault } from './vault'
 export interface ByokChatOptions {
   readonly mode: 'host' | 'byok'
   readonly onModeChange: (mode: 'host' | 'byok') => void
-  /** Element the view mounts into. The caller owns its visibility. */
+  /** Element the thread mounts into (inside the shell's scroll column). */
   readonly host: HTMLElement
+  /** Element the composer mounts into; the shell owns its position. */
+  readonly composerHost: HTMLElement
+  /** Reports the active provider/model so the topbar picker can show it. */
+  readonly onTitle?: (title: string) => void
 }
 
 export function mountByokChat(options: ByokChatOptions): () => void {
   const root = document.createElement('section')
   root.className = 'byok'
   root.dataset.testid = 'byok-chat'
-
-  const header = document.createElement('div')
-  header.className = 'conversation-head'
-  const title = document.createElement('p')
-  title.className = 'conversation-title'
-  title.dataset.testid = 'byok-title'
-  const providerLabel = document.createElement('span')
-  providerLabel.className = 'conversation-mode'
-  providerLabel.dataset.testid = 'byok-provider'
-  header.append(title, providerLabel)
 
   const thread = document.createElement('div')
   thread.className = 'byok-thread'
@@ -47,84 +45,103 @@ export function mountByokChat(options: ByokChatOptions): () => void {
   thread.setAttribute('aria-live', 'polite')
 
   const empty = document.createElement('div')
-  empty.className = 'welcome'
+  empty.className = 'byok-empty'
   empty.dataset.testid = 'byok-welcome'
-  const emptyMark = document.createElement('div')
-  emptyMark.className = 'welcome-mark'
-  emptyMark.setAttribute('aria-hidden', 'true')
-  emptyMark.textContent = 'Z'
   const emptyTitle = document.createElement('p')
-  emptyTitle.className = 'welcome-title'
-  emptyTitle.textContent = 'Chat with your own model'
+  emptyTitle.className = 'byok-empty-title'
+  emptyTitle.textContent = 'Configure a model to start'
   const emptyCopy = document.createElement('p')
-  emptyCopy.className = 'welcome-copy'
+  emptyCopy.className = 'byok-empty-copy'
   emptyCopy.textContent =
-    'Configure a gateway in Settings, unlock the vault, then send a message. Requests go straight from this browser to your provider.'
+    'Add an OpenAI-compatible gateway in Settings. Requests go straight from this browser to your provider; the key is encrypted in this browser behind your passphrase.'
   const emptyAction = document.createElement('button')
   emptyAction.type = 'button'
-  emptyAction.className = 'btn btn-primary'
+  emptyAction.className = 'byok-link'
   emptyAction.dataset.testid = 'byok-open-settings'
   emptyAction.textContent = 'Open provider settings'
   emptyAction.addEventListener('click', () => {
     window.dispatchEvent(new CustomEvent('byok:open-settings'))
   })
-  empty.append(emptyMark, emptyTitle, emptyCopy, emptyAction)
+  empty.append(emptyTitle, emptyCopy, emptyAction)
+
+  root.append(empty, thread)
+  options.host.append(root)
 
   /* -------------------------------------------------------------- composer */
 
   const composerStack = document.createElement('div')
-  composerStack.className = 'composer-stack'
+  composerStack.className = 'byok-composer-stack'
+  const errorLine = document.createElement('div')
+  errorLine.className = 'byok-error-line'
+  errorLine.dataset.testid = 'byok-error'
+  errorLine.hidden = true
+  const errorText = document.createElement('span')
+  const retry = document.createElement('button')
+  retry.type = 'button'
+  retry.dataset.testid = 'byok-retry'
+  retry.textContent = 'Retry'
+  retry.hidden = true
+  const errorDismiss = document.createElement('button')
+  errorDismiss.type = 'button'
+  errorDismiss.textContent = 'Dismiss'
+  errorDismiss.addEventListener('click', () => {
+    errorLine.hidden = true
+    retry.hidden = true
+  })
+  errorLine.append(errorText, retry, errorDismiss)
+
   const composer = document.createElement('form')
   composer.className = 'byok-composer'
   composer.dataset.testid = 'byok-composer'
+
   const input = document.createElement('textarea')
   input.className = 'byok-input'
   input.rows = 1
-  input.placeholder = 'Send a message…'
+  input.placeholder = 'Ask anything'
   input.dataset.testid = 'byok-input'
   input.setAttribute('aria-label', 'Message')
+
+  const plus = document.createElement('button')
+  plus.type = 'button'
+  plus.className = 'byok-plus'
+  plus.setAttribute('aria-label', 'Add files and more')
+  plus.disabled = true
+  plus.title = 'Attachments are not supported by the browser gateway yet'
+  plus.innerHTML =
+    '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'
+
   const send = document.createElement('button')
   send.type = 'submit'
   send.className = 'byok-send'
   send.dataset.testid = 'byok-send'
   send.setAttribute('aria-label', 'Send')
-  send.textContent = '↑'
+  send.innerHTML =
+    '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>'
+
   const stop = document.createElement('button')
   stop.type = 'button'
-  stop.className = 'byok-stop'
+  stop.className = 'byok-send is-stop'
   stop.dataset.testid = 'byok-stop'
   stop.setAttribute('aria-label', 'Stop generating')
-  stop.textContent = '■'
+  stop.innerHTML =
+    '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>'
   stop.hidden = true
-  composer.append(input, send, stop)
 
-  const meta = document.createElement('div')
-  meta.className = 'composer-actions'
-  const status = document.createElement('span')
-  status.className = 'attach-status'
-  status.dataset.testid = 'byok-status'
-  status.setAttribute('role', 'status')
-  const retry = document.createElement('button')
-  retry.type = 'button'
-  retry.className = 'btn btn-sm'
-  retry.dataset.testid = 'byok-retry'
-  retry.textContent = 'Retry'
-  retry.hidden = true
-  const clear = document.createElement('button')
-  clear.type = 'button'
-  clear.className = 'btn btn-sm'
-  clear.dataset.testid = 'byok-clear'
-  clear.textContent = 'Clear all chats'
-  meta.append(status, retry, clear)
-  composerStack.append(composer, meta)
+  composer.append(plus, input, send, stop)
 
-  root.append(header, empty, thread, composerStack)
+  const hint = document.createElement('p')
+  hint.className = 'byok-hint'
+  hint.textContent = 'Enter to send · Shift+Enter for a new line'
+
+  composerStack.append(errorLine, composer, hint)
+  options.composerHost.append(composerStack)
 
   /* ----------------------------------------------------------------- state */
 
   let conversation: LocalConversation | undefined
   let controller: AbortController | undefined
   let lastFailedPrompt: string | undefined
+  const assistantNodes = new Map<string, HTMLElement>()
 
   function currentConversation(): LocalConversation | undefined {
     return conversation
@@ -141,18 +158,27 @@ export function mountByokChat(options: ByokChatOptions): () => void {
 
   function renderHeader(): void {
     const provider = providerFor(currentConversation())
-    title.textContent = currentConversation()?.title ?? 'New chat'
-    providerLabel.textContent = provider
-      ? `${provider.name || 'Provider'} · ${provider.model || 'no model'}`
-      : 'No provider configured'
-    providerLabel.dataset.status = provider ? 'ready' : 'missing'
+    options.onTitle?.(
+      provider
+        ? `${provider.name || 'Provider'} · ${provider.model || 'no model'}`
+        : 'No provider configured',
+    )
   }
 
   function renderThread(): void {
     const turns = currentConversation()?.turns ?? []
     empty.hidden = turns.length > 0
     thread.replaceChildren()
-    for (const turn of turns) thread.append(renderTurn(turn))
+    assistantNodes.clear()
+    if (turns.length === 0) {
+      thread.append(empty)
+      return
+    }
+    for (const turn of turns) {
+      const article = renderTurn(turn)
+      if (turn.role === 'assistant') assistantNodes.set(turn.id, article)
+      thread.append(article)
+    }
     scrollToBottom()
   }
 
@@ -161,54 +187,55 @@ export function mountByokChat(options: ByokChatOptions): () => void {
     article.className = 'byok-turn'
     article.dataset.author = turn.role
     article.dataset.testid = `byok-turn-${turn.id}`
-    const author = document.createElement('p')
-    author.className = 'byok-author'
-    author.textContent =
-      turn.role === 'user'
-        ? 'You'
-        : turn.role === 'assistant'
-          ? 'Assistant'
-          : 'System'
+
     const body = document.createElement('div')
     body.className = 'byok-body'
     body.dataset.testid = 'byok-body'
     body.textContent = turn.content
-    article.append(author, body)
-    if (turn.error) {
-      const error = document.createElement('p')
-      error.className = 'byok-error'
-      error.dataset.testid = 'byok-error'
-      error.textContent = turn.error
-      article.append(error)
+
+    if (turn.role === 'user') {
+      article.append(body)
+      return article
     }
-    if (turn.usage?.totalTokens) {
-      const usage = document.createElement('p')
-      usage.className = 'byok-usage'
-      usage.textContent = `${turn.usage.totalTokens} tokens`
-      article.append(usage)
-    }
+
     const actions = document.createElement('div')
     actions.className = 'byok-actions'
     const copy = document.createElement('button')
     copy.type = 'button'
-    copy.className = 'btn btn-sm'
-    copy.textContent = 'Copy'
+    copy.className = 'byok-action'
+    copy.setAttribute('aria-label', 'Copy response')
+    copy.innerHTML =
+      '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
     copy.addEventListener('click', () => {
       void navigator.clipboard?.writeText(turn.content).catch(() => undefined)
     })
     actions.append(copy)
-    article.append(actions)
+    if (turn.usage?.totalTokens) {
+      const usage = document.createElement('span')
+      usage.className = 'byok-usage'
+      usage.textContent = `${turn.usage.totalTokens} tokens`
+      actions.append(usage)
+    }
+    article.append(body, actions)
+    if (turn.error) {
+      const error = document.createElement('p')
+      error.className = 'byok-turn-error'
+      error.dataset.testid = 'byok-turn-error'
+      error.textContent = turn.error
+      article.append(error)
+    }
     return article
   }
 
   /** Only follows when the reader is already at the bottom. */
   function scrollToBottom(): void {
+    const scroller = thread.closest<HTMLElement>('.wb-thread') ?? thread
     const distance =
-      thread.scrollHeight - thread.scrollTop - thread.clientHeight
-    if (distance < 120) thread.scrollTop = thread.scrollHeight
+      scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight
+    if (distance < 120) scroller.scrollTop = scroller.scrollHeight
   }
 
-  /* ---------------------------------------------------------------- send */
+  /* ------------------------------------------------------------------ send */
 
   async function resolveKey(): Promise<string | undefined> {
     const profile = providerFor(currentConversation())
@@ -227,25 +254,37 @@ export function mountByokChat(options: ByokChatOptions): () => void {
     return next
   }
 
+  function showError(message: string, canRetry: boolean): void {
+    errorLine.hidden = false
+    errorText.textContent = message
+    retry.hidden = !canRetry
+  }
+
+  function clearError(): void {
+    errorLine.hidden = true
+    retry.hidden = true
+  }
+
   async function submit(): Promise<void> {
     const text = input.value.trim()
     if (!text || controller) return
     const profile = providerFor(currentConversation())
     if (!profile) {
-      setStatus('Add and activate a provider in Settings first.', 'error')
+      showError('Add and activate a provider in Settings first.', false)
       return
     }
     const apiKey = await resolveKey()
     if (!apiKey) {
-      setStatus(
+      showError(
         vault.getState().status === 'unlocked'
           ? 'This provider has no saved key. Add one in Settings.'
           : 'Unlock the vault to use the saved key.',
-        'error',
+        false,
       )
       return
     }
 
+    clearError()
     const active = ensureConversation()
     if (active.turns.length === 0) {
       active.title = text.slice(0, 48)
@@ -267,19 +306,17 @@ export function mountByokChat(options: ByokChatOptions): () => void {
     input.value = ''
     autoGrow()
     lastFailedPrompt = undefined
-    retry.hidden = true
     renderThread()
     renderHeader()
     await conversationStore.save(active)
 
-    const node = thread.querySelector<HTMLElement>(
-      `[data-testid="byok-turn-${assistantTurn.id}"] [data-testid="byok-body"]`,
-    )
+    const node = assistantNodes
+      .get(assistantTurn.id)
+      ?.querySelector<HTMLElement>('[data-testid="byok-body"]')
 
     controller = new AbortController()
     send.hidden = true
     stop.hidden = false
-    setStatus('Generating…', 'busy')
     try {
       const history: ChatMessage[] = active.turns
         .filter(turn => !turn.error && turn.content.length > 0)
@@ -306,9 +343,7 @@ export function mountByokChat(options: ByokChatOptions): () => void {
       if (result.usage) assistantTurn.usage = result.usage
       if (node) node.textContent = result.text
       if (result.finishReason === 'length') {
-        setStatus('The answer was cut off at the token limit.', 'error')
-      } else {
-        setStatus('', 'idle')
+        showError('The answer was cut off at the token limit.', false)
       }
     } catch (cause) {
       const message =
@@ -326,9 +361,8 @@ export function mountByokChat(options: ByokChatOptions): () => void {
         ? 'Stopped before the answer finished.'
         : message
       if (!aborted) lastFailedPrompt = text
-      retry.hidden = aborted
       if (node && !assistantTurn.content) node.textContent = ''
-      setStatus(message, aborted ? 'idle' : 'error')
+      showError(message, !aborted && Boolean(lastFailedPrompt))
     } finally {
       controller = undefined
       send.hidden = false
@@ -336,11 +370,6 @@ export function mountByokChat(options: ByokChatOptions): () => void {
       renderThread()
       await conversationStore.save(active)
     }
-  }
-
-  function setStatus(text: string, tone: 'idle' | 'busy' | 'error'): void {
-    status.textContent = text
-    status.dataset.tone = tone
   }
 
   function autoGrow(): void {
@@ -376,7 +405,7 @@ export function mountByokChat(options: ByokChatOptions): () => void {
       void conversationStore.save(active)
     }
     lastFailedPrompt = undefined
-    retry.hidden = true
+    clearError()
     // Re-enter the prompt through the composer so `submit` is the single path
     // that records turns, aborts and streams.
     input.value = prompt
@@ -384,20 +413,13 @@ export function mountByokChat(options: ByokChatOptions): () => void {
     void submit()
   })
 
-  clear.addEventListener('click', () => {
-    if (!window.confirm('Delete every locally stored BYOK chat?')) return
-    conversation = undefined
-    void conversationStore.clear().then(() => {
-      renderThread()
-      renderHeader()
-    })
-  })
+  /* ------------------------------------------------------------ lifecycle */
 
-  /* ------------------------------------------------------------- lifecycle */
+  const knownTitles = new Map<string, string>()
 
   function syncConversation(): void {
-    const active = conversationStore.active()
-    conversation = active
+    conversation = conversationStore.active()
+    if (conversation) knownTitles.set(conversation.id, conversation.title)
     renderHeader()
     renderThread()
   }
@@ -416,7 +438,6 @@ export function mountByokChat(options: ByokChatOptions): () => void {
   })
   void providerStore.load()
 
-  options.host.replaceChildren(root)
   options.onModeChange(options.mode)
   renderHeader()
   renderThread()
@@ -426,5 +447,6 @@ export function mountByokChat(options: ByokChatOptions): () => void {
     unsubscribeConversations()
     unsubscribeProviders()
     options.host.replaceChildren()
+    options.composerHost.replaceChildren()
   }
 }
