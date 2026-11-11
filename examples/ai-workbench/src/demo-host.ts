@@ -30,6 +30,12 @@ export interface AiDemoRecording {
   readonly uiCommit: string
   readonly streamId: string
   readonly events: readonly AnyDomainEvent[]
+  /**
+   * Diff text captured from the Host alongside the events, keyed by asset id.
+   * A diff is served as its own asset, not embedded in the stream, so a replay
+   * needs these to show a change set instead of "asset unavailable".
+   */
+  readonly assets?: Readonly<Record<string, string>>
 }
 
 export function isAiDemoRecording(value: unknown): value is AiDemoRecording {
@@ -67,9 +73,24 @@ export async function loadDemoHost(): Promise<AiHostAdapter> {
   if (!isAiDemoRecording(recording)) {
     throw new Error('演示录制格式不正确（期望 zeus.ai-demo/v1）。')
   }
-  cached = createReplayHost(recording.events, {
+  const replay = createReplayHost(recording.events, {
     streamId: recording.streamId,
   })
+  const assets = recording.assets ?? {}
+  // The replay host has no server to ask for assets. Serve the recorded ones
+  // by id, and keep the host's own failure for anything not recorded.
+  cached = {
+    ...replay,
+    async loadAsset(
+      asset: AssetRef,
+      signal?: AbortSignal,
+    ): Promise<AssetContent> {
+      if (signal?.aborted) throw new Error('AI_ASSET_ABORTED')
+      const text = assets[asset.id]
+      if (text === undefined) return replay.loadAsset(asset, signal)
+      return new TextEncoder().encode(text)
+    },
+  }
   return cached
 }
 

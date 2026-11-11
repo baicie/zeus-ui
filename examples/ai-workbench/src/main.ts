@@ -919,18 +919,51 @@ if (isDemoBuild) {
     })
 }
 
+/**
+ * Approvals already present when the surface first rendered.
+ *
+ * The drawer must open for a request that arrives *while* the user is here —
+ * that is the one thing they must not miss — but not for requests that were
+ * already waiting when the page loaded. Opening it on load covers the chat
+ * before the visitor has said anything, and in a replayed session every
+ * request in the recording is already waiting.
+ *
+ * The baseline is captured *before* the first call, not on it: the store
+ * subscription can fire during setup, so "the first call I see" is not
+ * necessarily the first render, and seeding the set there made the second call
+ * look like a new arrival.
+ */
+let knownApprovals: Set<string> | undefined
+
 function refreshApprovals(): void {
   const pending = [...session.store.getState().approvals.values()].filter(
     item => item.status === 'pending',
   )
+  // The baseline is the first non-empty set we ever see: at module load the
+  // store is still empty, so seeding from it would make every recorded
+  // approval look like it arrived while the visitor was watching.
+  if (knownApprovals === undefined) {
+    if (pending.length === 0) {
+      approval.replaceChildren()
+      approval.textContent = 'No pending approvals'
+      updateInspectorBadge()
+      return
+    }
+    knownApprovals = new Set(pending.map(item => item.id))
+  }
+  const arrived = pending.filter(item => !knownApprovals!.has(item.id))
+  for (const item of pending) knownApprovals.add(item.id)
+  for (const id of [...knownApprovals]) {
+    if (!pending.some(item => item.id === id)) knownApprovals.delete(id)
+  }
+
   approval.replaceChildren()
   updateInspectorBadge()
   if (pending.length === 0) {
     approval.textContent = 'No pending approvals'
     return
   }
-  // A pending approval is the one thing that must not be missed.
-  openInspector('activity')
+  if (arrived.length > 0) openInspector('activity')
   for (const item of pending) {
     const prompt = document.createElement(
       'zw-ai-approval-prompt',
