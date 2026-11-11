@@ -1,14 +1,19 @@
 /**
- * Workbench layout.
+ * Workbench layout — the ChatGPT web chat shell.
  *
- * Three regions: a sessions sidebar, a conversation column with a bounded
- * reading width and a pinned composer, and an inspector that slides in only
- * when there is agent activity to show.
+ * Structure (measured against the frozen reference captures):
  *
- * The inspector is the important structural decision. The previous layout kept
- * a 280–360px third column open at all times, which cost the conversation a
- * third of the viewport even when nothing had happened yet. It is now closed by
- * default and opens on demand, so a plain chat gets the full width.
+ *   .wb-shell
+ *     ├─ .wb-sidebar   260px; brand row, New chat, Search, Recent list, account
+ *     └─ .wb-main
+ *          ├─ .wb-topbar   60px; sidebar toggle + model picker, actions right
+ *          ├─ .wb-thread   centred 768px column, scrolls independently
+ *          └─ .wb-composer-wrap   composer anchored at the bottom, same column
+ *
+ * The empty state centres the welcome line and the composer in the viewport;
+ * once a conversation exists the composer drops to the bottom and the thread
+ * takes the scroll. The inspector is an overlay drawer that is **not mounted**
+ * until the user opens it, so the default chat surface is never compressed.
  */
 
 *,
@@ -27,20 +32,12 @@ body,
   height: 100%;
 }
 
-#app {
-  /* The shell is a full-viewport grid; without a real height on the mount
-     point the grid rows collapse to their content. */
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
 body {
   background: var(--wb-surface-base);
   color: var(--wb-text-primary);
   font-family: var(--wb-font-sans);
   font-size: var(--wb-font-base);
-  line-height: var(--wb-line-base);
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -57,6 +54,15 @@ button {
   background: none;
   border: 0;
   padding: 0;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
 :focus-visible {
@@ -76,1130 +82,151 @@ button {
   white-space: nowrap;
 }
 
-/* ---------------------------------------------------------------- shell */
-.workbench {
-  display: grid;
-  /* The banner row collapses to zero when the banner is `hidden`; naming the
-     rows keeps `.layout` in the flexible track instead of drifting into it. */
-  grid-template-rows: auto auto minmax(0, 1fr);
-  /* Fill the mount point rather than assuming a viewport height: `#app` is a
-     flex column whose height already accounts for anything above the shell. */
-  flex: 1 1 auto;
-  min-height: 0;
-  height: 100%;
-  overflow: hidden;
-}
-
-.topbar {
-  display: flex;
-  align-items: center;
-  gap: var(--wb-space-3);
-  height: 56px;
-  padding: 0 var(--wb-space-4);
-  border-bottom: 1px solid var(--wb-border-default);
-  background: var(--wb-surface-base);
-}
-
-.topbar-brand {
-  display: flex;
-  align-items: center;
-  gap: var(--wb-space-2);
-  font-size: var(--wb-font-base);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-}
-
-.brand-glyph {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: var(--wb-radius-sm);
-  background: var(--wb-accent-default);
-  color: var(--wb-accent-contrast);
-  font-size: var(--wb-font-sm);
-  font-weight: 600;
-}
-
-.eyebrow {
-  display: none;
-}
-
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--wb-space-2);
-  margin-left: auto;
-}
-
-/* Connection state. A dot plus a word, so colour is never the only signal. */
-.status {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--wb-space-2);
-  height: 26px;
-  padding: 0 var(--wb-space-3);
-  border: 1px solid var(--wb-border-default);
-  border-radius: var(--wb-radius-full);
-  color: var(--wb-text-secondary);
-  font-size: var(--wb-font-xs);
-  font-weight: 500;
-}
-
-.status::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: var(--wb-radius-full);
-  background: var(--wb-text-muted);
-}
-
-.status[data-connection='live'] {
-  color: var(--wb-success-default);
-  border-color: color-mix(in srgb, var(--wb-success-default) 40%, transparent);
-  background: var(--wb-success-subtle);
-}
-
-.status[data-connection='live']::before {
-  background: var(--wb-success-default);
-}
-
-.status[data-connection='offline'],
-.status[data-connection='recovering'] {
-  color: var(--wb-warning-default);
-  border-color: color-mix(in srgb, var(--wb-warning-default) 40%, transparent);
-  background: var(--wb-warning-subtle);
-}
-
-.status[data-connection='offline']::before,
-.status[data-connection='recovering']::before {
-  background: var(--wb-warning-default);
-}
-
-.replay-banner {
-  grid-row: 2;
-  display: flex;
-  align-items: center;
-  gap: var(--wb-space-2);
-  padding: var(--wb-space-2) var(--wb-space-4);
-  border-bottom: 1px solid var(--wb-warning-default);
-  background: var(--wb-warning-subtle);
-  color: var(--wb-warning-default);
-  font-size: var(--wb-font-sm);
-}
-
-.replay-banner[hidden] {
-  display: none;
-  grid-row: auto;
-}
-
-/* ------------------------------------------------------------- layout */
-.layout {
-  grid-row: 3;
-  position: relative;
-  display: grid;
-  grid-template-columns: var(--wb-sidebar-width) minmax(0, 1fr);
-  min-height: 0;
-  overflow: hidden;
-  /* Third grid row of `.workbench`; `minmax(0, 1fr)` gives it the slack. */
-  align-content: stretch;
-}
-
-/* The inspector joins the grid only when it is open, so the conversation
-   column never reserves space for it. */
-.layout.inspector-open {
-  grid-template-columns: var(--wb-sidebar-width) minmax(0, 1fr) var(
-      --wb-inspector-width
-    );
-}
-
-/* ------------------------------------------------------------ sessions */
-.sessions {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-  border-right: 1px solid var(--wb-border-default);
-  background: var(--wb-sidebar-surface);
-}
-
-.sessions-header {
-  display: flex;
-  align-items: center;
-  gap: var(--wb-space-2);
-  padding: var(--wb-space-3);
-}
-
-.new-conversation {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--wb-space-2);
-  flex: 1 1 auto;
-  height: var(--wb-control-height);
-  padding: 0 var(--wb-space-3);
-  border: 1px solid var(--wb-border-default);
-  border-radius: var(--wb-radius-md);
-  background: var(--wb-surface-base);
-  color: var(--wb-text-primary);
-  font-size: var(--wb-font-sm);
-  font-weight: 500;
-  transition:
-    background-color var(--wb-duration) var(--wb-ease),
-    border-color var(--wb-duration) var(--wb-ease);
-}
-
-.new-conversation:hover {
-  background: var(--wb-surface-hover);
-  border-color: var(--wb-border-strong);
-}
-
 .icon-button {
-  display: inline-grid;
+  display: grid;
   place-items: center;
-  width: var(--wb-control-height);
-  height: var(--wb-control-height);
-  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
   border-radius: var(--wb-radius-md);
-  color: var(--wb-text-secondary);
+  color: var(--wb-text-primary);
 }
 
 .icon-button:hover {
   background: var(--wb-surface-hover);
-  color: var(--wb-text-primary);
 }
 
-.sessions-scroll {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 0 var(--wb-space-2) var(--wb-space-3);
-  scrollbar-width: thin;
+.icon-button svg {
+  width: 20px;
+  height: 20px;
 }
 
-.sessions-label {
-  padding: var(--wb-space-2) var(--wb-space-2) var(--wb-space-1);
-  color: var(--wb-text-muted);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.conversation-list {
-  display: block;
-}
-
-.sessions-footer {
-  flex: 0 0 auto;
-  padding: var(--wb-space-2);
-  border-top: 1px solid var(--wb-border-subtle);
-}
-
-/* --------------------------------------------------------- conversation */
-.conversation {
+/* ----------------------------------------------------------------- shell */
+.wb-shell {
   display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
+  height: 100%;
   overflow: hidden;
   background: var(--wb-surface-base);
 }
 
-.conversation-head {
+/* --------------------------------------------------------------- sidebar */
+.wb-sidebar {
   display: flex;
-  align-items: center;
-  gap: var(--wb-space-2);
-  height: 44px;
-  padding: 0 var(--wb-space-4);
-  border-bottom: 1px solid var(--wb-border-subtle);
   flex: 0 0 auto;
+  flex-direction: column;
+  width: var(--wb-sidebar-width);
+  height: 100%;
+  padding: 8px 0 12px;
+  background: var(--wb-surface-base);
+  border-right: 1px solid var(--wb-border-default);
+  transition: width var(--wb-duration) var(--wb-ease);
 }
 
-.conversation-title {
-  font-size: var(--wb-font-sm);
-  font-weight: 600;
-  color: var(--wb-text-primary);
+.wb-shell.is-sidebar-collapsed .wb-sidebar {
+  width: 0;
+  padding: 0;
+  border-right: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.conversation-mode {
-  color: var(--wb-text-muted);
-  font-size: var(--wb-font-xs);
+.wb-sidebar-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 52px;
+  padding: 0 6px 0 8px;
 }
 
-.timeline {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-/* Center the reading column without constraining the scroll surface. */
-.timeline > * {
-  max-width: var(--wb-thread-max);
-  margin: 0 auto;
-  padding: var(--wb-space-6) var(--wb-space-4);
-}
-
-/* Empty state: shown until the conversation has any message. */
-/*
- * `zw-ai-message-timeline` renders its own feed. The welcome block below is a
- * sibling that the shell hides once the first message arrives; keeping it out
- * of the web component means no fork of the published element.
- */
-.welcome {
+.wb-brand {
   display: flex;
   flex: 1 1 auto;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: var(--wb-space-3);
-  padding: var(--wb-space-8) var(--wb-space-4);
-  text-align: center;
+  gap: 6px;
+  min-width: 0;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: var(--wb-radius-md);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
-.welcome[hidden] {
-  display: none;
+.wb-brand:hover {
+  background: var(--wb-surface-hover);
 }
 
-.welcome-mark {
+.wb-brand-name {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+.wb-brand-mark {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--wb-radius-lg);
-  background: var(--wb-accent-subtle);
-  color: var(--wb-accent-default);
-  font-size: var(--wb-font-lg);
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  border-radius: var(--wb-radius-full);
+  background: var(--wb-text-primary);
+  color: var(--wb-surface-base);
+  font-size: 13px;
   font-weight: 700;
 }
 
-.welcome-title {
-  font-size: var(--wb-font-xl);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
-.welcome-copy {
-  max-width: 44ch;
-  color: var(--wb-text-secondary);
-  font-size: var(--wb-font-sm);
-}
-
-/* -------------------------------------------------------------- composer */
-.composer-stack {
-  flex: 0 0 auto;
-  /* The column may be narrower than the thread max once the inspector opens;
-     keep the stack inside it rather than letting it push past the viewport. */
-  min-width: 0;
-  padding: var(--wb-space-3) var(--wb-space-4) var(--wb-space-4);
-  border-top: 1px solid var(--wb-border-subtle);
-  background: var(--wb-surface-base);
-}
-
-.composer {
-  display: block;
-  width: 100%;
-  min-width: 240px;
-  max-width: var(--wb-thread-max);
-  margin: 0 auto;
-}
-
-.composer-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--wb-space-2);
-  max-width: var(--wb-thread-max);
-  margin: var(--wb-space-2) auto 0;
-}
-
-.attach {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--wb-space-1);
-  height: 30px;
-  padding: 0 var(--wb-space-3);
-  border: 1px solid var(--wb-border-default);
-  border-radius: var(--wb-radius-sm);
-  color: var(--wb-text-secondary);
-  font-size: var(--wb-font-xs);
-  cursor: pointer;
-}
-
-.attach:hover {
-  background: var(--wb-surface-hover);
-  color: var(--wb-text-primary);
-}
-
-.attach input {
-  display: none;
-}
-
-.attach-status {
+.wb-brand-caret {
+  width: 14px;
+  height: 14px;
   color: var(--wb-text-muted);
-  font-size: var(--wb-font-xs);
 }
 
-/* ------------------------------------------------------------- inspector */
-.side {
+.wb-sidebar-scroll {
   display: flex;
-  flex-direction: column;
-  min-height: 0;
-  min-width: 0;
-  /* The panel scrolls its own body; nothing inside may widen the column. */
-  overflow: hidden;
-  border-left: 1px solid var(--wb-border-default);
-  background: var(--wb-surface-raised);
-}
-
-.side * {
-  min-width: 0;
-}
-
-.side[hidden] {
-  display: none;
-}
-
-.side-head {
-  display: flex;
-  align-items: center;
-  gap: var(--wb-space-2);
-  height: 44px;
-  padding: 0 var(--wb-space-3);
-  border-bottom: 1px solid var(--wb-border-subtle);
-  flex: 0 0 auto;
-}
-
-.side-tabs {
-  display: flex;
-  gap: var(--wb-space-1);
-  padding: var(--wb-space-2) var(--wb-space-3) 0;
-  border-bottom: 1px solid var(--wb-border-subtle);
-  flex: 0 0 auto;
-}
-
-.side-tab {
-  padding: var(--wb-space-2) var(--wb-space-3);
-  border-bottom: 2px solid transparent;
-  color: var(--wb-text-muted);
-  font-size: var(--wb-font-sm);
-  font-weight: 500;
-}
-
-.side-tab:hover {
-  color: var(--wb-text-primary);
-}
-
-.side-tab[aria-selected='true'] {
-  color: var(--wb-accent-default);
-  border-bottom-color: var(--wb-accent-default);
-}
-
-.side-body {
   flex: 1 1 auto;
-  min-height: 0;
-  min-width: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: var(--wb-space-4);
-  display: flex;
   flex-direction: column;
-  gap: var(--wb-space-3);
-}
-
-.side-section-title {
-  font-size: var(--wb-font-xs);
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--wb-text-muted);
-}
-
-.propose {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--wb-space-2);
-  /* Width bound to the column, not to the label: an inline-flex button sizes to
-     its text, which is what widened the panel past the viewport at 200% zoom. */
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  height: var(--wb-control-height);
-  padding: 0 var(--wb-space-4);
-  border: 1px solid var(--wb-accent-default);
-  border-radius: var(--wb-radius-md);
-  background: var(--wb-accent-default);
-  color: var(--wb-accent-contrast);
-  font-size: var(--wb-font-sm);
-  font-weight: 500;
-}
-
-.propose:hover:not(:disabled) {
-  background: var(--wb-accent-strong);
-  border-color: var(--wb-accent-strong);
-}
-
-.propose:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.approvals {
-  padding: var(--wb-space-3);
-  border: 1px dashed var(--wb-border-default);
-  border-radius: var(--wb-radius-md);
-  color: var(--wb-text-muted);
-  font-size: var(--wb-font-sm);
-  text-align: center;
-}
-
-.approvals:not(:empty) {
-  text-align: left;
-}
-
-.run-checks {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: var(--wb-control-height);
-  padding: 0 var(--wb-space-4);
-  border: 1px solid var(--wb-border-default);
-  border-radius: var(--wb-radius-md);
-  background: var(--wb-surface-base);
-  color: var(--wb-text-primary);
-  font-size: var(--wb-font-sm);
-  font-weight: 500;
-}
-
-.run-checks:hover:not(:disabled) {
-  background: var(--wb-surface-hover);
-}
-
-.change-tree,
-.diff-viewer,
-.test-report {
-  display: block;
-  font-size: var(--wb-font-sm);
-}
-
-.review-heading {
-  font-size: var(--wb-font-sm);
-  font-weight: 600;
-  color: var(--wb-text-primary);
-}
-
-/* Toggle that opens the inspector from the toolbar. */
-.inspector-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--wb-space-2);
-  height: 30px;
-  padding: 0 var(--wb-space-3);
-  border: 1px solid var(--wb-border-default);
-  border-radius: var(--wb-radius-sm);
-  color: var(--wb-text-secondary);
-  font-size: var(--wb-font-xs);
-  font-weight: 500;
-}
-
-.inspector-toggle:hover {
-  background: var(--wb-surface-hover);
-  color: var(--wb-text-primary);
-}
-
-.inspector-toggle[aria-expanded='true'] {
-  border-color: var(--wb-accent-default);
-  color: var(--wb-accent-default);
-  background: var(--wb-accent-subtle);
-}
-
-.inspector-badge {
-  display: inline-grid;
-  place-items: center;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: var(--wb-radius-full);
-  background: var(--wb-accent-default);
-  color: var(--wb-accent-contrast);
-  font-size: 10px;
-  font-weight: 600;
-}
-
-/* ---------------------------------------------------------- responsive */
-/*
- * With the inspector open the middle column can get tight. Clamping the
- * inspector against the viewport keeps the conversation at a usable width on
- * a 1280px display instead of squeezing the composer off-screen.
- */
-/*
- * The inspector overlays the thread rather than taking a third column.
- *
- * A third column is what broke at 200% zoom: three tracks plus gaps exceed the
- * effective viewport, so the panel's own controls were clipped. An overlay sized
- * in viewport units is bounded at any zoom, and the conversation keeps its full
- * width when the panel is closed.
- */
-.layout.inspector-open .side {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 35;
-  /*
-   * `right: 0` resolves against the layout box, which zoom scales, but the
-   * computed width did not scale with it, so the panel drifted past the right
-   * edge. Anchoring both edges with `inset` removes the width from the equation:
-   * the panel simply covers the thread, which is the right trade when the
-   * effective viewport is too narrow for two readable columns.
-   */
-  inset: 0 0 0 auto;
-  width: auto;
-  min-width: 0;
-  max-width: none;
-  border-left: 1px solid var(--wb-border-default);
-  box-shadow: var(--wb-shadow-lg);
-}
-
-/* A comfortable width only when the viewport can afford it. */
-@media (min-width: 900px) {
-  .layout.inspector-open .side {
-    left: auto;
-    width: min(360px, 42%);
-  }
-}
-
-@media (max-width: 1023px) {
-  .layout,
-  .layout.inspector-open {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .sessions {
-    position: fixed;
-    inset: 0 auto 0 0;
-    z-index: 40;
-    width: min(280px, 84vw);
-    transform: translateX(-100%);
-    transition: transform var(--wb-duration) var(--wb-ease);
-    box-shadow: var(--wb-shadow-lg);
-  }
-
-  .layout.sessions-open .sessions {
-    transform: translateX(0);
-  }
-
-  .layout.sessions-open::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: 35;
-    background: var(--wb-scrim);
-  }
-
-  .side {
-    position: fixed;
-    inset: 0 0 0 auto;
-    z-index: 40;
-    width: min(400px, 92vw);
-    border-left: 1px solid var(--wb-border-default);
-    box-shadow: var(--wb-shadow-lg);
-  }
-
-  .sidebar-toggle {
-    display: inline-flex;
-  }
-}
-
-@media (min-width: 1024px) {
-  .sidebar-toggle {
-    display: none;
-  }
-}
-
-/* --------------------------------------------------- web component fit */
-/*
- * `zw-ai-composer` is a light-DOM element whose inner textarea has its own
- * intrinsic width. Without a floor on the flex/grid chain the element refuses
- * to shrink and pushes the composer past the viewport once the inspector takes
- * its column.
- */
-.conversation,
-.composer-stack,
-.composer,
-zw-ai-composer {
-  min-width: 0;
-  max-width: 100%;
-}
-
-zw-ai-composer textarea {
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-/* --------------------------------------------------------- composer skin */
-/*
- * The published composer renders a bare textarea and a submit button into the
- * host element. These rules give it the product shell: a rounded field with the
- * send action pinned inside it, the way a chat composer reads.
- */
-/*
- * Under `zoom` the conversation column's flex children collapsed to zero width
- * once the inspector overlay appeared: every level reported a resolved width of
- * 0 while still painting, which is what made `getBoundingClientRect().width`
- * read 0. Pinning a floor on the whole chain keeps the composer measurable.
- */
-.conversation {
-  min-width: 320px;
-}
-
-.composer-stack {
-  min-width: 320px;
-}
-
-zw-ai-composer {
-  display: block;
-  width: 100%;
-  min-width: 300px;
-  box-sizing: border-box;
-}
-
-zw-ai-composer [data-zw-ai='composer'] {
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  gap: var(--wb-space-2);
-  padding: var(--wb-space-2);
-  border: 1px solid var(--wb-border-default);
-  border-radius: var(--wb-radius-lg);
-  background: var(--wb-composer-surface);
-  box-shadow: var(--wb-shadow-sm);
-  transition:
-    border-color var(--wb-duration) var(--wb-ease),
-    box-shadow var(--wb-duration) var(--wb-ease);
-}
-
-zw-ai-composer [data-zw-ai='composer']:focus-within {
-  border-color: var(--wb-accent-default);
-  box-shadow: 0 0 0 3px var(--wb-accent-subtle);
-}
-
-zw-ai-composer [data-zw-ai='composer'][data-disabled] {
-  opacity: 0.6;
-}
-
-zw-ai-composer textarea {
-  flex: 1 1 auto;
-  width: 100%;
-  min-width: 0;
-  min-height: 24px;
-  max-height: 200px;
-  padding: var(--wb-space-2) var(--wb-space-2) var(--wb-space-2)
-    var(--wb-space-3);
-  border: 0;
-  outline: none;
-  background: transparent;
-  color: var(--wb-text-primary);
-  font: inherit;
-  line-height: 1.5;
-  resize: none;
+  gap: 2px;
+  min-height: 0;
+  padding: 8px 6px;
   overflow-y: auto;
+  scrollbar-width: thin;
 }
 
-zw-ai-composer textarea::placeholder {
-  color: var(--wb-text-muted);
-}
-
-/* The submit button sits at the end of the field, not below it. */
-zw-ai-composer button[aria-label] {
-  display: inline-flex;
+.wb-nav-item {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  width: 32px;
-  height: 32px;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 10px;
   border-radius: var(--wb-radius-md);
-  background: var(--wb-accent-default);
-  color: var(--wb-accent-contrast);
-  font-size: 0;
-  overflow: hidden;
+  color: var(--wb-text-primary);
+  font-size: 14px;
+  font-weight: 400;
+  text-align: start;
+  white-space: nowrap;
 }
 
-/* Keep the accessible name, draw a glyph instead of the word. */
-zw-ai-composer button[aria-label]::before {
-  content: '\2191';
-  font-size: var(--wb-font-lg);
-  font-weight: 600;
+.wb-nav-item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
-zw-ai-composer button[aria-label]:hover:not(:disabled) {
-  background: var(--wb-accent-strong);
+.wb-nav-item:hover {
+  background: var(--wb-surface-hover);
 }
 
-zw-ai-composer button[aria-label]:disabled {
+.wb-nav-item.is-active {
   background: var(--wb-surface-active);
+}
+
+.wb-sidebar-section {
+  padding: 18px 10px 6px;
   color: var(--wb-text-muted);
-  cursor: not-allowed;
-}
-
-/* The status line is a live region; keep it quiet until it has text. */
-zw-ai-composer [role='status'] {
-  display: block;
-  padding: 0 var(--wb-space-1);
-  color: var(--wb-text-muted);
-  font-size: var(--wb-font-xs);
-}
-
-zw-ai-composer [role='status']:empty {
-  display: none;
-}
-
-/* --------------------------------------------------------- message list */
-/*
- * `zw-ai-message-timeline` renders the feed. These rules turn its raw parts
- * into a chat transcript: a bounded reading column, the user's message in a
- * tinted bubble on the right, the assistant's on the page, and a quiet action
- * row that appears on hover or focus.
- */
-zw-ai-message-timeline {
-  display: block;
-  height: 100%;
-  overflow-y: auto;
-}
-
-zw-ai-message-timeline [data-part='scroller'] {
-  display: flex;
-  flex-direction: column;
-  gap: var(--wb-space-5);
-  max-width: var(--wb-thread-max);
-  margin: 0 auto;
-  padding: var(--wb-space-6) var(--wb-space-4) var(--wb-space-8);
-}
-
-zw-ai-message-timeline [data-zw-ai='message'] {
-  display: flex;
-  flex-direction: column;
-  gap: var(--wb-space-2);
-  max-width: 100%;
-}
-
-/* The author label is a small caption, not a heading. */
-zw-ai-message-timeline [data-zw-ai='message'] header {
-  color: var(--wb-text-muted);
-  font-size: var(--wb-font-xs);
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
-zw-ai-message-timeline [data-zw-ai='message'] [data-part='content'] {
-  display: flex;
-  flex-direction: column;
-  gap: var(--wb-space-2);
-  color: var(--wb-text-primary);
-  font-size: var(--wb-font-base);
-  line-height: var(--wb-line-base);
-  overflow-wrap: anywhere;
-}
-
-/* Long prose keeps a comfortable measure. */
-zw-ai-message-timeline [data-zw-ai='message'] [data-part='markdown'] {
-  max-width: 100%;
-}
-
-zw-ai-message-timeline [data-zw-ai='message'] [data-part='markdown'] p + p {
-  margin-top: var(--wb-space-3);
-}
-
-zw-ai-message-timeline [data-zw-ai='message'] [data-part='markdown'] code {
-  padding: 1px 5px;
-  border-radius: var(--wb-radius-sm);
-  background: var(--wb-surface-inset);
-  border: 1px solid var(--wb-border-subtle);
-  font-family: var(--wb-font-mono);
-  font-size: 0.9em;
-}
-
-zw-ai-message-timeline [data-zw-ai='message'] [data-part='markdown'] pre {
-  padding: var(--wb-space-3);
-  border: 1px solid var(--wb-border-default);
-  border-radius: var(--wb-radius-md);
-  background: var(--wb-surface-inset);
-  overflow-x: auto;
-}
-
-zw-ai-message-timeline [data-zw-ai='message'] [data-part='markdown'] pre code {
-  padding: 0;
-  border: 0;
-  background: none;
-}
-
-/* User turns sit on a tinted bubble, right-aligned within the column. */
-zw-ai-message-timeline [data-zw-ai='message'][data-author='user'] {
-  align-items: flex-end;
-}
-
-zw-ai-message-timeline
-  [data-zw-ai='message'][data-author='user']
-  [data-part='content'] {
-  padding: var(--wb-space-3) var(--wb-space-4);
-  border-radius: var(--wb-radius-lg);
-  border-bottom-right-radius: var(--wb-radius-sm);
-  background: var(--wb-bubble-user);
-  max-width: min(100%, 60ch);
-}
-
-/* Assistant turns read as page content, not a bubble. */
-zw-ai-message-timeline
-  [data-zw-ai='message'][data-author='assistant']
-  [data-part='content'] {
-  background: var(--wb-bubble-assistant);
-}
-
-/* Actions stay out of the way until the message is hovered or focused. */
-zw-ai-message-timeline [data-zw-ai='message'] [data-part='actions'] {
-  display: flex;
-  align-items: center;
-  gap: var(--wb-space-2);
-  opacity: 0;
-  transition: opacity var(--wb-duration) var(--wb-ease);
-}
-
-zw-ai-message-timeline [data-zw-ai='message']:hover [data-part='actions'],
-zw-ai-message-timeline
-  [data-zw-ai='message']:focus-within
-  [data-part='actions'] {
-  opacity: 1;
-}
-
-zw-ai-message-timeline [data-zw-ai='message'] [data-part='actions'] button {
-  height: 26px;
-  padding: 0 var(--wb-space-2);
-  border-radius: var(--wb-radius-sm);
-  color: var(--wb-text-muted);
-  font-size: var(--wb-font-xs);
-}
-
-zw-ai-message-timeline
-  [data-zw-ai='message']
-  [data-part='actions']
-  button:hover {
-  background: var(--wb-surface-hover);
-  color: var(--wb-text-primary);
-}
-
-/* Keep actions reachable without hover for keyboard and touch users. */
-@media (hover: none) {
-  zw-ai-message-timeline [data-zw-ai='message'] [data-part='actions'] {
-    opacity: 1;
-  }
-}
-
-/* ------------------------------------------------------ review surfaces */
-/*
- * The change tree and diff viewer render structured rows and a code table.
- * They need the same frame language as the rest of the panel, otherwise the
- * diff reads as unstyled text spilling out of its container.
- */
-.change-tree,
-.diff-viewer {
-  border: 1px solid var(--wb-border-default);
-  border-radius: var(--wb-radius-md);
-  background: var(--wb-surface-base);
-  overflow: hidden;
-}
-
-.change-tree [role='tree'],
-.change-tree ul {
-  margin: 0;
-  padding: var(--wb-space-1);
-  list-style: none;
-}
-
-.change-tree [role='treeitem'] {
-  display: flex;
-  align-items: center;
-  gap: var(--wb-space-2);
-  padding: var(--wb-space-1) var(--wb-space-2);
-  border-radius: var(--wb-radius-sm);
-  color: var(--wb-text-secondary);
-  font-size: var(--wb-font-sm);
-  cursor: pointer;
-}
-
-.change-tree [role='treeitem']:hover {
-  background: var(--wb-surface-hover);
-}
-
-.change-tree [role='treeitem'][aria-selected='true'] {
-  background: var(--wb-accent-subtle);
-  color: var(--wb-accent-default);
-}
-
-/* Diff table: monospaced, numbered, no wrapping. */
-.diff-viewer table {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: var(--wb-font-mono);
-  font-size: var(--wb-font-xs);
-  line-height: 1.55;
-}
-
-.diff-viewer [data-part='hunk-header'] {
-  padding: var(--wb-space-2) var(--wb-space-3);
-  background: var(--wb-surface-inset);
-  color: var(--wb-text-muted);
-  border-top: 1px solid var(--wb-border-subtle);
-  border-bottom: 1px solid var(--wb-border-subtle);
-  text-align: left;
-  font-weight: 500;
-  white-space: pre;
-}
-
-.diff-viewer [role='cell'] {
-  padding: 0 var(--wb-space-2);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-/* Gutter numbers are decorative; keep them narrow and quiet. */
-.diff-viewer [data-part='line-number'] {
-  display: inline-block;
-  width: 34px;
-  padding: 0 var(--wb-space-1);
-  color: var(--wb-text-muted);
-  text-align: right;
-  user-select: none;
-}
-
-/* An empty number cell must not paint a box. */
-.diff-viewer [data-part='line-number']:empty {
-  background: none;
-}
-
-.diff-viewer [role='row'] {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--wb-space-2);
-}
-
-.diff-viewer [role='row']:hover {
-  background: var(--wb-surface-hover);
-}
-
-/* Diff text cells take the remaining width. */
-.diff-viewer [role='row'] > [role='cell']:not([data-part='line-number']) {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.diff-viewer [data-line-kind='add'],
-.diff-viewer tr[data-kind='add'] {
-  background: var(--wb-success-subtle);
-}
-
-.diff-viewer [data-line-kind='del'],
-.diff-viewer tr[data-kind='del'] {
-  background: var(--wb-danger-subtle);
-}
-
-/* The hunk header row is not a table row. */
-.diff-viewer [data-part='hunk-header'] {
-  display: block;
-}
-
-/* The comment affordance is a control, not a sentence. */
-.diff-viewer textarea,
-.diff-viewer input {
-  width: 100%;
-  min-height: 28px;
-  padding: var(--wb-space-1) var(--wb-space-2);
-  border: 1px solid var(--wb-border-default);
-  border-radius: var(--wb-radius-sm);
-  background: var(--wb-surface-base);
-  color: var(--wb-text-primary);
-  font-family: var(--wb-font-sans);
-  font-size: var(--wb-font-sm);
-}
-
-.diff-viewer button {
-  height: 26px;
-  padding: 0 var(--wb-space-2);
-  border-radius: var(--wb-radius-sm);
-  color: var(--wb-text-secondary);
-  font-size: var(--wb-font-xs);
-}
-
-.diff-viewer button:hover {
-  background: var(--wb-surface-hover);
-  color: var(--wb-text-primary);
-}
-
-/* Test report: a compact summary followed by a case table. */
-.test-report {
-  border: 1px solid var(--wb-border-default);
-  border-radius: var(--wb-radius-md);
-  background: var(--wb-surface-base);
-  overflow: hidden;
-}
-
-.test-report [role='status'],
-.test-report summary {
-  display: block;
-  padding: var(--wb-space-2) var(--wb-space-3);
-  color: var(--wb-text-secondary);
-  font-size: var(--wb-font-sm);
-}
-
-.test-report [data-status='passed'] {
-  color: var(--wb-success-default);
-}
-
-.test-report [data-status='failed'] {
-  color: var(--wb-danger-default);
-}
-
-/* Approval prompt inside the panel. */
-.side-body zw-ai-approval-prompt {
-  display: block;
-  padding: var(--wb-space-3);
-  border: 1px solid var(--wb-warning-default);
-  border-radius: var(--wb-radius-md);
-  background: var(--wb-warning-subtle);
-  color: var(--wb-text-primary);
-  font-size: var(--wb-font-sm);
-}
-
-.side-body zw-ai-approval-prompt [data-part='actions'] {
-  display: flex;
-  gap: var(--wb-space-2);
-  margin-top: var(--wb-space-2);
-}
-
-.side-body zw-ai-approval-prompt button {
-  height: 30px;
-  padding: 0 var(--wb-space-3);
-  border: 1px solid var(--wb-border-default);
-  border-radius: var(--wb-radius-sm);
-  background: var(--wb-surface-base);
-  font-size: var(--wb-font-sm);
+  font-size: 12px;
   font-weight: 500;
 }
 
-.side-body zw-ai-approval-prompt button[data-action='approve'] {
-  border-color: var(--wb-accent-default);
-  background: var(--wb-accent-default);
-  color: var(--wb-accent-contrast);
-}
-
-/* Conversation list rendered by the published element. */
-.conversation-list [role='listbox'],
-.conversation-list ul {
+.wb-conversation-list {
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -1208,29 +235,592 @@ zw-ai-message-timeline
   list-style: none;
 }
 
-.conversation-list [role='option'],
-.conversation-list li > * {
-  display: block;
-  width: 100%;
-  padding: var(--wb-space-2) var(--wb-space-3);
-  border-radius: var(--wb-radius-sm);
-  color: var(--wb-text-secondary);
-  font-size: var(--wb-font-sm);
-  text-align: left;
+.wb-conversation-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: var(--wb-radius-md);
+}
+
+.wb-conversation-row:hover,
+.wb-conversation-row.is-active {
+  background: var(--wb-surface-hover);
+}
+
+.wb-conversation-button {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--wb-radius-md);
+  color: var(--wb-text-primary);
+  font-size: 14px;
+  text-align: start;
+}
+
+.wb-conversation-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.conversation-list [role='option']:hover,
-.conversation-list li > *:hover {
+.wb-conversation-menu {
+  display: none;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  margin-right: 4px;
+  border-radius: var(--wb-radius-sm);
+  color: var(--wb-text-muted);
+}
+
+.wb-conversation-row:hover .wb-conversation-menu,
+.wb-conversation-row.is-active .wb-conversation-menu,
+.wb-conversation-menu[aria-expanded='true'] {
+  display: grid;
+  place-items: center;
+}
+
+.wb-conversation-menu:hover {
+  background: var(--wb-surface-active);
+  color: var(--wb-text-primary);
+}
+
+.wb-conversation-menu svg {
+  width: 16px;
+  height: 16px;
+}
+
+.wb-sidebar-empty {
+  padding: 8px 10px;
+  color: var(--wb-text-muted);
+  font-size: 13px;
+}
+
+.wb-sidebar-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 6px 0;
+  border-top: 1px solid var(--wb-border-subtle);
+}
+
+.wb-account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: var(--wb-radius-md);
+  text-align: start;
+}
+
+.wb-account:hover {
+  background: var(--wb-surface-hover);
+}
+
+.wb-avatar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border-radius: var(--wb-radius-full);
+  background: var(--wb-avatar-surface);
+  color: var(--wb-avatar-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.wb-account-copy {
+  display: grid;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.wb-account-name {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wb-account-plan {
+  color: var(--wb-text-muted);
+  font-size: 12px;
+}
+
+/* ------------------------------------------------------------------ main */
+.wb-main {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  container-type: inline-size;
+  height: 100%;
+  background: var(--wb-surface-base);
+}
+
+.wb-topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--wb-topbar-height);
+  flex: 0 0 auto;
+  padding: 8px 16px;
+}
+
+.wb-sidebar-toggle {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 36px;
+  border-radius: var(--wb-radius-md);
+  color: var(--wb-text-primary);
+}
+
+.wb-sidebar-toggle:hover {
+  background: var(--wb-surface-hover);
+}
+
+.wb-model-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--wb-radius-md);
+  color: var(--wb-text-primary);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.wb-model-picker:hover {
+  background: var(--wb-surface-hover);
+}
+
+.wb-model-picker svg {
+  width: 16px;
+  height: 16px;
+  color: var(--wb-text-muted);
+}
+
+.wb-model-picker .wb-model-kind {
+  color: var(--wb-text-muted);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.wb-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.wb-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--wb-border-default);
+  border-radius: var(--wb-radius-full);
+  color: var(--wb-text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.wb-mode-pill:hover {
+  background: var(--wb-surface-hover);
+}
+
+.wb-mode-pill[data-tone='busy'] {
+  border-color: var(--wb-warning-default);
+  color: var(--wb-warning-default);
+}
+
+.wb-mode-pill[data-tone='error'] {
+  border-color: var(--wb-danger-default);
+  color: var(--wb-danger-default);
+}
+
+.wb-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--wb-radius-full);
+  background: currentColor;
+}
+
+.wb-dot[data-connection='live'] {
+  background: var(--wb-success-default);
+}
+
+.wb-dot[data-connection='connecting'],
+.wb-dot[data-connection='reconnecting'] {
+  background: var(--wb-warning-default);
+}
+
+.wb-dot[data-connection='error'],
+.wb-dot[data-connection='offline'] {
+  background: var(--wb-danger-default);
+}
+
+.wb-pill-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: var(--wb-radius-full);
+  color: var(--wb-text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.wb-pill-button:hover {
   background: var(--wb-surface-hover);
   color: var(--wb-text-primary);
 }
 
-.conversation-list [role='option'][aria-selected='true'],
-.conversation-list [aria-current='true'] {
+.wb-pill-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.wb-badge {
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--wb-radius-full);
+  background: var(--wb-text-primary);
+  color: var(--wb-surface-base);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- thread */
+.wb-surface {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.wb-welcome {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 24px 16px 16vh;
+}
+
+.wb-welcome[hidden] {
+  display: none;
+}
+
+.wb-welcome-title {
+  color: var(--wb-text-primary);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 28px;
+  letter-spacing: 0.07px;
+  text-align: center;
+}
+
+.wb-suggestion {
+  display: block;
+  margin: 12px auto 0;
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--wb-border-default);
+  border-radius: var(--wb-radius-full);
+  background: var(--wb-surface-base);
+  color: var(--wb-text-primary);
+  font-size: 14px;
+}
+
+.wb-suggestion:hover {
+  background: var(--wb-surface-hover);
+}
+
+/* A class that sets `display` outranks the UA `[hidden]` rule. */
+.wb-suggestion[hidden] {
+  display: none;
+}
+
+.wb-suggestion:hover {
+  background: var(--wb-surface-hover);
+}
+
+/* A class that sets `display` outranks the UA `[hidden]` rule. */
+.wb-suggestion[hidden] {
+  display: none;
+}
+
+.wb-thread {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 16px;
+  scrollbar-width: thin;
+}
+
+.wb-thread[hidden] {
+  display: none;
+}
+
+.wb-thread-inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--wb-thread-max);
+  margin: 0 auto;
+  padding: 8px 0 24px;
+}
+
+/* -------------------------------------------------------------- composer */
+.wb-composer-zone {
+  flex: 0 0 auto;
+  width: 100%;
+  padding: 0 16px 16px;
+}
+
+.wb-composer-zone.is-centred {
+  padding: 0 16px;
+}
+
+.wb-composer-stack {
+  width: 100%;
+  max-width: var(--wb-thread-max);
+  margin: 0 auto;
+}
+
+.wb-composer-hint {
+  margin-top: 8px;
+  color: var(--wb-text-muted);
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+}
+
+.wb-error-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--wb-danger-default);
+  border-radius: var(--wb-radius-md);
+  background: var(--wb-danger-subtle);
+  color: var(--wb-danger-default);
+  font-size: 13px;
+}
+
+.wb-error-line[hidden] {
+  display: none;
+}
+
+.wb-error-line button {
+  margin-left: auto;
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- drawer */
+.wb-drawer-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: var(--wb-scrim);
+}
+
+.wb-drawer {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  width: min(var(--wb-inspector-width), calc(100vw - 16px));
+  border: 1px solid var(--wb-border-default);
+  border-radius: var(--wb-radius-lg);
+  background: var(--wb-surface-raised);
+  box-shadow: var(--wb-shadow-drawer);
+  overflow: hidden;
+}
+
+.wb-drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 52px;
+  flex: 0 0 auto;
+  padding: 0 8px 0 16px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+
+.wb-drawer-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.wb-drawer-tabs {
+  display: flex;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: 8px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+
+.wb-drawer-tab {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--wb-radius-full);
+  color: var(--wb-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.wb-drawer-tab:hover {
+  background: var(--wb-surface-hover);
+}
+
+.wb-drawer-tab[aria-selected='true'] {
   background: var(--wb-surface-active);
   color: var(--wb-text-primary);
-  font-weight: 500;
+}
+
+.wb-drawer-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 12px 16px 16px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.wb-drawer-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--wb-text-secondary);
+}
+
+.wb-drawer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wb-drawer[hidden],
+.wb-drawer-scrim[hidden] {
+  display: none;
+}
+
+/*
+ * Wide viewports dock the drawer as a flex column (a real split), so the chat
+ * keeps its measured reading width and stays interactive. Below 1280px it is a
+ * fixed overlay with a scrim, because squeezing the 768px column further would
+ * break the message rhythm the reference defines.
+ */
+@media (min-width: 1280px) {
+  /*
+   * The docked column yields space instead of fixing 320px. A page zoom (or a
+   * narrow window just above the breakpoint) reduces the layout width without
+   * changing the media query, so a hard 320px reserve would collapse the chat
+   * column to zero. `clamp` keeps the drawer usable while leaving the composer
+   * a real width at every zoom level.
+   */
+  .wb-drawer {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    flex: 0 1 auto;
+    width: clamp(200px, 24%, 320px);
+    min-width: 200px;
+    margin: 8px 8px 8px 0;
+    height: auto;
+    align-self: stretch;
+  }
+
+  .wb-drawer-scrim {
+    display: none !important;
+  }
+}
+
+/* --------------------------------------------------------------- mobile */
+@media (max-width: 767px) {
+  .wb-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 45;
+    width: min(86vw, 300px);
+    box-shadow: var(--wb-shadow-drawer);
+    transform: translateX(-102%);
+    transition: transform var(--wb-duration) var(--wb-ease);
+  }
+
+  .wb-shell.is-sidebar-open-mobile .wb-sidebar {
+    transform: translateX(0);
+  }
+
+  .wb-shell.is-sidebar-open-mobile .wb-sidebar-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 44;
+    display: block;
+    background: var(--wb-scrim);
+  }
+
+  .wb-topbar {
+    padding: 8px 10px;
+  }
+
+  .wb-model-picker {
+    font-size: 16px;
+  }
+
+  .wb-welcome {
+    justify-content: flex-start;
+    gap: 20px;
+    padding-top: 33vh;
+  }
+
+  .wb-welcome-title {
+    font-size: 20px;
+  }
+
+  .wb-composer-zone {
+    padding: 0 10px 10px;
+  }
+
+  .wb-composer-zone.is-centred {
+    padding-bottom: 10px;
+  }
+
+  .wb-thread {
+    padding: 0 10px;
+  }
 }
