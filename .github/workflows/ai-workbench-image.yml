@@ -7,9 +7,19 @@ name: AI Workbench Image
 # service name: shipping one without the other leaves every command and SSE
 # stream failing to connect.
 #
-# Shape mirrors the `zeus` repository's `admin-image.yml` and
-# `playground-image.yml`: build → verify tags → pull the exact digest on the
-# host → recreate → wait for health.
+# Three stages, each able to fail and retry on its own:
+#   1. build: build both linux/amd64 images once and push to GHCR only.
+#   2. mirror-tcr: copy the immutable digests to the domestic registry with
+#      crane. It never rebuilds; a retry re-copies the same bytes.
+#   3. deploy: pull the mirrored digests on the host, verify the revision
+#      label, recreate the containers and check they serve.
+#
+# The split exists because the previous shape pushed both registries from one
+# `docker/build-push-action`. Run 42964905300 built both images, pushed the
+# manifests to GHCR at 05:20:51, then sat on `exporting to image` until the job
+# was cancelled at 06:18:54 — 58 minutes, zero output, deploy skipped. Isolating
+# the copy gives it its own timeout and stops a registry stall from holding the
+# build open or ever deploying an old image.
 on:
   push:
     branches: [main]
@@ -50,9 +60,11 @@ env:
   HOST_IMAGE: ghcr.io/${{ github.repository_owner }}/zeus-ai-host
 
 jobs:
-  build-and-publish:
-    name: Build and publish
+  build:
+    name: Build and publish to GHCR
     runs-on: ubuntu-latest
+    # Both images build in ~4 minutes warm. 60 minutes leaves room for a cold
+    # pnpm install without letting a hang occupy an hour.
     timeout-minutes: 60
     outputs:
       tag: ${{ steps.vars.outputs.tag }}
@@ -116,38 +128,6 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      # The deployment host pulls from a domestic registry: a large image from
-      # ghcr.io does not finish inside the SSH session, and mirrors only help
-      # while they happen to have the blob. Pushing to TCR moves the cross-border
-      # transfer into the publish step, and the host pulls over the cloud network.
-      #
-      # TCR_IMAGE is a repository prefix: the tags below append `-host` and
-      # `-workbench`. `docker login` wants only the registry host, so it is
-      # split here rather than asking operators to keep two variables in step.
-      - name: Resolve the TCR registry host
-        id: tcr
-        if: github.event_name != 'pull_request' && vars.TCR_IMAGE != ''
-        env:
-          TCR_IMAGE: ${{ vars.TCR_IMAGE }}
-        run: |
-          set -euo pipefail
-          host="${TCR_IMAGE%%/*}"
-          if [[ ! "$host" =~ ^[A-Za-z0-9.-]+$ ]]; then
-            echo "::error::TCR_IMAGE does not start with a registry host: '$TCR_IMAGE'"
-            exit 1
-          fi
-          echo "host=${host}" >> "$GITHUB_OUTPUT"
-          echo "TCR: registry ${host}, repository prefix ${TCR_IMAGE}"
-
-      - name: Login to TCR
-        if: github.event_name != 'pull_request' && vars.TCR_IMAGE != ''
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ steps.tcr.outputs.host }}
-          username: ${{ secrets.TCR_USERNAME }}
-          password: ${{ secrets.TCR_PASSWORD }}
-
       - name: Build and push the Host
         id: build_host
         uses: docker/build-push-action@v6
@@ -159,8 +139,6 @@ jobs:
           tags: |
             ${{ env.HOST_IMAGE }}:${{ steps.vars.outputs.tag }}
             ${{ env.HOST_IMAGE }}:sha-${{ github.sha }}
-            ${{ vars.TCR_IMAGE != '' && format('{0}-host:{1}', vars.TCR_IMAGE, steps.vars.outputs.tag) || '' }}
-            ${{ vars.TCR_IMAGE != '' && format('{0}-host:sha-{1}', vars.TCR_IMAGE, github.sha) || '' }}
           build-args: |
             ZEUS_CORE_COMMIT=${{ steps.core.outputs.sha }}
             ZEUS_UI_COMMIT=${{ github.sha }}
@@ -186,8 +164,6 @@ jobs:
             ${{ env.WORKBENCH_IMAGE }}:${{ steps.vars.outputs.tag }}
             ${{ env.WORKBENCH_IMAGE }}:sha-${{ github.sha }}
             ${{ env.WORKBENCH_IMAGE }}:${{ steps.vars.outputs.date_tag }}
-            ${{ vars.TCR_IMAGE != '' && format('{0}-workbench:{1}', vars.TCR_IMAGE, steps.vars.outputs.tag) || '' }}
-            ${{ vars.TCR_IMAGE != '' && format('{0}-workbench:sha-{1}', vars.TCR_IMAGE, github.sha) || '' }}
           build-args: |
             ZEUS_CORE_COMMIT=${{ steps.core.outputs.sha }}
             ZEUS_UI_COMMIT=${{ github.sha }}
@@ -207,24 +183,284 @@ jobs:
           set -euo pipefail
           docker buildx imagetools inspect "${WORKBENCH_IMAGE}:main"
           docker buildx imagetools inspect "${HOST_IMAGE}:main"
+          # Size budget. These images are pulled by the host from TCR, and a
+          # large one is what makes a cross-border copy unable to finish inside
+          # any sane timeout. The budget is a repository variable so a
+          # deliberate growth is one settings change, while an accidental
+          # regression (copying node_modules back into a runtime stage) fails
+          # the build instead of silently doubling the deployment.
+          for pair in "host:${HOST_IMAGE}" "workbench:${WORKBENCH_IMAGE}"; do
+            name="${pair%%:*}"
+            image="${pair#*:}"
+            budget_var="AI_${name^^}_IMAGE_MAX_MB"
+            budget="${!budget_var:-160}"
+            docker buildx imagetools inspect "${image}:main" --format '{{json .Manifest}}' \
+              > "/tmp/manifest-${name}.json"
+            IMAGE_NAME="${name}" IMAGE_BUDGET="${budget}" MANIFEST="/tmp/manifest-${name}.json" \
+              node -e '
+                const m = require(process.env.MANIFEST)
+                const bytes = (m.layers || []).reduce((a, l) => a + l.size, 0)
+                const mb = bytes / 1024 / 1024
+                const budget = Number(process.env.IMAGE_BUDGET)
+                const name = process.env.IMAGE_NAME
+                console.log(`${name}: ${mb.toFixed(1)} MB (budget ${budget} MB)`)
+                require("node:fs").appendFileSync(
+                  process.env.GITHUB_STEP_SUMMARY,
+                  `\n| ${name} image size | ${mb.toFixed(1)} MB |\n| ${name} budget | ${budget} MB |\n`,
+                )
+                if (mb > budget) {
+                  console.error(`::error::${name} image is ${mb.toFixed(1)} MB, over the ${budget} MB budget`)
+                  process.exit(1)
+                }
+              '
+          done
+
+  mirror-tcr:
+    name: Mirror to TCR
+    needs: build
+    # Only a real publish has something to mirror. A PR build pushes nothing.
+    if: needs.build.outputs.should_deploy == 'true' && vars.TCR_IMAGE != ''
+    runs-on: ubuntu-latest
+    # Two registry-to-registry copies of one image each. 20 minutes is generous
+    # for two ~80 MB images and replaces the old unbounded wait.
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      host_digest: ${{ steps.copy_host.outputs.digest }}
+      workbench_digest: ${{ steps.copy_workbench.outputs.digest }}
+    env:
+      # A repository prefix: the tags append `-host` and `-workbench`.
+      TCR_IMAGE: ${{ vars.TCR_IMAGE }}
+    steps:
+      - name: Resolve the TCR registry host
+        id: tcr
+        env:
+          TCR_IMAGE: ${{ vars.TCR_IMAGE }}
+        run: |
+          set -euo pipefail
+          host="${TCR_IMAGE%%/*}"
+          if [[ ! "$host" =~ ^[A-Za-z0-9.-]+$ ]]; then
+            echo "::error::TCR_IMAGE does not start with a registry host: '${TCR_IMAGE}'"
+            exit 1
+          fi
+          echo "host=${host}" >> "$GITHUB_OUTPUT"
+          echo "TCR: registry ${host}, repository prefix ${TCR_IMAGE}"
+
+      - name: Install crane
+        uses: imjasonh/setup-crane@v0.4
+
+      # The source is the immutable digest the build job produced, never a
+      # moving tag: a tag can be repointed by a later run, and the mirror must
+      # copy exactly the bytes that were built and verified. A retry re-copies
+      # the same digest and never rebuilds anything.
+      - name: Copy the Host digest to TCR
+        id: copy_host
+        env:
+          SOURCE: ${{ needs.build.outputs.host_image }}
+          DIGEST: ${{ needs.build.outputs.host_digest }}
+          TCR_HOST: ${{ steps.tcr.outputs.host }}
+          TCR_USER: ${{ secrets.TCR_USERNAME }}
+          TCR_PASS: ${{ secrets.TCR_PASSWORD }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${DIGEST}" ]]; then
+            echo "::error::the build job produced no Host digest to mirror"
+            exit 1
+          fi
+          mkdir -p "$HOME/.docker"
+          AUTH="$(printf '%s:%s' "${ACTOR}" "${GH_TOKEN}" | base64 | tr -d '\n')"
+          TCR_AUTH="$(printf '%s:%s' "${TCR_USER}" "${TCR_PASS}" | base64 | tr -d '\n')"
+          cat > "$HOME/.docker/config.json" <<JSON
+          {
+              "auths": {
+                  "ghcr.io": { "auth": "${AUTH}" },
+                  "${TCR_HOST}": { "auth": "${TCR_AUTH}" }
+              }
+          }
+          JSON
+
+          start=$(date +%s)
+          # Bounded retry inside one overall deadline, sized to end *before*
+          # the job timeout: a stalled copy must produce an explicit error with
+          # the attempt log, not a cancelled job that looks like a hang.
+          COPY_DEADLINE=780
+          COPY_ATTEMPT_TIMEOUT=300
+          COPY_MAX_ATTEMPTS=3
+          output=""
+          attempt=0
+          while :; do
+            attempt=$((attempt + 1))
+            remaining=$(( COPY_DEADLINE - ($(date +%s) - start) ))
+            if [[ ${attempt} -gt ${COPY_MAX_ATTEMPTS} ]]; then
+              echo "::error::TCR copy gave up after ${COPY_MAX_ATTEMPTS} attempts"
+              exit 1
+            fi
+            if [[ ${attempt} -gt 1 && ${remaining} -lt 30 ]]; then
+              echo "::error::TCR copy gave up: ${attempt} attempts, deadline ${COPY_DEADLINE}s exhausted"
+              exit 1
+            fi
+            attempt_timeout=${COPY_ATTEMPT_TIMEOUT}
+            [[ ${remaining} -lt ${attempt_timeout} ]] && attempt_timeout=${remaining}
+            echo "==> TCR copy attempt ${attempt} (timeout ${attempt_timeout}s, ${remaining}s of budget left)"
+            # The status is captured on the command itself: after `fi` it would
+            # be the `if` statement's status, not the copy's.
+            status=0
+            output="$(timeout "${attempt_timeout}" crane copy --platform linux/amd64 \
+              "${SOURCE}@${DIGEST}" "${TCR_IMAGE}-host:sha-${GITHUB_SHA}")" || status=$?
+            [[ ${status} -eq 0 ]] && break
+            echo "::warning::TCR copy attempt ${attempt} failed (exit ${status})"
+          done
+          elapsed=$(( $(date +%s) - start ))
+
+          # A cross-registry copy is not guaranteed to keep the same manifest
+          # digest, so the destination's own digest is the identity to record
+          # and to deploy by.
+          dest_digest="$(timeout 90 crane digest "${TCR_IMAGE}-host:sha-${GITHUB_SHA}" || true)"
+          if [[ -z "${dest_digest}" ]]; then
+            echo "::error::could not read back the mirrored Host digest"
+            exit 1
+          fi
+          copied="$(printf '%s\n' "${output}" | tail -n 1 | tr -d '[:space:]')"
+          if [[ -n "${copied}" && "${copied}" != "${dest_digest}" ]]; then
+            echo "::error::TCR tag resolves to ${dest_digest} but the copy reported ${copied}"
+            exit 1
+          fi
+          echo "digest=${dest_digest}" >> "$GITHUB_OUTPUT"
+          echo "host copy: ${elapsed}s, source ${DIGEST}, destination ${dest_digest}"
+
+      - name: Copy the Workbench digest to TCR
+        id: copy_workbench
+        env:
+          SOURCE: ${{ needs.build.outputs.workbench_image }}
+          DIGEST: ${{ needs.build.outputs.workbench_digest }}
+          TCR_HOST: ${{ steps.tcr.outputs.host }}
+          TCR_USER: ${{ secrets.TCR_USERNAME }}
+          TCR_PASS: ${{ secrets.TCR_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${DIGEST}" ]]; then
+            echo "::error::the build job produced no Workbench digest to mirror"
+            exit 1
+          fi
+          # The docker config written by the Host step already carries both
+          # registries; crane reads it from $HOME/.docker/config.json.
+          start=$(date +%s)
+          COPY_DEADLINE=780
+          COPY_ATTEMPT_TIMEOUT=300
+          COPY_MAX_ATTEMPTS=3
+          output=""
+          attempt=0
+          while :; do
+            attempt=$((attempt + 1))
+            remaining=$(( COPY_DEADLINE - ($(date +%s) - start) ))
+            if [[ ${attempt} -gt ${COPY_MAX_ATTEMPTS} ]]; then
+              echo "::error::TCR copy gave up after ${COPY_MAX_ATTEMPTS} attempts"
+              exit 1
+            fi
+            if [[ ${attempt} -gt 1 && ${remaining} -lt 30 ]]; then
+              echo "::error::TCR copy gave up: ${attempt} attempts, deadline ${COPY_DEADLINE}s exhausted"
+              exit 1
+            fi
+            attempt_timeout=${COPY_ATTEMPT_TIMEOUT}
+            [[ ${remaining} -lt ${attempt_timeout} ]] && attempt_timeout=${remaining}
+            echo "==> Workbench TCR copy attempt ${attempt} (timeout ${attempt_timeout}s, ${remaining}s of budget left)"
+            status=0
+            output="$(timeout "${attempt_timeout}" crane copy --platform linux/amd64 \
+              "${SOURCE}@${DIGEST}" "${TCR_IMAGE}-workbench:sha-${GITHUB_SHA}")" || status=$?
+            [[ ${status} -eq 0 ]] && break
+            echo "::warning::Workbench TCR copy attempt ${attempt} failed (exit ${status})"
+          done
+          elapsed=$(( $(date +%s) - start ))
+
+          dest_digest="$(timeout 90 crane digest "${TCR_IMAGE}-workbench:sha-${GITHUB_SHA}" || true)"
+          if [[ -z "${dest_digest}" ]]; then
+            echo "::error::could not read back the mirrored Workbench digest"
+            exit 1
+          fi
+          copied="$(printf '%s\n' "${output}" | tail -n 1 | tr -d '[:space:]')"
+          if [[ -n "${copied}" && "${copied}" != "${dest_digest}" ]]; then
+            echo "::error::TCR tag resolves to ${dest_digest} but the copy reported ${copied}"
+            exit 1
+          fi
+          echo "digest=${dest_digest}" >> "$GITHUB_OUTPUT"
+          echo "workbench copy: ${elapsed}s, source ${DIGEST}, destination ${dest_digest}"
+
+      - name: Record the mirror in the summary
+        if: always()
+        env:
+          HOST_DIGEST: ${{ steps.copy_host.outputs.digest }}
+          WORKBENCH_DIGEST: ${{ steps.copy_workbench.outputs.digest }}
+          SOURCE_HOST_DIGEST: ${{ needs.build.outputs.host_digest }}
+          SOURCE_WORKBENCH_DIGEST: ${{ needs.build.outputs.workbench_digest }}
+        run: |
+          {
+            echo "### TCR mirror"
+            echo ""
+            echo "| image | source digest | destination digest |"
+            echo "| --- | --- | --- |"
+            echo "| host | \`${SOURCE_HOST_DIGEST}\` | \`${HOST_DIGEST:-failed}\` |"
+            echo "| workbench | \`${SOURCE_WORKBENCH_DIGEST}\` | \`${WORKBENCH_DIGEST:-failed}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # The moving tags are updated only after both immutable digests are
+      # verified. If this step fails the deployment still deploys the sha
+      # digests, so a stale `main` in TCR can never roll production back.
+      - name: Publish the moving tags
+        env:
+          TCR_HOST: ${{ steps.tcr.outputs.host }}
+          TCR_USER: ${{ secrets.TCR_USERNAME }}
+          TCR_PASS: ${{ secrets.TCR_PASSWORD }}
+        run: |
+          set -euo pipefail
+          AUTH="$(printf '%s:%s' "${TCR_USER}" "${TCR_PASS}" | base64 | tr -d '\n')"
+          mkdir -p "$HOME/.docker"
+          cat > "$HOME/.docker/config.json" <<JSON
+          {
+              "auths": {
+                  "${TCR_HOST}": { "auth": "${AUTH}" }
+              }
+          }
+          JSON
+          timeout 300 crane tag "${TCR_IMAGE}-host:sha-${GITHUB_SHA}" main
+          timeout 300 crane tag "${TCR_IMAGE}-workbench:sha-${GITHUB_SHA}" main
+          echo "TCR main -> sha-${GITHUB_SHA} (host, workbench)"
 
   deploy:
     name: Deploy
-    needs: build-and-publish
-    if: needs.build-and-publish.outputs.should_deploy == 'true'
+    needs: [build, mirror-tcr]
+    # `always()` is here only so a *successful* build still deploys when the
+    # mirror job was skipped (TCR not configured). It also drops the implicit
+    # success condition on `needs`, so both are restated explicitly: a failed
+    # build must never deploy, and a configured registry that failed to mirror
+    # must stop the release — the host pulls from TCR, and deploying without
+    # the new images would silently keep the previous build live.
+    if: |
+      always() &&
+      needs.build.result == 'success' &&
+      needs.build.outputs.should_deploy == 'true' &&
+      (needs.mirror-tcr.result == 'success' || needs.mirror-tcr.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: production
     permissions:
       contents: read
     env:
-      DEPLOY_TAG: ${{ needs.build-and-publish.outputs.tag }}
-      IMAGE_REF: ${{ needs.build-and-publish.outputs.workbench_image }}
-      IMAGE_DIGEST: ${{ needs.build-and-publish.outputs.workbench_digest }}
-      HOST_IMAGE_REF: ${{ needs.build-and-publish.outputs.host_image }}
-      HOST_IMAGE_DIGEST: ${{ needs.build-and-publish.outputs.host_digest }}
+      DEPLOY_TAG: ${{ needs.build.outputs.tag }}
+      IMAGE_REF: ${{ needs.build.outputs.workbench_image }}
+      IMAGE_DIGEST: ${{ needs.build.outputs.workbench_digest }}
+      HOST_IMAGE_REF: ${{ needs.build.outputs.host_image }}
+      HOST_IMAGE_DIGEST: ${{ needs.build.outputs.host_digest }}
       # When TCR is configured the host pulls from it instead of ghcr.io.
+      # The mirror's digests travel too: a cross-registry copy may store a
+      # different manifest digest, so the TCR identity is what the host pulls
+      # and what the revision label is checked against.
       TCR_IMAGE: ${{ vars.TCR_IMAGE }}
+      TCR_HOST_DIGEST: ${{ needs.mirror-tcr.outputs.host_digest }}
+      TCR_WORKBENCH_DIGEST: ${{ needs.mirror-tcr.outputs.workbench_digest }}
       TCR_USERNAME: ${{ secrets.TCR_USERNAME }}
       TCR_PASSWORD: ${{ secrets.TCR_PASSWORD }}
       DEPLOY_HOST: ${{ vars.ZEUS_WORKBENCH_DEPLOY_HOST }}
@@ -328,6 +564,8 @@ jobs:
           REMOTE_ENV+=" ZEUS_TCR_USER=$(q "${TCR_USERNAME}")"
           REMOTE_ENV+=" ZEUS_TCR_PASS=$(q "${TCR_PASSWORD}")"
           REMOTE_ENV+=" ZEUS_EXPECTED_REVISION=$(q "${EXPECTED_REVISION}")"
+          REMOTE_ENV+=" ZEUS_TCR_HOST_DIGEST=$(q "${TCR_HOST_DIGEST}")"
+          REMOTE_ENV+=" ZEUS_TCR_WORKBENCH_DIGEST=$(q "${TCR_WORKBENCH_DIGEST}")"
           # shellcheck disable=SC2029
           "${SSH[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "${REMOTE_ENV} bash -s" -- \
@@ -344,6 +582,8 @@ jobs:
           TCR_USER="${ZEUS_TCR_USER:-}"
           TCR_PASS="${ZEUS_TCR_PASS:-}"
           EXPECTED_REVISION="${ZEUS_EXPECTED_REVISION:-}"
+          TCR_HOST_DIGEST="${ZEUS_TCR_HOST_DIGEST:-}"
+          TCR_WORKBENCH_DIGEST="${ZEUS_TCR_WORKBENCH_DIGEST:-}"
           CANONICAL="${IMAGE}:${TAG}"
           HOST_CANONICAL="${HOST_IMAGE}:${TAG}"
 
@@ -375,9 +615,15 @@ jobs:
           fi
 
           pull_pinned() {
-            local image="$1" digest="$2" tag="$3" canonical="$4" tcr_ref="$5"
+            local image="$1" digest="$2" tag="$3" canonical="$4" tcr_ref="$5" tcr_digest="${6:-}"
             local repo_path="${image#ghcr.io/}"
             local candidates=()
+            # The TCR digest is the identity the mirror verified. Preferring it
+            # over the moving tag means a stalled publish cannot have the
+            # deploy pull something other than the bytes that were built.
+            if [[ -n "${TCR}" && -n "${tcr_ref}" && -n "${tcr_digest}" ]]; then
+              candidates+=("${tcr_ref}@${tcr_digest}")
+            fi
             [[ -n "${TCR}" && -n "${tcr_ref}" ]] && candidates+=("${tcr_ref}:${tag}")
             if [[ -n "${MIRRORS}" ]]; then
               local mirror_list=() m
@@ -405,8 +651,13 @@ jobs:
             return 1
           }
 
-          pull_pinned "${IMAGE}" "${DIGEST}" "${TAG}" "${CANONICAL}" "${TCR:+${TCR}-workbench}"
-          pull_pinned "${HOST_IMAGE}" "${HOST_DIGEST}" "${TAG}" "${HOST_CANONICAL}" "${TCR:+${TCR}-host}"
+          # The GHCR digest only applies to ghcr.io candidates; the mirrored
+          # digests are valid at TCR, where the same content may be stored
+          # under a different manifest digest.
+          pull_pinned "${IMAGE}" "${DIGEST}" "${TAG}" "${CANONICAL}" \
+            "${TCR:+${TCR}-workbench}" "${TCR_WORKBENCH_DIGEST:-}"
+          pull_pinned "${HOST_IMAGE}" "${HOST_DIGEST}" "${TAG}" "${HOST_CANONICAL}" \
+            "${TCR:+${TCR}-host}" "${TCR_HOST_DIGEST:-}"
 
           # A tag is not an identity. When TCR is configured the image comes
           # from there, and a stalled publish can leave that tag pointing at the
