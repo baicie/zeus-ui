@@ -156,17 +156,45 @@ try {
     EDITOR_TOKEN,
   )
 
+  // Diffs are served as separate assets, not inside the event stream. A replay
+  // host has no server to ask, so each changed file's diff has to be captured
+  // while the real Host is alive — otherwise the demo shows
+  // `AI_ASSET_UNAVAILABLE_IN_REPLAY` where the diff should be.
+  const assets: Record<string, string> = {}
+  for (const raw of snapshot.events) {
+    const event = raw as {
+      type?: string
+      payload?: {
+        changeset?: { files?: Array<{ diffAsset?: { id?: string } }> }
+      }
+    }
+    if (event.type !== 'changeset.updated') continue
+    for (const file of event.payload?.changeset?.files ?? []) {
+      const id = file.diffAsset?.id
+      if (!id || assets[id] !== undefined) continue
+      const response = await fetch(
+        `${host.origin}/assets/${encodeURIComponent(id)}`,
+        { headers: { Authorization: `Bearer ${EDITOR_TOKEN}` } },
+      )
+      if (!response.ok) {
+        throw new Error(`GET /assets/${id} -> ${response.status}`)
+      }
+      assets[id] = await response.text()
+    }
+  }
+
   const recording = {
     schema: 'zeus.ai-demo/v1',
     generatedAt: new Date().toISOString(),
     uiCommit: values['ui-commit'] ?? 'unknown',
     streamId: 'reference',
     events: snapshot.events,
+    assets,
   }
 
   writeFileSync(values.out, `${JSON.stringify(recording, null, 2)}\n`)
   console.info(
-    `ai demo recording: ${snapshot.events.length} events -> ${values.out}`,
+    `ai demo recording: ${snapshot.events.length} events, ${Object.keys(assets).length} assets -> ${values.out}`,
   )
 } finally {
   await host.close()
