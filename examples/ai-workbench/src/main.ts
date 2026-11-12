@@ -24,8 +24,14 @@
  *             permission model or a data store.
  */
 
-import type { ApprovalController, ReviewController } from '@zeus-web/ai-core'
+import type {
+  ApprovalController,
+  ReviewController,
+  SessionConnection,
+} from '@zeus-web/ai-core'
 import type { AiElementInstance } from '@zeus-web/ai-wc'
+import type { WorkbenchLanguage } from './locale'
+import type { WorkbenchMessageKey } from './locales/en'
 import { createSseHostAdapter } from '@zeus-web/ai-adapters'
 
 import {
@@ -47,9 +53,18 @@ import {
   defineAiTestReport,
 } from '@zeus-web/ai-wc'
 import { mountByokChat } from './byok/chat-view'
-
 import { mountProviderPanel } from './byok/provider-panel'
+import { createCopy, refreshOnLanguageChange } from './copy'
 import { createDeferredDemoHost, isDemoBuild } from './demo-host'
+import {
+  applyInitialLanguage,
+  getAiLocale,
+  getLanguage,
+  setLanguage,
+  subscribeLanguage,
+  t,
+  WORKBENCH_LANGUAGES,
+} from './locale'
 
 import './styles.css'
 
@@ -93,6 +108,25 @@ let composer = createComposerController({
 })
 
 /* ------------------------------------------------------------- utilities */
+
+/**
+ * Chrome copy for the shell. A language switch re-runs these bindings in
+ * place; nothing is created, removed or re-parented, so focus, caret, draft
+ * text, streamed output and scroll position survive.
+ */
+const copy = createCopy()
+
+const CONNECTION_KEYS = {
+  idle: 'workbench.connection.idle',
+  connecting: 'workbench.connection.connecting',
+  live: 'workbench.connection.live',
+  recovering: 'workbench.connection.recovering',
+  offline: 'workbench.connection.offline',
+} as const satisfies Record<SessionConnection, WorkbenchMessageKey>
+
+function connectionStatusKey(state: SessionConnection): WorkbenchMessageKey {
+  return CONNECTION_KEYS[state]
+}
 
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -173,7 +207,7 @@ const shell = el('div', 'wb-shell')
 shell.dataset.testid = 'workbench'
 
 const sidebar = el('aside', 'wb-sidebar')
-sidebar.setAttribute('aria-label', 'Chats')
+copy.attr(sidebar, 'aria-label', 'workbench.sidebarLabel')
 
 const sidebarHead = el('div', 'wb-sidebar-head')
 const brandButton = el('button', 'wb-brand')
@@ -181,7 +215,7 @@ brandButton.type = 'button'
 // The visible label is "Chat"; the extra words live in sr-only text so the
 // accessible name still contains the visible label (axe label-content-name).
 const brandScreenReader = el('span', 'sr-only')
-brandScreenReader.textContent = 'Chat menu'
+brandScreenReader.append(copy.text('workbench.brandMenu'))
 const brandMark = el('span', 'wb-brand-mark')
 brandMark.setAttribute('aria-hidden', 'true')
 brandMark.textContent = 'Z'
@@ -194,7 +228,6 @@ brandButton.append(brandMark, brandName, brandCaret, brandScreenReader)
 const collapseButton = el('button', 'icon-button')
 collapseButton.type = 'button'
 collapseButton.dataset.testid = 'sidebar-collapse'
-collapseButton.setAttribute('aria-label', 'Close sidebar')
 collapseButton.append(icon(ICONS.panel, 20))
 sidebarHead.append(brandButton, collapseButton)
 
@@ -203,24 +236,21 @@ const sidebarScroll = el('div', 'wb-sidebar-scroll')
 const newChatButton = el('button', 'wb-nav-item')
 newChatButton.type = 'button'
 newChatButton.dataset.testid = 'new-conversation'
-newChatButton.append(icon(ICONS.compose), document.createTextNode('New chat'))
+newChatButton.append(icon(ICONS.compose), copy.text('workbench.newChat'))
 
 const searchChatsButton = el('button', 'wb-nav-item')
 searchChatsButton.type = 'button'
 searchChatsButton.dataset.testid = 'search-chats'
-searchChatsButton.append(
-  icon(ICONS.search),
-  document.createTextNode('Search chats'),
-)
+searchChatsButton.append(icon(ICONS.search), copy.text('workbench.searchChats'))
 
 const recentLabel = el('p', 'wb-sidebar-section')
-recentLabel.textContent = 'Recent'
+recentLabel.append(copy.text('workbench.recent'))
 
 const conversationListRoot = el('ul', 'wb-conversation-list')
 conversationListRoot.dataset.testid = 'conversation-list'
 
 const conversationEmpty = el('p', 'wb-sidebar-empty')
-conversationEmpty.textContent = 'No chats yet.'
+conversationEmpty.append(copy.text('workbench.noChats'))
 
 sidebarScroll.append(
   newChatButton,
@@ -234,7 +264,7 @@ const sidebarFoot = el('div', 'wb-sidebar-foot')
 const settingsButton = el('button', 'wb-nav-item')
 settingsButton.type = 'button'
 settingsButton.dataset.testid = 'open-settings'
-settingsButton.append(icon(ICONS.settings), document.createTextNode('Settings'))
+settingsButton.append(icon(ICONS.settings), copy.text('workbench.settings'))
 
 const accountButton = el('button', 'wb-account')
 accountButton.type = 'button'
@@ -244,9 +274,9 @@ accountAvatar.setAttribute('aria-hidden', 'true')
 accountAvatar.textContent = 'Z'
 const accountCopy = el('span', 'wb-account-copy')
 const accountName = el('span', 'wb-account-name')
-accountName.textContent = 'Zeus workspace'
+accountName.append(copy.text('workbench.workspaceName'))
 const accountPlan = el('span', 'wb-account-plan')
-accountPlan.textContent = 'Local chat'
+accountPlan.append(copy.text('workbench.localChat'))
 accountCopy.append(accountName, accountPlan)
 accountButton.append(accountAvatar, accountCopy)
 
@@ -265,7 +295,6 @@ const topbar = el('header', 'wb-topbar')
 const openSidebarButton = el('button', 'wb-sidebar-toggle')
 openSidebarButton.type = 'button'
 openSidebarButton.dataset.testid = 'sidebar-toggle'
-openSidebarButton.setAttribute('aria-label', 'Open sidebar')
 openSidebarButton.append(icon(ICONS.panel, 20))
 
 const modelPicker = el('button', 'wb-model-picker')
@@ -286,13 +315,12 @@ const connection = el('button', 'icon-button')
 connection.type = 'button'
 connection.dataset.testid = 'connection'
 connection.dataset.connection = 'idle'
-connection.setAttribute('aria-label', 'Host connection: idle')
 const connectionDot = el('span', 'wb-dot wb-dot-lg')
 connectionDot.dataset.connection = 'idle'
 const connectionText = el('span', 'sr-only')
 connectionText.textContent = 'idle'
 connection.append(connectionDot, connectionText)
-connection.title = 'Host connection'
+copy.attr(connection, 'title', 'workbench.hostConnectionTitle')
 
 const inspectorToggle = el('button', 'icon-button wb-activity-toggle')
 inspectorToggle.type = 'button'
@@ -302,7 +330,7 @@ inspectorToggle.append(icon(ICONS.activity))
 // Visible label "Activity"; sr-only adds the intent. The badge is decorative
 // count data, so it is hidden from the accessible name.
 const activityScreenReader = el('span', 'sr-only')
-activityScreenReader.textContent = 'panel'
+activityScreenReader.append(copy.text('workbench.activityPanelShort'))
 inspectorToggle.append(activityScreenReader)
 const inspectorBadge = el('span', 'wb-badge')
 inspectorBadge.hidden = true
@@ -312,7 +340,7 @@ inspectorToggle.append(inspectorBadge)
 const themeToggle = el('button', 'icon-button')
 themeToggle.type = 'button'
 themeToggle.dataset.testid = 'theme-toggle'
-themeToggle.setAttribute('aria-label', 'Toggle colour scheme')
+copy.attr(themeToggle, 'aria-label', 'workbench.toggleTheme')
 themeToggle.append(icon(ICONS.sun, 20))
 
 topbarActions.append(connection, inspectorToggle, themeToggle)
@@ -320,8 +348,7 @@ topbar.append(openSidebarButton, modelPicker, topbarActions)
 
 const replayBanner = el('p', 'wb-error-line')
 replayBanner.dataset.testid = 'public-replay'
-replayBanner.textContent =
-  'Public replay · read-only. Sending messages, proposing and approving are disabled.'
+replayBanner.append(copy.text('workbench.replayNotice'))
 replayBanner.hidden = true
 
 const surface = el('div', 'wb-surface')
@@ -329,7 +356,7 @@ const surface = el('div', 'wb-surface')
 const welcome = el('div', 'wb-welcome')
 welcome.dataset.testid = 'welcome'
 const welcomeTitle = el('h1', 'wb-welcome-title')
-welcomeTitle.textContent = 'Where should we begin?'
+welcomeTitle.append(copy.text('workbench.welcomeTitle'))
 // A suggestion that fills the composer with a real prompt; it never pretends
 // to send, and it is a real action rather than a decorative chip.
 welcome.append(welcomeTitle)
@@ -346,9 +373,9 @@ thread.append(threadInner)
 const welcomeSuggestion = el('button', 'wb-suggestion')
 welcomeSuggestion.type = 'button'
 welcomeSuggestion.dataset.testid = 'welcome-suggestion'
-welcomeSuggestion.textContent = 'What can you do?'
+welcomeSuggestion.append(copy.text('workbench.welcomeSuggestion'))
 welcomeSuggestion.addEventListener('click', () => {
-  fillActiveComposer('What can you do in this workspace?')
+  fillActiveComposer(t('workbench.welcomeSuggestionPrompt'))
 })
 const composerZone = el('div', 'wb-composer-zone is-centred')
 let composerElement = createComposerElement()
@@ -371,18 +398,18 @@ drawer.hidden = true
 // A complementary landmark, not a dialog: at wide viewports this docks beside
 // the chat as a real split, and `role=dialog` on an <aside> is disallowed ARIA.
 drawer.setAttribute('role', 'complementary')
-drawer.setAttribute('aria-label', 'Agent activity')
+copy.attr(drawer, 'aria-label', 'workbench.agentActivity')
 // `hidden` on a fixed element is not enough in some engines; `display: none`
 // is applied by the stylesheet for [hidden], and this keeps it inert.
 drawer.inert = true
 
 const drawerHead = el('div', 'wb-drawer-head')
 const drawerTitle = el('h2', 'wb-drawer-title')
-drawerTitle.textContent = 'Agent activity'
+drawerTitle.append(copy.text('workbench.agentActivity'))
 const drawerClose = el('button', 'icon-button')
 drawerClose.type = 'button'
 drawerClose.dataset.testid = 'inspector-close'
-drawerClose.setAttribute('aria-label', 'Close activity panel')
+copy.attr(drawerClose, 'aria-label', 'workbench.closeActivityPanel')
 drawerClose.append(icon(ICONS.close, 18))
 drawerClose.style.marginLeft = 'auto'
 drawerHead.append(drawerTitle, drawerClose)
@@ -394,15 +421,14 @@ const drawerBody = el('div', 'wb-drawer-body')
 const propose = el('button', 'wb-pill-button')
 propose.type = 'button'
 propose.dataset.testid = 'propose-change'
-propose.textContent = 'Request protected write'
+propose.append(copy.text('workbench.requestProtectedWrite'))
 propose.style.border = '1px solid var(--wb-border-default)'
 
 const approval = el('div')
 approval.dataset.testid = 'approvals'
-approval.textContent = 'No pending approvals'
 
 const reviewHeading = el('h2', 'wb-drawer-section-title')
-reviewHeading.textContent = 'Changed files'
+reviewHeading.append(copy.text('workbench.changedFiles'))
 const changeTree = document.createElement(
   'zw-ai-file-change-tree',
 ) as AiElementInstance & { review: ReviewController | undefined }
@@ -415,7 +441,7 @@ diffViewer.setAttribute('layout', 'unified')
 const runChecks = el('button', 'wb-pill-button')
 runChecks.type = 'button'
 runChecks.dataset.testid = 'run-checks'
-runChecks.textContent = 'Run checks'
+runChecks.append(copy.text('workbench.runChecks'))
 runChecks.style.border = '1px solid var(--wb-border-default)'
 const testReport = document.createElement(
   'zw-ai-test-report',
@@ -436,10 +462,14 @@ testsPane.style.gap = '12px'
 testsPane.append(runChecks, testReport)
 
 type SideTabId = 'activity' | 'changes' | 'tests'
-const sidePanes: Array<{ id: SideTabId; label: string; pane: HTMLElement }> = [
-  { id: 'activity', label: 'Approvals', pane: approval },
-  { id: 'changes', label: 'Changes', pane: reviewPane },
-  { id: 'tests', label: 'Tests', pane: testsPane },
+const sidePanes: Array<{
+  id: SideTabId
+  labelKey: WorkbenchMessageKey
+  pane: HTMLElement
+}> = [
+  { id: 'activity', labelKey: 'workbench.tabApprovals', pane: approval },
+  { id: 'changes', labelKey: 'workbench.tabChanges', pane: reviewPane },
+  { id: 'tests', labelKey: 'workbench.tabTests', pane: testsPane },
 ]
 const sideTabButtons = new Map<SideTabId, HTMLButtonElement>()
 for (const entry of sidePanes) {
@@ -447,7 +477,7 @@ for (const entry of sidePanes) {
   tab.type = 'button'
   tab.setAttribute('role', 'tab')
   tab.dataset.testid = `side-tab-${entry.id}`
-  tab.textContent = entry.label
+  tab.append(copy.text(entry.labelKey))
   tab.addEventListener('click', () => selectSideTab(entry.id))
   sideTabButtons.set(entry.id, tab)
   drawerTabs.append(tab)
@@ -485,7 +515,8 @@ async function loadTestReport(): Promise<void> {
     }
     if (!response.ok || !payload.report) {
       throw new Error(
-        payload.error?.message ?? `Checks failed (${response.status})`,
+        payload.error?.message ??
+          t('workbench.checksFailed', { status: response.status }),
       )
     }
     const controller = createTestReportController({
@@ -522,7 +553,10 @@ function createTimeline(): HTMLElement {
   ) as AiElementInstance & { conversation: unknown; session: unknown }
   element.session = session
   element.conversation = conversation
-  element.setAttribute('label', 'Workbench conversation')
+  // Locale is a property: the element re-renders its own text and keeps its
+  // controller subscriptions (and any streamed message) intact.
+  element.locale = getAiLocale()
+  element.setAttribute('label', t('workbench.timelineLabel'))
   element.dataset.testid = 'timeline'
   element.classList.add('timeline')
   return element
@@ -534,13 +568,14 @@ function createComposerElement(): HTMLElement {
     'zw-ai-composer',
   ) as AiElementInstance & { controller: unknown }
   element.controller = composer
-  element.setAttribute('label', 'Ask the agent')
+  element.locale = getAiLocale()
+  element.setAttribute('label', t('workbench.composerLabel'))
   if (readOnly) element.setAttribute('disabled', '')
   element.dataset.testid = 'composer'
   element.classList.add('composer')
   const fileLabel = el('label', 'attach')
-  fileLabel.setAttribute('aria-label', 'Attach file')
-  fileLabel.title = 'Attach file'
+  copy.attr(fileLabel, 'aria-label', 'workbench.attachFile')
+  copy.attr(fileLabel, 'title', 'workbench.attachFile')
   fileLabel.innerHTML =
     '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'
   const fileInput = document.createElement('input')
@@ -560,10 +595,13 @@ function createComposerElement(): HTMLElement {
   // textarea it renders and re-apply if the element re-renders its view.
   const syncPlaceholder = (): void => {
     const textarea = element.querySelector('textarea')
-    if (textarea && textarea.placeholder !== 'Ask anything') {
-      textarea.placeholder = 'Ask anything'
+    const placeholder = t('workbench.composerPlaceholder')
+    if (textarea && textarea.placeholder !== placeholder) {
+      textarea.placeholder = placeholder
     }
   }
+  // A language switch can re-render the composer's view; re-apply afterwards.
+  copy.custom(syncPlaceholder)
   new MutationObserver(syncPlaceholder).observe(element, {
     childList: true,
     subtree: true,
@@ -578,7 +616,7 @@ async function uploadAttachment(
   file: File,
   status: HTMLElement,
 ): Promise<void> {
-  status.textContent = 'Uploading…'
+  status.textContent = t('workbench.uploading')
   const localId = composer.addAttachment({
     name: file.name,
     status: 'uploading',
@@ -600,18 +638,21 @@ async function uploadAttachment(
     }
     if (!response.ok || !payload.asset) {
       throw new Error(
-        payload.error?.message ?? `Upload failed (${response.status})`,
+        payload.error?.message ??
+          t('workbench.uploadFailed', { status: response.status }),
       )
     }
     composer.updateAttachment(localId, {
       asset: payload.asset,
       status: 'ready',
     })
-    status.textContent = `${file.name} attached`
+    status.textContent = t('workbench.attached', { name: file.name })
   } catch (error) {
     composer.updateAttachment(localId, { status: 'failed' })
     status.textContent =
-      error instanceof Error ? error.message : 'Attachment upload failed'
+      error instanceof Error
+        ? error.message
+        : t('workbench.attachmentUploadFailed')
   }
 }
 
@@ -629,10 +670,14 @@ interface LocalSession {
 }
 
 const knownConversations = new Map<string, LocalSession>()
+// Seeded titles are chrome copy; a title the user renames is data and is kept
+// verbatim across language switches. The map remembers how each seed is built.
+const seededTitles = new Map<string, { index?: number; newChat?: boolean }>()
 knownConversations.set(conversationId, {
   id: conversationId,
-  title: 'Reference conversation',
+  title: t('workbench.referenceConversation'),
 })
+seededTitles.set(conversationId, {})
 
 function renderConversationList(): void {
   conversationListRoot.replaceChildren()
@@ -646,12 +691,22 @@ function renderConversationList(): void {
     button.type = 'button'
     button.dataset.conversationId = entry.id
     const title = el('span', 'wb-conversation-title')
-    title.textContent = entry.title
+    // Bound through the map, not captured: a language switch re-derives a seed
+    // title in place, while a renamed title stays exactly as typed.
+    copy.custom(
+      () => {
+        title.textContent =
+          knownConversations.get(entry.id)?.title ?? entry.title
+      },
+      () => title,
+    )
     button.append(title)
     button.addEventListener('click', () => activateConversation(entry.id))
     const menu = el('button', 'wb-conversation-menu')
     menu.type = 'button'
-    menu.setAttribute('aria-label', `Chat options for ${entry.title}`)
+    copy.attr(menu, 'aria-label', 'workbench.chatOptionsFor', () => ({
+      title: entry.title,
+    }))
     menu.setAttribute('aria-haspopup', 'menu')
     menu.setAttribute('aria-expanded', 'false')
     menu.append(icon(ICONS.more, 16))
@@ -675,7 +730,11 @@ function renderConversationList(): void {
 }
 
 let openMenuElement: HTMLElement | undefined
+let menuCloseCleanup: (() => void) | undefined
 function closeConversationMenu(): void {
+  const cleanup = menuCloseCleanup
+  menuCloseCleanup = undefined
+  cleanup?.()
   openMenuElement?.remove()
   openMenuElement = undefined
   document
@@ -690,10 +749,16 @@ function openConversationMenu(entry: LocalSession, anchor: HTMLElement): void {
   const menu = el('div', 'wb-popover')
   menu.setAttribute('role', 'menu')
   menu.dataset.testid = 'conversation-menu'
+  const menuCopy = createCopy()
+  const stopMenuCopy = refreshOnLanguageChange(menuCopy)
+  const closeMenuScope = (): void => {
+    stopMenuCopy()
+    menuCopy.dispose()
+  }
   const rename = el('button', 'wb-menu-item')
   rename.type = 'button'
   rename.setAttribute('role', 'menuitem')
-  rename.textContent = 'Rename'
+  menuCopy.node(rename, 'workbench.rename')
   rename.addEventListener('click', () => {
     closeConversationMenu()
     renameConversation(entry)
@@ -701,12 +766,14 @@ function openConversationMenu(entry: LocalSession, anchor: HTMLElement): void {
   const remove = el('button', 'wb-menu-item wb-menu-item-danger')
   remove.type = 'button'
   remove.setAttribute('role', 'menuitem')
-  remove.textContent = 'Delete'
+  menuCopy.node(remove, 'workbench.delete')
   remove.addEventListener('click', () => {
     closeConversationMenu()
     confirmDeleteConversation(entry)
   })
   menu.append(rename, remove)
+  // The popover is transient; drop its bindings when it closes.
+  menuCloseCleanup = closeMenuScope
   const rect = anchor.getBoundingClientRect()
   menu.style.position = 'fixed'
   menu.style.top = `${rect.bottom + 4}px`
@@ -733,7 +800,7 @@ function renameConversation(entry: LocalSession): void {
   if (!row || !title) return
   const input = el('input', 'wb-conversation-input')
   input.value = entry.title
-  input.setAttribute('aria-label', 'Chat title')
+  input.setAttribute('aria-label', t('workbench.chatTitle'))
   title.replaceWith(input)
   input.focus()
   input.select()
@@ -742,7 +809,12 @@ function renameConversation(entry: LocalSession): void {
     if (settled) return
     settled = true
     const next = value?.trim()
-    if (next) knownConversations.set(entry.id, { ...entry, title: next })
+    if (next) {
+      knownConversations.set(entry.id, { ...entry, title: next })
+      // A renamed title is user data now: it must not be re-derived on a
+      // language switch.
+      seededTitles.delete(entry.id)
+    }
     renderConversationList()
     if (entry.id === conversationId) updateConversationTitle()
   }
@@ -769,21 +841,26 @@ function confirmDeleteConversation(entry: LocalSession): void {
   dialog.setAttribute('role', 'alertdialog')
   dialog.setAttribute('aria-modal', 'true')
   dialog.setAttribute('aria-labelledby', 'wb-delete-title')
+  // The dialog is transient; its copy is bound to a scoped catalog so a
+  // language switch while it is open relabels it in place.
+  const dialogCopy = createCopy()
   const heading = el('h2', 'wb-dialog-title')
   heading.id = 'wb-delete-title'
-  heading.textContent = 'Delete chat?'
-  const copy = el('p', 'wb-dialog-copy')
-  copy.textContent = `“${entry.title}” will be removed from this list. This cannot be undone.`
+  dialogCopy.node(heading, 'workbench.deleteChatTitle')
+  const body = el('p', 'wb-dialog-copy')
+  dialogCopy.node(body, 'workbench.deleteChatCopy', () => ({
+    title: entry.title,
+  }))
   const actions = el('div', 'wb-dialog-actions')
   const cancel = el('button', 'wb-dialog-button')
   cancel.type = 'button'
-  cancel.textContent = 'Cancel'
+  dialogCopy.node(cancel, 'workbench.cancel')
   const confirm = el('button', 'wb-dialog-button is-destructive')
   confirm.type = 'button'
   confirm.dataset.testid = 'delete-confirm'
-  confirm.textContent = 'Delete'
+  dialogCopy.node(confirm, 'workbench.delete')
   actions.append(cancel, confirm)
-  dialog.append(heading, copy, actions)
+  dialog.append(heading, body, actions)
   scrim.append(dialog)
   document.body.append(scrim)
   cancel.focus()
@@ -791,7 +868,10 @@ function confirmDeleteConversation(entry: LocalSession): void {
   function onKey(event: KeyboardEvent): void {
     if (event.key === 'Escape') close()
   }
+  const stopCopy = refreshOnLanguageChange(dialogCopy)
   close = (): void => {
+    stopCopy()
+    dialogCopy.dispose()
     scrim.remove()
     document.removeEventListener('keydown', onKey)
   }
@@ -821,8 +901,9 @@ function deleteAttempt(id: string): void {
       conversationId = 'workbench'
       knownConversations.set(conversationId, {
         id: conversationId,
-        title: 'New chat',
+        title: t('workbench.newChat'),
       })
+      seededTitles.set(conversationId, { newChat: true })
       activateConversation(conversationId)
     }
   }
@@ -853,8 +934,9 @@ newChatButton.addEventListener('click', () => {
   const id = `workbench-${conversationCounter}`
   knownConversations.set(id, {
     id,
-    title: `Session ${conversationCounter}`,
+    title: t('workbench.sessionTitle', { index: conversationCounter }),
   })
+  seededTitles.set(id, { index: conversationCounter })
   // Publish the local session in the controller's view. The Host upserts the
   // same id on the first message, so reload cannot invent a second aggregate.
   activateConversation(id)
@@ -862,22 +944,34 @@ newChatButton.addEventListener('click', () => {
 })
 
 /* ------------------------------------------------------- host connection */
+/**
+ * Connection copy. The transport is never rebuilt for a language switch: the
+ * label is re-derived from the connection the session is already in.
+ */
+let connectionState: SessionConnection = 'idle'
+copy.custom(() => {
+  // The demo's transport is a recording replayed from memory, so it reaches
+  // the recorded state rather than a live one. Reporting "connecting" there
+  // would describe a state the session is not in.
+  connection.setAttribute(
+    'aria-label',
+    isDemoBuild
+      ? t('workbench.connection.replayAria')
+      : t('workbench.hostConnection', {
+          status: t(connectionStatusKey(connectionState)),
+        }),
+  )
+  connection.dataset.connection = isDemoBuild ? 'live' : connectionState
+  connectionDot.dataset.connection = isDemoBuild ? 'live' : connectionState
+  connectionText.textContent = isDemoBuild
+    ? t('workbench.connection.replay')
+    : t(connectionStatusKey(connectionState))
+})
 session.subscribe(
   view => view.connection,
   state => {
-    // The demo's transport is a recording replayed from memory, so it reaches
-    // the recorded state rather than a live one. Reporting "connecting" there
-    // would describe a state the session is not in.
-    const shown = isDemoBuild ? 'replay' : state
-    connection.dataset.connection = isDemoBuild ? 'live' : state
-    connectionDot.dataset.connection = isDemoBuild ? 'live' : state
-    connectionText.textContent = shown
-    connection.setAttribute(
-      'aria-label',
-      isDemoBuild
-        ? 'Host connection: replaying a recording'
-        : `Host connection: ${state}`,
-    )
+    connectionState = state
+    copy.refresh()
   },
 )
 session.connect()
@@ -900,9 +994,8 @@ if (isDemoBuild) {
   readOnly = true
   applyReadOnly()
   // Say it is a demo, not just that it is read-only: the visitor must not
-  // mistake a recorded replay for a live model.
-  replayBanner.textContent =
-    '只读演示 · 回放真实 Host 录制的事件流，不能发送消息、提案或审批。'
+  // mistake a recorded replay for a live model. The banner copy comes from the
+  // same catalog entry in both languages.
   replayBanner.hidden = false
 } else {
   void fetch(`${hostBaseUrl}/health`)
@@ -945,7 +1038,7 @@ function refreshApprovals(): void {
   if (knownApprovals === undefined) {
     if (pending.length === 0) {
       approval.replaceChildren()
-      approval.textContent = 'No pending approvals'
+      approval.append(copy.text('workbench.noPendingApprovals'))
       updateInspectorBadge()
       return
     }
@@ -960,7 +1053,7 @@ function refreshApprovals(): void {
   approval.replaceChildren()
   updateInspectorBadge()
   if (pending.length === 0) {
-    approval.textContent = 'No pending approvals'
+    approval.append(copy.text('workbench.noPendingApprovals'))
     return
   }
   if (arrived.length > 0) openInspector('activity')
@@ -972,6 +1065,7 @@ function refreshApprovals(): void {
       session,
       approvalId: item.id,
     })
+    prompt.locale = getAiLocale()
     approval.append(prompt)
   }
 }
@@ -1008,6 +1102,8 @@ function refreshChangeSet(): void {
   })
   changeTree.review = review
   diffViewer.review = review
+  changeTree.locale = getAiLocale()
+  diffViewer.locale = getAiLocale()
   const first = changeSet.files[0]
   if (first) void review.selectFile(first.path)
 }
@@ -1100,7 +1196,8 @@ function updateWelcome(): void {
 }
 
 function updateConversationTitle(): void {
-  const title = knownConversations.get(conversationId)?.title ?? 'New chat'
+  const title =
+    knownConversations.get(conversationId)?.title ?? t('workbench.newChat')
   modelPicker.title = title
 }
 
@@ -1119,13 +1216,23 @@ function updateGlobalWorkbench(): void {
 
 /* ---------------------------------------------------------- sidebar open */
 
+/**
+ * Sidebar toggle labels: the key is stored, not the translated string, so a
+ * language switch relabels both buttons from the current state.
+ */
+let sidebarToggleKey: WorkbenchMessageKey = 'workbench.openSidebar'
+copy.custom(() => {
+  collapseButton.setAttribute('aria-label', t('workbench.closeSidebar'))
+  openSidebarButton.setAttribute('aria-label', t(sidebarToggleKey))
+})
+
 function setSidebarOpen(open: boolean): void {
   const mobile = window.matchMedia('(max-width: 767px)').matches
   if (mobile) {
     shell.classList.toggle('is-sidebar-open-mobile', open)
     sidebarScrim.hidden = !open
-    collapseButton.setAttribute('aria-label', 'Close sidebar')
-    openSidebarButton.setAttribute('aria-label', 'Close sidebar')
+    sidebarToggleKey = 'workbench.closeSidebar'
+    openSidebarButton.setAttribute('aria-label', t(sidebarToggleKey))
     return
   }
   shell.classList.toggle('is-sidebar-collapsed', !open)
@@ -1134,8 +1241,8 @@ function setSidebarOpen(open: boolean): void {
   } catch {
     // Private mode; the toggle still works for the session.
   }
-  collapseButton.setAttribute('aria-label', 'Close sidebar')
-  openSidebarButton.setAttribute('aria-label', 'Open sidebar')
+  sidebarToggleKey = 'workbench.openSidebar'
+  openSidebarButton.setAttribute('aria-label', t(sidebarToggleKey))
 }
 
 openSidebarButton.addEventListener('click', () => {
@@ -1175,15 +1282,15 @@ const hostComposerStack = composerElement
 
 const modeSwitch = el('div', 'wb-mode-switch')
 modeSwitch.setAttribute('role', 'group')
-modeSwitch.setAttribute('aria-label', 'Run mode')
+copy.attr(modeSwitch, 'aria-label', 'workbench.runMode')
 const hostModeButton = el('button', 'wb-segment')
 hostModeButton.type = 'button'
 hostModeButton.dataset.testid = 'mode-host'
-hostModeButton.textContent = 'Agent'
+hostModeButton.append(copy.text('workbench.modeAgent'))
 const byokModeButton = el('button', 'wb-segment')
 byokModeButton.type = 'button'
 byokModeButton.dataset.testid = 'mode-byok'
-byokModeButton.textContent = 'My model'
+byokModeButton.append(copy.text('workbench.modeByok'))
 modeSwitch.append(hostModeButton, byokModeButton)
 topbarActions.prepend(modeSwitch)
 
@@ -1207,13 +1314,113 @@ const settingsHead = el('div', 'wb-settings-page-head')
 const settingsBack = el('button', 'icon-button')
 settingsBack.type = 'button'
 settingsBack.dataset.testid = 'settings-back'
-settingsBack.setAttribute('aria-label', 'Back to chat')
+copy.attr(settingsBack, 'aria-label', 'workbench.backToChat')
 settingsBack.append(icon(['m19 12H5', 'M12 19l-7-7 7-7'], 20))
 const settingsTitle = el('h2', 'wb-settings-page-title')
-settingsTitle.textContent = 'Settings'
+settingsTitle.append(copy.text('workbench.settings'))
 settingsHead.append(settingsBack, settingsTitle)
 const settingsBody = el('div', 'wb-settings-page-body')
 settingsPage.append(settingsHead, settingsBody)
+
+/*
+ * Language is a settings row, not a banner: one compact line inside the
+ * existing settings page, next to the provider panel. It changes only text;
+ * the Host session, SSE stream, BYOK vault and both chat controllers are
+ * untouched.
+ */
+const languageSection = el('section', 'wb-settings-section')
+languageSection.dataset.testid = 'language-settings'
+const languageHead = el('div', 'wb-settings-section-head')
+const languageTitle = el('h2', 'wb-settings-section-title')
+languageTitle.append(copy.text('workbench.language'))
+const languageCopy = el('p', 'wb-settings-section-copy')
+languageCopy.append(copy.text('workbench.languageDescription'))
+languageHead.append(languageTitle, languageCopy)
+
+const languageGroup = el('div', 'wb-mode-switch')
+languageGroup.setAttribute('role', 'group')
+copy.attr(languageGroup, 'aria-label', 'workbench.language')
+const languageButtons = new Map<WorkbenchLanguage, HTMLButtonElement>()
+for (const entry of WORKBENCH_LANGUAGES) {
+  const button = el('button', 'wb-segment')
+  button.type = 'button'
+  button.dataset.testid = `language-${entry.id}`
+  button.setAttribute('lang', entry.tag)
+  button.append(copy.text(entry.labelKey))
+  button.addEventListener('click', () => setLanguage(entry.id))
+  languageButtons.set(entry.id, button)
+  languageGroup.append(button)
+}
+languageSection.append(languageHead, languageGroup)
+settingsBody.append(languageSection)
+
+// The provider panel keeps its own root so the language row stays above it and
+// the panel can re-render without touching the setting that is not its own.
+const settingsProviders = el('div')
+settingsBody.append(settingsProviders)
+
+function syncLanguageButtons(): void {
+  const active = getLanguage()
+  for (const [id, button] of languageButtons) {
+    button.classList.toggle('is-active', id === active)
+    button.setAttribute('aria-pressed', String(id === active))
+  }
+}
+syncLanguageButtons()
+
+/*
+ * A language switch only rewrites text. Controllers, the SSE connection, the
+ * BYOK vault and IndexedDB are all untouched: the AI elements get a new
+ * `locale` property (which re-renders their own text in place), the shell copy
+ * scope re-runs, and the document title is re-derived.
+ */
+function applyLanguage(): void {
+  syncLanguageButtons()
+  // Seed titles live in the map; refresh them before the bindings read it.
+  refreshSeededTitles()
+  copy.refresh()
+  syncAiElements()
+  updateConversationTitle()
+}
+subscribeLanguage(applyLanguage)
+
+/**
+ * Seed titles ("Reference conversation", "Session 2") are chrome copy that
+ * lives in the conversation map, not in a text node. They are re-derived only
+ * where the user has not renamed them; a user-chosen title is data and stays
+ * exactly as typed.
+ */
+function refreshSeededTitles(): void {
+  for (const [id, seed] of seededTitles) {
+    const entry = knownConversations.get(id)
+    if (!entry) continue
+    knownConversations.set(id, {
+      ...entry,
+      title: seed.newChat
+        ? t('workbench.newChat')
+        : seed.index === undefined
+          ? t('workbench.referenceConversation')
+          : t('workbench.sessionTitle', { index: seed.index }),
+    })
+  }
+}
+
+/**
+ * Hands the active locale to every mounted AI element.
+ *
+ * The property setter re-renders that element's own text (the keyed patcher
+ * reuses nodes), so no subscription, controller, stream or scroll state is
+ * touched. New elements created later read `getAiLocale()` at construction;
+ * this sweep covers the ones already on screen.
+ */
+function syncAiElements(): void {
+  const locale = getAiLocale()
+  for (const element of document.querySelectorAll<AiElementInstance>(
+    'zw-ai-composer, zw-ai-message-timeline, zw-ai-approval-prompt, zw-ai-file-change-tree, zw-ai-diff-viewer, zw-ai-test-report',
+  )) {
+    element.locale = locale
+  }
+}
 // Mounted inside the chat surface, not over the whole main column: the topbar
 // (mode switch, activity, theme) stays reachable, as it does in the reference.
 surface.append(settingsPage)
@@ -1282,7 +1489,7 @@ function toggleSettings(open: boolean): void {
   if (open) {
     closeInspector()
     if (!disposeSettings) {
-      disposeSettings = mountProviderPanel({ root: settingsBody })
+      disposeSettings = mountProviderPanel({ root: settingsProviders })
     }
   }
 }
@@ -1333,6 +1540,8 @@ themeToggle.addEventListener('click', () => {
   )
 })
 
+applyInitialLanguage()
+document.title = t('workbench.documentTitle')
 applyTheme(readTheme())
 renderConversationList()
 setMode('host')

@@ -13,9 +13,12 @@
  * - a proxy you run can see the key in transit
  */
 
+import type { CopyScope } from '../copy'
 import type { ConnectionCheck } from './gateway'
 import type { ProviderProfile } from './profiles'
 import type { VaultState } from './vault'
+import { createCopy, refreshOnLanguageChange } from '../copy'
+import { t } from '../locale'
 import { GatewayError, listModels, testConnection } from './gateway'
 import {
   createProfile,
@@ -35,14 +38,21 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
   const { root } = options
   root.classList.add('providers')
 
+  /*
+   * Settings keeps its own copy scope. The panel re-renders (the vault bar,
+   * the list, the detail form) on state changes, so each render binds fresh
+   * nodes; the language subscription is closed when the panel unmounts.
+   */
+  const copy: CopyScope = createCopy()
+  const stopCopy = refreshOnLanguageChange(copy)
+
   const heading = document.createElement('div')
   heading.className = 'providers-head'
   const title = document.createElement('h2')
-  title.textContent = 'Model providers'
+  copy.node(title, 'byok.providersTitle')
   const description = document.createElement('p')
   description.className = 'providers-description'
-  description.textContent =
-    'Bring your own gateway. Keys are encrypted in this browser and never sent to the Zeus Host.'
+  copy.node(description, 'byok.providersDescription')
   heading.append(title, description)
 
   const vaultBar = document.createElement('div')
@@ -61,8 +71,7 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
 
   const notice = document.createElement('p')
   notice.className = 'providers-notice'
-  notice.textContent =
-    'Encryption protects keys stored on this device. It cannot protect a key from malicious script running on this page while the vault is unlocked.'
+  copy.node(notice, 'byok.securityNotice')
 
   root.append(heading, vaultBar, layout, notice)
 
@@ -91,17 +100,23 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
   /* ------------------------------------------------------------- vault UI */
 
   function renderVaultBar(): void {
+    // Drop bindings for the nodes this render is about to replace.
+    copy.prune()
     vaultBar.replaceChildren()
     const state = document.createElement('span')
     state.className = 'vault-state'
     state.dataset.testid = 'vault-state'
     state.dataset.status = vaultState.status
-    state.textContent =
+    // The status word is chrome copy; re-bound on every render so a language
+    // switch reaches it without a re-render.
+    copy.node(
+      state,
       vaultState.status === 'unlocked'
-        ? 'Vault unlocked'
+        ? 'byok.vaultUnlocked'
         : vaultState.status === 'locked'
-          ? 'Vault locked'
-          : 'No vault yet'
+          ? 'byok.vaultLocked'
+          : 'byok.vaultEmpty',
+    )
 
     const actions = document.createElement('div')
     actions.className = 'vault-actions'
@@ -111,7 +126,7 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
       setup.type = 'button'
       setup.className = 'btn btn-primary'
       setup.dataset.testid = 'vault-setup'
-      setup.textContent = 'Create vault'
+      copy.node(setup, 'byok.createVault')
       setup.addEventListener('click', () => promptSetup())
       actions.append(setup)
     } else if (vaultState.status === 'locked') {
@@ -119,7 +134,7 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
       unlock.type = 'button'
       unlock.className = 'btn btn-primary'
       unlock.dataset.testid = 'vault-unlock'
-      unlock.textContent = 'Unlock'
+      copy.node(unlock, 'byok.unlock')
       unlock.addEventListener('click', () => promptUnlock())
       actions.append(unlock)
     } else {
@@ -127,19 +142,19 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
       lock.type = 'button'
       lock.className = 'btn'
       lock.dataset.testid = 'vault-lock'
-      lock.textContent = 'Lock'
+      copy.node(lock, 'byok.lock')
       lock.addEventListener('click', () => vault.lock())
       const change = document.createElement('button')
       change.type = 'button'
       change.className = 'btn'
       change.dataset.testid = 'vault-change'
-      change.textContent = 'Change passphrase'
+      copy.node(change, 'byok.changePassphrase')
       change.addEventListener('click', () => promptChange())
       const reset = document.createElement('button')
       reset.type = 'button'
       reset.className = 'btn btn-danger'
       reset.dataset.testid = 'vault-destroy'
-      reset.textContent = 'Delete vault'
+      copy.node(reset, 'byok.deleteVault')
       reset.addEventListener('click', () => promptDestroy())
       actions.append(lock, change, reset)
     }
@@ -194,7 +209,7 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
     const cancel = document.createElement('button')
     cancel.type = 'button'
     cancel.className = 'btn'
-    cancel.textContent = 'Cancel'
+    copy.node(cancel, 'workbench.cancel')
     cancel.addEventListener('click', () => form.remove())
     row.append(submit, cancel)
     form.append(error, row)
@@ -228,15 +243,15 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
 
   function promptSetup(): void {
     promptForm({
-      title: 'Choose a vault passphrase',
+      title: t('byok.choosePassphraseTitle'),
       fields: [
-        { name: 'passphrase', label: 'Passphrase' },
-        { name: 'confirm', label: 'Confirm passphrase' },
+        { name: 'passphrase', label: t('byok.passphrase') },
+        { name: 'confirm', label: t('byok.confirmPassphrase') },
       ],
-      submitLabel: 'Create vault',
+      submitLabel: t('byok.createVault'),
       onSubmit: async values => {
         if (values.passphrase !== values.confirm) {
-          throw new Error('The two passphrases do not match.')
+          throw new Error(t('byok.passphraseMismatch'))
         }
         await vault.initialize(values.passphrase!)
       },
@@ -245,9 +260,9 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
 
   function promptUnlock(): void {
     promptForm({
-      title: 'Unlock the vault',
-      fields: [{ name: 'passphrase', label: 'Passphrase' }],
-      submitLabel: 'Unlock',
+      title: t('byok.unlockVaultTitle'),
+      fields: [{ name: 'passphrase', label: t('byok.passphrase') }],
+      submitLabel: t('byok.unlock'),
       onSubmit: async values => {
         await vault.unlock(values.passphrase!)
       },
@@ -256,12 +271,12 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
 
   function promptChange(): void {
     promptForm({
-      title: 'Change the vault passphrase',
+      title: t('byok.changePassphraseTitle'),
       fields: [
-        { name: 'current', label: 'Current passphrase' },
-        { name: 'next', label: 'New passphrase' },
+        { name: 'current', label: t('byok.currentPassphrase') },
+        { name: 'next', label: t('byok.newPassphrase') },
       ],
-      submitLabel: 'Change passphrase',
+      submitLabel: t('byok.changePassphrase'),
       onSubmit: async values => {
         await vault.changePassphrase(values.current!, values.next!)
       },
@@ -269,9 +284,7 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
   }
 
   function promptDestroy(): void {
-    const confirmed = window.confirm(
-      'Delete the vault and every stored key? Conversations stay; keys cannot be recovered.',
-    )
+    const confirmed = window.confirm(t('byok.deleteVaultConfirm'))
     if (!confirmed) return
     void vault.destroy()
   }
@@ -279,19 +292,20 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
   /* -------------------------------------------------------------- list UI */
 
   function renderList(): void {
+    copy.prune()
     list.replaceChildren()
     const header = document.createElement('div')
     header.className = 'provider-list-head'
     const label = document.createElement('span')
     label.className = 'side-section-title'
-    label.textContent = 'Profiles'
+    copy.node(label, 'byok.profiles')
     const add = document.createElement('button')
     add.type = 'button'
     add.className = 'btn btn-sm'
     add.dataset.testid = 'provider-add'
-    add.textContent = 'Add'
+    copy.node(add, 'byok.add')
     add.addEventListener('click', () => {
-      const profile = createProfile({ name: 'New provider' })
+      const profile = createProfile({ name: t('byok.newProvider') })
       void providerStore.save(profile).then(() => {
         selectedId = profile.id
         renderList()
@@ -305,7 +319,7 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
     if (profiles.length === 0) {
       const empty = document.createElement('p')
       empty.className = 'provider-empty'
-      empty.textContent = 'No providers yet. Add one to start a BYOK chat.'
+      copy.node(empty, 'byok.noProviders')
       list.append(empty)
       return
     }
@@ -318,10 +332,14 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
       item.setAttribute('aria-current', String(profile.id === selectedId))
       const name = document.createElement('span')
       name.className = 'provider-item-name'
-      name.textContent = profile.name || 'Untitled'
+      // A profile name is user data; only the empty fallback is copy.
+      name.textContent = profile.name || t('byok.untitled')
       const meta = document.createElement('span')
       meta.className = 'provider-item-meta'
-      meta.textContent = `${profile.model || 'no model'}${profile.verifiedAt ? ' · verified' : ''}`
+      // Model ids are data; the words around them come from the catalog.
+      meta.textContent = `${profile.model || t('byok.noModel')}${
+        profile.verifiedAt ? ` · ${t('byok.verified')}` : ''
+      }`
       item.append(name, meta)
       item.addEventListener('click', () => {
         selectedId = profile.id
@@ -335,12 +353,13 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
   /* ------------------------------------------------------------ detail UI */
 
   function renderDetail(): void {
+    copy.prune()
     detail.replaceChildren()
     const selected = selectedId ? providerStore.get(selectedId) : undefined
     if (!selected) {
       const empty = document.createElement('p')
       empty.className = 'provider-empty'
-      empty.textContent = 'Select or add a provider.'
+      copy.node(empty, 'byok.selectProvider')
       detail.append(empty)
       return
     }
@@ -392,18 +411,24 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
       return input
     }
 
-    const nameInput = field('name', 'Profile name', profile.name)
-    const baseInput = field('baseUrl', 'Base URL', profile.baseUrl, {
-      placeholder: 'https://api.example.com/v1',
-      hint: 'The gateway root. /chat/completions and /models are appended.',
-    })
-    const keyInput = field('apiKey', 'API key', '', {
+    const nameInput = field('name', t('byok.fieldProfileName'), profile.name)
+    const baseInput = field(
+      'baseUrl',
+      t('byok.fieldBaseUrl'),
+      profile.baseUrl,
+      {
+        // The placeholder is an example URL, not copy to translate.
+        placeholder: 'https://api.example.com/v1',
+        hint: t('byok.baseUrlHint'),
+      },
+    )
+    const keyInput = field('apiKey', t('byok.fieldApiKey'), '', {
       type: 'password',
-      placeholder: 'Paste the key',
+      placeholder: t('byok.pasteKey'),
       hint:
         vaultState.status === 'unlocked'
-          ? 'Stored encrypted. Leave blank to keep the saved key.'
-          : 'Unlock the vault to change the saved key.',
+          ? t('byok.apiKeyHintUnlocked')
+          : t('byok.apiKeyHintLocked'),
     })
     keyInput.autocomplete = 'off'
     if (vaultState.status !== 'unlocked') keyInput.disabled = true
@@ -412,7 +437,7 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
     modelRow.className = 'field'
     const modelLabel = document.createElement('label')
     modelLabel.className = 'field-label'
-    modelLabel.textContent = 'Model'
+    copy.node(modelLabel, 'byok.fieldModel')
     const modelInput = document.createElement('input')
     modelInput.className = 'input'
     modelInput.name = 'model'
@@ -426,25 +451,27 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
     loadModelsButton.type = 'button'
     loadModelsButton.className = 'btn btn-sm'
     loadModelsButton.dataset.testid = 'provider-load-models'
-    loadModelsButton.textContent = 'Load models'
+    copy.node(loadModelsButton, 'byok.loadModels')
     modelLabel.append(modelInput)
     const modelHint = document.createElement('p')
     modelHint.className = 'field-hint'
     modelHint.dataset.testid = 'provider-model-hint'
-    modelHint.textContent =
-      'Load from the gateway, or type the model id if /models is unavailable.'
+    copy.node(modelHint, 'byok.modelHint')
     modelRow.append(modelLabel, modelList, loadModelsButton, modelHint)
     form.append(modelRow)
 
     const advanced = document.createElement('div')
     advanced.className = 'field-row'
     form.append(advanced)
-    const chatPathInput = field('chatPath', 'Chat path', profile.chatPath, {
-      hint: `Default ${DEFAULT_CHAT_PATH}`,
-    })
+    const chatPathInput = field(
+      'chatPath',
+      t('byok.fieldChatPath'),
+      profile.chatPath,
+      { hint: t('byok.defaultPath', { path: DEFAULT_CHAT_PATH }) },
+    )
     const timeoutInput = field(
       'timeoutMs',
-      'Timeout (ms)',
+      t('byok.fieldTimeout'),
       String(profile.timeoutMs),
       {
         type: 'number',
@@ -454,7 +481,7 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
     )
     const temperatureInput = field(
       'temperature',
-      'Temperature',
+      t('byok.fieldTemperature'),
       String(profile.temperature),
       {
         type: 'number',
@@ -465,7 +492,7 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
     )
     const maxTokensInput = field(
       'maxTokens',
-      'Max output tokens',
+      t('byok.fieldMaxTokens'),
       String(profile.maxTokens),
       {
         type: 'number',
@@ -481,7 +508,7 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
     streamInput.checked = profile.stream
     streamInput.dataset.testid = 'provider-field-stream'
     const streamText = document.createElement('span')
-    streamText.textContent = 'Stream responses'
+    copy.node(streamText, 'byok.streamResponses')
     streamRow.append(streamInput, streamText)
     form.append(streamRow)
 
@@ -492,18 +519,22 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
     save.type = 'submit'
     save.className = 'btn btn-primary'
     save.dataset.testid = 'provider-save'
-    save.textContent = 'Save'
+    copy.node(save, 'byok.save')
     const test = document.createElement('button')
     test.type = 'button'
     test.className = 'btn'
     test.dataset.testid = 'provider-test'
-    test.textContent = 'Test connection'
+    copy.node(test, 'byok.testConnection')
     const activate = document.createElement('button')
     activate.type = 'button'
     activate.className = 'btn'
     activate.dataset.testid = 'provider-activate'
-    activate.textContent =
-      providerStore.activeIdValue() === profile.id ? 'Active' : 'Use for chat'
+    copy.node(
+      activate,
+      providerStore.activeIdValue() === profile.id
+        ? 'byok.active'
+        : 'byok.useForChat',
+    )
     activate.disabled = providerStore.activeIdValue() === profile.id
     activate.addEventListener('click', () => {
       void providerStore.setActive(profile.id)
@@ -512,9 +543,9 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
     remove.type = 'button'
     remove.className = 'btn btn-danger'
     remove.dataset.testid = 'provider-delete'
-    remove.textContent = 'Delete'
+    copy.node(remove, 'byok.delete')
     remove.addEventListener('click', () => {
-      if (!window.confirm('Delete this provider and its stored key?')) return
+      if (!window.confirm(t('byok.deleteProviderConfirm'))) return
       void vault.delete(keyRecordId(profile.id)).catch(() => undefined)
       void providerStore.delete(profile.id).then(() => {
         selectedId = providerStore.list()[0]?.id
@@ -548,13 +579,13 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
         const apiKey = keyInput.value.trim()
         if (apiKey) {
           if (vaultState.status !== 'unlocked') {
-            showStatus(status, 'Unlock the vault before saving a key.', 'error')
+            showStatus(status, t('byok.unlockBeforeSaving'), 'error')
             return
           }
           await vault.put(keyRecordId(next.id), apiKey)
           keyInput.value = ''
         }
-        showStatus(status, 'Saved.', 'ok')
+        showStatus(status, t('byok.saved'), 'ok')
         renderList()
         void refreshKeyPresence()
       })().catch((cause: unknown) => {
@@ -576,7 +607,7 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
       void (async () => {
         const key = await resolveKey(profile.id, keyInput.value.trim())
         if (!key) {
-          modelHint.textContent = 'Enter a key, or unlock the vault, first.'
+          modelHint.textContent = t('byok.enterKeyOrUnlock')
           return
         }
         const controller = new AbortController()
@@ -591,8 +622,8 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
           }
           modelHint.textContent =
             models.length > 0
-              ? `${models.length} models available.`
-              : 'The gateway did not return a model list. Type the model id.'
+              ? t('byok.modelsAvailable', { count: models.length })
+              : t('byok.noModelList')
         } finally {
           loadModelsButton.disabled = false
         }
@@ -612,9 +643,7 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
       note.className = 'field-hint'
       note.dataset.testid = 'provider-key-presence'
       note.textContent =
-        presence === 'saved'
-          ? 'A key is saved for this profile.'
-          : 'A saved key could not be decrypted. Re-enter it.'
+        presence === 'saved' ? t('byok.keySaved') : t('byok.keyUnreadable')
       if (!detail.querySelector('[data-testid="provider-key-presence"]')) {
         keyInput.closest('.field')?.after(note)
       }
@@ -657,14 +686,10 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
   ): Promise<void> {
     const key = await resolveKey(profile.id, undefined)
     if (!key) {
-      showStatus(
-        status,
-        'No key available. Enter one, or unlock the vault.',
-        'error',
-      )
+      showStatus(status, t('byok.noKeyAvailable'), 'error')
       return
     }
-    showStatus(status, 'Testing…', 'ok')
+    showStatus(status, t('byok.testing'), 'ok')
     const controller = new AbortController()
     let result: ConnectionCheck
     try {
@@ -682,8 +707,8 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
       showStatus(
         status,
         result.models.length > 0
-          ? `Connected. ${result.models.length} models available.`
-          : 'Connected. The gateway does not list models.',
+          ? t('byok.connectedWithModels', { count: result.models.length })
+          : t('byok.connectedWithoutModels'),
         'ok',
       )
     } else {
@@ -714,6 +739,8 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
   }
 
   return () => {
+    stopCopy()
+    copy.dispose()
     unsubscribeVault()
     unsubscribeProfiles()
     root.classList.remove('providers')

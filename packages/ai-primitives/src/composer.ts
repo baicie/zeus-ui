@@ -142,7 +142,7 @@ export function getAttachmentTrayParts(
   const locale = options.locale ?? EN_LOCALE
 
   return {
-    root: part({ role: 'list', 'aria-label': 'Attachments' }),
+    root: part({ role: 'list', 'aria-label': locale.attachmentsLabel }),
     items: attachments.map(attachment => {
       const nameId = options.ids.id(`attachment-${attachment.id}`)
       return {

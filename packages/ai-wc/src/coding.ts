@@ -24,7 +24,7 @@ import {
   testReportView,
   workspacePickerView,
 } from '@zeus-web/ai-primitives'
-import { defineAiElement } from './element'
+import { defineAiElement, localeOf } from './element'
 import { patchChildren } from './patch'
 
 type Registry = CustomElementRegistry | undefined
@@ -67,6 +67,7 @@ export function defineAiWorkspacePicker(registry?: Registry): void {
           return controller
             ? workspacePickerView(controller.getSnapshot(), controller, {
                 ids: element.ids,
+                locale: localeOf(element),
               })
             : null
         },
@@ -105,7 +106,10 @@ export function defineAiFileChangeTree(registry?: Registry): void {
         ],
         view: () =>
           review
-            ? fileTreeView(review.getSnapshot(), tree, { ids: element.ids })
+            ? fileTreeView(review.getSnapshot(), tree, {
+                ids: element.ids,
+                locale: localeOf(element),
+              })
             : null,
       }
     },
@@ -127,6 +131,7 @@ export function defineAiDiffViewer(registry?: Registry): void {
           const review = p.review as ReviewController | undefined
           if (!review) return null
           const state = review.getSnapshot()
+          const locale = localeOf(element)
           const entry = state.selectedPath
             ? state.diffs[state.selectedPath]
             : undefined
@@ -144,7 +149,7 @@ export function defineAiDiffViewer(registry?: Registry): void {
                 entry?.status === 'error'
                   ? entry.error
                   : entry?.status === 'loading'
-                    ? 'Loading diff…'
+                    ? locale.previewLoading
                     : '',
               ),
             )
@@ -154,6 +159,7 @@ export function defineAiDiffViewer(registry?: Registry): void {
             (element.getAttribute('layout') as DiffLayout | null) ?? 'unified'
           return diffView(entry.diff, layout, review, {
             ids: element.ids,
+            locale,
             onFocusRow: rowId =>
               element.ownerDocument
                 .getElementById(element.ids.id(`row-${rowId}`))
@@ -167,6 +173,7 @@ export function defineAiDiffViewer(registry?: Registry): void {
             const state = review.getSnapshot()
             const node = hunkCommentsView(state.comments, hunkId, {
               ids: element.ids,
+              locale: localeOf(element),
               draft: drafts.get(hunkId) ?? '',
               onDraft: value => {
                 drafts.set(hunkId, value)
@@ -203,6 +210,7 @@ export function defineAiTestReport(registry?: Registry): void {
           return controller
             ? testReportView(controller.getSnapshot(), controller, {
                 ids: element.ids,
+                locale: localeOf(element),
               })
             : null
         },
@@ -226,7 +234,9 @@ export function defineAiChangesetActions(registry?: Registry): void {
             | ChangeSetActionsController
             | undefined
           return controller
-            ? changeSetActionsView(controller.getSnapshot(), controller)
+            ? changeSetActionsView(controller.getSnapshot(), controller, {
+                locale: localeOf(element),
+              })
             : null
         },
       }

@@ -15,8 +15,11 @@
  * `main.ts`, and the two chat modes share them.
  */
 
+import type { CopyScope } from '../copy'
 import type { ChatTurn, LocalConversation } from './conversations'
 import type { ChatMessage } from './gateway'
+import { createCopy, refreshOnLanguageChange } from '../copy'
+import { t } from '../locale'
 import { conversationStore, createConversation } from './conversations'
 import { GatewayError, sendChat } from './gateway'
 import { keyRecordId, providerStore } from './profiles'
@@ -34,6 +37,11 @@ export interface ByokChatOptions {
 }
 
 export function mountByokChat(options: ByokChatOptions): () => void {
+  // One copy scope for the panel; the language subscription below re-runs it
+  // without touching the conversation, the streaming turn or the composer.
+  const copy: CopyScope = createCopy()
+  const stopCopy = refreshOnLanguageChange(copy)
+
   const root = document.createElement('section')
   root.className = 'byok'
   root.dataset.testid = 'byok-chat'
@@ -49,16 +57,15 @@ export function mountByokChat(options: ByokChatOptions): () => void {
   empty.dataset.testid = 'byok-welcome'
   const emptyTitle = document.createElement('p')
   emptyTitle.className = 'byok-empty-title'
-  emptyTitle.textContent = 'Configure a model to start'
+  copy.node(emptyTitle, 'byok.emptyTitle')
   const emptyCopy = document.createElement('p')
   emptyCopy.className = 'byok-empty-copy'
-  emptyCopy.textContent =
-    'Add an OpenAI-compatible gateway in Settings. Requests go straight from this browser to your provider; the key is encrypted in this browser behind your passphrase.'
+  copy.node(emptyCopy, 'byok.emptyCopy')
   const emptyAction = document.createElement('button')
   emptyAction.type = 'button'
   emptyAction.className = 'byok-link'
   emptyAction.dataset.testid = 'byok-open-settings'
-  emptyAction.textContent = 'Open provider settings'
+  copy.node(emptyAction, 'byok.openSettings')
   emptyAction.addEventListener('click', () => {
     window.dispatchEvent(new CustomEvent('byok:open-settings'))
   })
@@ -79,11 +86,11 @@ export function mountByokChat(options: ByokChatOptions): () => void {
   const retry = document.createElement('button')
   retry.type = 'button'
   retry.dataset.testid = 'byok-retry'
-  retry.textContent = 'Retry'
+  copy.node(retry, 'byok.retry')
   retry.hidden = true
   const errorDismiss = document.createElement('button')
   errorDismiss.type = 'button'
-  errorDismiss.textContent = 'Dismiss'
+  copy.node(errorDismiss, 'byok.dismiss')
   errorDismiss.addEventListener('click', () => {
     errorLine.hidden = true
     retry.hidden = true
@@ -97,16 +104,16 @@ export function mountByokChat(options: ByokChatOptions): () => void {
   const input = document.createElement('textarea')
   input.className = 'byok-input'
   input.rows = 1
-  input.placeholder = 'Ask anything'
   input.dataset.testid = 'byok-input'
-  input.setAttribute('aria-label', 'Message')
+  copy.attr(input, 'placeholder', 'workbench.composerPlaceholder')
+  copy.attr(input, 'aria-label', 'byok.messageLabel')
 
   const plus = document.createElement('button')
   plus.type = 'button'
   plus.className = 'byok-plus'
-  plus.setAttribute('aria-label', 'Add files and more')
+  copy.attr(plus, 'aria-label', 'byok.addFiles')
   plus.disabled = true
-  plus.title = 'Attachments are not supported by the browser gateway yet'
+  copy.attr(plus, 'title', 'byok.attachmentsUnsupported')
   plus.innerHTML =
     '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'
 
@@ -114,7 +121,7 @@ export function mountByokChat(options: ByokChatOptions): () => void {
   send.type = 'submit'
   send.className = 'byok-send'
   send.dataset.testid = 'byok-send'
-  send.setAttribute('aria-label', 'Send')
+  copy.attr(send, 'aria-label', 'byok.send')
   send.innerHTML =
     '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>'
 
@@ -122,7 +129,7 @@ export function mountByokChat(options: ByokChatOptions): () => void {
   stop.type = 'button'
   stop.className = 'byok-send is-stop'
   stop.dataset.testid = 'byok-stop'
-  stop.setAttribute('aria-label', 'Stop generating')
+  copy.attr(stop, 'aria-label', 'byok.stop')
   stop.innerHTML =
     '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>'
   stop.hidden = true
@@ -131,7 +138,7 @@ export function mountByokChat(options: ByokChatOptions): () => void {
 
   const hint = document.createElement('p')
   hint.className = 'byok-hint'
-  hint.textContent = 'Enter to send · Shift+Enter for a new line'
+  copy.node(hint, 'byok.hint')
 
   composerStack.append(errorLine, composer, hint)
   options.composerHost.append(composerStack)
@@ -158,10 +165,12 @@ export function mountByokChat(options: ByokChatOptions): () => void {
 
   function renderHeader(): void {
     const provider = providerFor(currentConversation())
+    // Provider names and model ids are data: never translated. Only the
+    // fallback words around them come from the catalog.
     options.onTitle?.(
       provider
-        ? `${provider.name || 'Provider'} · ${provider.model || 'no model'}`
-        : 'No provider configured',
+        ? `${provider.name || t('byok.providerFallback')} · ${provider.model || t('byok.noModel')}`
+        : t('byok.noProviderConfigured'),
     )
   }
 
@@ -200,20 +209,24 @@ export function mountByokChat(options: ByokChatOptions): () => void {
 
     const actions = document.createElement('div')
     actions.className = 'byok-actions'
-    const copy = document.createElement('button')
-    copy.type = 'button'
-    copy.className = 'byok-action'
-    copy.setAttribute('aria-label', 'Copy response')
-    copy.innerHTML =
+    const copyButton = document.createElement('button')
+    copyButton.type = 'button'
+    copyButton.className = 'byok-action'
+    // The label is bound to the turn: it follows the language without
+    // re-rendering the turn (which would drop the streamed text node).
+    copy.attr(copyButton, 'aria-label', 'byok.copyResponse')
+    copyButton.innerHTML =
       '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
-    copy.addEventListener('click', () => {
+    copyButton.addEventListener('click', () => {
       void navigator.clipboard?.writeText(turn.content).catch(() => undefined)
     })
-    actions.append(copy)
+    actions.append(copyButton)
     if (turn.usage?.totalTokens) {
       const usage = document.createElement('span')
       usage.className = 'byok-usage'
-      usage.textContent = `${turn.usage.totalTokens} tokens`
+      copy.node(usage, 'byok.tokens', () => ({
+        count: turn.usage?.totalTokens ?? 0,
+      }))
       actions.append(usage)
     }
     article.append(body, actions)
@@ -270,15 +283,15 @@ export function mountByokChat(options: ByokChatOptions): () => void {
     if (!text || controller) return
     const profile = providerFor(currentConversation())
     if (!profile) {
-      showError('Add and activate a provider in Settings first.', false)
+      showError(t('byok.addProviderFirst'), false)
       return
     }
     const apiKey = await resolveKey()
     if (!apiKey) {
       showError(
         vault.getState().status === 'unlocked'
-          ? 'This provider has no saved key. Add one in Settings.'
-          : 'Unlock the vault to use the saved key.',
+          ? t('byok.noSavedKey')
+          : t('byok.unlockToUseKey'),
         false,
       )
       return
@@ -343,7 +356,7 @@ export function mountByokChat(options: ByokChatOptions): () => void {
       if (result.usage) assistantTurn.usage = result.usage
       if (node) node.textContent = result.text
       if (result.finishReason === 'length') {
-        showError('The answer was cut off at the token limit.', false)
+        showError(t('byok.truncated'), false)
       }
     } catch (cause) {
       const message =
@@ -352,14 +365,12 @@ export function mountByokChat(options: ByokChatOptions): () => void {
             ? `${cause.message} ${cause.hint}`
             : cause.message
           : cause instanceof Error && cause.name === 'AbortError'
-            ? 'Stopped.'
+            ? t('byok.stopped')
             : String(cause)
       const aborted =
         (cause instanceof Error && cause.name === 'AbortError') ||
         controller?.signal.aborted === true
-      assistantTurn.error = aborted
-        ? 'Stopped before the answer finished.'
-        : message
+      assistantTurn.error = aborted ? t('byok.stoppedBeforeFinished') : message
       if (!aborted) lastFailedPrompt = text
       if (node && !assistantTurn.content) node.textContent = ''
       showError(message, !aborted && Boolean(lastFailedPrompt))
@@ -443,6 +454,8 @@ export function mountByokChat(options: ByokChatOptions): () => void {
   renderThread()
 
   return () => {
+    stopCopy()
+    copy.dispose()
     controller?.abort()
     unsubscribeConversations()
     unsubscribeProviders()

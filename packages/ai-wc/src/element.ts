@@ -14,10 +14,10 @@
  *   projected into that slot.
  */
 
-import type { ViewNode } from '@zeus-web/ai-primitives'
+import type { AiLocale, ViewNode } from '@zeus-web/ai-primitives'
 import type { PatchOptions, SlotRenderer } from './patch'
 
-import { idScopeFrom } from '@zeus-web/ai-primitives'
+import { EN_LOCALE, idScopeFrom } from '@zeus-web/ai-primitives'
 import { patchChildren } from './patch'
 
 let instanceCounter = 0
@@ -30,12 +30,33 @@ export interface AiElementHooks {
   afterRender?: () => void
 }
 
-export interface AiElementInstance extends HTMLElement {
+/**
+ * Locale properties shared by every `zw-ai-*` element.
+ *
+ * `locale` is a full `AiLocale` (object: DOM property only, never serialized).
+ * `messages` is a partial override merged on top of `locale`, so an app can
+ * translate only the strings it actually shows. Setting either re-renders text
+ * in place; subscriptions and controllers are never torn down for it.
+ */
+export interface AiLocalizable {
+  locale?: AiLocale
+  messages?: Partial<AiLocale>
+}
+
+export interface AiElementInstance extends HTMLElement, AiLocalizable {
   requestRender: () => void
   /** Re-run subscriptions after a property changed. */
   reconnect: () => void
   readonly ids: ReturnType<typeof idScopeFrom>
   projected: (name: string) => readonly Node[]
+}
+
+/** The locale an element should render with, in precedence order. */
+export function localeOf(element: AiElementInstance): AiLocale {
+  const base = element.locale ?? EN_LOCALE
+  const overrides = element.messages
+  if (!overrides) return base
+  return { ...base, ...overrides }
 }
 
 type HooksFactory = (element: AiElementInstance) => AiElementHooks
@@ -63,6 +84,10 @@ export function defineAiElement(
     }
 
     readonly ids = idScopeFrom(`zw-ai-el${(instanceCounter += 1)}`)
+    /** Injected locale; see {@link AiLocalizable}. */
+    declare locale: AiLocale | undefined
+    /** Partial locale overrides merged over `locale`. */
+    declare messages: Partial<AiLocale> | undefined
     private cleanups: (() => void)[] = []
     private scheduled = false
     private connected = false
@@ -87,6 +112,24 @@ export function defineAiElement(
             if (Object.is(this.values[name], value)) return
             this.values[name] = value
             this.reconnect()
+          },
+        })
+      }
+      // Locale is presentation only: switching language re-renders the text in
+      // place and must not tear down subscriptions, controllers or streaming.
+      for (const name of ['locale', 'messages']) {
+        // eslint-disable-next-line e18e/prefer-object-has-own
+        if (Object.prototype.hasOwnProperty.call(this, name)) {
+          this.values[name] = (this as unknown as Record<string, unknown>)[name]
+          delete (this as unknown as Record<string, unknown>)[name]
+        }
+        Object.defineProperty(this, name, {
+          configurable: true,
+          get: () => this.values[name],
+          set: (value: unknown) => {
+            if (Object.is(this.values[name], value)) return
+            this.values[name] = value
+            this.requestRender()
           },
         })
       }

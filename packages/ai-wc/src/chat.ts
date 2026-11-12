@@ -40,7 +40,6 @@ import {
   composerView,
   describePart,
   el,
-  EN_LOCALE,
   getCitationListParts,
   getConversationListParts,
   getMessageParts,
@@ -48,7 +47,13 @@ import {
   messageView,
   timelineView,
 } from '@zeus-web/ai-primitives'
-import { defineAiElement, elementSlot, emit, projectSlot } from './element'
+import {
+  defineAiElement,
+  elementSlot,
+  emit,
+  localeOf,
+  projectSlot,
+} from './element'
 
 type Registry = CustomElementRegistry | undefined
 
@@ -95,6 +100,7 @@ export function defineAiComposer(registry?: Registry): void {
           const picker = p.contextPicker as ContextPicker | undefined
           return composerView(controller.getSnapshot(), controller, {
             ids: element.ids,
+            locale: localeOf(element),
             label: element.getAttribute('label') ?? undefined,
             disabled: element.hasAttribute('disabled'),
             menu: picker
@@ -196,8 +202,10 @@ export function defineAiMessage(registry?: Registry): void {
           const conversation = p.conversation as
             | ConversationController
             | undefined
+          const locale = localeOf(element)
           const parts = getMessageParts(message, {
             ids: element.ids,
+            locale,
             branch: conversation?.getSnapshot().branches[message.id],
             conversation,
             copy: copyText,
@@ -205,6 +213,7 @@ export function defineAiMessage(registry?: Registry): void {
           })
           const content = messageContentView(message.parts.map(blockOf), {
             copy: copyText,
+            locale,
             allowRemoteImages: element.hasAttribute('allow-remote-images'),
           })
           return messageView(parts, content)
@@ -351,12 +360,14 @@ export function defineAiMessageTimeline(registry?: Registry): void {
         },
         view: () => {
           if (!p.session || !p.conversation) return null
+          const locale = localeOf(element)
           return timelineView(timeline.getSnapshot(), timeline, {
             ids: element.ids,
+            locale,
             label:
-              element.getAttribute('label') ?? EN_LOCALE.conversationListLabel,
+              element.getAttribute('label') ?? locale.conversationListLabel,
             busy,
-            announcement: busy ? 'Generating response' : '',
+            announcement: busy ? locale.generatingResponse : '',
             onFocusItem: id =>
               element.ownerDocument
                 .getElementById(element.ids.id(`message-${id}`))
@@ -364,11 +375,15 @@ export function defineAiMessageTimeline(registry?: Registry): void {
           })
         },
         slots: () => ({
+          // Locale travels with the child so a language switch reaches every
+          // message without rebuilding any of them.
           message: elementSlot('zw-ai-message', data => ({
             session: p.session,
             conversation: p.conversation,
             renderers: p.renderers,
             messageId: (data as { messageId: EntityId }).messageId,
+            locale: element.locale,
+            messages: element.messages,
           })),
         }),
         afterRender: () => {
@@ -410,7 +425,9 @@ export function defineAiCitationList(registry?: Registry): void {
       view: () => {
         const citations =
           (props(element).citations as readonly Citation[] | undefined) ?? []
-        const parts = getCitationListParts(citations)
+        const parts = getCitationListParts(citations, {
+          locale: localeOf(element),
+        })
         return el(
           'ul',
           parts.root,
@@ -453,7 +470,9 @@ export function defineAiArtifactPreview(registry?: Registry): void {
         view: () => {
           const controller = p.controller as ArtifactController | undefined
           return controller
-            ? artifactPreviewView(controller.getSnapshot().preview)
+            ? artifactPreviewView(controller.getSnapshot().preview, {
+                locale: localeOf(element),
+              })
             : null
         },
         slots: () => ({
@@ -475,7 +494,7 @@ export function defineAiArtifactPreview(registry?: Registry): void {
               const frame = doc.createElement('iframe')
               frame.setAttribute('sandbox', '')
               frame.setAttribute('referrerpolicy', 'no-referrer')
-              frame.title = 'Artifact preview'
+              frame.title = localeOf(element).artifactPreviewLabel
               frame.srcdoc = new TextDecoder().decode(preview.bytes)
               wrapper.replaceChildren(frame)
               return
@@ -511,6 +530,7 @@ export function defineAiConversationList(registry?: Registry): void {
           conversations,
           p.selectedId as string | undefined,
           id => emit(element, 'zw-ai-select', { conversationId: id }),
+          { locale: localeOf(element) },
         )
         return el(
           'ul',

@@ -31,7 +31,7 @@ import {
   toolInvocationView,
   trapFocus,
 } from '@zeus-web/ai-primitives'
-import { defineAiElement, elementSlot, emit } from './element'
+import { defineAiElement, elementSlot, emit, localeOf } from './element'
 
 type Registry = CustomElementRegistry | undefined
 
@@ -64,7 +64,9 @@ export function defineAiExecutionStatus(registry?: Registry): void {
         view: () => {
           const controller = p.controller as ExecutionController | undefined
           return controller
-            ? executionStatusView(controller.getSnapshot(), controller)
+            ? executionStatusView(controller.getSnapshot(), controller, {
+                locale: localeOf(element),
+              })
             : null
         },
       }
@@ -108,7 +110,7 @@ export function defineAiToolInvocation(registry?: Registry): void {
               expanded = !expanded
               element.requestRender()
             },
-            { ids: element.ids },
+            { ids: element.ids, locale: localeOf(element) },
           )
         },
       }
@@ -148,7 +150,7 @@ export function defineAiStep(registry?: Registry): void {
           if (!session || !step) return null
           const tool = selectStepTool(session.store.getState(), step.id)
           return el('div', { attrs: { 'data-step-id': step.id } }, [
-            stepRowView(step),
+            stepRowView(step, { locale: localeOf(element) }),
             tool && { type: 'slot', name: 'tool', data: tool.id, key: tool.id },
           ])
         },
@@ -156,6 +158,8 @@ export function defineAiStep(registry?: Registry): void {
           tool: elementSlot('zw-ai-tool-invocation', data => ({
             session: p.session,
             toolId: data as EntityId,
+            locale: element.locale,
+            messages: element.messages,
           })),
         }),
       }
@@ -205,15 +209,18 @@ export function defineAiStepList(registry?: Registry): void {
             selectStepTree(session.store.getState(), executionId),
             p.kinds as readonly ExecutionStep['kind'][] | undefined,
           )
+          const locale = localeOf(element)
           return stepTreeView(roots, tree, {
             ids: element.ids,
-            label: element.getAttribute('label') ?? 'Steps',
+            label: element.getAttribute('label') ?? locale.stepsLabel,
           })
         },
         slots: () => ({
           step: elementSlot('zw-ai-step', data => ({
             session: p.session,
             stepId: (data as { stepId: EntityId }).stepId,
+            locale: element.locale,
+            messages: element.messages,
           })),
         }),
       }
@@ -256,6 +263,7 @@ export function defineAiApprovalPrompt(registry?: Registry): void {
           if (!controller) return null
           return approvalPromptView(controller.getSnapshot(), controller, {
             ids: element.ids,
+            locale: localeOf(element),
             confirmationPhrase:
               element.getAttribute('confirmation-phrase') ?? undefined,
             confirmationInput: confirmation,
@@ -305,6 +313,7 @@ export function defineAiRunSwitcher(registry?: Registry): void {
           if (!controller) return null
           return runSwitcherView(controller.getSnapshot(), controller, {
             ids: element.ids,
+            locale: localeOf(element),
             title:
               (p.titleOf as ((id: EntityId) => string) | undefined) ??
               (id => id),
