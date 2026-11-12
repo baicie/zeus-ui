@@ -365,6 +365,40 @@
   margin: 0 auto;
 }
 
+/*
+ * Language row. It borrows the existing pill switch and the settings type
+ * scale, so it reads as one line of the settings page rather than a new
+ * surface. No new colour, radius or spacing token is introduced.
+ */
+.wb-settings-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 4px 0 16px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+
+.wb-settings-section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.wb-settings-section-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.wb-settings-section-copy {
+  color: var(--wb-text-muted);
+  font-size: 13px;
+  line-height: 20px;
+}
+
 /* -------------------------------------------------------------- settings */
 .providers {
   display: flex;

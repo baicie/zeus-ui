@@ -13,6 +13,7 @@
     "@zeus-js/zeus": "0.1.1-beta.20",
     "@zeus-web/ai-adapters": "workspace:*",
     "@zeus-web/ai-core": "workspace:*",
+    "@zeus-web/ai-primitives": "workspace:*",
     "@zeus-web/ai-wc": "workspace:*"
   },
   "devDependencies": {

@@ -235,23 +235,31 @@ export function getApprovalPromptParts(
 
   const details = approval
     ? [
-        { key: 'operation', label: 'Action', value: approval.operation.kind },
-        { key: 'target', label: 'Target', value: approval.operation.target },
+        {
+          key: 'operation',
+          label: locale.approvalFieldAction,
+          value: approval.operation.kind,
+        },
+        {
+          key: 'target',
+          label: locale.approvalFieldTarget,
+          value: approval.operation.target,
+        },
         {
           key: 'scope',
-          label: 'Scope',
+          label: locale.approvalFieldScope,
           value: locale.approvalScope[approval.scope],
         },
         {
           key: 'risk',
-          label: 'Risk',
+          label: locale.approvalFieldRisk,
           value: locale.approvalRisk[approval.risk],
         },
         ...(approval.expiresAt
           ? [
               {
                 key: 'expires',
-                label: 'Expires',
+                label: locale.approvalFieldExpires,
                 value: locale.formatTime(approval.expiresAt),
               },
             ]
@@ -260,7 +268,7 @@ export function getApprovalPromptParts(
           ? [
               {
                 key: 'preview',
-                label: 'Details',
+                label: locale.approvalFieldDetails,
                 value: redactPreview(approval.operation.preview).text,
               },
             ]

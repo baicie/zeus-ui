@@ -1022,7 +1022,7 @@ export function hunkCommentsView(
                   part(
                     { type: 'button' },
                     { click: () => options.onSubmit(comment.id) },
-                    'Submit',
+                    locale.submitComment,
                   ),
                 ),
               comment.error &&

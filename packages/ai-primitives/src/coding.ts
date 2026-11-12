@@ -278,11 +278,7 @@ export function getDiffViewerParts(
       ),
     })),
     truncated: diff.truncated
-      ? part(
-          { role: 'note' },
-          undefined,
-          'Diff truncated; open the full file to see the rest.',
-        )
+      ? part({ role: 'note' }, undefined, locale.diffTruncated)
       : undefined,
   }
 }

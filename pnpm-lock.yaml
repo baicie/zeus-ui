@@ -403,6 +403,9 @@ importers:
       '@zeus-web/ai-core':
         specifier: workspace:*
         version: link:../../packages/ai-core
+      '@zeus-web/ai-primitives':
+        specifier: workspace:*
+        version: link:../../packages/ai-primitives
       '@zeus-web/ai-wc':
         specifier: workspace:*
         version: link:../../packages/ai-wc

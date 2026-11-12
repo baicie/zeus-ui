@@ -12,6 +12,7 @@ import {
   createEventFactory,
   createMockHost,
 } from '@zeus-web/ai-core'
+import { ZH_CN_LOCALE } from '@zeus-web/ai-primitives'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   defineAiApprovalPrompt,
@@ -173,6 +174,43 @@ describe('zw-ai-message / timeline', () => {
     expect(element.querySelectorAll('script, a, [onerror]')).toHaveLength(0)
     expect(element.querySelector('code')?.textContent).toBe('code')
     expect(element.textContent).toContain('<script>alert(1)</script>')
+  })
+
+  it('re-renders text for a new locale without rebuilding messages', async () => {
+    defineAiMessageTimeline()
+    const { session, emit } = setup()
+    emit('message.created', 'm1', message('m1', 'first'))
+    const conversation = createConversationController({
+      session,
+      conversationId: 'conv-1',
+    })
+    const element = Object.assign(
+      document.createElement('zw-ai-message-timeline'),
+      { session, conversation },
+    )
+    document.body.append(element)
+    await tick()
+
+    const messageNode = element.querySelector('zw-ai-message')
+    const copyButton = element.querySelector('zw-ai-message button')
+    expect(copyButton?.getAttribute('aria-label')).toBe('Copy')
+    const child = messageNode as HTMLElement & {
+      locale?: unknown
+      messages?: unknown
+    }
+
+    child.locale = ZH_CN_LOCALE
+    await tick()
+
+    // The message element and its button are reused; only the copy changes.
+    expect(element.querySelector('zw-ai-message')).toBe(messageNode)
+    expect(element.querySelector('zw-ai-message button')).toBe(copyButton)
+    expect(copyButton?.getAttribute('aria-label')).toBe('复制')
+
+    // `messages` is a partial override layered on top of `locale`.
+    child.messages = { copy: 'Kopieren' }
+    await tick()
+    expect(copyButton?.getAttribute('aria-label')).toBe('Kopieren')
   })
 
   it('streams into one message element and keeps the others untouched', async () => {
