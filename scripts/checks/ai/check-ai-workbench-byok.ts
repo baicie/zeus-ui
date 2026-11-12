@@ -280,6 +280,7 @@ async function runBrowser(
       ['mock-split', 'split works'],
       ['mock-nodone', 'mock reply to'],
       ['mock-partial', 'upstream stream failed'],
+      ['mock-reasoning', 'reasoned answer'],
     ] as const) {
       await page.getByTestId('open-settings').click()
       await page.getByTestId('provider-field-model').fill(model)
@@ -296,6 +297,20 @@ async function runBrowser(
         { timeout: 20_000 },
       )
       record(checks, `${model} is handled (${expected})`, true)
+      if (model === 'mock-reasoning') {
+        // Reasoning frames must not leak into the answer.
+        const leakedReasoning = await page.evaluate(
+          `(() => {
+            const view = document.querySelector('[data-testid="byok-thread"]')
+            return /weighing the question/.test(view ? view.textContent : '')
+          })()`,
+        )
+        record(
+          checks,
+          'reasoning deltas are not shown as the answer',
+          leakedReasoning === false,
+        )
+      }
     }
 
     /* ------------------------------------------------------------ locking */

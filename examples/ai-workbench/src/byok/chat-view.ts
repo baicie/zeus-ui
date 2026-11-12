@@ -419,10 +419,26 @@ export function mountByokChat(options: ByokChatOptions): ByokChatView {
         .get(assistantTurn.id)
         ?.querySelector<HTMLElement>('[data-testid="byok-body"]')
 
+      /*
+       * Reasoning models answer slowly and, before the first token of the
+       * answer, stream only `delta.reasoning_content`. Without a visible
+       * thinking state those seconds look exactly like a hung page — which is
+       * one of the ways this demo stopped feeling like a real chat. The
+       * placeholder is replaced by the first content delta and is never part
+       * of the saved answer.
+       */
+      const thinking = (): void => {
+        if (token !== conversationToken || !node) return
+        if (assistantTurn.content.length > 0) return
+        node.classList.add('is-thinking')
+        node.textContent = t('byok.thinking')
+      }
+
       const owned = new AbortController()
       controller = owned
       send.hidden = true
       stop.hidden = false
+      thinking()
       try {
         const history: ChatMessage[] = active.turns
           .filter(turn => !turn.error && turn.content.length > 0)
@@ -433,9 +449,15 @@ export function mountByokChat(options: ByokChatOptions): ByokChatView {
           onText: accumulated => {
             assistantTurn.content = accumulated
             if (token === conversationToken && node) {
+              node.classList.remove('is-thinking')
               node.textContent = accumulated
               scrollToBottom()
             }
+          },
+          onReasoning: () => {
+            // The reasoning text itself is not part of the answer; only its
+            // arrival matters here.
+            thinking()
           },
           onUsage: usage => {
             assistantTurn.usage = usage
@@ -446,7 +468,12 @@ export function mountByokChat(options: ByokChatOptions): ByokChatView {
         if (token === conversationToken && node) {
           node.textContent = result.text
         }
-        if (result.finishReason === 'length') {
+        if (result.finishReason === 'aborted') {
+          // A cancelled stream resolves normally with what arrived so far, so
+          // the catch below never sees a Stop. Without this the turn looked
+          // exactly like a finished answer.
+          assistantTurn.error = t('byok.stoppedBeforeFinished')
+        } else if (result.finishReason === 'length') {
           showError(t('byok.truncated'), false)
         }
       } catch (cause) {
@@ -461,6 +488,9 @@ export function mountByokChat(options: ByokChatOptions): ByokChatView {
             : aborted
               ? t('byok.stopped')
               : String(cause)
+        // Mark the turn whether or not text had arrived: a Stop that leaves
+        // no trace reads as "nothing happened", even though the request was
+        // really cancelled.
         assistantTurn.error = aborted
           ? t('byok.stoppedBeforeFinished')
           : message
@@ -472,6 +502,7 @@ export function mountByokChat(options: ByokChatOptions): ByokChatView {
           showError(message, !aborted && Boolean(lastFailedPrompt))
         }
       } finally {
+        node?.classList.remove('is-thinking')
         if (controller === owned) {
           controller = undefined
           send.hidden = false

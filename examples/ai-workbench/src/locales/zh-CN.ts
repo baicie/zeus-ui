@@ -124,6 +124,7 @@ export const zhCN: Record<WorkbenchMessageKey, string> = {
   'byok.noProviderConfigured': '未配置服务商',
   'byok.providerFallback': '服务商',
   'byok.noModel': '无模型',
+  'byok.thinking': '正在思考…',
   'byok.stopped': '已停止。',
   'byok.stoppedBeforeFinished': '回答未完成即被停止。',
   'byok.truncated': '回答在 token 上限处被截断。',

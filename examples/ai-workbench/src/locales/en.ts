@@ -125,6 +125,7 @@ export const en = {
   'byok.noProviderConfigured': 'No provider configured',
   'byok.providerFallback': 'Provider',
   'byok.noModel': 'no model',
+  'byok.thinking': 'Thinking…',
   'byok.stopped': 'Stopped.',
   'byok.stoppedBeforeFinished': 'Stopped before the answer finished.',
   'byok.truncated': 'The answer was cut off at the token limit.',

@@ -90,6 +90,17 @@
   overflow-wrap: anywhere;
 }
 
+/*
+ * While a reasoning model has not produced its first answer token, the body
+ * shows a quiet "Thinking…" line. It is removed the moment real content
+ * arrives, and it is never stored as part of the answer.
+ */
+.byok-body.is-thinking {
+  color: var(--wb-text-muted);
+  font-size: 14px;
+  font-style: italic;
+}
+
 .byok-turn[data-author='user'] .byok-body {
   max-width: min(85%, 600px);
   padding: 10px 16px;
@@ -1070,6 +1081,17 @@ zw-ai-composer ul li {
 }
 
 @media (max-width: 767px) {
+  /*
+ * While a reasoning model has not produced its first answer token, the body
+ * shows a quiet "Thinking…" line. It is removed the moment real content
+ * arrives, and it is never stored as part of the answer.
+ */
+  .byok-body.is-thinking {
+    color: var(--wb-text-muted);
+    font-size: 14px;
+    font-style: italic;
+  }
+
   .byok-turn[data-author='user'] .byok-body {
     max-width: 92%;
   }

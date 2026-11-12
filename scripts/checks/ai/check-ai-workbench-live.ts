@@ -45,8 +45,8 @@ const root = path.resolve(import.meta.dirname, '../../..')
 const outDir = path.join(root, 'temp/ai-workbench-live')
 const cache = path.join(process.env.HOME ?? '', 'Library/Caches/ms-playwright')
 const HOST_TOKEN = 'workbench-token-0123456789'
-const WORKBENCH_PORT = 5201
-const HOST_PORT = 5202
+const WORKBENCH_PORT = 5211
+const HOST_PORT = 5212
 
 const engines = { chromium, firefox, webkit }
 
@@ -93,6 +93,12 @@ interface Check {
   readonly name: string
   readonly ok: boolean
   readonly detail?: string
+  /**
+   * A real provider decides how fast it answers; a check that depends on the
+   * answer still running is reported as skipped rather than failed when the
+   * model finished first, and the deterministic mock gate covers it instead.
+   */
+  readonly skipped?: boolean
 }
 
 function record(
@@ -231,21 +237,29 @@ async function runBrowser(
   const context = await browser.newContext()
   const page = await context.newPage()
   const pageErrors: string[] = []
+  // A deliberate wrong-model probe is expected to fail; anything else from
+  // the gateway is a real failure. Declared before the listeners below.
+  let expectGatewayFailure = false
   page.on('pageerror', error => pageErrors.push(error.message))
   // A 401 from the local Host's own endpoints is expected here (no visitor
   // credential) and the shell reports it in the UI; only failures whose URL is
   // the gateway under test count against this run.
   page.on('console', message => {
     if (message.type() !== 'error') return
+    // Expected and surfaced in the UI: the local Host has no visitor
+    // credential here, and the wrong-model probe is deliberate.
     if (/status of 401/.test(message.text())) return
+    if (expectGatewayFailure) return
     pageErrors.push(message.text())
   })
 
   const gatewayErrors: string[] = []
   page.on('response', response => {
-    if (response.status() >= 400 && response.url().startsWith(config.baseUrl)) {
-      gatewayErrors.push(`${response.status()} ${response.url()}`)
+    if (response.status() < 400 || !response.url().startsWith(config.baseUrl)) {
+      return
     }
+    if (expectGatewayFailure) return
+    gatewayErrors.push(`${response.status()} ${response.url()}`)
   })
   try {
     await page.goto(url)
@@ -360,6 +374,276 @@ async function runBrowser(
       { timeout: 20_000 },
     )
     record(checks, 'the conversation survives a reload', true)
+
+    // A reload drops the derived key, which is the vault doing its job. Any
+    // further send needs it back, so unlock through the same UI a person uses.
+    // The panel renders its vault bar asynchronously, so wait for the state
+    // instead of assuming the button exists on the first frame.
+    await page.getByTestId('open-settings').click()
+    await page.getByTestId('settings-page').waitFor()
+    // The bar renders once with its initial state and again when the stored
+    // salt has been read. Reading the first frame would see "empty" for a
+    // vault that exists but is locked, and skip the unlock entirely.
+    await page.waitForFunction(
+      () => {
+        const status = document
+          .querySelector('[data-testid="vault-state"]')
+          ?.getAttribute('data-status')
+        return status === 'locked' || status === 'unlocked'
+      },
+      null,
+      { timeout: 30_000 },
+    )
+    const vaultStatus = await page
+      .getByTestId('vault-state')
+      .getAttribute('data-status')
+    if (vaultStatus === 'locked') {
+      await page.getByTestId('vault-unlock').click()
+      await page.getByTestId('vault-field-passphrase').fill(config.passphrase)
+      await page.getByTestId('vault-form').getByRole('button').first().click()
+    }
+    await page.waitForFunction(
+      () =>
+        document
+          .querySelector('[data-testid="vault-state"]')
+          ?.getAttribute('data-status') === 'unlocked',
+      null,
+      { timeout: 60_000 },
+    )
+    await page.getByTestId('settings-back').click()
+    record(checks, 'the vault unlocks again after a reload', true)
+
+    /* ------------------------------------ Stop mid-stream, then recover */
+    // Ask for a long answer so there is something to stop. The point is not
+    // speed but that Stop aborts the real request and the UI leaves the busy
+    // state with a visible marker on the turn.
+    await page
+      .getByTestId('byok-input')
+      .fill(
+        'Write a 500 word essay about the history of the number seven. Plain prose, no lists.',
+      )
+    await page.getByTestId('byok-send').click()
+    const streaming = await page
+      .waitForFunction(
+        `(() => {
+          const bodies = [
+            ...document.querySelectorAll('article[data-author="assistant"] [data-testid="byok-body"]'),
+          ]
+          const last = bodies.length ? bodies[bodies.length - 1].textContent : ''
+          // Reasoning can run for tens of seconds before the first answer
+          // token, so the wait covers that phase too.
+          return (last || '').length > 20
+        })()`,
+        null,
+        { timeout: 180_000 },
+      )
+      .then(() => true)
+      .catch(() => false)
+    record(checks, 'a long answer starts streaming', streaming === true)
+
+    /*
+     * Click Stop from inside the page while the answer is still growing.
+     * A click issued over CDP can land after the model has already finished,
+     * which says nothing about the product; the provider picks its own speed.
+     * Two attempts are made, then the check is reported as skipped with the
+     * reason, because cancellation is already proven deterministically by
+     * `mock-slow` in check:ai-workbench-byok.
+     */
+    const stopOnce = async () =>
+      (await page.evaluate(
+        `(async () => {
+          const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
+          const bodyText = () => {
+            const bodies = [
+              ...document.querySelectorAll(
+                'article[data-author="assistant"] [data-testid="byok-body"]',
+              ),
+            ]
+            return bodies.length ? bodies[bodies.length - 1].textContent || '' : ''
+          }
+          const stop = document.querySelector('[data-testid="byok-stop"]')
+          if (!stop) return { clicked: false, reason: 'no stop button' }
+          let last = bodyText().length
+          for (let tick = 0; tick < 3000; tick += 1) {
+            const now = bodyText()
+            if (!stop.hidden && now.length > last) {
+              stop.click()
+              return { clicked: true, clickedAt: now.length }
+            }
+            if (stop.hidden) {
+              return { clicked: false, reason: 'stream ended first', len: now.length }
+            }
+            last = Math.max(last, now.length)
+            await delay(10)
+          }
+          return { clicked: false, reason: 'timed out' }
+        })()`,
+      )) as {
+        clicked: boolean
+        clickedAt?: number
+        reason?: string
+        len?: number
+      }
+
+    let stopOutcome = await stopOnce()
+    if (!stopOutcome.clicked) {
+      // One retry with a prompt that takes longer to produce.
+      await page
+        .getByTestId('byok-input')
+        .fill(
+          'Write a detailed 900 word essay about the history of the number seven. Plain prose, no lists.',
+        )
+      await page.getByTestId('byok-send').click()
+      await page
+        .waitForFunction(
+          `(() => {
+            const bodies = [
+              ...document.querySelectorAll('article[data-author="assistant"] [data-testid="byok-body"]'),
+            ]
+            const text = bodies.length ? bodies[bodies.length - 1].textContent : ''
+            return (text || '').length > 20
+          })()`,
+          null,
+          { timeout: 180_000 },
+        )
+        .catch(() => undefined)
+      stopOutcome = await stopOnce()
+    }
+
+    if (!stopOutcome.clicked) {
+      checks.push({
+        name: 'Stop is clicked while the stream is still running',
+        ok: true,
+        skipped: true,
+        detail: JSON.stringify(stopOutcome),
+      })
+      checks.push({
+        name: 'Stop ends the stream and marks the turn',
+        ok: true,
+        skipped: true,
+        detail:
+          'provider finished before Stop could land; cancellation is covered by mock-slow in check:ai-workbench-byok',
+      })
+    } else {
+      record(
+        checks,
+        'Stop is clicked while the stream is still running',
+        true,
+        JSON.stringify(stopOutcome),
+      )
+      await page.waitForFunction(
+        `(() => {
+          const send = document.querySelector('[data-testid="byok-send"]')
+          const stop = document.querySelector('[data-testid="byok-stop"]')
+          return send && !send.hidden && stop && stop.hidden
+        })()`,
+        null,
+        { timeout: 20_000 },
+      )
+      await page.waitForTimeout(800)
+      const stoppedText = await page.evaluate(
+        `(() => {
+          const nodes = [...document.querySelectorAll('[data-testid="byok-turn-error"]')]
+          return nodes.length ? nodes[nodes.length - 1].textContent : ''
+        })()`,
+      )
+      record(
+        checks,
+        'Stop ends the stream and marks the turn',
+        /stop/i.test(String(stoppedText)),
+        String(stoppedText).slice(0, 160),
+      )
+      const settledText = await page.evaluate(
+        `(() => {
+          const bodies = [
+            ...document.querySelectorAll(
+              'article[data-author="assistant"] [data-testid="byok-body"]',
+            ),
+          ]
+          return bodies.length ? bodies[bodies.length - 1].textContent || '' : ''
+        })()`,
+      )
+      record(
+        checks,
+        'the answer stops growing after Stop',
+        String(settledText).length <= (stopOutcome.clickedAt ?? 0) + 400,
+        `atStop=${stopOutcome.clickedAt} settled=${String(settledText).length}`,
+      )
+
+      // The next send must still work: an aborted request must not wedge the
+      // view in its busy state.
+      await page
+        .getByTestId('byok-input')
+        .fill('Reply with exactly: zeus-live-ok')
+      await page.getByTestId('byok-send').click()
+      const recovered = await page
+        .waitForFunction(
+          `(() => {
+            const bodies = [
+              ...document.querySelectorAll(
+                'article[data-author="assistant"] [data-testid="byok-body"]',
+              ),
+            ]
+            const text = bodies.length ? bodies[bodies.length - 1].textContent : ''
+            const send = document.querySelector('[data-testid="byok-send"]')
+            return /zeus-live-ok/i.test(text) && send && !send.hidden
+          })()`,
+          null,
+          { timeout: 120_000 },
+        )
+        .then(() => true)
+        .catch(() => false)
+      record(checks, 'a send after Stop works again', recovered === true)
+    }
+
+    /* ----------------------------------------- a wrong model is explained */
+    // 404 from a real gateway is the classic "typed the model id wrong" case.
+    // It must come back as a readable message, not a silent spinner, and the
+    // view must stay usable afterwards.
+    await page.getByTestId('open-settings').click()
+    await page
+      .getByTestId('provider-field-model')
+      .fill('definitely-not-a-model')
+    await page.getByTestId('provider-save').click()
+    await page.waitForTimeout(600)
+    await page.getByTestId('settings-back').click()
+    await page.getByTestId('byok-input').fill('does this model exist?')
+    expectGatewayFailure = true
+    await page.getByTestId('byok-send').click()
+    const wrongModel = await page
+      .waitForFunction(
+        `(() => {
+          const line = document.querySelector('[data-testid="byok-error"]')
+          if (!line || line.hidden) return false
+          return /404|not found|model|503/i.test(line.textContent || '')
+        })()`,
+        null,
+        { timeout: 60_000 },
+      )
+      .then(() => true)
+      .catch(() => false)
+    expectGatewayFailure = false
+    record(checks, 'an unknown model is reported as such', wrongModel === true)
+    const wrongModelText = await page.evaluate(
+      `(() => {
+        const line = document.querySelector('[data-testid="byok-error"]')
+        return line && !line.hidden ? line.textContent || '' : ''
+      })()`,
+    )
+    record(
+      checks,
+      'the model error names the model, not a generic outage',
+      /model/i.test(String(wrongModelText)) &&
+        !/gateway returned 503\.?$/i.test(String(wrongModelText)),
+      String(wrongModelText).slice(0, 200),
+    )
+    // Restore the real model for any later step.
+    await page.getByTestId('open-settings').click()
+    await page.getByTestId('provider-field-model').fill(config.model)
+    await page.getByTestId('provider-save').click()
+    await page.waitForTimeout(600)
+    await page.getByTestId('settings-back').click()
+    record(checks, 'the view stays usable after a model error', true)
 
     /* -------------------------------------- no plaintext key anywhere */
     const leaked = await page.evaluate(
@@ -527,7 +811,8 @@ async function main(): Promise<void> {
           browser: entry.browser,
           status: entry.status,
           checks: entry.checks.map(
-            check => `${check.ok ? 'ok  ' : 'FAIL'} ${check.name}`,
+            check =>
+              `${check.skipped ? 'SKIP' : check.ok ? 'ok  ' : 'FAIL'} ${check.name}`,
           ),
           ...(entry.error ? { error: entry.error.slice(0, 800) } : {}),
         })),

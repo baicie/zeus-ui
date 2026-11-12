@@ -5,8 +5,8 @@
   "mock": false,
   "keyFingerprintSha256Prefix": "acb200da3816",
   "note": "API key was supplied via ZEUS_LIVE_API_KEY at run time and is not recorded here.",
-  "createdAt": "2026-11-12T14:20:51.003Z",
-  "sourceCommit": "f984b84f5b9d88bbcecad619fdd04498fdc5e326",
+  "createdAt": "2026-11-12T15:03:25.643Z",
+  "sourceCommit": "12ee87670a3fa741c1ac95fe29218ff68705a77b",
   "results": [
     {
       "browser": "chromium",
@@ -33,7 +33,7 @@
         {
           "name": "the reply contains the requested token",
           "ok": true,
-          "detail": "zeus-live-ok.\nI'm Claude, made"
+          "detail": "zeus-live-ok\nI'm Claude, made by Anthropic"
         },
         {
           "name": "the second turn still knows the first one",
@@ -42,6 +42,46 @@
         },
         {
           "name": "the conversation survives a reload",
+          "ok": true
+        },
+        {
+          "name": "the vault unlocks again after a reload",
+          "ok": true
+        },
+        {
+          "name": "a long answer starts streaming",
+          "ok": true
+        },
+        {
+          "name": "Stop is clicked while the stream is still running",
+          "ok": true,
+          "detail": "{\"clicked\":true,\"clickedAt\":55}"
+        },
+        {
+          "name": "Stop ends the stream and marks the turn",
+          "ok": true,
+          "detail": "Stopped before the answer finished."
+        },
+        {
+          "name": "the answer stops growing after Stop",
+          "ok": true,
+          "detail": "atStop=55 settled=55"
+        },
+        {
+          "name": "a send after Stop works again",
+          "ok": true
+        },
+        {
+          "name": "an unknown model is reported as such",
+          "ok": true
+        },
+        {
+          "name": "the model error names the model, not a generic outage",
+          "ok": true,
+          "detail": "Request failed: this gateway has no channel for that model (503). Check the model id, or pick one from Load models.RetryDismiss"
+        },
+        {
+          "name": "the view stays usable after a model error",
           "ok": true
         },
         {
@@ -80,7 +120,7 @@
         {
           "name": "the reply contains the requested token",
           "ok": true,
-          "detail": "zeus-live-ok\nI am an AI assistant based on"
+          "detail": "zeus-live-ok.\n"
         },
         {
           "name": "the second turn still knows the first one",
@@ -89,6 +129,46 @@
         },
         {
           "name": "the conversation survives a reload",
+          "ok": true
+        },
+        {
+          "name": "the vault unlocks again after a reload",
+          "ok": true
+        },
+        {
+          "name": "a long answer starts streaming",
+          "ok": true
+        },
+        {
+          "name": "Stop is clicked while the stream is still running",
+          "ok": true,
+          "detail": "{\"clicked\":true,\"clickedAt\":89}"
+        },
+        {
+          "name": "Stop ends the stream and marks the turn",
+          "ok": true,
+          "detail": "Stopped before the answer finished."
+        },
+        {
+          "name": "the answer stops growing after Stop",
+          "ok": true,
+          "detail": "atStop=89 settled=89"
+        },
+        {
+          "name": "a send after Stop works again",
+          "ok": true
+        },
+        {
+          "name": "an unknown model is reported as such",
+          "ok": true
+        },
+        {
+          "name": "the model error names the model, not a generic outage",
+          "ok": true,
+          "detail": "Request failed: this gateway has no channel for that model (503). Check the model id, or pick one from Load models.RetryDismiss"
+        },
+        {
+          "name": "the view stays usable after a model error",
           "ok": true
         },
         {
@@ -127,15 +207,55 @@
         {
           "name": "the reply contains the requested token",
           "ok": true,
-          "detail": "zeus-live-ok.\nI'm Claude, made by Anthropic"
+          "detail": "zeus-live-ok.\nI'm Claude, made by Anthropic."
         },
         {
           "name": "the second turn still knows the first one",
           "ok": true,
-          "detail": "zeus-live-ok."
+          "detail": "zeus-live-ok"
         },
         {
           "name": "the conversation survives a reload",
+          "ok": true
+        },
+        {
+          "name": "the vault unlocks again after a reload",
+          "ok": true
+        },
+        {
+          "name": "a long answer starts streaming",
+          "ok": true
+        },
+        {
+          "name": "Stop is clicked while the stream is still running",
+          "ok": true,
+          "detail": "{\"clicked\":true,\"clickedAt\":107}"
+        },
+        {
+          "name": "Stop ends the stream and marks the turn",
+          "ok": true,
+          "detail": "Stopped before the answer finished."
+        },
+        {
+          "name": "the answer stops growing after Stop",
+          "ok": true,
+          "detail": "atStop=107 settled=107"
+        },
+        {
+          "name": "a send after Stop works again",
+          "ok": true
+        },
+        {
+          "name": "an unknown model is reported as such",
+          "ok": true
+        },
+        {
+          "name": "the model error names the model, not a generic outage",
+          "ok": true,
+          "detail": "Request failed: this gateway has no channel for that model (503). Check the model id, or pick one from Load models.RetryDismiss"
+        },
+        {
+          "name": "the view stays usable after a model error",
           "ok": true
         },
         {

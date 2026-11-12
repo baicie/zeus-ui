@@ -21,6 +21,8 @@
  *   mock-split       writes SSE frames split at arbitrary byte boundaries
  *   mock-nodone      ends the stream without `[DONE]`
  *   mock-partial     streams two words, then a mid-stream error frame
+ *   mock-reasoning   streams `reasoning_content` first, then the answer, the
+ *                    way DeepSeek-R1-style models and their proxies do
  */
 
 import type { Server } from 'node:http'
@@ -241,6 +243,23 @@ export async function startMockGateway(
       for (const piece of splitAt(frames, [11, 30, 77, 130])) {
         response.write(piece)
       }
+      response.end()
+      return
+    }
+
+    if (model === 'mock-reasoning') {
+      // Reasoning is not part of the answer: the reply below must contain only
+      // the content deltas that follow it.
+      response.write(
+        `data: ${JSON.stringify({ choices: [{ delta: { reasoning_content: 'weighing the question' }, finish_reason: null }] })}\n\n`,
+      )
+      response.write(
+        `data: ${JSON.stringify({ choices: [{ delta: { reasoning_content: ' and the answer' }, finish_reason: null }] })}\n\n`,
+      )
+      response.write(
+        `data: ${JSON.stringify({ choices: [{ delta: { content: 'reasoned answer' }, finish_reason: 'stop' }] })}\n\n`,
+      )
+      response.write('data: [DONE]\n\n')
       response.end()
       return
     }

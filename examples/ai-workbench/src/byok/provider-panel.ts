@@ -75,8 +75,34 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
 
   root.append(heading, vaultBar, layout, notice)
 
+  /*
+   * Status line for the detail pane. Declared before anything can render it:
+   * `providerStore.subscribe` calls its listener synchronously, so a detail
+   * render happens during mount, and reading a `let` declared further down
+   * would throw a TDZ error before the vault bar had even been refreshed.
+   */
+  let statusElement: HTMLElement | undefined
+  function ensureStatus(): HTMLElement {
+    if (!statusElement) {
+      statusElement = document.createElement('p')
+      statusElement.className = 'provider-status'
+      statusElement.dataset.testid = 'provider-status'
+      statusElement.hidden = true
+      statusElement.setAttribute('role', 'status')
+    }
+    return statusElement
+  }
+
   let selectedId: string | undefined
   let vaultState: VaultState = { status: 'empty', initialized: false }
+  // Read the persisted salt before the first render. Without this the bar
+  // claims "No vault yet" for a vault that exists but is locked, which is
+  // exactly what a reload looks like — and it offers setup for it.
+  void vault.refresh().then(state => {
+    vaultState = state
+    renderVaultBar()
+    renderDetail()
+  })
   const unsubscribeVault = vault.subscribe(state => {
     vaultState = state
     renderVaultBar()
@@ -90,11 +116,6 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
     renderDetail()
   })
 
-  void vault.refresh().then(state => {
-    vaultState = state
-    renderVaultBar()
-    renderDetail()
-  })
   void providerStore.load()
 
   /* ------------------------------------------------------------- vault UI */
@@ -648,19 +669,6 @@ export function mountProviderPanel(options: ProviderPanelOptions): () => void {
         keyInput.closest('.field')?.after(note)
       }
     }
-  }
-
-  /** Status line that survives re-renders of the detail pane. */
-  let statusElement: HTMLElement | undefined
-  function ensureStatus(): HTMLElement {
-    if (!statusElement) {
-      statusElement = document.createElement('p')
-      statusElement.className = 'provider-status'
-      statusElement.dataset.testid = 'provider-status'
-      statusElement.hidden = true
-      statusElement.setAttribute('role', 'status')
-    }
-    return statusElement
   }
 
   function showStatus(
