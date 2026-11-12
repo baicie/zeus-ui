@@ -22,6 +22,7 @@ import { chromium } from '@playwright/test'
 import { createServer } from 'vite'
 
 import { startMockGateway } from './support/mock-gateway'
+import { selectMode } from './support/workbench-ui'
 
 const root = path.resolve(import.meta.dirname, '../../..')
 const GATEWAY_KEY = 'mock-key-0123456789'
@@ -114,7 +115,7 @@ function cspPlugin(extra: string) {
 
 /** Configures the vault and one provider pointing at the mock gateway. */
 async function configure(page: Page, gatewayOrigin: string): Promise<void> {
-  await page.getByTestId('mode-byok').click()
+  await selectMode(page, 'byok')
   await page.getByTestId('byok-chat').waitFor({ timeout: 30_000 })
   await page.getByTestId('open-settings').click()
   await page.getByTestId('vault-setup').click()
@@ -137,7 +138,7 @@ async function configure(page: Page, gatewayOrigin: string): Promise<void> {
   await page.getByTestId('provider-field-model').fill('mock-echo')
   await page.getByTestId('provider-save').click()
   await page.waitForTimeout(800)
-  await page.getByTestId('mode-byok').click()
+  await page.getByTestId('settings-back').click()
 }
 
 async function send(page: Page, text: string): Promise<void> {
@@ -177,12 +178,18 @@ async function main(): Promise<void> {
     await strictPage.goto('http://127.0.0.1:5240/')
     await configure(strictPage, gateway.origin)
     await send(strictPage, 'blocked by policy')
+    // The error element always contains its Retry / Dismiss buttons, so a
+    // non-empty `textContent` is true before anything failed. Wait for the
+    // line to actually be shown, then read it.
     await strictPage.waitForFunction(
-      () =>
-        (
-          document.querySelector('[data-testid="byok-error"]')?.textContent ??
-          ''
-        ).length > 0,
+      () => {
+        const line = document.querySelector<HTMLElement>(
+          '[data-testid="byok-error"]',
+        )
+        return (
+          line !== null && !line.hidden && line.textContent !== 'RetryDismiss'
+        )
+      },
       null,
       { timeout: 20_000 },
     )
@@ -199,7 +206,7 @@ async function main(): Promise<void> {
       checks,
       'the browser actually enforced connect-src',
       blocked.directives.includes('connect-src'),
-      JSON.stringify(blocked.directives),
+      `${JSON.stringify(blocked.directives)} message=${blocked.message.slice(0, 200)}`,
     )
     assert(
       checks,
@@ -237,12 +244,12 @@ async function main(): Promise<void> {
       null,
       { timeout: 20_000 },
     )
+    // The error line keeps its Retry / Dismiss controls in the DOM even when
+    // it is not shown, so "no error" is its hidden state, not empty text.
     const succeeded = await allowedPage.evaluate(
       () =>
-        (
-          document.querySelector('[data-testid="byok-error"]')?.textContent ??
-          ''
-        ).length === 0,
+        document.querySelector<HTMLElement>('[data-testid="byok-error"]')
+          ?.hidden === true,
     )
     assert(
       checks,

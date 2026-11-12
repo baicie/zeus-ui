@@ -11,11 +11,16 @@
  *
  *   mock-echo        streams the last user message back
  *   mock-401         responds 401
+ *   mock-403         responds 403
+ *   mock-404         responds 404
  *   mock-429         responds 429
  *   mock-500         responds 500
  *   mock-slow        streams slowly enough to cancel mid-flight
  *   mock-nomodels    /models returns 404, chat works
  *   mock-usage       reports token usage on the final chunk
+ *   mock-split       writes SSE frames split at arbitrary byte boundaries
+ *   mock-nodone      ends the stream without `[DONE]`
+ *   mock-partial     streams two words, then a mid-stream error frame
  */
 
 import type { Server } from 'node:http'
@@ -28,11 +33,23 @@ export interface MockGatewayOptions {
   readonly apiKeys?: readonly string[]
   /** Origin allowed by CORS. `*` in tests. */
   readonly allowOrigin?: string
+  /**
+   * Answers without CORS headers at all, the way a gateway that has not
+   * allowlisted the page does. The browser then rejects the fetch and the
+   * client must explain it as a gateway/relay problem, not as an HTTP error.
+   */
+  readonly corsDisabled?: boolean
 }
 
 export interface MockGateway {
   readonly origin: string
-  readonly requests: Array<{ path: string; authorization: string | undefined }>
+  readonly requests: Array<{
+    path: string
+    authorization: string | undefined
+    /** Chat completions only: the messages the client actually sent. */
+    messages?: Array<{ role: string; content: string }>
+    model?: string
+  }>
   close: () => Promise<void>
 }
 
@@ -40,6 +57,20 @@ interface ChatBody {
   model?: string
   stream?: boolean
   messages?: Array<{ role: string; content: string }>
+}
+
+/** Slices `text` at the given offsets, so writes land mid-frame. */
+function splitAt(text: string, offsets: readonly number[]): string[] {
+  const cuts = [
+    0,
+    ...offsets.filter(offset => offset > 0 && offset < text.length),
+    text.length,
+  ]
+  const pieces: string[] = []
+  for (let index = 1; index < cuts.length; index += 1) {
+    pieces.push(text.slice(cuts[index - 1], cuts[index]))
+  }
+  return pieces
 }
 
 function readBody(
@@ -69,9 +100,13 @@ export async function startMockGateway(
   const allowed = new Set(options.apiKeys ?? ['mock-key-0123456789'])
   const allowOrigin = options.allowOrigin ?? '*'
   const requests: MockGateway['requests'] = []
+  const corsDisabled = options.corsDisabled === true
   const server: Server = createServer((request, response) => {
     const origin = request.headers.origin
-    if (origin && allowOrigin !== '*') {
+    if (corsDisabled) {
+      // No CORS headers at all: a browser rejects the response before the
+      // page can read a status, which is the shape this case must produce.
+    } else if (origin && allowOrigin !== '*') {
       response.setHeader('Access-Control-Allow-Origin', allowOrigin)
     } else if (origin) {
       response.setHeader('Access-Control-Allow-Origin', '*')
@@ -88,10 +123,11 @@ export async function startMockGateway(
     }
 
     const url = new URL(request.url ?? '/', 'http://localhost')
-    requests.push({
+    const entry: MockGateway['requests'][number] = {
       path: url.pathname,
       authorization: request.headers.authorization,
-    })
+    }
+    requests.push(entry)
 
     const bearer = request.headers.authorization?.replace(/^Bearer\s+/i, '')
     if (!bearer || !allowed.has(bearer)) {
@@ -116,6 +152,8 @@ export async function startMockGateway(
           json(response, 400, { error: { message: 'Invalid JSON' } })
           return
         }
+        entry.messages = body.messages
+        entry.model = body.model
         handleChat(body, response)
       })
       return
@@ -137,6 +175,16 @@ export async function startMockGateway(
     const model = body.model ?? ''
     if (model === 'mock-401') {
       json(response, 401, { error: { message: 'Invalid API key' } })
+      return
+    }
+    if (model === 'mock-403') {
+      json(response, 403, {
+        error: { message: 'Model not enabled for this key' },
+      })
+      return
+    }
+    if (model === 'mock-404') {
+      json(response, 404, { error: { message: 'Model not found' } })
       return
     }
     if (model === 'mock-429') {
@@ -183,6 +231,31 @@ export async function startMockGateway(
     const delay = model === 'mock-slow' ? 220 : 12
     let index = 0
 
+    if (model === 'mock-split') {
+      // One SSE frame split at an arbitrary point across two writes, plus a
+      // frame boundary split by CRLF. A client that parses per chunk instead
+      // of buffering produces half a message here.
+      const frames =
+        'data: {"model":"mock-split","choices":[{"delta":{"content":"split "},"finish_reason":null}]}\r\n\r\n' +
+        'data: {"model":"mock-split","choices":[{"delta":{"content":"works"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n'
+      for (const piece of splitAt(frames, [11, 30, 77, 130])) {
+        response.write(piece)
+      }
+      response.end()
+      return
+    }
+
+    if (model === 'mock-partial') {
+      response.write(
+        `data: ${JSON.stringify({ choices: [{ delta: { content: 'partial ' }, finish_reason: null }] })}\n\n`,
+      )
+      response.write(
+        `data: ${JSON.stringify({ error: { message: 'upstream stream failed' } })}\n\n`,
+      )
+      response.end()
+      return
+    }
+
     const timer = setInterval(() => {
       if (response.writableEnded) {
         clearInterval(timer)
@@ -212,7 +285,9 @@ export async function startMockGateway(
         }
       }
       response.write(`data: ${JSON.stringify(final)}\n\n`)
-      response.write('data: [DONE]\n\n')
+      // `mock-nodone` ends after the finish frame: the client must treat the
+      // closed stream as the end, not wait forever for `[DONE]`.
+      if (model !== 'mock-nodone') response.write('data: [DONE]\n\n')
       response.end()
     }, delay)
 

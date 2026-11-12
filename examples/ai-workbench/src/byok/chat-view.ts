@@ -6,13 +6,17 @@
  * What this view owns:
  * - the centred 768px thread, with the user's message as a right-aligned bubble
  *   and the assistant's reply as plain document text (as ChatGPT reads)
- * - the composer at the bottom of that column
+ * - the composer *element* (the shell docks it; see `composer-dock.ts`)
  * - streaming into a single text node per turn, so a long answer does not
  *   rebuild the message list on every chunk
  * - inline errors with a retry action
  *
- * What it does not own: the shell, the sidebar, settings. Those belong to
- * `main.ts`, and the two chat modes share them.
+ * What it does not own: the shell, the sidebar, settings, or where the composer
+ * is shown. Those belong to `main.ts`, and the two chat modes share them.
+ *
+ * Conversation switching is explicit: every conversation this view shows gets
+ * a token, and a stream that finishes after the reader moved on is dropped
+ * instead of being written into whatever is on screen now.
  */
 
 import type { CopyScope } from '../copy'
@@ -26,17 +30,42 @@ import { keyRecordId, providerStore } from './profiles'
 import { vault } from './vault'
 
 export interface ByokChatOptions {
-  readonly mode: 'host' | 'byok'
-  readonly onModeChange: (mode: 'host' | 'byok') => void
   /** Element the thread mounts into (inside the shell's scroll column). */
   readonly host: HTMLElement
-  /** Element the composer mounts into; the shell owns its position. */
+  /**
+   * Where this view's composer element is created. The shell decides where it
+   * is *shown*; this view owns the element itself.
+   */
   readonly composerHost: HTMLElement
   /** Reports the active provider/model so the topbar picker can show it. */
   readonly onTitle?: (title: string) => void
+  /** The shell's conversation list; a UUID is unreadable in the sidebar. */
+  readonly onTitleChange?: (title: string) => void
+  /** A conversation was created, opened or renamed; the sidebar must redraw. */
+  readonly onConversationsChange?: () => void
 }
 
-export function mountByokChat(options: ByokChatOptions): () => void {
+export interface ByokChatActions {
+  /** Starts an empty conversation and shows it. */
+  readonly newConversation: () => void
+  /** Shows an existing conversation by id. */
+  readonly openConversation: (id: string) => void
+  readonly activeConversationId: () => string | undefined
+  /** Focuses this view's composer. */
+  readonly focus: () => void
+  /** Titles of the stored conversations, newest first. */
+  readonly conversations: () => readonly { id: string; title: string }[]
+}
+
+export interface ByokChatView {
+  /** Removes the thread, the composer and every subscription. Idempotent. */
+  readonly dispose: () => void
+  /** The composer element; the shell's dock decides where it is shown. */
+  readonly composer: HTMLElement
+  readonly actions: ByokChatActions
+}
+
+export function mountByokChat(options: ByokChatOptions): ByokChatView {
   // One copy scope for the panel; the language subscription below re-runs it
   // without touching the conversation, the streaming turn or the composer.
   const copy: CopyScope = createCopy()
@@ -148,7 +177,19 @@ export function mountByokChat(options: ByokChatOptions): () => void {
   let conversation: LocalConversation | undefined
   let controller: AbortController | undefined
   let lastFailedPrompt: string | undefined
+  /**
+   * Set synchronously on submit. `controller` is only created after the key is
+   * resolved, so without this a second Enter during that await would start a
+   * second request for the same draft.
+   */
+  let busy = false
   const assistantNodes = new Map<string, HTMLElement>()
+  /**
+   * Bumped for every conversation this view is asked to show. A stream that
+   * finishes after the reader moved on compares its own token and writes
+   * nothing, so a late reply can never land in another conversation's DOM.
+   */
+  let conversationToken = 0
 
   function currentConversation(): LocalConversation | undefined {
     return conversation
@@ -248,6 +289,60 @@ export function mountByokChat(options: ByokChatOptions): () => void {
     if (distance < 120) scroller.scrollTop = scroller.scrollHeight
   }
 
+  /* ------------------------------------------------------------ switching */
+
+  /**
+   * Shows one conversation. The token bump is what makes a stream from the
+   * previous conversation harmless: it still finishes, and the caller saves
+   * its own turns, but it no longer writes into this view.
+   */
+  function syncConversation(): void {
+    // A conversation switch ends any answer in flight. Leaving the request
+    // running would bill tokens for an answer nobody will read, and its
+    // stream would be the one racing the new conversation's DOM.
+    controller?.abort()
+    conversationToken += 1
+    conversation = conversationStore.active()
+    if (conversation) {
+      lastFailedPrompt = undefined
+      clearError()
+    }
+    renderHeader()
+    renderThread()
+    options.onTitleChange?.(conversation?.title ?? '')
+  }
+
+  function newConversation(): LocalConversation {
+    const profile = providerStore.active()
+    const next = createConversation(
+      profile?.id ?? '',
+      profile?.model ?? '',
+      t('workbench.newChat'),
+    )
+    conversationStore.add(next)
+    void conversationStore.save(next)
+    syncConversation()
+    // A new chat starts from an empty composer, as the reference does; the
+    // previous conversation's draft was never sent and must not leak here.
+    input.value = ''
+    autoGrow()
+    options.onConversationsChange?.()
+    return next
+  }
+
+  function openConversation(id: string): void {
+    if (conversationStore.open(id)) {
+      syncConversation()
+      options.onConversationsChange?.()
+    }
+  }
+
+  function ensureConversation(): LocalConversation {
+    if (conversation) return conversation
+    const next = newConversation()
+    return next
+  }
+
   /* ------------------------------------------------------------------ send */
 
   async function resolveKey(): Promise<string | undefined> {
@@ -255,16 +350,6 @@ export function mountByokChat(options: ByokChatOptions): () => void {
     if (!profile) return undefined
     if (vault.getState().status !== 'unlocked') return undefined
     return vault.get(keyRecordId(profile.id)).catch(() => undefined)
-  }
-
-  function ensureConversation(): LocalConversation {
-    if (conversation) return conversation
-    const profile = providerStore.active()
-    const next = createConversation(profile?.id ?? '', profile?.model ?? '')
-    conversation = next
-    conversationStore.setActive(next.id)
-    void conversationStore.save(next)
-    return next
   }
 
   function showError(message: string, canRetry: boolean): void {
@@ -280,106 +365,123 @@ export function mountByokChat(options: ByokChatOptions): () => void {
 
   async function submit(): Promise<void> {
     const text = input.value.trim()
-    if (!text || controller) return
-    const profile = providerFor(currentConversation())
-    if (!profile) {
-      showError(t('byok.addProviderFirst'), false)
-      return
-    }
-    const apiKey = await resolveKey()
-    if (!apiKey) {
-      showError(
-        vault.getState().status === 'unlocked'
-          ? t('byok.noSavedKey')
-          : t('byok.unlockToUseKey'),
-        false,
-      )
-      return
-    }
-
-    clearError()
-    const active = ensureConversation()
-    if (active.turns.length === 0) {
-      active.title = text.slice(0, 48)
-    }
-    const userTurn: ChatTurn = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: text,
-      createdAt: new Date().toISOString(),
-    }
-    const assistantTurn: ChatTurn = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: '',
-      createdAt: new Date().toISOString(),
-      model: profile.model,
-    }
-    active.turns.push(userTurn, assistantTurn)
-    input.value = ''
-    autoGrow()
-    lastFailedPrompt = undefined
-    renderThread()
-    renderHeader()
-    await conversationStore.save(active)
-
-    const node = assistantNodes
-      .get(assistantTurn.id)
-      ?.querySelector<HTMLElement>('[data-testid="byok-body"]')
-
-    controller = new AbortController()
-    send.hidden = true
-    stop.hidden = false
+    if (!text || busy) return
+    // Take the draft synchronously: the user must never be able to press
+    // Enter again while this request is starting and get a second one.
+    busy = true
     try {
-      const history: ChatMessage[] = active.turns
-        .filter(turn => !turn.error && turn.content.length > 0)
-        .map(turn => ({ role: turn.role, content: turn.content }))
-      const result = await sendChat(
-        profile,
-        apiKey,
-        history,
-        controller.signal,
-        {
-          // Write straight into the text node; re-rendering the list on every
-          // chunk would rebuild every message and lose the scroll position.
+      const profile = providerFor(currentConversation())
+      if (!profile) {
+        showError(t('byok.addProviderFirst'), false)
+        return
+      }
+      const apiKey = await resolveKey()
+      if (!apiKey) {
+        showError(
+          vault.getState().status === 'unlocked'
+            ? t('byok.noSavedKey')
+            : t('byok.unlockToUseKey'),
+          false,
+        )
+        return
+      }
+
+      clearError()
+      const active = ensureConversation()
+      const token = conversationToken
+      if (active.turns.length === 0) {
+        active.title = text.slice(0, 48)
+        options.onTitleChange?.(active.title)
+        options.onConversationsChange?.()
+      }
+      const userTurn: ChatTurn = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: text,
+        createdAt: new Date().toISOString(),
+      }
+      const assistantTurn: ChatTurn = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: '',
+        createdAt: new Date().toISOString(),
+        model: profile.model,
+      }
+      active.turns.push(userTurn, assistantTurn)
+      input.value = ''
+      autoGrow()
+      lastFailedPrompt = undefined
+      renderThread()
+      renderHeader()
+      await conversationStore.save(active)
+
+      const node = assistantNodes
+        .get(assistantTurn.id)
+        ?.querySelector<HTMLElement>('[data-testid="byok-body"]')
+
+      const owned = new AbortController()
+      controller = owned
+      send.hidden = true
+      stop.hidden = false
+      try {
+        const history: ChatMessage[] = active.turns
+          .filter(turn => !turn.error && turn.content.length > 0)
+          .map(turn => ({ role: turn.role, content: turn.content }))
+        const result = await sendChat(profile, apiKey, history, owned.signal, {
+          // Write straight into the text node; re-rendering the list on
+          // every chunk would rebuild every message and lose scroll.
           onText: accumulated => {
             assistantTurn.content = accumulated
-            if (node) node.textContent = accumulated
-            scrollToBottom()
+            if (token === conversationToken && node) {
+              node.textContent = accumulated
+              scrollToBottom()
+            }
           },
           onUsage: usage => {
             assistantTurn.usage = usage
           },
-        },
-      )
-      assistantTurn.content = result.text
-      if (result.usage) assistantTurn.usage = result.usage
-      if (node) node.textContent = result.text
-      if (result.finishReason === 'length') {
-        showError(t('byok.truncated'), false)
+        })
+        assistantTurn.content = result.text
+        if (result.usage) assistantTurn.usage = result.usage
+        if (token === conversationToken && node) {
+          node.textContent = result.text
+        }
+        if (result.finishReason === 'length') {
+          showError(t('byok.truncated'), false)
+        }
+      } catch (cause) {
+        const aborted =
+          (cause instanceof Error && cause.name === 'AbortError') ||
+          owned.signal.aborted
+        const message =
+          cause instanceof GatewayError
+            ? cause.hint
+              ? `${cause.message} ${cause.hint}`
+              : cause.message
+            : aborted
+              ? t('byok.stopped')
+              : String(cause)
+        assistantTurn.error = aborted
+          ? t('byok.stoppedBeforeFinished')
+          : message
+        if (!aborted) lastFailedPrompt = text
+        if (token === conversationToken && node && !assistantTurn.content) {
+          node.textContent = ''
+        }
+        if (token === conversationToken) {
+          showError(message, !aborted && Boolean(lastFailedPrompt))
+        }
+      } finally {
+        if (controller === owned) {
+          controller = undefined
+          send.hidden = false
+          stop.hidden = true
+        }
+        if (token === conversationToken) renderThread()
+        await conversationStore.save(active)
       }
-    } catch (cause) {
-      const message =
-        cause instanceof GatewayError
-          ? cause.hint
-            ? `${cause.message} ${cause.hint}`
-            : cause.message
-          : cause instanceof Error && cause.name === 'AbortError'
-            ? t('byok.stopped')
-            : String(cause)
-      const aborted =
-        (cause instanceof Error && cause.name === 'AbortError') ||
-        controller?.signal.aborted === true
-      assistantTurn.error = aborted ? t('byok.stoppedBeforeFinished') : message
-      if (!aborted) lastFailedPrompt = text
-      if (node && !assistantTurn.content) node.textContent = ''
-      showError(message, !aborted && Boolean(lastFailedPrompt))
     } finally {
-      controller = undefined
-      send.hidden = false
-      stop.hidden = true
-      renderThread()
-      await conversationStore.save(active)
+      busy = false
     }
   }
 
@@ -426,17 +528,12 @@ export function mountByokChat(options: ByokChatOptions): () => void {
 
   /* ------------------------------------------------------------ lifecycle */
 
-  const knownTitles = new Map<string, string>()
-
-  function syncConversation(): void {
-    conversation = conversationStore.active()
-    if (conversation) knownTitles.set(conversation.id, conversation.title)
-    renderHeader()
-    renderThread()
-  }
-
   const unsubscribeConversations = conversationStore.subscribe(() => {
-    if (!conversation && conversationStore.active()) syncConversation()
+    // A store notification is not always a switch: a save from this view also
+    // fires it. Only follow when the active id actually changed.
+    if (conversationStore.activeIdValue() !== conversation?.id) {
+      syncConversation()
+    }
   })
 
   const unsubscribeProviders = providerStore.subscribe(() => {
@@ -444,22 +541,42 @@ export function mountByokChat(options: ByokChatOptions): () => void {
   })
 
   void conversationStore.load().then(() => {
-    syncConversation()
-    if (conversationStore.list().length === 0) ensureConversation()
+    conversation = conversationStore.active()
+    if (!conversation) newConversation()
+    else syncConversation()
   })
   void providerStore.load()
 
-  options.onModeChange(options.mode)
   renderHeader()
   renderThread()
 
-  return () => {
-    stopCopy()
-    copy.dispose()
-    controller?.abort()
-    unsubscribeConversations()
-    unsubscribeProviders()
-    options.host.replaceChildren()
-    options.composerHost.replaceChildren()
+  let disposed = false
+  return {
+    composer: composerStack,
+    actions: {
+      newConversation,
+      openConversation,
+      activeConversationId: () => conversation?.id,
+      focus: () => input.focus(),
+      conversations: () =>
+        conversationStore.list().map(item => ({
+          id: item.id,
+          title: item.title,
+        })),
+    },
+    dispose: () => {
+      if (disposed) return
+      disposed = true
+      stopCopy()
+      copy.dispose()
+      controller?.abort()
+      unsubscribeConversations()
+      unsubscribeProviders()
+      // Remove only what this view created. The shell owns `options.host`
+      // and the dock; emptying the dock here is what let a teardown delete
+      // the other mode's composer.
+      root.remove()
+      composerStack.remove()
+    },
   }
 }

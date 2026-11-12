@@ -1,0 +1,383 @@
+{
+  "createdAt": "2026-11-12T13:28:14.607Z",
+  "sourceCommit": "dbce962c6696fe73ada60e8cc94da42fef1761e7",
+  "browsers": ["chromium", "firefox", "webkit"],
+  "results": [
+    {
+      "browser": "chromium",
+      "surface": "interactive",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "initial state shows exactly one composer (Agent)",
+          "ok": true,
+          "detail": "[{\"kind\":\"host\",\"value\":\"\",\"testid\":\"\"}]"
+        },
+        {
+          "name": "clicking the Agent composer focuses it",
+          "ok": true
+        },
+        {
+          "name": "Enter sends the typed text exactly once",
+          "ok": true
+        },
+        {
+          "name": "one send produces one message",
+          "ok": true,
+          "detail": "messages=1"
+        },
+        {
+          "name": "My model shows exactly one composer (BYOK)",
+          "ok": true,
+          "detail": "[{\"kind\":\"byok\",\"value\":\"\",\"focused\":false}]"
+        },
+        {
+          "name": "the Agent composer is detached, not merely hidden",
+          "ok": true,
+          "detail": "host composers in DOM: 0"
+        },
+        {
+          "name": "typing goes into the BYOK textarea and nowhere else",
+          "ok": true,
+          "detail": "[{\"kind\":\"byok\",\"value\":\"byok draft\",\"focused\":true}]"
+        },
+        {
+          "name": "20 Agent ↔ My model round trips keep one composer",
+          "ok": true
+        },
+        {
+          "name": "the draft survives every switch",
+          "ok": true,
+          "detail": "[{\"kind\":\"byok\",\"value\":\"byok draft\",\"focused\":false}]"
+        },
+        {
+          "name": "no duplicate BYOK composer accumulates across switches",
+          "ok": true,
+          "detail": "byok inputs: 1"
+        },
+        {
+          "name": "the caret and typing still work after switching",
+          "ok": true
+        },
+        {
+          "name": "New chat keeps the Host controller on the Agent session",
+          "ok": true,
+          "detail": "conversationId=workbench"
+        },
+        {
+          "name": "New chat in My model opens a new BYOK conversation",
+          "ok": true,
+          "detail": "active=f78545d6-6095-4ad2-8830-c6f39ce5bf9a"
+        },
+        {
+          "name": "a language switch keeps the draft",
+          "ok": true
+        },
+        {
+          "name": "sending without a provider explains what to configure",
+          "ok": true,
+          "detail": "Add and activate a provider in Settings first.RetryDismiss"
+        },
+        {
+          "name": "no page or console errors",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "browser": "firefox",
+      "surface": "interactive",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "initial state shows exactly one composer (Agent)",
+          "ok": true,
+          "detail": "[{\"kind\":\"host\",\"value\":\"\",\"testid\":\"\"}]"
+        },
+        {
+          "name": "clicking the Agent composer focuses it",
+          "ok": true
+        },
+        {
+          "name": "Enter sends the typed text exactly once",
+          "ok": true
+        },
+        {
+          "name": "one send produces one message",
+          "ok": true,
+          "detail": "messages=1"
+        },
+        {
+          "name": "My model shows exactly one composer (BYOK)",
+          "ok": true,
+          "detail": "[{\"kind\":\"byok\",\"value\":\"\",\"focused\":false}]"
+        },
+        {
+          "name": "the Agent composer is detached, not merely hidden",
+          "ok": true,
+          "detail": "host composers in DOM: 0"
+        },
+        {
+          "name": "typing goes into the BYOK textarea and nowhere else",
+          "ok": true,
+          "detail": "[{\"kind\":\"byok\",\"value\":\"byok draft\",\"focused\":true}]"
+        },
+        {
+          "name": "20 Agent ↔ My model round trips keep one composer",
+          "ok": true
+        },
+        {
+          "name": "the draft survives every switch",
+          "ok": true,
+          "detail": "[{\"kind\":\"byok\",\"value\":\"byok draft\",\"focused\":false}]"
+        },
+        {
+          "name": "no duplicate BYOK composer accumulates across switches",
+          "ok": true,
+          "detail": "byok inputs: 1"
+        },
+        {
+          "name": "the caret and typing still work after switching",
+          "ok": true
+        },
+        {
+          "name": "New chat keeps the Host controller on the Agent session",
+          "ok": true,
+          "detail": "conversationId=workbench"
+        },
+        {
+          "name": "New chat in My model opens a new BYOK conversation",
+          "ok": true,
+          "detail": "active=468cace7-75d7-49d2-8887-02c9c5618b7e"
+        },
+        {
+          "name": "a language switch keeps the draft",
+          "ok": true
+        },
+        {
+          "name": "sending without a provider explains what to configure",
+          "ok": true,
+          "detail": "Add and activate a provider in Settings first.RetryDismiss"
+        },
+        {
+          "name": "no page or console errors",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "browser": "webkit",
+      "surface": "interactive",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "initial state shows exactly one composer (Agent)",
+          "ok": true,
+          "detail": "[{\"kind\":\"host\",\"value\":\"\",\"testid\":\"\"}]"
+        },
+        {
+          "name": "clicking the Agent composer focuses it",
+          "ok": true
+        },
+        {
+          "name": "Enter sends the typed text exactly once",
+          "ok": true
+        },
+        {
+          "name": "one send produces one message",
+          "ok": true,
+          "detail": "messages=1"
+        },
+        {
+          "name": "My model shows exactly one composer (BYOK)",
+          "ok": true,
+          "detail": "[{\"kind\":\"byok\",\"value\":\"\",\"focused\":false}]"
+        },
+        {
+          "name": "the Agent composer is detached, not merely hidden",
+          "ok": true,
+          "detail": "host composers in DOM: 0"
+        },
+        {
+          "name": "typing goes into the BYOK textarea and nowhere else",
+          "ok": true,
+          "detail": "[{\"kind\":\"byok\",\"value\":\"byok draft\",\"focused\":true}]"
+        },
+        {
+          "name": "20 Agent ↔ My model round trips keep one composer",
+          "ok": true
+        },
+        {
+          "name": "the draft survives every switch",
+          "ok": true,
+          "detail": "[{\"kind\":\"byok\",\"value\":\"byok draft\",\"focused\":false}]"
+        },
+        {
+          "name": "no duplicate BYOK composer accumulates across switches",
+          "ok": true,
+          "detail": "byok inputs: 1"
+        },
+        {
+          "name": "the caret and typing still work after switching",
+          "ok": true
+        },
+        {
+          "name": "New chat keeps the Host controller on the Agent session",
+          "ok": true,
+          "detail": "conversationId=workbench"
+        },
+        {
+          "name": "New chat in My model opens a new BYOK conversation",
+          "ok": true,
+          "detail": "active=df8e6f51-e7f7-40d3-a7b4-4feecbd0a2db"
+        },
+        {
+          "name": "a language switch keeps the draft",
+          "ok": true
+        },
+        {
+          "name": "sending without a provider explains what to configure",
+          "ok": true,
+          "detail": "Add and activate a provider in Settings first.RetryDismiss"
+        },
+        {
+          "name": "no page or console errors",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "browser": "chromium",
+      "surface": "replay",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "replay build starts with one composer",
+          "ok": true,
+          "detail": "[{\"kind\":\"host\",\"value\":\"\",\"focused\":false}]"
+        },
+        {
+          "name": "replay build says the Agent surface is read-only",
+          "ok": true
+        },
+        {
+          "name": "the replay composer is disabled, not silently swallowing input",
+          "ok": true,
+          "detail": "disabled=true"
+        },
+        {
+          "name": "replay build switches to exactly one BYOK composer",
+          "ok": true,
+          "detail": "[{\"kind\":\"byok\",\"value\":\"\",\"focused\":false}]"
+        },
+        {
+          "name": "the read-only notice does not follow the reader into My model",
+          "ok": true
+        },
+        {
+          "name": "the BYOK composer is enabled in the same build",
+          "ok": true,
+          "detail": "disabled=false"
+        },
+        {
+          "name": "New chat is usable in My model",
+          "ok": true,
+          "detail": "disabled"
+        },
+        {
+          "name": "no page errors in the replay build",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "browser": "firefox",
+      "surface": "replay",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "replay build starts with one composer",
+          "ok": true,
+          "detail": "[{\"kind\":\"host\",\"value\":\"\",\"focused\":false}]"
+        },
+        {
+          "name": "replay build says the Agent surface is read-only",
+          "ok": true
+        },
+        {
+          "name": "the replay composer is disabled, not silently swallowing input",
+          "ok": true,
+          "detail": "disabled=true"
+        },
+        {
+          "name": "replay build switches to exactly one BYOK composer",
+          "ok": true,
+          "detail": "[{\"kind\":\"byok\",\"value\":\"\",\"focused\":false}]"
+        },
+        {
+          "name": "the read-only notice does not follow the reader into My model",
+          "ok": true
+        },
+        {
+          "name": "the BYOK composer is enabled in the same build",
+          "ok": true,
+          "detail": "disabled=false"
+        },
+        {
+          "name": "New chat is usable in My model",
+          "ok": true,
+          "detail": "disabled"
+        },
+        {
+          "name": "no page errors in the replay build",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "browser": "webkit",
+      "surface": "replay",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "replay build starts with one composer",
+          "ok": true,
+          "detail": "[{\"kind\":\"host\",\"value\":\"\",\"focused\":false}]"
+        },
+        {
+          "name": "replay build says the Agent surface is read-only",
+          "ok": true
+        },
+        {
+          "name": "the replay composer is disabled, not silently swallowing input",
+          "ok": true,
+          "detail": "disabled=true"
+        },
+        {
+          "name": "replay build switches to exactly one BYOK composer",
+          "ok": true,
+          "detail": "[{\"kind\":\"byok\",\"value\":\"\",\"focused\":false}]"
+        },
+        {
+          "name": "the read-only notice does not follow the reader into My model",
+          "ok": true
+        },
+        {
+          "name": "the BYOK composer is enabled in the same build",
+          "ok": true,
+          "detail": "disabled=false"
+        },
+        {
+          "name": "New chat is usable in My model",
+          "ok": true,
+          "detail": "disabled"
+        },
+        {
+          "name": "no page errors in the replay build",
+          "ok": true
+        }
+      ]
+    }
+  ],
+  "passed": true
+}

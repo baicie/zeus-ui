@@ -283,6 +283,70 @@
   color: var(--wb-text-primary);
 }
 
+/* ---------------------------------------------------------- model picker */
+/*
+ * The reference's model menu: a quiet list of choices, each with a second
+ * line saying what it is. It replaces the segmented Agent/My model control,
+ * which read as a developer toggle instead of a product choice.
+ */
+.wb-picker-menu {
+  position: fixed;
+  z-index: 70;
+  width: min(320px, calc(100vw - 16px));
+  padding: 6px;
+}
+
+.wb-picker-menu[hidden] {
+  display: none;
+}
+
+.wb-picker-section {
+  padding: 8px 10px 4px;
+  color: var(--wb-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.wb-picker-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--wb-radius-md);
+  color: var(--wb-text-primary);
+  text-align: start;
+}
+
+.wb-picker-item:hover {
+  background: var(--wb-surface-hover);
+}
+
+.wb-picker-item[hidden] {
+  display: none;
+}
+
+.wb-picker-item-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.wb-picker-item-hint {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--wb-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wb-picker-item[aria-checked='true'] .wb-picker-item-name::after {
+  content: '✓';
+  margin-left: 8px;
+  color: var(--wb-text-primary);
+}
+
 /* --------------------------------------------------------------- popover */
 .wb-popover {
   z-index: 60;

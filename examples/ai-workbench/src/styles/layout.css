@@ -22,6 +22,17 @@
   box-sizing: border-box;
 }
 
+/*
+ * `hidden` must win over a class that sets `display` (`.icon-button`,
+ * `.byok-send`, `.wb-suggestion` …). The UA rule loses to any author rule of
+ * equal specificity, so without this a "hidden" element still lays out and is
+ * still clickable — which is how the second composer and the idle Stop button
+ * stayed on screen.
+ */
+[hidden] {
+  display: none !important;
+}
+
 * {
   margin: 0;
 }
@@ -600,6 +611,23 @@ a {
   flex: 0 0 auto;
   width: 100%;
   padding: 0 16px 16px;
+}
+
+/*
+ * The dock. Exactly one owner element ever sits in `.wb-dock-slot`; the
+ * shell moves the zone, never the composer, so a draft and its caret survive
+ * the welcome-to-thread transition and every mode switch.
+ */
+.wb-dock-slot {
+  display: contents;
+}
+
+.wb-dock-accessory {
+  display: block;
+}
+
+.wb-dock-accessory[hidden] {
+  display: none;
 }
 
 .wb-composer-zone.is-centred {

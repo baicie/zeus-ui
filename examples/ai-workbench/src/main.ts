@@ -30,10 +30,12 @@ import type {
   SessionConnection,
 } from '@zeus-web/ai-core'
 import type { AiElementInstance } from '@zeus-web/ai-wc'
+import type { ByokChatView } from './byok/chat-view'
+import type { ComposerDock } from './composer-dock'
 import type { WorkbenchLanguage } from './locale'
+
 import type { WorkbenchMessageKey } from './locales/en'
 import { createSseHostAdapter } from '@zeus-web/ai-adapters'
-
 import {
   createAiSession,
   createApprovalController,
@@ -53,7 +55,10 @@ import {
   defineAiTestReport,
 } from '@zeus-web/ai-wc'
 import { mountByokChat } from './byok/chat-view'
+import { conversationStore } from './byok/conversations'
+import { providerStore } from './byok/profiles'
 import { mountProviderPanel } from './byok/provider-panel'
+import { createComposerDock } from './composer-dock'
 import { createCopy, refreshOnLanguageChange } from './copy'
 import { createDeferredDemoHost, isDemoBuild } from './demo-host'
 import {
@@ -98,6 +103,12 @@ const session = createAiSession({
   snapshotScope: { kind: 'stream', id: 'reference' },
   retryDelayMs: 120,
 })
+
+/* The two modes share the shell and nothing else; `mode` is declared here
+   because the sidebar, the composer dock and the topbar picker all read it. */
+type Mode = 'host' | 'byok'
+let mode: Mode = 'host'
+let byokView: ByokChatView | undefined
 
 let conversationId = 'workbench'
 let conversation = createConversationController({ session, conversationId })
@@ -307,7 +318,12 @@ modelName.dataset.testid = 'model-name'
 modelName.textContent = 'Zeus'
 const modelKind = el('span', 'wb-model-kind')
 const modelCaret = icon(ICONS.chevronDown, 16)
-modelPicker.append(modelName, modelKind, modelCaret)
+// The visible text *is* the accessible name's prefix (axe
+// label-content-name-mismatch): the intent lives in sr-only text appended
+// after it, never in an aria-label that would replace it.
+const modelIntent = el('span', 'sr-only')
+modelIntent.append(copy.text('workbench.pickerOpen'))
+modelPicker.append(modelName, modelKind, modelCaret, modelIntent)
 
 const topbarActions = el('div', 'wb-topbar-actions')
 
@@ -378,8 +394,11 @@ welcomeSuggestion.addEventListener('click', () => {
   fillActiveComposer(t('workbench.welcomeSuggestionPrompt'))
 })
 const composerZone = el('div', 'wb-composer-zone is-centred')
-let composerElement = createComposerElement()
-composerZone.append(composerElement, welcomeSuggestion)
+const dock: ComposerDock = createComposerDock(composerZone)
+dock.setAccessory(welcomeSuggestion)
+// The Host composer is created once. `setMode('host')` below claims it in the
+// dock; until then the zone carries the accessory only.
+const hostComposer: ComposerDockOwner = createHostComposerOwner()
 
 surface.append(welcome, thread, composerZone)
 main.append(topbar, replayBanner, surface)
@@ -562,7 +581,18 @@ function createTimeline(): HTMLElement {
   return element
 }
 
-function createComposerElement(): HTMLElement {
+interface ComposerDockOwner {
+  readonly id: 'host'
+  readonly element: HTMLElement
+  readonly focus: () => void
+}
+
+/**
+ * The Host composer. It is created once and re-pointed at the active
+ * conversation, instead of being rebuilt: rebuilding replaced the element the
+ * dock owned and left the previous one with a live controller.
+ */
+function createHostComposerOwner(): ComposerDockOwner {
   const wrapper = el('div', 'wb-composer-stack')
   const element = document.createElement(
     'zw-ai-composer',
@@ -600,16 +630,18 @@ function createComposerElement(): HTMLElement {
       textarea.placeholder = placeholder
     }
   }
-  // A language switch can re-render the composer's view; re-apply afterwards.
+  // The patcher reuses the textarea node across re-renders, so the value only
+  // has to be re-applied when the language changes. A MutationObserver here
+  // used to do that and was never disconnected; a copy binding is enough.
   copy.custom(syncPlaceholder)
-  new MutationObserver(syncPlaceholder).observe(element, {
-    childList: true,
-    subtree: true,
-  })
   syncPlaceholder()
 
   wrapper.append(element, fileLabel, attachStatus)
-  return wrapper
+  return {
+    id: 'host',
+    element: wrapper,
+    focus: () => element.querySelector('textarea')?.focus(),
+  }
 }
 
 async function uploadAttachment(
@@ -679,11 +711,20 @@ knownConversations.set(conversationId, {
 })
 seededTitles.set(conversationId, {})
 
+/**
+ * The sidebar lists the active mode's conversations, because they are two
+ * different stores: Host conversations are the session's, BYOK conversations
+ * are local rows in IndexedDB. Showing the Host's "Reference conversation"
+ * while the reader is in their own model would offer a row that cannot open.
+ */
 function renderConversationList(): void {
   conversationListRoot.replaceChildren()
-  const entries = [...knownConversations.values()]
-  conversationEmpty.hidden = entries.length > 0
-  for (const entry of entries) {
+  if (mode === 'byok') {
+    renderByokConversationList()
+    return
+  }
+  conversationEmpty.hidden = knownConversations.size > 0
+  for (const entry of knownConversations.values()) {
     const row = el('li', 'wb-conversation-row')
     row.dataset.conversationId = entry.id
     if (entry.id === conversationId) row.classList.add('is-active')
@@ -725,6 +766,39 @@ function renderConversationList(): void {
       true,
     )
     row.append(button, menu)
+    conversationListRoot.append(row)
+  }
+}
+
+function renderByokConversationList(): void {
+  const actions = byokView?.actions
+  const entries = actions?.conversations() ?? []
+  const activeId = actions?.activeConversationId()
+  conversationEmpty.hidden = entries.length > 0
+  // Before the view exists the store may already hold conversations; reading
+  // it directly keeps the sidebar truthful on the first render.
+  const rows =
+    entries.length > 0
+      ? entries
+      : conversationStore.list().map(item => ({
+          id: item.id,
+          title: item.title,
+        }))
+  for (const entry of rows) {
+    const row = el('li', 'wb-conversation-row')
+    row.dataset.conversationId = entry.id
+    if (entry.id === activeId) row.classList.add('is-active')
+    const button = el('button', 'wb-conversation-button')
+    button.type = 'button'
+    button.dataset.conversationId = entry.id
+    const title = el('span', 'wb-conversation-title')
+    title.textContent = entry.title || t('workbench.newChat')
+    button.append(title)
+    button.addEventListener('click', () => {
+      byokView?.actions.openConversation(entry.id)
+      renderConversationList()
+    })
+    row.append(button)
     conversationListRoot.append(row)
   }
 }
@@ -919,10 +993,16 @@ function activateConversation(id: string): void {
     conversationId,
     parentMessageId: () => conversation.getSnapshot().leafMessageId,
   })
-  timeline.replaceWith((timeline = createTimeline()))
+  // The composer element is not rebuilt: its controller property is re-pointed
+  // at the new conversation. Rebuilding it replaced the node the dock owns and
+  // left the previous element subscribed to the previous controller.
+  const control = hostComposer.element.querySelector<
+    AiElementInstance & { controller: unknown }
+  >('zw-ai-composer')
+  if (control) control.controller = composer
+  timeline.remove()
+  timeline = createTimeline()
   threadInner.append(timeline)
-  composerElement.replaceWith((composerElement = createComposerElement()))
-  composerZone.replaceChildren(composerElement)
   renderConversationList()
   updateConversationTitle()
   updateWelcome()
@@ -930,6 +1010,16 @@ function activateConversation(id: string): void {
 
 let conversationCounter = 1
 newChatButton.addEventListener('click', () => {
+  // A new chat means a new chat in the mode the reader is in. Creating a Host
+  // conversation while they are in BYOK is how the two surfaces used to get
+  // crossed: the sidebar showed a Host session and the composer was BYOK.
+  if (mode === 'byok') {
+    const view = ensureByokView()
+    view.actions.newConversation()
+    renderConversationList()
+    view.actions.focus()
+    return
+  }
   conversationCounter += 1
   const id = `workbench-${conversationCounter}`
   knownConversations.set(id, {
@@ -941,6 +1031,7 @@ newChatButton.addEventListener('click', () => {
   // same id on the first message, so reload cannot invent a second aggregate.
   activateConversation(id)
   renderConversationList()
+  hostComposer.focus()
 })
 
 /* ------------------------------------------------------- host connection */
@@ -976,16 +1067,24 @@ session.subscribe(
 )
 session.connect()
 
+/**
+ * Read-only is a property of the *Agent* surface, not of the workbench.
+ *
+ * The published demo has no Host, so the Host composer, approvals and checks
+ * are disabled there. BYOK talks to a gateway the reader supplies and is fully
+ * interactive in the same build; disabling New chat for both modes is what
+ * made the whole page look broken.
+ */
 function applyReadOnly(): void {
-  replayBanner.hidden = !readOnly
-  const composerControl = composerElement.querySelector('zw-ai-composer')
+  const composerControl = hostComposer.element.querySelector('zw-ai-composer')
   if (composerControl) {
     if (readOnly) composerControl.setAttribute('disabled', '')
     else composerControl.removeAttribute('disabled')
   }
   propose.disabled = readOnly
   runChecks.disabled = readOnly
-  newChatButton.disabled = readOnly
+  newChatButton.disabled = readOnly && mode === 'host'
+  updateReplayBanner()
 }
 
 if (isDemoBuild) {
@@ -995,8 +1094,7 @@ if (isDemoBuild) {
   applyReadOnly()
   // Say it is a demo, not just that it is read-only: the visitor must not
   // mistake a recorded replay for a live model. The banner copy comes from the
-  // same catalog entry in both languages.
-  replayBanner.hidden = false
+  // same catalog entry in both languages, and it stays on the Agent surface.
 } else {
   void fetch(`${hostBaseUrl}/health`)
     .then(response => (response.ok ? response.json() : undefined))
@@ -1182,17 +1280,13 @@ function updateWelcome(): void {
   welcome.hidden = !empty
   thread.hidden = empty
   composerZone.classList.toggle('is-centred', empty)
+  dock.setAccessoryVisible(empty && mode === 'host')
   // The reference centres the composer under the welcome line in an empty
-  // chat, then anchors it to the bottom once the conversation starts. Moving
-  // the same element keeps the draft text and focus across that transition.
-  // The chip is created inside the composer zone once, so it follows the zone
-  // between the centred welcome and the bottom anchor without re-parenting.
-  welcomeSuggestion.hidden = !empty
-  if (empty) {
-    if (composerZone.parentElement !== welcome) welcome.append(composerZone)
-  } else if (composerZone.parentElement !== surface) {
-    surface.append(composerZone)
-  }
+  // chat, then anchors it to the bottom once the conversation starts. The
+  // dock moves the whole zone, so the claimed composer and its draft follow
+  // without being re-parented themselves.
+  if (empty) dock.mount(welcome)
+  else dock.mount(surface)
 }
 
 function updateConversationTitle(): void {
@@ -1201,14 +1295,26 @@ function updateConversationTitle(): void {
   modelPicker.title = title
 }
 
+/**
+ * Test hooks. The gates need to know which conversation a controller points
+ * at, and rebuilding that from the DOM would only re-test the DOM. These are
+ * not part of any API surface; nothing in the app reads them.
+ */
 function updateGlobalWorkbench(): void {
   Object.assign(globalThis, {
     __aiWorkbench: {
       session,
       conversation,
       composer,
+      dock,
+      get mode() {
+        return mode
+      },
       get conversationId() {
         return conversationId
+      },
+      get byokActiveConversationId() {
+        return byokView?.actions.activeConversationId()
       },
     },
   })
@@ -1269,30 +1375,161 @@ try {
  * they configured, and messages live only in a local store. The mode pill in
  * the topbar is the single explicit switch.
  */
-type Mode = 'host' | 'byok'
-let mode: Mode = 'host'
-
 let settingsOpen = false
-let disposeByok: (() => void) | undefined
 let disposeSettings: (() => void) | undefined
 
-/* The Host composer is detached and re-attached when switching modes so the
-   BYOK view can own the same composer slot without duplicating the element. */
-const hostComposerStack = composerElement
+/*
+ * The picker is the single place both the mode and the model are chosen, as
+ * the reference's model selector is. Two modes are two products sharing a
+ * shell, so the menu states what each one is instead of leaving a segmented
+ * control that reads like a developer toggle:
+ *
+ *   Agent        a read-only replay of a recorded Host session
+ *   My model     the OpenAI-compatible gateway this browser talks to
+ */
+const pickerMenu = el('div', 'wb-popover wb-picker-menu')
+pickerMenu.setAttribute('role', 'menu')
+pickerMenu.dataset.testid = 'model-menu'
+pickerMenu.hidden = true
 
-const modeSwitch = el('div', 'wb-mode-switch')
-modeSwitch.setAttribute('role', 'group')
-copy.attr(modeSwitch, 'aria-label', 'workbench.runMode')
-const hostModeButton = el('button', 'wb-segment')
+const agentGroupLabel = el('p', 'wb-picker-section')
+copy.node(agentGroupLabel, 'workbench.pickerAgentSection')
+const hostModeButton = el('button', 'wb-picker-item')
 hostModeButton.type = 'button'
+hostModeButton.setAttribute('role', 'menuitemradio')
 hostModeButton.dataset.testid = 'mode-host'
-hostModeButton.append(copy.text('workbench.modeAgent'))
-const byokModeButton = el('button', 'wb-segment')
+const hostModeName = el('span', 'wb-picker-item-name')
+copy.node(hostModeName, 'workbench.modeAgent')
+const hostModeHint = el('span', 'wb-picker-item-hint')
+copy.node(hostModeHint, 'workbench.pickerAgentHint')
+hostModeButton.append(hostModeName, hostModeHint)
+
+const modelGroupLabel = el('p', 'wb-picker-section')
+copy.node(modelGroupLabel, 'workbench.pickerModelSection')
+const byokModeButton = el('button', 'wb-picker-item')
 byokModeButton.type = 'button'
+byokModeButton.setAttribute('role', 'menuitemradio')
 byokModeButton.dataset.testid = 'mode-byok'
-byokModeButton.append(copy.text('workbench.modeByok'))
-modeSwitch.append(hostModeButton, byokModeButton)
-topbarActions.prepend(modeSwitch)
+const byokModeName = el('span', 'wb-picker-item-name')
+copy.node(byokModeName, 'workbench.modeByok')
+const byokModeHint = el('span', 'wb-picker-item-hint')
+byokModeHint.dataset.testid = 'picker-model-hint'
+const setupModelButton = el('button', 'wb-picker-item')
+setupModelButton.type = 'button'
+setupModelButton.setAttribute('role', 'menuitem')
+setupModelButton.dataset.testid = 'picker-setup'
+const setupModelName = el('span', 'wb-picker-item-name')
+copy.node(setupModelName, 'workbench.pickerSetupModel')
+const setupModelHint = el('span', 'wb-picker-item-hint')
+copy.node(setupModelHint, 'workbench.pickerSetupModelHint')
+setupModelButton.append(setupModelName, setupModelHint)
+byokModeButton.append(byokModeName, byokModeHint)
+pickerMenu.append(
+  agentGroupLabel,
+  hostModeButton,
+  modelGroupLabel,
+  byokModeButton,
+  setupModelButton,
+)
+document.body.append(pickerMenu)
+
+/* The picker's own label: what the session will answer as, not a mode name. */
+function renderPickerLabel(): void {
+  const provider = mode === 'byok' ? providerStore.active() : undefined
+  const name =
+    mode === 'byok'
+      ? provider
+        ? provider.name || t('byok.providerFallback')
+        : t('workbench.modeByok')
+      : t('workbench.modeAgent')
+  modelName.textContent = name
+  const detail =
+    mode === 'byok'
+      ? provider
+        ? provider.model || t('byok.noModel')
+        : t('workbench.pickerNoModel')
+      : t('workbench.pickerReplay')
+  modelKind.textContent = detail
+
+  // The hint under "My model" in the menu names the active provider, so the
+  // menu answers "which model am I using" without opening settings.
+  byokModeHint.textContent = provider
+    ? `${provider.name || t('byok.providerFallback')} · ${provider.model || t('byok.noModel')}`
+    : t('workbench.pickerNoModel')
+  hostModeButton.setAttribute('aria-checked', String(mode === 'host'))
+  byokModeButton.setAttribute('aria-checked', String(mode === 'byok'))
+  hostModeButton.classList.toggle('is-active', mode === 'host')
+  byokModeButton.classList.toggle('is-active', mode === 'byok')
+  setupModelButton.hidden = Boolean(provider)
+}
+
+let pickerOpen = false
+/** The items a keyboard user can move between, in visual order. */
+function pickerItems(): HTMLButtonElement[] {
+  return [hostModeButton, byokModeButton, setupModelButton].filter(
+    item => !item.hidden,
+  )
+}
+
+function setPickerOpen(open: boolean, focusFirst = false): void {
+  pickerOpen = open
+  pickerMenu.hidden = !open
+  modelPicker.setAttribute('aria-expanded', String(open))
+  if (open) {
+    renderPickerLabel()
+    const rect = modelPicker.getBoundingClientRect()
+    pickerMenu.style.top = `${rect.bottom + 6}px`
+    pickerMenu.style.left = `${Math.max(8, rect.left)}px`
+    if (focusFirst) pickerItems()[0]?.focus()
+    setTimeout(
+      () => document.addEventListener('click', onDocumentClick, true),
+      0,
+    )
+  } else {
+    document.removeEventListener('click', onDocumentClick, true)
+    if (pickerMenu.contains(document.activeElement)) modelPicker.focus()
+  }
+}
+
+/* Menu keyboard behaviour: Escape closes and returns focus; arrows and Home /
+   End move between items, as a menu must. */
+pickerMenu.addEventListener('keydown', event => {
+  const items = pickerItems()
+  if (items.length === 0) return
+  const index = items.indexOf(document.activeElement as HTMLButtonElement)
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    setPickerOpen(false)
+    return
+  }
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault()
+    const step = event.key === 'ArrowDown' ? 1 : -1
+    const next = index < 0 ? 0 : (index + step + items.length) % items.length
+    items[next]?.focus()
+    return
+  }
+  if (event.key === 'Home' || event.key === 'End') {
+    event.preventDefault()
+    items[event.key === 'Home' ? 0 : items.length - 1]?.focus()
+  }
+})
+
+function onDocumentClick(event: MouseEvent): void {
+  const target = event.target as Node | null
+  if (target && (pickerMenu.contains(target) || modelPicker.contains(target))) {
+    return
+  }
+  setPickerOpen(false)
+}
+
+modelPicker.addEventListener('click', () => setPickerOpen(!pickerOpen))
+modelPicker.addEventListener('keydown', event => {
+  if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    setPickerOpen(true, true)
+  }
+})
 
 /* The BYOK thread is the same scroll column as the Host thread: both render
    inside `.wb-thread` so the reading width and scroll behaviour are shared. */
@@ -1381,6 +1618,8 @@ function applyLanguage(): void {
   copy.refresh()
   syncAiElements()
   updateConversationTitle()
+  renderPickerLabel()
+  renderConversationList()
 }
 subscribeLanguage(applyLanguage)
 
@@ -1421,51 +1660,89 @@ function syncAiElements(): void {
     element.locale = locale
   }
 }
-// Mounted inside the chat surface, not over the whole main column: the topbar
-// (mode switch, activity, theme) stays reachable, as it does in the reference.
-surface.append(settingsPage)
+// A sibling of the chat surface, not a child: opening settings hides the
+// surface, and `[hidden]` is authoritative in the stylesheet, so nesting the
+// page inside it would hide the page too. The topbar (model picker, activity,
+// theme) stays reachable, as it does in the reference.
+main.append(settingsPage)
 settingsBack.addEventListener('click', () => toggleSettings(false))
 
 const byokHost = el('div', 'byok-host')
 byokHost.hidden = true
 byokThread.append(byokHost)
 
+/** The BYOK view is created the first time the reader opens that mode. */
+function ensureByokView(): ByokChatView {
+  if (byokView) return byokView
+  byokView = mountByokChat({
+    host: byokHost,
+    composerHost: composerZone,
+    onTitle: () => renderPickerLabel(),
+    onTitleChange: () => {
+      renderPickerLabel()
+      if (mode === 'byok') renderConversationList()
+    },
+    onConversationsChange: () => {
+      if (mode === 'byok') renderConversationList()
+    },
+  })
+  return byokView
+}
+
 function setMode(next: Mode): void {
   if (settingsOpen) toggleSettings(false)
+  if (next === mode && next === 'host') {
+    // Re-selecting Agent while already there is a no-op, but the first call
+    // still has to claim the Host composer, and a provider may have been
+    // removed meanwhile, so the label is re-derived too.
+    if (dock.activeId() !== 'host') dock.claim(hostComposer)
+    renderPickerLabel()
+    return
+  }
+  setPickerOpen(false)
   mode = next
-  hostModeButton.classList.toggle('is-active', next === 'host')
-  byokModeButton.classList.toggle('is-active', next === 'byok')
-  hostModeButton.setAttribute('aria-pressed', String(next === 'host'))
-  byokModeButton.setAttribute('aria-pressed', String(next === 'byok'))
+  renderPickerLabel()
 
   if (next === 'byok') {
     closeInspector()
-    // The empty Host state owns the composer zone (it centres it under the
-    // welcome line). BYOK always renders in the chat column, so re-home the
-    // zone before hiding the welcome block.
-    if (composerZone.parentElement !== surface) surface.append(composerZone)
+    // Host-only chrome (the SSE lamp and the agent activity panel) is not
+    // shown over the reader's own model: a green "live" dot or an approval
+    // drawer there would describe a connection this mode does not use.
+    connection.hidden = true
+    inspectorToggle.hidden = true
+    const view = ensureByokView()
     hideHostSurface()
-    byokThread.hidden = byokHost.hidden = false
-    if (!disposeByok) {
-      disposeByok = mountByokChat({
-        mode: 'byok',
-        onModeChange: () => undefined,
-        host: byokHost,
-        composerHost: composerZone,
-        onTitle: title => {
-          modelPicker.title = title
-        },
-      })
-    }
+    byokThread.hidden = false
     byokHost.hidden = false
+    // Detach the Host composer, then hand the zone to BYOK. `claim` removes
+    // the previous owner from the document, so exactly one composer is
+    // mounted and only that one can take focus or a submit.
+    dock.claim({
+      id: 'byok',
+      element: view.composer,
+      focus: () => view.actions.focus(),
+    })
+    dock.mount(surface)
+    composerZone.classList.remove('is-centred')
+    dock.setAccessoryVisible(false)
+    renderConversationList()
+    updateReplayBanner()
+    newChatButton.disabled = readOnly && mode === 'host'
     return
   }
 
-  disposeByok?.()
-  disposeByok = undefined
-  byokHost.replaceChildren()
+  // Leaving BYOK detaches its composer; the view itself stays alive so its
+  // conversations, streams and scroll position survive a round trip.
+  connection.hidden = false
+  inspectorToggle.hidden = false
+  byokHost.hidden = true
+  dock.release('byok')
   byokThread.hidden = true
+  dock.claim(hostComposer)
   showHostSurface()
+  renderConversationList()
+  updateReplayBanner()
+  newChatButton.disabled = readOnly && mode === 'host'
 }
 
 function hideHostSurface(): void {
@@ -1474,11 +1751,16 @@ function hideHostSurface(): void {
 }
 
 function showHostSurface(): void {
-  // Re-attach the Host composer (and the suggestion chip, which lives in the
-  // same zone), then let `updateWelcome` decide where the zone lives: centred in
-  // the welcome block, or pinned under the thread.
-  composerZone.replaceChildren(hostComposerStack, welcomeSuggestion)
   updateWelcome()
+}
+
+/**
+ * The replay notice belongs to the Agent surface only. Showing it while the
+ * reader is in their own model would claim the whole workbench is read-only,
+ * which is exactly the confusion the three states exist to remove.
+ */
+function updateReplayBanner(): void {
+  replayBanner.hidden = !(readOnly && mode === 'host')
 }
 
 function toggleSettings(open: boolean): void {
@@ -1488,6 +1770,7 @@ function toggleSettings(open: boolean): void {
   surface.hidden = open
   if (open) {
     closeInspector()
+    setPickerOpen(false)
     if (!disposeSettings) {
       disposeSettings = mountProviderPanel({ root: settingsProviders })
     }
@@ -1496,7 +1779,7 @@ function toggleSettings(open: boolean): void {
 
 /** Fills the visible composer with a prompt, whatever mode owns it. */
 function fillActiveComposer(text: string): void {
-  const target = composerZone.querySelector('textarea')
+  const target = dock.activeElement()?.querySelector('textarea')
   if (!target) return
   target.value = text
   target.dispatchEvent(new Event('input', { bubbles: true }))
@@ -1505,8 +1788,22 @@ function fillActiveComposer(text: string): void {
 
 hostModeButton.addEventListener('click', () => setMode('host'))
 byokModeButton.addEventListener('click', () => setMode('byok'))
+setupModelButton.addEventListener('click', () => {
+  setPickerOpen(false)
+  toggleSettings(true)
+})
 settingsButton.addEventListener('click', () => toggleSettings(true))
 window.addEventListener('byok:open-settings', () => toggleSettings(true))
+window.addEventListener('byok:providers-changed', () => {
+  renderPickerLabel()
+  if (mode === 'byok') renderConversationList()
+})
+// The picker names the active provider, so it must follow the store rather
+// than only being redrawn when a mode or language changes.
+providerStore.subscribe(() => {
+  renderPickerLabel()
+  if (mode === 'byok') renderConversationList()
+})
 
 /* --------------------------------------------------------------- theme */
 
@@ -1543,8 +1840,10 @@ themeToggle.addEventListener('click', () => {
 applyInitialLanguage()
 document.title = t('workbench.documentTitle')
 applyTheme(readTheme())
-renderConversationList()
+renderPickerLabel()
+updateReplayBanner()
 setMode('host')
+renderConversationList()
 // The welcome block yields the moment the active conversation has a message.
 // The store is the Host's authority, so this also covers reconnect/replay.
 session.store.subscribe(
