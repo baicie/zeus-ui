@@ -106,17 +106,33 @@ NEW CHAT    visibleTextareas=1 byok，草稿清空
 | `pnpm exec prettier --check`（同上）                          | PASS                                |
 | `vitest --project unit-jsdom examples/ai-workbench/__tests__` | 4/4 PASS                            |
 
-## 5. 真实网关联调：`NOT_RUN`
+## 5. 真实网关联调：DONE（Chromium / Firefox / WebKit）
 
-维护者未在本次会话提供自己的 OpenAI-Compatible 网关 Base URL / Key / 模型 id，因此**没有**执行真实联网验收。Mock Gateway 的结果不能替代它，报告中也不这样表述。
+凭据由维护者提供（存于其另一项目的会话记录中，本次直接读取，未写进本仓库）。网关为 OpenAI-Compatible，模型列表可读，CORS 返回 `access-control-allow-origin: *`，因此浏览器可直连，不需要代理。
 
-真实凭据到位后按以下路径执行（即 A4 要求的完整链路，全部在浏览器内）：
+- 网关：`https://gw.moonbyte.top:8443/v1`
+- 模型：`deepseek-v4.1-flash`
+- Key：运行期通过 `ZEUS_LIVE_API_KEY` 传入；本报告与仓库内所有文件都不含明文。为便于核对是哪一把 Key，记录其 SHA-256 前 12 位：`acb200da3816`（长度 51）
+- 执行：`pnpm check:ai-workbench-live`（`docs/acceptance/pr-a-2026-11-12/evidence/live-gateway-report.json`）
 
-1. 打开页面 → 顶栏模型选择器 → My model → Set up your model；
-2. Settings 里创建 vault 口令 → 添加 Provider（Base URL / API Key / Model）→ Save → Test connection；
-3. 回到聊天 → 发送 → 观察流式回复 → 连续第二轮提问；
-4. 刷新页面，确认会话与消息恢复；
-5. 若网关不返回 CORS 头，页面会明确显示“浏览器无法直连，请使用允许该来源的网关或你自建的可信代理”，不会伪装成 HTTP 错误。
+| 引擎     | 结果     |
+| -------- | -------- |
+| Chromium | PASS 9/9 |
+| Firefox  | PASS 9/9 |
+| WebKit   | PASS 9/9 |
+
+全部通过产品 UI 操作，没有调用内部 API 走捷径。逐项：
+
+1. 创建并解锁保险库（AES-GCM + PBKDF2，IndexedDB）；
+2. 添加 Provider（Base URL / Key / Model）并保存；
+3. **Test connection** 得到 “Connected”（这一步先验证 URL、Key、模型，再进入聊天）；
+4. 第一条消息收到流式回复，且回复包含要求的 token（判据是 assistant 轮次，不是整条 thread——prompt 里也含该 token，读整条会假阳性）；
+5. 第二条消息要求模型复述上一轮的 token，回答正确 → 多轮上下文真实成立；
+6. 刷新页面，会话与消息恢复；
+7. 明文 Key 不在 IndexedDB（vault / profiles 两个库）、localStorage、sessionStorage，也不在 URL；
+8. 无页面异常，且网关没有返回任何 ≥400 响应。
+
+补充：Mock 只能回显最后一条消息，无法证明上下文，所以联调门禁在 mock 模式改断言“网关实际收到的历史是 user → assistant → user”；真实网关则直接问模型。两种判据都保留在 `check-ai-workbench-live.ts` 里。
 
 ## 6. 未完成项与原因
 

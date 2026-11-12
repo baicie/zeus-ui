@@ -1,0 +1,154 @@
+{
+  "kind": "live-gateway-acceptance",
+  "gateway": "https://gw.moonbyte.top:8443/v1",
+  "model": "deepseek-v4.1-flash",
+  "mock": false,
+  "keyFingerprintSha256Prefix": "acb200da3816",
+  "note": "API key was supplied via ZEUS_LIVE_API_KEY at run time and is not recorded here.",
+  "createdAt": "2026-11-12T14:20:51.003Z",
+  "sourceCommit": "f984b84f5b9d88bbcecad619fdd04498fdc5e326",
+  "results": [
+    {
+      "browser": "chromium",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "vault created and unlocked",
+          "ok": true
+        },
+        {
+          "name": "provider saved",
+          "ok": true,
+          "detail": "status=\"Saved.\""
+        },
+        {
+          "name": "the gateway answers the connection test",
+          "ok": true,
+          "detail": "Connected. 8 models available."
+        },
+        {
+          "name": "the first live reply arrives",
+          "ok": true
+        },
+        {
+          "name": "the reply contains the requested token",
+          "ok": true,
+          "detail": "zeus-live-ok.\nI'm Claude, made"
+        },
+        {
+          "name": "the second turn still knows the first one",
+          "ok": true,
+          "detail": "zeus-live-ok"
+        },
+        {
+          "name": "the conversation survives a reload",
+          "ok": true
+        },
+        {
+          "name": "the API key is absent from every browser store and the URL",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "no page exceptions and no gateway failures",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "browser": "firefox",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "vault created and unlocked",
+          "ok": true
+        },
+        {
+          "name": "provider saved",
+          "ok": true,
+          "detail": "status=\"Saved.\""
+        },
+        {
+          "name": "the gateway answers the connection test",
+          "ok": true,
+          "detail": "Connected. 8 models available."
+        },
+        {
+          "name": "the first live reply arrives",
+          "ok": true
+        },
+        {
+          "name": "the reply contains the requested token",
+          "ok": true,
+          "detail": "zeus-live-ok\nI am an AI assistant based on"
+        },
+        {
+          "name": "the second turn still knows the first one",
+          "ok": true,
+          "detail": "zeus-live-ok"
+        },
+        {
+          "name": "the conversation survives a reload",
+          "ok": true
+        },
+        {
+          "name": "the API key is absent from every browser store and the URL",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "no page exceptions and no gateway failures",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "browser": "webkit",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "vault created and unlocked",
+          "ok": true
+        },
+        {
+          "name": "provider saved",
+          "ok": true,
+          "detail": "status=\"Saved.\""
+        },
+        {
+          "name": "the gateway answers the connection test",
+          "ok": true,
+          "detail": "Connected. 8 models available."
+        },
+        {
+          "name": "the first live reply arrives",
+          "ok": true
+        },
+        {
+          "name": "the reply contains the requested token",
+          "ok": true,
+          "detail": "zeus-live-ok.\nI'm Claude, made by Anthropic"
+        },
+        {
+          "name": "the second turn still knows the first one",
+          "ok": true,
+          "detail": "zeus-live-ok."
+        },
+        {
+          "name": "the conversation survives a reload",
+          "ok": true
+        },
+        {
+          "name": "the API key is absent from every browser store and the URL",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "no page exceptions and no gateway failures",
+          "ok": true
+        }
+      ]
+    }
+  ],
+  "passed": true
+}
