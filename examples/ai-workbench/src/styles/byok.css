@@ -91,6 +91,103 @@
 }
 
 /*
+ * Markdown rendered by the shared primitives: the same reading rhythm as the
+ * Host timeline, so an answer reads the same on both surfaces.
+ *
+ * Code blocks arrive as
+ *   figure[data-part=code]
+ *     figcaption  language · copy button
+ *     pre > code
+ * so the header row and copy affordance are styled here rather than by a
+ * second renderer. Without these rules the language label escaped the block
+ * and the copy button was invisible.
+ */
+.byok-body p {
+  margin: 0 0 16px;
+}
+
+.byok-body p:last-child {
+  margin-bottom: 0;
+}
+
+.byok-body [data-part='markdown'] {
+  display: contents;
+}
+
+.byok-body [data-part='code'] {
+  overflow: hidden;
+  margin: 8px 0 16px;
+  border-radius: 12px;
+  background: var(--wb-surface-code);
+}
+
+.byok-body [data-part='code'] figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px 0;
+  color: var(--wb-text-muted);
+  font-family: var(--wb-font-mono);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.byok-body [data-part='code'] figcaption button {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: var(--wb-text-muted);
+  /* The primitive renders its label as text; the workbench draws an icon. */
+  overflow: hidden;
+  font-size: 0;
+}
+
+.byok-body [data-part='code'] figcaption button::before {
+  content: '';
+  width: 15px;
+  height: 15px;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='9' width='12' height='12' rx='2'/%3E%3Cpath d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+.byok-body [data-part='code'] figcaption button:hover {
+  background: var(--wb-surface-hover);
+  color: var(--wb-text-primary);
+}
+
+.byok-body [data-part='code'] pre {
+  overflow-x: auto;
+  margin: 0;
+  padding: 6px 12px 12px;
+  background: none;
+  font-family: var(--wb-font-mono);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.byok-body pre {
+  overflow-x: auto;
+  font-family: var(--wb-font-mono);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.byok-body code {
+  font-family: var(--wb-font-mono);
+  font-size: 0.92em;
+}
+
+.byok-body :not(pre) > code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--wb-surface-code);
+}
+
+/*
  * While a reasoning model has not produced its first answer token, the body
  * shows a quiet "Thinking…" line. It is removed the moment real content
  * arrives, and it is never stored as part of the answer.

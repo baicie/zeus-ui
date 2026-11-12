@@ -19,11 +19,17 @@
  * instead of being written into whatever is on screen now.
  */
 
+import type { ViewNode } from '@zeus-web/ai-primitives'
 import type { CopyScope } from '../copy'
 import type { ChatTurn, LocalConversation } from './conversations'
 import type { ChatMessage } from './gateway'
+import {
+  contentBlockView,
+  parseMarkdown,
+} from '@zeus-web/ai-primitives'
+import { patchChildren } from '@zeus-web/ai-wc'
 import { createCopy, refreshOnLanguageChange } from '../copy'
-import { t } from '../locale'
+import { getAiLocale, t } from '../locale'
 import { conversationStore, createConversation } from './conversations'
 import { GatewayError, sendChat } from './gateway'
 import { keyRecordId, providerStore } from './profiles'
@@ -241,7 +247,17 @@ export function mountByokChat(options: ByokChatOptions): ByokChatView {
     const body = document.createElement('div')
     body.className = 'byok-body'
     body.dataset.testid = 'byok-body'
-    body.textContent = turn.content
+    // While a turn is streaming, the text is written straight into this node
+    // (see `submit`), so it stays plain text. Once it is finished, the same
+    // markdown renderer the Host timeline uses formats it, including fenced
+    // code blocks — the reference's answers are markdown, not pre-wrap text.
+    const streaming = turn.role === 'assistant' && turn.content.length > 0
+      && article.dataset.streaming === 'true'
+    if (turn.role === 'user' || streaming) {
+      body.textContent = turn.content
+    } else {
+      renderMarkdownInto(body, turn.content)
+    }
 
     if (turn.role === 'user') {
       article.append(body)
@@ -279,6 +295,22 @@ export function mountByokChat(options: ByokChatOptions): ByokChatView {
       article.append(error)
     }
     return article
+  }
+
+  /**
+   * Renders markdown through the shared primitives so the BYOK surface and the
+   * Host timeline read the same, and code blocks get the same markup.
+   */
+  function renderMarkdownInto(target: HTMLElement, source: string): void {
+    if (source.length === 0) return
+    const blocks = parseMarkdown(source)
+    const nodes: ViewNode[] = blocks.map((_, index) =>
+      contentBlockView(
+        { kind: 'markdown', partId: `byok-${index}`, blocks: [blocks[index]!] },
+        { locale: getAiLocale() },
+      ),
+    )
+    patchChildren(target, nodes)
   }
 
   /** Only follows when the reader is already at the bottom. */
@@ -415,9 +447,9 @@ export function mountByokChat(options: ByokChatOptions): ByokChatView {
       renderHeader()
       await conversationStore.save(active)
 
-      const node = assistantNodes
-        .get(assistantTurn.id)
-        ?.querySelector<HTMLElement>('[data-testid="byok-body"]')
+      const article = assistantNodes.get(assistantTurn.id)
+      if (article) article.dataset.streaming = 'true'
+      const node = article?.querySelector<HTMLElement>('[data-testid="byok-body"]')
 
       /*
        * Reasoning models answer slowly and, before the first token of the
@@ -502,6 +534,7 @@ export function mountByokChat(options: ByokChatOptions): ByokChatView {
           showError(message, !aborted && Boolean(lastFailedPrompt))
         }
       } finally {
+        if (article) delete article.dataset.streaming
         node?.classList.remove('is-thinking')
         if (controller === owned) {
           controller = undefined

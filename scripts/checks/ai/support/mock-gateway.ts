@@ -23,6 +23,8 @@
  *   mock-partial     streams two words, then a mid-stream error frame
  *   mock-reasoning   streams `reasoning_content` first, then the answer, the
  *                    way DeepSeek-R1-style models and their proxies do
+ *   mock-markdown    streams the shape of a real answer: prose plus a fenced
+ *                    code block, for screenshot comparisons
  */
 
 import type { Server } from 'node:http'
@@ -207,7 +209,9 @@ export async function startMockGateway(
         ? `echo: ${prompt}`
         : model === 'mock-slow'
           ? 'slow response that arrives in pieces'
-          : `mock reply to: ${prompt}`
+          : model === 'mock-markdown'
+            ? 'The sea stretches endlessly beneath the open sky. Gentle waves dance along the shore, whispering secrets to the sand.\n\n```python\nprint("hello")\n```'
+            : `mock reply to: ${prompt}`
 
     if (!body.stream) {
       json(response, 200, {

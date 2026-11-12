@@ -204,9 +204,9 @@ a {
 .wb-nav-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  min-height: 36px;
+  height: 36px;
   padding: 0 10px;
   border-radius: var(--wb-radius-md);
   color: var(--wb-text-primary);
@@ -222,6 +222,11 @@ a {
   flex-shrink: 0;
 }
 
+/* The reference's icon gutter starts at 16px and the label at 38px. */
+.wb-sidebar-scroll {
+  padding: 12px 8px 8px;
+}
+
 .wb-nav-item:hover {
   background: var(--wb-surface-hover);
 }
@@ -231,7 +236,7 @@ a {
 }
 
 .wb-sidebar-section {
-  padding: 18px 10px 6px;
+  padding: 22px 10px 8px;
   color: var(--wb-text-muted);
   font-size: 12px;
   font-weight: 500;
@@ -536,8 +541,10 @@ a {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  /* 32px block gap: the reference's title text sits 39px above the composer,
+     and its 28px line box eats 5–6px of that on either side. */
   gap: 32px;
-  padding: 24px 16px 16vh;
+  padding: 24px 16px 22vh;
 }
 
 .wb-welcome[hidden] {
@@ -555,7 +562,7 @@ a {
 
 .wb-suggestion {
   display: block;
-  margin: 12px auto 0;
+  margin: 8px auto 0;
   height: 36px;
   padding: 0 16px;
   border: 1px solid var(--wb-border-default);
