@@ -10,15 +10,7 @@
     "height": 844
   },
   "referenceDir": "/Users/liuzhiwei/Desktop/workspace/git-code/zeus/artifacts/design-acceptance/reference/chatgpt",
-  "states": [
-    "C01",
-    "C03",
-    "C04",
-    "C05",
-    "C06",
-    "C07",
-    "C08"
-  ],
+  "states": ["C01", "C03", "C04", "C05", "C06", "C07", "C08"],
   "checks": [
     {
       "name": "C01: sidebar width matches the reference (\u00b12px)",

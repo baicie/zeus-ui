@@ -23,10 +23,7 @@ import type { ViewNode } from '@zeus-web/ai-primitives'
 import type { CopyScope } from '../copy'
 import type { ChatTurn, LocalConversation } from './conversations'
 import type { ChatMessage } from './gateway'
-import {
-  contentBlockView,
-  parseMarkdown,
-} from '@zeus-web/ai-primitives'
+import { contentBlockView, parseMarkdown } from '@zeus-web/ai-primitives'
 import { patchChildren } from '@zeus-web/ai-wc'
 import { createCopy, refreshOnLanguageChange } from '../copy'
 import { getAiLocale, t } from '../locale'
@@ -251,8 +248,10 @@ export function mountByokChat(options: ByokChatOptions): ByokChatView {
     // (see `submit`), so it stays plain text. Once it is finished, the same
     // markdown renderer the Host timeline uses formats it, including fenced
     // code blocks — the reference's answers are markdown, not pre-wrap text.
-    const streaming = turn.role === 'assistant' && turn.content.length > 0
-      && article.dataset.streaming === 'true'
+    const streaming =
+      turn.role === 'assistant' &&
+      turn.content.length > 0 &&
+      article.dataset.streaming === 'true'
     if (turn.role === 'user' || streaming) {
       body.textContent = turn.content
     } else {
@@ -449,7 +448,9 @@ export function mountByokChat(options: ByokChatOptions): ByokChatView {
 
       const article = assistantNodes.get(assistantTurn.id)
       if (article) article.dataset.streaming = 'true'
-      const node = article?.querySelector<HTMLElement>('[data-testid="byok-body"]')
+      const node = article?.querySelector<HTMLElement>(
+        '[data-testid="byok-body"]',
+      )
 
       /*
        * Reasoning models answer slowly and, before the first token of the
