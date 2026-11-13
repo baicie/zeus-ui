@@ -24,8 +24,10 @@ import type { CopyScope } from '../copy'
 import type { ChatTurn, LocalConversation } from './conversations'
 import type { ChatMessage } from './gateway'
 import { contentBlockView, parseMarkdown } from '@zeus-web/ai-primitives'
+
 import { patchChildren } from '@zeus-web/ai-wc'
 import { createCopy, refreshOnLanguageChange } from '../copy'
+import { highlightCodeBlocks } from '../highlight'
 import { getAiLocale, t } from '../locale'
 import { conversationStore, createConversation } from './conversations'
 import { GatewayError, sendChat } from './gateway'
@@ -310,6 +312,12 @@ export function mountByokChat(options: ByokChatOptions): ByokChatView {
       ),
     )
     patchChildren(target, nodes)
+    // The content primitive renders code as plain text on purpose — it is
+    // framework-neutral and does not know a grammar from a word. Colouring is
+    // this application's job, and it happens here, after the block exists, so
+    // the primitive keeps its contract. `highlightCodeBlocks` is idempotent, so
+    // a re-render costs nothing for blocks already done.
+    highlightCodeBlocks(target)
   }
 
   /** Only follows when the reader is already at the bottom. */
