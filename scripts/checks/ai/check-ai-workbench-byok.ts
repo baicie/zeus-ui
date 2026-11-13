@@ -12,6 +12,7 @@
 import { mkdirSync, rmSync } from 'node:fs'
 import path from 'node:path'
 
+import { expect } from '@playwright/test'
 import { createServer } from 'vite'
 
 import { startAiHost } from '../../../examples/ai-host/src/server'
