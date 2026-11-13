@@ -98,10 +98,33 @@ const MEASURE_JS = `(() => {
 })()`
 
 /** Runs Python with Pillow to compose images; returns parsed JSON. */
+/**
+ * Runs the Pillow composition and says so when Pillow is missing.
+ *
+ * A bare `python3 -c` against an image library that is not installed surfaces
+ * as a traceback at the first compose — *after* the screenshots were taken, so
+ * it reads like a comparison failure. The gate depends on Pillow; failing with
+ * that sentence and the install command is the difference between a five-second
+ * fix and reading the whole log.
+ */
 function compose(script: string, args: string[]): unknown {
-  const out = execFileSync('python3', ['-c', script, ...args], {
-    encoding: 'utf8',
-  })
+  let out: string
+  try {
+    out = execFileSync('python3', ['-c', script, ...args], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+  } catch (error) {
+    const stderr =
+      (error as { stderr?: string }).stderr ?? (error as Error).message
+    if (/No module named 'PIL'/.test(stderr)) {
+      throw new Error(
+        'the visual gate needs Pillow to compose the reference|ours pairs: ' +
+          'run `python3 -m pip install pillow` (CI installs it before this step)',
+      )
+    }
+    throw new Error(`composing the reference pair failed: ${stderr.trim()}`)
+  }
   return JSON.parse(out)
 }
 

@@ -313,6 +313,15 @@ jobs:
             exit 1
           }
 
+      # The gate composes a reference|ours pair per state, and it does that with
+      # Pillow. A developer machine usually has it; a bare runner does not, and
+      # the gate then fails at the first compose with ModuleNotFoundError —
+      # after the screenshots have already been taken, which reads like a
+      # comparison failure rather than a missing tool.
+      - name: Install Pillow for the pair composition
+        if: steps.change.outputs.run == 'true'
+        run: python3 -m pip install --quiet --disable-pip-version-check pillow
+
       - name: Visual comparison
         if: steps.change.outputs.run == 'true'
         env:
