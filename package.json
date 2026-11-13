@@ -123,7 +123,8 @@
     "check:ai-workbench-csp": "tsx scripts/checks/ai/check-ai-workbench-csp.ts",
     "check:ai-workbench-p0": "tsx scripts/checks/ai/check-ai-workbench-p0.ts",
     "check:ai-workbench-live": "tsx scripts/checks/ai/check-ai-workbench-live.ts",
-    "check:ai-workbench-visual": "tsx scripts/checks/ai/check-ai-workbench-visual.ts"
+    "check:ai-workbench-visual": "tsx scripts/checks/ai/check-ai-workbench-visual.ts",
+    "check:dialog-interaction": "tsx scripts/checks/wc/check-dialog-interaction.ts"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.0.0",
