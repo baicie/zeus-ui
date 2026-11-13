@@ -24,10 +24,10 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 
-import { chromium } from '@playwright/test'
 import { createServer } from 'vite'
 
 import { startAiHost } from '../../../examples/ai-host/src/server'
+import { ENGINES, executableFor, requireBrowsers } from './support/browsers'
 import { startMockGateway } from './support/mock-gateway'
 import { selectMode } from './support/workbench-ui'
 
@@ -435,7 +435,16 @@ async function main(): Promise<void> {
   })
   await vite.listen()
 
-  const browser = await chromium.launch()
+  // The visual gate compares one engine against one reference set; Chromium is
+  // the engine those captures came from. It still goes through the shared
+  // selection so a missing Chromium is a failure rather than a crash halfway
+  // through, and so its browser cache resolves the same way as the other gates.
+  const visualEngine = requireBrowsers(
+    process.env.ZEUS_AI_WORKBENCH_VISUAL_BROWSER ?? 'chromium',
+  )[0]
+  const browser = await ENGINES[visualEngine].launch({
+    executablePath: executableFor(visualEngine),
+  })
   const checks: Check[] = []
   try {
     checks.push(
@@ -467,7 +476,8 @@ async function main(): Promise<void> {
     ])
   }
 
-  const passed = checks.every(check => check.ok)
+  // A run that captured nothing is not a pass.
+  const passed = checks.length > 0 && checks.every(check => check.ok)
   await fs.writeFile(
     path.join(outDir, 'report.json'),
     `${JSON.stringify(

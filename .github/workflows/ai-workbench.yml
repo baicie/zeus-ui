@@ -1,0 +1,319 @@
+name: ai-workbench
+
+# The AI Workbench product gates. Each used to be a local command only
+# (`pnpm check:ai-workbench-p0`, `-byok`, `-visual`, `-live`), so a regression in
+# the composer, the BYOK path or the visual surface could merge on a green CI
+# that never ran them.
+#
+# Shape, and why it is not one job:
+#
+# - `contract` needs no browser. It runs the selection logic's own tests and the
+#   pack check; it is the cheapest place to catch a gate that would silently run
+#   nothing.
+# - `browser-gates` runs the three mock-backed gates, each in its own step, after
+#   building once. They share a checkout and a Playwright install but run
+#   sequentially inside one job: three separate jobs would each pay ~104s of
+#   runner warm-up and `playwright install --with-deps` for the same browsers.
+#   Splitting them into one job per gate was measured to cost more than it saved.
+# - `visual` is separate and conditional. It only needs Chromium, it is the gate
+#   most likely to be noisy, and it uploads screenshots a person must look at.
+#   Running it on every push to unrelated files would burn minutes for images
+#   nobody reads.
+# - `live` is `workflow_dispatch` only and never receives a secret from a PR
+#   event. See the comment on that job.
+#
+# Every gate now fails closed on: a failed step, a timeout, an empty result set,
+# an unknown engine name, and a requested engine that is not installed. That
+# behaviour lives in `scripts/checks/ai/support/browsers.ts` and is pinned by
+# `scripts/checks/__tests__/ai-browsers.spec.ts`; the workflow only has to not
+# swallow the exit code, which `set -o pipefail` and the absence of `|| true`
+# ensure.
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      live:
+        description: Also run the live gateway acceptance (needs the ai-workbench-live environment)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-workbench-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PUPPETEER_SKIP_DOWNLOAD: 'true'
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 'true'
+  CI: 'true'
+  # Keep the browser cache on a stable path so the cache step can find it, and
+  # so a developer machine and CI resolve browsers the same way.
+  PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.cache/playwright
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  contract:
+    name: gate selection and pack contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The gate-selection proof: an empty request, an unknown engine and a
+      # not-installed engine must all be errors. This is the test that would
+      # have caught the "zero results is a pass" bug.
+      - name: Prove the gates fail closed
+        run: pnpm exec vitest --project unit --run scripts/checks/__tests__/ai-browsers.spec.ts
+
+      - name: Check the AI package tarballs in an isolated consumer
+        run: pnpm ai:pack-check
+
+  browser-gates:
+    name: P0, BYOK and CSP gates (three engines)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Restore the Playwright browser cache
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-playwright-ai-workbench-v2-${{ hashFiles('pnpm-lock.yaml') }}
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-ai-workbench-v2-
+
+      - name: Install the three engines
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+
+      # The gates boot the Workbench through Vite and the reference Host
+      # in-process, so no product build is needed first. The browser cache and
+      # the install are the expensive parts and are shared by all three steps.
+      - name: P0 composer and shell gate
+        env:
+          ZEUS_AI_WORKBENCH_BROWSERS: chromium,firefox,webkit
+        run: pnpm check:ai-workbench-p0
+
+      - name: BYOK gate against the deterministic gateway
+        env:
+          ZEUS_AI_WORKBENCH_BROWSERS: chromium,firefox,webkit
+        run: pnpm check:ai-workbench-byok
+
+      - name: Content-Security-Policy reporting gate
+        run: pnpm check:ai-workbench-csp
+
+      # The gates above run the source through Vite's dev server. This one
+      # builds the app the way the image and the Pages demo do — production
+      # base, dead-code-eliminated `isDemoBuild`, static output over HTTP — and
+      # drives Agent ↔ My model, new chat, typing, streaming Stop, reload and
+      # the language switch against that artifact.
+      - name: Production and demo build acceptance
+        env:
+          ZEUS_AI_WORKBENCH_BROWSERS: chromium,firefox,webkit
+        run: pnpm check:ai-workbench-build
+
+      - name: Keep the build acceptance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-workbench-build-${{ github.run_id }}
+          path: temp/ai-workbench-build
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Keep the P0 report and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-workbench-p0-${{ github.run_id }}
+          path: |
+            temp/ai-workbench-p0/report.json
+            temp/ai-workbench-p0/screenshots
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Keep the BYOK evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-workbench-byok-${{ github.run_id }}
+          path: temp/ai-workbench-byok
+          if-no-files-found: warn
+          retention-days: 14
+
+  visual:
+    name: visual comparison (Chromium)
+    # No `needs:`: the change filter below decides whether it runs, and making
+    # it wait on `contract` would serialize two independent jobs for no gain.
+    # The change set is the gate's own precondition, not another job's result.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Decide whether the visual surface changed
+        id: change
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "${EVENT}" == "workflow_dispatch" ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "${EVENT}" != "pull_request" ]]; then
+            # A push to main has no base to diff against; compare with the
+            # previous commit, which is what a push means.
+            BASE="$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)"
+          fi
+          changed="$(git diff --name-only "${BASE}" "${HEAD}" 2>/dev/null || true)"
+          echo "changed files:" && printf '%s\n' "${changed}" | sed '/^$/d'
+          if printf '%s\n' "${changed}" | grep -Eq '^(examples/ai-workbench/|packages/(ai|primitives|advanced|themes)/|scripts/checks/ai/)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Note the skip and why
+        if: steps.change.outputs.run != 'true'
+        run: |
+          echo "::notice::visual gate skipped: no AI Workbench, AI package or primitive change in this diff"
+
+      - run: pnpm install --frozen-lockfile
+        if: steps.change.outputs.run == 'true'
+
+      - name: Check out the reference captures
+        if: steps.change.outputs.run == 'true'
+        uses: actions/checkout@v5
+        with:
+          repository: baicie/zeus
+          # The reference set is a frozen artifact of the Core repository. A
+          # moving `main` would let the target drift while the gate still
+          # passes, so it is pinned to the commit that carry the captures the
+          # release was accepted against.
+          ref: d7c82cfdd71efba1e3b84505e0414c3d1e1e94e3
+          path: zeus-reference
+          sparse-checkout: |
+            artifacts/design-acceptance/reference/chatgpt
+
+      - name: Restore the Playwright browser cache
+        if: steps.change.outputs.run == 'true'
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-playwright-ai-visual-v2-${{ hashFiles('pnpm-lock.yaml') }}
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-ai-visual-v2-
+
+      - name: Install Chromium
+        if: steps.change.outputs.run == 'true'
+        run: pnpm exec playwright install --with-deps chromium
+
+      # The gate expects the Core checkout at `../zeus`; the reference checkout
+      # is placed there rather than inside the workspace, so nothing in the
+      # build can resolve against it.
+      - name: Link the reference captures where the gate looks for them
+        if: steps.change.outputs.run == 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p "$(dirname "${GITHUB_WORKSPACE}")/zeus"
+          ln -sfn "${GITHUB_WORKSPACE}/zeus-reference" "$(dirname "${GITHUB_WORKSPACE}")/zeus"
+
+      - name: Visual comparison
+        if: steps.change.outputs.run == 'true'
+        env:
+          ZEUS_AI_WORKBENCH_VISUAL_BROWSER: chromium
+        run: pnpm check:ai-workbench-visual
+
+      - name: Keep frames, pairs and the report
+        if: always() && steps.change.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-workbench-visual-${{ github.run_id }}
+          path: temp/ai-workbench-visual
+          if-no-files-found: error
+          retention-days: 30
+
+  live:
+    name: live gateway acceptance (manual, no secrets in PRs)
+    # A live run needs a real API key. It is therefore dispatch-only: a pull
+    # request event can never reach this job, so no secret is exposed to PR code
+    # and no key can appear in a PR log. The key is passed as an environment
+    # variable from the `ai-workbench-live` environment, which an administrator
+    # must approve, and the script never writes it anywhere.
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.live == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ai-workbench-live
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Restore the Playwright browser cache
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-playwright-ai-visual-v2-${{ hashFiles('pnpm-lock.yaml') }}
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-ai-visual-v2-
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Live gateway acceptance
+        env:
+          ZEUS_LIVE_BASE_URL: ${{ secrets.ZEUS_LIVE_BASE_URL }}
+          ZEUS_LIVE_API_KEY: ${{ secrets.ZEUS_LIVE_API_KEY }}
+          ZEUS_LIVE_MODEL: ${{ secrets.ZEUS_LIVE_MODEL }}
+          ZEUS_LIVE_PASSPHRASE: ${{ secrets.ZEUS_LIVE_PASSPHRASE }}
+          ZEUS_AI_WORKBENCH_BROWSERS: chromium
+        run: pnpm check:ai-workbench-live
+
+      - name: Keep the live report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-workbench-live-${{ github.run_id }}
+          path: temp/ai-workbench-live
+          if-no-files-found: warn
+          retention-days: 14

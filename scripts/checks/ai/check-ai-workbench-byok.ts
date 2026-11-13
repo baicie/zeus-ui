@@ -9,70 +9,34 @@
  * Run with `pnpm check:ai-workbench-byok`. Browsers default to Chromium; set
  * `ZEUS_AI_WORKBENCH_BROWSERS` for more.
  */
-import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
+import { mkdirSync, rmSync } from 'node:fs'
 import path from 'node:path'
 
-import { chromium, firefox, webkit } from '@playwright/test'
 import { createServer } from 'vite'
 
 import { startAiHost } from '../../../examples/ai-host/src/server'
+import { ENGINES, executableFor, requireBrowsers } from './support/browsers'
 import { startMockGateway } from './support/mock-gateway'
 import { expectSingleComposer, selectMode } from './support/workbench-ui'
 
 const root = path.resolve(import.meta.dirname, '../../..')
 const outDir = path.join(root, 'temp/ai-workbench-byok')
-const cache = path.join(process.env.HOME ?? '', 'Library/Caches/ms-playwright')
 
 const HOST_TOKEN = 'workbench-token-0123456789'
 const GATEWAY_KEY = 'mock-key-0123456789'
 const PASSPHRASE = 'correct horse battery staple'
 
-const engines = { chromium, firefox, webkit }
-
-const fallbackBinaries: Record<
-  keyof typeof engines,
-  (directory: string) => string
-> = {
-  chromium: directory =>
-    path.join(
-      directory,
-      'chrome-mac-arm64',
-      'Google Chrome for Testing.app',
-      'Contents',
-      'MacOS',
-      'Google Chrome for Testing',
-    ),
-  firefox: directory =>
-    path.join(
-      directory,
-      'firefox',
-      'Nightly.app',
-      'Contents',
-      'MacOS',
-      'firefox',
-    ),
-  webkit: directory => path.join(directory, 'pw_run.sh'),
-}
-
-function executableFor(engine: keyof typeof engines): string | undefined {
-  const browser = engines[engine]
-  if (existsSync(browser.executablePath())) return undefined
-  if (!existsSync(cache)) return undefined
-  const prefix = engine === 'chromium' ? 'chromium-' : `${engine}-`
-  for (const entry of readdirSync(cache)
-    .filter(name => name.startsWith(prefix) && !name.includes('headless'))
-    .sort()
-    .reverse()) {
-    const candidate = fallbackBinaries[engine](path.join(cache, entry))
-    if (existsSync(candidate)) return candidate
-  }
-  return undefined
-}
-
-const selectedBrowsers = (process.env.ZEUS_AI_WORKBENCH_BROWSERS ?? 'chromium')
-  .split(',')
-  .map(name => name.trim())
-  .filter((name): name is keyof typeof engines => name in engines)
+/*
+ * Selection fails closed: an empty or unknown request throws, and so does a
+ * requested engine that is not installed. The previous filter-based version
+ * returned `[]` for an unavailable engine and the gate reported PASS with zero
+ * results (`[].every(...)` is `true`).
+ */
+const selectedBrowsers = requireBrowsers(
+  process.env.ZEUS_AI_WORKBENCH_BROWSERS,
+  { fallback: ['chromium'] },
+)
+const engines = ENGINES
 
 interface CaseResult {
   browser: string
@@ -439,8 +403,19 @@ async function main(): Promise<void> {
   await host.close()
   await gateway.close()
 
-  const passed = results.every(result => result.status === 'passed')
-  console.log(JSON.stringify({ results, passed }, null, 2))
+  // A gate that ran nothing is not a pass: every requested engine must have
+  // produced a result, and every result must have exercised at least one check.
+  const ran = new Set(results.map(result => result.browser))
+  const absent = selectedBrowsers.filter(engine => !ran.has(engine))
+  const empty = results.filter(result => result.checks.length === 0)
+  const passed =
+    results.length > 0 &&
+    absent.length === 0 &&
+    empty.length === 0 &&
+    results.every(result => result.status === 'passed')
+  console.log(
+    JSON.stringify({ results, absentEngines: absent, passed }, null, 2),
+  )
   if (!passed) throw new Error('BYOK gate failed')
 }
 

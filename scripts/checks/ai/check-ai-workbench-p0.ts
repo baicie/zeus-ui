@@ -18,15 +18,16 @@
  */
 import type { Browser, Page } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
+import { mkdirSync, rmSync } from 'node:fs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 
-import { chromium, expect, firefox, webkit } from '@playwright/test'
+import { expect } from '@playwright/test'
 import { createServer } from 'vite'
 
 import { startAiHost } from '../../../examples/ai-host/src/server'
+import { ENGINES, executableFor, requireBrowsers } from './support/browsers'
 import {
   expectSingleComposer,
   selectMode,
@@ -36,49 +37,20 @@ import {
 const root = path.resolve(import.meta.dirname, '../../..')
 const outDir = path.join(root, 'temp/ai-workbench-p0')
 const screenshots = path.join(outDir, 'screenshots')
-const cache = path.join(process.env.HOME ?? '', 'Library/Caches/ms-playwright')
 
 const HOST_TOKEN = 'workbench-token-0123456789'
 const WORKBENCH_PORT = 5199
 const HOST_PORT = 5200
 
-const engines = { chromium, firefox, webkit }
-const selected = (
-  process.env.ZEUS_AI_WORKBENCH_BROWSERS ?? 'chromium,firefox,webkit'
-)
-  .split(',')
-  .map(name => name.trim())
-  .filter((name): name is keyof typeof engines => name in engines)
-
-const fallbackBinaries: Record<keyof typeof engines, (dir: string) => string> =
-  {
-    chromium: dir =>
-      path.join(
-        dir,
-        'chrome-mac-arm64',
-        'Google Chrome for Testing.app',
-        'Contents',
-        'MacOS',
-        'Google Chrome for Testing',
-      ),
-    firefox: dir =>
-      path.join(dir, 'firefox', 'Nightly.app', 'Contents', 'MacOS', 'firefox'),
-    webkit: dir => path.join(dir, 'pw_run.sh'),
-  }
-
-function executableFor(engine: keyof typeof engines): string | undefined {
-  if (existsSync(engines[engine].executablePath())) return undefined
-  if (!existsSync(cache)) return undefined
-  const prefix = engine === 'chromium' ? 'chromium-' : `${engine}-`
-  for (const entry of readdirSync(cache)
-    .filter(name => name.startsWith(prefix) && !name.includes('headless'))
-    .sort()
-    .reverse()) {
-    const candidate = fallbackBinaries[engine](path.join(cache, entry))
-    if (existsSync(candidate)) return candidate
-  }
-  return undefined
-}
+/*
+ * Browser selection lives in `support/browsers.ts` and throws for an empty or
+ * unknown request, and for a requested engine that is not installed. Before
+ * R6-B this file filtered the request down to known names and trusted the
+ * result: `ZEUS_AI_WORKBENCH_BROWSERS=webkit` without WebKit produced zero
+ * results, and `[].every(passed)` is `true` — a green gate that ran nothing.
+ */
+const selected = requireBrowsers(process.env.ZEUS_AI_WORKBENCH_BROWSERS)
+const engines = ENGINES
 
 interface Checks {
   readonly name: string
@@ -495,8 +467,18 @@ async function startStatic(dir: string, port: number) {
  * Builds the same source the Pages job publishes: `ZEUS_AI_DEMO=1`, base `/`,
  * with a recording made from the real Host. The recording is written after the
  * build because Vite empties the output directory.
+ *
+ * The commits are the checkout's real ones. The recorder requires full SHAs
+ * since R6-A — a placeholder would make the published-metadata contract
+ * untestable — and using `git rev-parse HEAD` here means this gate also proves
+ * the recorder works against a real repository, which is what the Pages job
+ * does.
  */
 async function buildReplay(dir: string): Promise<void> {
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], {
+    cwd: root,
+    encoding: 'utf8',
+  }).trim()
   execFileSync(
     'node',
     [
@@ -506,7 +488,9 @@ async function buildReplay(dir: string): Promise<void> {
       '--out',
       path.join(outDir, 'ai-demo-recording.json'),
       '--ui-commit',
-      'gate',
+      head,
+      '--core-commit',
+      process.env.ZEUS_PAIRED_CORE_COMMIT ?? head,
     ],
     { cwd: root, stdio: 'inherit' },
   )
@@ -620,7 +604,20 @@ async function main(): Promise<void> {
     await host.close()
   }
 
-  const passed = report.every(entry => entry.status === 'passed')
+  // A gate that ran nothing is not a pass. `requireBrowsers` already refuses to
+  // hand back an empty list; this is the second line of defence, covering a
+  // selection that produced no cases for some other reason (an engine whose
+  // whole surface was skipped, a report swallowed by a catch). Every requested
+  // engine must have at least one result, and every result must have run at
+  // least one check.
+  const ran = new Set(report.map(entry => entry.browser))
+  const absent = selected.filter(engine => !ran.has(engine))
+  const empty = report.filter(entry => entry.checks.length === 0)
+  const passed =
+    report.length > 0 &&
+    absent.length === 0 &&
+    empty.length === 0 &&
+    report.every(entry => entry.status === 'passed')
   await fs.writeFile(
     path.join(root, 'temp/ai-workbench-p0/report.json'),
     `${JSON.stringify(
@@ -632,6 +629,8 @@ async function main(): Promise<void> {
         }).trim(),
         browsers: selected,
         results: report,
+        absentEngines: absent,
+        emptyResults: empty.map(entry => `${entry.browser}/${entry.surface}`),
         passed,
       },
       null,

@@ -22,7 +22,12 @@ export async function openModePicker(page: Page): Promise<void> {
 
 /**
  * Switches the run mode the way a person does: the topbar picker, then one
- * item in it. Every gate uses this so the interaction itself stays covered.
+ * item in it.
+ *
+ * Every gate uses this so the interaction itself stays covered. The menu must
+ * then be gone — a picker that stays open after a selection is a real defect
+ * (the production-build gate found `setMode('host')` returning early while
+ * already on Agent and leaving it open), so this waits rather than dismissing.
  */
 export async function selectMode(
   page: Page,
@@ -30,7 +35,7 @@ export async function selectMode(
 ): Promise<void> {
   await openModePicker(page)
   await page.getByTestId(`mode-${mode}`).click()
-  await expect(page.getByTestId('model-menu')).toBeHidden()
+  await expect(page.getByTestId('model-menu')).toBeHidden({ timeout: 15_000 })
 }
 
 /**
