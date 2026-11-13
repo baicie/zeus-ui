@@ -926,10 +926,18 @@ function renderByokConversationList(): void {
    * are searched: the Host's conversations are not in this store, and mixing
    * them here would cross the permission boundary the two modes keep.
    */
+  // The body search reads the store, so it only runs when a query is active.
+  // `renderConversationList` sits on the mode-switch path, and reading the
+  // store there on every switch (as an earlier version did) added synchronous
+  // work to a path whose contract is that a switch is cheap and the draft in
+  // the composer survives it.
+  const storedById = searchQuery
+    ? new Map(conversationStore.list().map(item => [item.id, item]))
+    : undefined
   const rows = all.filter(entry => {
     if (!searchQuery) return true
     if (matchesQuery(entry.title)) return true
-    const stored = conversationStore.list().find(item => item.id === entry.id)
+    const stored = storedById?.get(entry.id)
     return Boolean(stored?.turns.some(turn => matchesQuery(turn.content ?? '')))
   })
   conversationEmpty.hidden = all.length > 0 || Boolean(searchQuery)
