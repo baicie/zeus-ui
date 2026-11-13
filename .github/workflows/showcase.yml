@@ -150,6 +150,13 @@ jobs:
       - name: Verify real component eager and lazy lifecycle parity
         run: pnpm check:component-mode-parity
 
+      # The dialog's state machine and focus behaviour, against the package
+      # build a consumer receives. Every engine is required: a trap that works
+      # on two of three is broken for a third of readers, and the previous
+      # round shipped a WebKit exemption instead of a fix.
+      - name: Verify the dialog opens, closes and reopens on all three engines
+        run: pnpm check:dialog-interaction
+
       - name: Run showcase browser E2E
         env:
           SHOWCASE_E2E_ARTIFACTS: 'true'
@@ -163,5 +170,6 @@ jobs:
           path: |
             e2e/showcase/.artifacts
             temp/component-mode-parity/report.json
+            temp/dialog-interaction
           if-no-files-found: ignore
           retention-days: 7
