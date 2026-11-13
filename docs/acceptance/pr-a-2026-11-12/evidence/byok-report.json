@@ -1,0 +1,284 @@
+{
+  "results": [
+    {
+      "browser": "chromium",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "settings opens",
+          "ok": true
+        },
+        {
+          "name": "vault created and unlocked",
+          "ok": true
+        },
+        {
+          "name": "provider saved",
+          "ok": true,
+          "detail": "status=\"Saved.\""
+        },
+        {
+          "name": "API key is absent from every browser store",
+          "ok": true
+        },
+        {
+          "name": "streamed reply rendered",
+          "ok": true
+        },
+        {
+          "name": "the second turn sends the full history in order",
+          "ok": true,
+          "detail": "[{\"role\":\"user\",\"content\":\"hello gateway\"},{\"role\":\"assistant\",\"content\":\"echo: hello gateway\"},{\"role\":\"user\",\"content\":\"second question\"}]"
+        },
+        {
+          "name": "two turns leave exactly one composer",
+          "ok": true
+        },
+        {
+          "name": "generation can be stopped",
+          "ok": true
+        },
+        {
+          "name": "mock-401 surfaces a 401 error",
+          "ok": true
+        },
+        {
+          "name": "mock-403 surfaces a 403 error",
+          "ok": true
+        },
+        {
+          "name": "mock-404 surfaces a 404 error",
+          "ok": true
+        },
+        {
+          "name": "mock-429 surfaces a 429 error",
+          "ok": true
+        },
+        {
+          "name": "mock-500 surfaces a 500 error",
+          "ok": true
+        },
+        {
+          "name": "mock-split is handled (split works)",
+          "ok": true
+        },
+        {
+          "name": "mock-nodone is handled (mock reply to)",
+          "ok": true
+        },
+        {
+          "name": "mock-partial is handled (upstream stream failed)",
+          "ok": true
+        },
+        {
+          "name": "locking disables key entry",
+          "ok": true
+        },
+        {
+          "name": "vault re-unlocks with the passphrase",
+          "ok": true
+        },
+        {
+          "name": "a wrong passphrase is rejected",
+          "ok": true,
+          "detail": "That passphrase does not open this vault."
+        },
+        {
+          "name": "conversations survive a reload",
+          "ok": true
+        },
+        {
+          "name": "no page errors",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "browser": "firefox",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "settings opens",
+          "ok": true
+        },
+        {
+          "name": "vault created and unlocked",
+          "ok": true
+        },
+        {
+          "name": "provider saved",
+          "ok": true,
+          "detail": "status=\"Saved.\""
+        },
+        {
+          "name": "API key is absent from every browser store",
+          "ok": true
+        },
+        {
+          "name": "streamed reply rendered",
+          "ok": true
+        },
+        {
+          "name": "the second turn sends the full history in order",
+          "ok": true,
+          "detail": "[{\"role\":\"user\",\"content\":\"hello gateway\"},{\"role\":\"assistant\",\"content\":\"echo: hello gateway\"},{\"role\":\"user\",\"content\":\"second question\"}]"
+        },
+        {
+          "name": "two turns leave exactly one composer",
+          "ok": true
+        },
+        {
+          "name": "generation can be stopped",
+          "ok": true
+        },
+        {
+          "name": "mock-401 surfaces a 401 error",
+          "ok": true
+        },
+        {
+          "name": "mock-403 surfaces a 403 error",
+          "ok": true
+        },
+        {
+          "name": "mock-404 surfaces a 404 error",
+          "ok": true
+        },
+        {
+          "name": "mock-429 surfaces a 429 error",
+          "ok": true
+        },
+        {
+          "name": "mock-500 surfaces a 500 error",
+          "ok": true
+        },
+        {
+          "name": "mock-split is handled (split works)",
+          "ok": true
+        },
+        {
+          "name": "mock-nodone is handled (mock reply to)",
+          "ok": true
+        },
+        {
+          "name": "mock-partial is handled (upstream stream failed)",
+          "ok": true
+        },
+        {
+          "name": "locking disables key entry",
+          "ok": true
+        },
+        {
+          "name": "vault re-unlocks with the passphrase",
+          "ok": true
+        },
+        {
+          "name": "a wrong passphrase is rejected",
+          "ok": true,
+          "detail": "That passphrase does not open this vault."
+        },
+        {
+          "name": "conversations survive a reload",
+          "ok": true
+        },
+        {
+          "name": "no page errors",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "browser": "webkit",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "settings opens",
+          "ok": true
+        },
+        {
+          "name": "vault created and unlocked",
+          "ok": true
+        },
+        {
+          "name": "provider saved",
+          "ok": true,
+          "detail": "status=\"Saved.\""
+        },
+        {
+          "name": "API key is absent from every browser store",
+          "ok": true
+        },
+        {
+          "name": "streamed reply rendered",
+          "ok": true
+        },
+        {
+          "name": "the second turn sends the full history in order",
+          "ok": true,
+          "detail": "[{\"role\":\"user\",\"content\":\"hello gateway\"},{\"role\":\"assistant\",\"content\":\"echo: hello gateway\"},{\"role\":\"user\",\"content\":\"second question\"}]"
+        },
+        {
+          "name": "two turns leave exactly one composer",
+          "ok": true
+        },
+        {
+          "name": "generation can be stopped",
+          "ok": true
+        },
+        {
+          "name": "mock-401 surfaces a 401 error",
+          "ok": true
+        },
+        {
+          "name": "mock-403 surfaces a 403 error",
+          "ok": true
+        },
+        {
+          "name": "mock-404 surfaces a 404 error",
+          "ok": true
+        },
+        {
+          "name": "mock-429 surfaces a 429 error",
+          "ok": true
+        },
+        {
+          "name": "mock-500 surfaces a 500 error",
+          "ok": true
+        },
+        {
+          "name": "mock-split is handled (split works)",
+          "ok": true
+        },
+        {
+          "name": "mock-nodone is handled (mock reply to)",
+          "ok": true
+        },
+        {
+          "name": "mock-partial is handled (upstream stream failed)",
+          "ok": true
+        },
+        {
+          "name": "locking disables key entry",
+          "ok": true
+        },
+        {
+          "name": "vault re-unlocks with the passphrase",
+          "ok": true
+        },
+        {
+          "name": "a wrong passphrase is rejected",
+          "ok": true,
+          "detail": "That passphrase does not open this vault."
+        },
+        {
+          "name": "conversations survive a reload",
+          "ok": true
+        },
+        {
+          "name": "no page errors",
+          "ok": true
+        }
+      ]
+    }
+  ],
+  "passed": true
+}

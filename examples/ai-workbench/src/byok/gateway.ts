@@ -43,6 +43,13 @@ export interface ChatResult {
 export interface StreamHandlers {
   /** Called with the accumulated text so far, not the delta. */
   readonly onText?: (accumulated: string) => void
+  /**
+   * Reasoning models (DeepSeek-R1 style, and the gateways that proxy them)
+   * stream `delta.reasoning_content` before the answer starts. It is not part
+   * of the answer, but it is the only evidence that the request is alive, so
+   * the view shows it as a thinking state instead of looking frozen.
+   */
+  readonly onReasoning?: (accumulated: string) => void
   readonly onUsage?: (usage: ChatUsage) => void
 }
 
@@ -85,13 +92,15 @@ async function describeFailure(
   kind: 'chat' | 'models',
 ): Promise<GatewayError> {
   let detail = ''
+  let code = ''
   try {
     const text = await response.text()
     const parsed = JSON.parse(text) as {
-      error?: { message?: string }
+      error?: { message?: string; code?: string }
       message?: string
     }
     detail = parsed.error?.message ?? parsed.message ?? ''
+    code = parsed.error?.code ?? ''
     if (!detail) detail = text.slice(0, 200)
   } catch {
     // A non-JSON body is not worth surfacing verbatim.
@@ -100,6 +109,30 @@ async function describeFailure(
   detail = detail.replace(/(sk-|Bearer\s+)\S+/gi, '[redacted]').trim()
 
   const base = kind === 'models' ? 'Could not list models' : 'Request failed'
+
+  /*
+   * A missing model is not always a 404. Aggregating gateways (one-api and
+   * friends) answer 503 with `code: "model_not_found"` when no upstream
+   * channel serves the name, and reporting that as "the gateway returned 503"
+   * sends the reader to look for an outage instead of a typo. Classify by the
+   * gateway's own error code first, then by status.
+   */
+  const lowerDetail = detail.toLowerCase()
+  if (
+    code === 'model_not_found' ||
+    /model_not_found|no available channel|model .*not found|unknown model/.test(
+      lowerDetail,
+    )
+  ) {
+    return new GatewayError(
+      `${base}: this gateway has no channel for that model (${response.status}).`,
+      {
+        status: response.status,
+        hint: 'Check the model id, or pick one from Load models.',
+      },
+    )
+  }
+
   switch (response.status) {
     case 401:
       return new GatewayError(
@@ -292,7 +325,16 @@ function parseFrame(raw: string): SseFrame | undefined {
 
 interface ChunkPayload {
   choices?: Array<{
-    delta?: { content?: string | null; role?: string }
+    message?: {
+      content?: string | null
+    }
+    delta?: {
+      content?: string | null
+      /** DeepSeek-style reasoning stream; never part of the answer. */
+      reasoning_content?: string | null
+      reasoning?: string | null
+      role?: string
+    }
     finish_reason?: string | null
   }>
   usage?: {
@@ -392,13 +434,34 @@ async function consumeStream(
   const decoder = new TextDecoder()
   const parse = createSseDecoder()
   let text = ''
+  let reasoningText = ''
   let finishReason: string | null = null
   let usage: ChatUsage | undefined
   let model: string | undefined
   let done = false
+  let cancelled = false
+
+  /*
+   * Cancel the body stream itself when the caller aborts.
+   *
+   * `request()` releases its abort wiring as soon as the response headers
+   * arrive, which is right for a one-shot JSON call but wrong for a stream:
+   * a Stop clicked mid-answer used to reach nothing, and the reply kept
+   * streaming into the page for as long as the model kept talking. Cancelling
+   * the reader is what actually closes the connection.
+   */
+  const onAbort = (): void => {
+    cancelled = true
+    reader.cancel().catch(() => undefined)
+  }
+  if (signal.aborted) onAbort()
+  else signal.addEventListener('abort', onAbort, { once: true })
 
   try {
-    while (!done) {
+    // `cancelled` is flipped by the abort listener, which the linter cannot
+    // see; the reader also rejects once cancelled, so the loop ends either way.
+    // eslint-disable-next-line no-unmodified-loop-condition
+    while (!done && !cancelled) {
       const { value, done: exhausted } = await reader.read()
       if (exhausted) break
       for (const frame of parse(decoder.decode(value, { stream: true }))) {
@@ -423,6 +486,12 @@ async function consumeStream(
           handlers.onUsage?.(reported)
         }
         const choice = payload.choices?.[0]
+        const reasoning =
+          choice?.delta?.reasoning_content ?? choice?.delta?.reasoning
+        if (typeof reasoning === 'string' && reasoning.length > 0) {
+          reasoningText += reasoning
+          handlers.onReasoning?.(reasoningText)
+        }
         const delta = choice?.delta?.content
         if (typeof delta === 'string' && delta.length > 0) {
           text += delta
@@ -431,15 +500,20 @@ async function consumeStream(
         if (choice?.finish_reason) finishReason = choice.finish_reason
       }
     }
+  } catch (error) {
+    // A cancelled reader rejects with an abort-shaped error. That is the Stop
+    // the caller asked for, not a failure to report.
+    if (!cancelled && !signal.aborted) throw error
   } finally {
+    signal.removeEventListener('abort', onAbort)
     reader.cancel().catch(() => undefined)
   }
 
-  if (signal.aborted) {
+  if (cancelled || signal.aborted) {
     // Return what arrived so the caller can keep a partial answer.
     return {
       text,
-      finishReason: finishReason ?? 'aborted',
+      finishReason: 'aborted',
       ...(usage ? { usage } : {}),
       ...(model ? { model } : {}),
     }

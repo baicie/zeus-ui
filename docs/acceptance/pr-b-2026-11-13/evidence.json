@@ -1,0 +1,110 @@
+{
+  "createdAt": "2026-11-12T16:04:21.512Z",
+  "sourceCommit": "3a9a26c40556288fa156061cf118228db45e1f7b",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "mobile": {
+    "width": 390,
+    "height": 844
+  },
+  "referenceDir": "/Users/liuzhiwei/Desktop/workspace/git-code/zeus/artifacts/design-acceptance/reference/chatgpt",
+  "states": ["C01", "C03", "C04", "C05", "C06", "C07", "C08"],
+  "checks": [
+    {
+      "name": "C01: sidebar width matches the reference (\u00b12px)",
+      "ok": true,
+      "detail": "ours=260 reference=259"
+    },
+    {
+      "name": "C01: composer width matches the reference (\u00b18px)",
+      "ok": true,
+      "detail": "ours=768 reference=766"
+    },
+    {
+      "name": "C01: composer height matches the reference (\u00b16px)",
+      "ok": true,
+      "detail": "ours=52 reference=50"
+    },
+    {
+      "name": "C01: the welcome title is one 28px line",
+      "ok": true,
+      "detail": "height=28"
+    },
+    {
+      "name": "C01: title and composer are on the reference rhythm (39px \u00b16)",
+      "ok": true,
+      "detail": "gap=32"
+    },
+    {
+      "name": "C01: sidebar nav rows keep the reference pitch (36\u201342px)",
+      "ok": true,
+      "detail": "[38]"
+    },
+    {
+      "name": "C03: sidebar width matches the reference (\u00b12px)",
+      "ok": true,
+      "detail": "ours=260 reference=259"
+    },
+    {
+      "name": "C03: composer width matches the reference (\u00b18px)",
+      "ok": true,
+      "detail": "ours=768 reference=766"
+    },
+    {
+      "name": "C03: composer height matches the reference (\u00b16px)",
+      "ok": true,
+      "detail": "ours=52 reference=50"
+    },
+    {
+      "name": "C03: the answer renders markdown, not raw text",
+      "ok": true
+    },
+    {
+      "name": "C05: sidebar width matches the reference (\u00b12px)",
+      "ok": true,
+      "detail": "ours=260 reference=259"
+    },
+    {
+      "name": "C05: composer width matches the reference (\u00b18px)",
+      "ok": true,
+      "detail": "ours=768 reference=766"
+    },
+    {
+      "name": "C05: composer height matches the reference (\u00b16px)",
+      "ok": true,
+      "detail": "ours=52 reference=50"
+    },
+    {
+      "name": "C05: the dark capture is actually dark",
+      "ok": true
+    },
+    {
+      "name": "C07: the model menu opens from the topbar",
+      "ok": true
+    },
+    {
+      "name": "C06: settings renders as a page, not a modal",
+      "ok": true
+    },
+    {
+      "name": "C04: the focused composer is visibly distinct",
+      "ok": true
+    },
+    {
+      "name": "C08: mobile viewport is 390\u00d7844",
+      "ok": true,
+      "detail": "390\u00d7844"
+    },
+    {
+      "name": "C08: no horizontal overflow at 390px",
+      "ok": true
+    },
+    {
+      "name": "no page exceptions while capturing",
+      "ok": true
+    }
+  ],
+  "passed": true
+}

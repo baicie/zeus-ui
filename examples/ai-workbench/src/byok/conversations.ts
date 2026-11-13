@@ -46,6 +46,12 @@ export interface LocalConversation {
 const DB_NAME = 'zeus-byok-chat'
 const DB_VERSION = 1
 const STORE = 'conversations'
+/**
+ * Which conversation is open. A conversation id is not a secret and it is not
+ * message content, so it is the one piece of BYOK state kept in web storage:
+ * a reload must come back to the chat the reader was in, not to the newest.
+ */
+const ACTIVE_KEY = 'zeus-byok-active'
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -64,11 +70,12 @@ function openDatabase(): Promise<IDBDatabase> {
 export function createConversation(
   providerId: string,
   model: string,
+  title = 'New chat',
 ): LocalConversation {
   const now = new Date().toISOString()
   return {
     id: crypto.randomUUID(),
-    title: 'New chat',
+    title,
     createdAt: now,
     updatedAt: now,
     providerId,
@@ -79,7 +86,7 @@ export function createConversation(
 
 class ConversationStore {
   private conversations: LocalConversation[] = []
-  private activeId: string | undefined
+  private activeId: string | undefined = readStoredActive()
   private listeners = new Set<() => void>()
 
   async load(): Promise<void> {
@@ -97,6 +104,7 @@ class ConversationStore {
       this.conversations.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
       if (!this.activeId || !this.get(this.activeId)) {
         this.activeId = this.conversations[0]?.id
+        writeStoredActive(this.activeId)
       }
       this.emit()
     } finally {
@@ -122,7 +130,34 @@ class ConversationStore {
 
   setActive(id: string | undefined): void {
     this.activeId = id
+    writeStoredActive(id)
     this.emit()
+  }
+
+  /**
+   * Inserts a conversation and makes it active *before* it is persisted.
+   *
+   * `setActive` alone is not enough for a brand-new chat: the id is not in the
+   * list yet, so a subscriber reading `active()` during the emit would see
+   * `undefined` and clear the view that is being created.
+   */
+  add(conversation: LocalConversation): void {
+    const index = this.conversations.findIndex(
+      item => item.id === conversation.id,
+    )
+    if (index >= 0) this.conversations[index] = conversation
+    else this.conversations.unshift(conversation)
+    this.activeId = conversation.id
+    writeStoredActive(conversation.id)
+    this.emit()
+  }
+
+  /** Switches to a conversation by id; returns it when it exists. */
+  open(id: string): LocalConversation | undefined {
+    const conversation = this.get(id)
+    if (!conversation) return undefined
+    this.setActive(id)
+    return conversation
   }
 
   async save(conversation: LocalConversation): Promise<void> {
@@ -160,7 +195,10 @@ class ConversationStore {
       db.close()
     }
     this.conversations = this.conversations.filter(item => item.id !== id)
-    if (this.activeId === id) this.activeId = this.conversations[0]?.id
+    if (this.activeId === id) {
+      this.activeId = this.conversations[0]?.id
+      writeStoredActive(this.activeId)
+    }
     this.emit()
   }
 
@@ -186,6 +224,7 @@ class ConversationStore {
     }
     this.conversations = []
     this.activeId = undefined
+    writeStoredActive(undefined)
     this.emit()
   }
 
@@ -201,3 +240,21 @@ class ConversationStore {
 }
 
 export const conversationStore = new ConversationStore()
+
+function readStoredActive(): string | undefined {
+  try {
+    const stored = localStorage.getItem(ACTIVE_KEY)
+    return stored ?? undefined
+  } catch {
+    return undefined
+  }
+}
+
+function writeStoredActive(id: string | undefined): void {
+  try {
+    if (id) localStorage.setItem(ACTIVE_KEY, id)
+    else localStorage.removeItem(ACTIVE_KEY)
+  } catch {
+    // Private mode; the in-memory choice still holds for this page.
+  }
+}

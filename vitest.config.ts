@@ -278,6 +278,9 @@ export default defineConfig({
             'packages/**/*.test.tsx',
             'packages/**/*.spec.tsx',
 
+            // The workbench shell's DOM contract (composer dock, BYOK guard).
+            'examples/ai-workbench/__tests__/*.spec.ts',
+
             // Showcase page / route unit tests (requires build:examples deps).
             'examples/vue-showcase/src/**/*.test.ts',
             'examples/vue-showcase/src/**/*.spec.ts',

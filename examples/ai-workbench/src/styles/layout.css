@@ -22,6 +22,17 @@
   box-sizing: border-box;
 }
 
+/*
+ * `hidden` must win over a class that sets `display` (`.icon-button`,
+ * `.byok-send`, `.wb-suggestion` …). The UA rule loses to any author rule of
+ * equal specificity, so without this a "hidden" element still lays out and is
+ * still clickable — which is how the second composer and the idle Stop button
+ * stayed on screen.
+ */
+[hidden] {
+  display: none !important;
+}
+
 * {
   margin: 0;
 }
@@ -193,9 +204,9 @@ a {
 .wb-nav-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  min-height: 36px;
+  height: 36px;
   padding: 0 10px;
   border-radius: var(--wb-radius-md);
   color: var(--wb-text-primary);
@@ -211,6 +222,11 @@ a {
   flex-shrink: 0;
 }
 
+/* The reference's icon gutter starts at 16px and the label at 38px. */
+.wb-sidebar-scroll {
+  padding: 12px 8px 8px;
+}
+
 .wb-nav-item:hover {
   background: var(--wb-surface-hover);
 }
@@ -220,7 +236,7 @@ a {
 }
 
 .wb-sidebar-section {
-  padding: 18px 10px 6px;
+  padding: 22px 10px 8px;
   color: var(--wb-text-muted);
   font-size: 12px;
   font-weight: 500;
@@ -525,8 +541,10 @@ a {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  /* 32px block gap: the reference's title text sits 39px above the composer,
+     and its 28px line box eats 5–6px of that on either side. */
   gap: 32px;
-  padding: 24px 16px 16vh;
+  padding: 24px 16px 22vh;
 }
 
 .wb-welcome[hidden] {
@@ -544,7 +562,7 @@ a {
 
 .wb-suggestion {
   display: block;
-  margin: 12px auto 0;
+  margin: 8px auto 0;
   height: 36px;
   padding: 0 16px;
   border: 1px solid var(--wb-border-default);
@@ -600,6 +618,23 @@ a {
   flex: 0 0 auto;
   width: 100%;
   padding: 0 16px 16px;
+}
+
+/*
+ * The dock. Exactly one owner element ever sits in `.wb-dock-slot`; the
+ * shell moves the zone, never the composer, so a draft and its caret survive
+ * the welcome-to-thread transition and every mode switch.
+ */
+.wb-dock-slot {
+  display: contents;
+}
+
+.wb-dock-accessory {
+  display: block;
+}
+
+.wb-dock-accessory[hidden] {
+  display: none;
 }
 
 .wb-composer-zone.is-centred {

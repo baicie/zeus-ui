@@ -64,6 +64,35 @@ rejects this page as an origin, the error says so and points at running your own
 trusted proxy; the browser cannot route around CORS and the UI does not pretend
 otherwise. A proxy you run can see the key in transit.
 
+### Three states, one shell
+
+The topbar model picker is the only switch, and it names what each choice
+_is_, because the two share a shell but not a transport:
+
+| State                        | What it does                                                      | What it cannot do                                                |
+| ---------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------- |
+| **Agent**                    | Replays a recorded Host session (or talks to a local Host in dev) | Send commands, propose or approve — this surface is read-only    |
+| **My model**, not configured | Opens the composer and points at Settings                         | Send — it explains what to configure instead of failing silently |
+| **My model**, configured     | Streams from your OpenAI-compatible gateway                       | Touch the Host, the replay stream or its permissions             |
+
+Exactly one composer is mounted at a time (`src/composer-dock.ts`): switching
+modes detaches the previous one from the document, so it cannot take focus or
+a submit. The rule is enforced by `pnpm check:ai-workbench-p0`, not by hiding
+the duplicate with CSS.
+
+### Verify the composer rules
+
+```sh
+pnpm check:ai-workbench-p0
+```
+
+Runs a real Host in Chromium, Firefox and WebKit: one visible composer per
+state, click-to-focus, continuous typing, an IME composition round, Enter
+sending exactly once, 20 Agent ↔ My model round trips without a duplicate,
+drafts surviving a switch, New chat routing to the active mode, and the same
+state checks against the built Pages (replay) demo. Screenshots and JSON go to
+`temp/ai-workbench-p0/`.
+
 ### Verify BYOK
 
 ```sh

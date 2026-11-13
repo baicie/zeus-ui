@@ -46,7 +46,7 @@ export const zhCN: Record<WorkbenchMessageKey, string> = {
   'workbench.agentActivity': 'Agent 活动',
   'workbench.closeActivityPanel': '关闭活动面板',
   'workbench.replayNotice':
-    '只读演示 · 回放真实 Host 录制的事件流，不能发送消息、提案或审批。',
+    '回放预览 · 只读。这里回放一段真实 Agent 会话录制，不能发送消息、提案或审批。把顶栏模型选择器切到“我的模型”，即可用你自己的网关聊天。',
 
   /* ------------------------------------------------------------- welcome */
   'workbench.welcomeTitle': '想从哪里开始？',
@@ -86,6 +86,14 @@ export const zhCN: Record<WorkbenchMessageKey, string> = {
   'workbench.runMode': '运行模式',
   'workbench.modeAgent': 'Agent',
   'workbench.modeByok': '我的模型',
+  'workbench.pickerOpen': '选择模型',
+  'workbench.pickerAgentSection': 'Agent',
+  'workbench.pickerAgentHint': '只读回放一段真实 Host 会话录制',
+  'workbench.pickerModelSection': '你的模型',
+  'workbench.pickerNoModel': '尚未配置',
+  'workbench.pickerReplay': '回放',
+  'workbench.pickerSetupModel': '配置你的模型',
+  'workbench.pickerSetupModelHint': 'Base URL、API Key 和模型 id',
   'workbench.backToChat': '返回会话',
   'workbench.language': '语言',
   'workbench.languageDescription':
@@ -116,6 +124,7 @@ export const zhCN: Record<WorkbenchMessageKey, string> = {
   'byok.noProviderConfigured': '未配置服务商',
   'byok.providerFallback': '服务商',
   'byok.noModel': '无模型',
+  'byok.thinking': '正在思考…',
   'byok.stopped': '已停止。',
   'byok.stoppedBeforeFinished': '回答未完成即被停止。',
   'byok.truncated': '回答在 token 上限处被截断。',

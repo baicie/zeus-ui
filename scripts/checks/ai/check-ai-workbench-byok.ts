@@ -17,6 +17,7 @@ import { createServer } from 'vite'
 
 import { startAiHost } from '../../../examples/ai-host/src/server'
 import { startMockGateway } from './support/mock-gateway'
+import { expectSingleComposer, selectMode } from './support/workbench-ui'
 
 const root = path.resolve(import.meta.dirname, '../../..')
 const outDir = path.join(root, 'temp/ai-workbench-byok')
@@ -94,6 +95,10 @@ async function runBrowser(
   engine: keyof typeof engines,
   url: string,
   gatewayOrigin: string,
+  requests: readonly {
+    path: string
+    messages?: Array<{ role: string; content: string }>
+  }[],
 ): Promise<CaseResult> {
   const checks: CaseResult['checks'] = []
   const browser = await engines[engine].launch({
@@ -106,7 +111,7 @@ async function runBrowser(
 
   try {
     await page.goto(url)
-    await page.getByTestId('mode-byok').click()
+    await selectMode(page, 'byok')
     await page.getByTestId('byok-chat').waitFor()
 
     /* ------------------------------------------------------------ vault */
@@ -147,6 +152,7 @@ async function runBrowser(
       saveText?.includes('Saved') === true,
       `status=${JSON.stringify(saveText)}`,
     )
+    await page.getByTestId('settings-back').click()
 
     /* ------------------------------------------- no plaintext in storage */
     const leaked = await page.evaluate(async () => {
@@ -184,7 +190,7 @@ async function runBrowser(
     )
 
     /* ------------------------------------------------------------ chat */
-    await page.getByTestId('mode-byok').click()
+    await expectSingleComposer(page, 'byok')
     await page.getByTestId('byok-input').fill('hello gateway')
     await page.getByTestId('byok-send').click()
     await page.waitForFunction(
@@ -197,11 +203,39 @@ async function runBrowser(
     )
     record(checks, 'streamed reply rendered', true)
 
+    /* ------------------------------------------------------ second turn */
+    // The whole point of a chat is the next question, which only works if the
+    // stored history is what was sent: assert the gateway received both turns
+    // in order, with the assistant reply in between.
+    await page.getByTestId('byok-input').fill('second question')
+    await page.getByTestId('byok-send').click()
+    await page.waitForFunction(
+      () => {
+        const view = document.querySelector('[data-testid="byok-thread"]')
+        return (view?.textContent?.match(/echo: /g) ?? []).length >= 2
+      },
+      null,
+      { timeout: 20_000 },
+    )
+    const secondTurn = requests.filter(entry => entry.messages !== undefined)
+    const lastMessages = secondTurn[secondTurn.length - 1]?.messages ?? []
+    record(
+      checks,
+      'the second turn sends the full history in order',
+      lastMessages.length === 3 &&
+        lastMessages[0]?.role === 'user' &&
+        lastMessages[1]?.role === 'assistant' &&
+        lastMessages[2]?.content === 'second question',
+      JSON.stringify(lastMessages),
+    )
+    await expectSingleComposer(page, 'byok')
+    record(checks, 'two turns leave exactly one composer', true)
+
     /* ------------------------------------------------------- cancel path */
     await page.getByTestId('open-settings').click()
     await page.getByTestId('provider-field-model').fill('mock-slow')
     await page.getByTestId('provider-save').click()
-    await page.getByTestId('mode-byok').click()
+    await page.getByTestId('settings-back').click()
     await page.getByTestId('byok-input').fill('cancel me')
     await page.getByTestId('byok-send').click()
     await page.getByTestId('byok-stop').waitFor({ timeout: 10_000 })
@@ -219,13 +253,15 @@ async function runBrowser(
     /* ----------------------------------------------------- error statuses */
     for (const [model, expected] of [
       ['mock-401', '401'],
+      ['mock-403', '403'],
+      ['mock-404', '404'],
       ['mock-429', '429'],
       ['mock-500', '500'],
     ] as const) {
       await page.getByTestId('open-settings').click()
       await page.getByTestId('provider-field-model').fill(model)
       await page.getByTestId('provider-save').click()
-      await page.getByTestId('mode-byok').click()
+      await page.getByTestId('settings-back').click()
       await page.getByTestId('byok-input').fill(`test ${model}`)
       await page.getByTestId('byok-send').click()
       await page.waitForFunction(
@@ -237,6 +273,44 @@ async function runBrowser(
         { timeout: 15_000 },
       )
       record(checks, `${model} surfaces a ${expected} error`, true)
+    }
+
+    /* ------------------------------------------ stream framing edge cases */
+    for (const [model, expected] of [
+      ['mock-split', 'split works'],
+      ['mock-nodone', 'mock reply to'],
+      ['mock-partial', 'upstream stream failed'],
+      ['mock-reasoning', 'reasoned answer'],
+    ] as const) {
+      await page.getByTestId('open-settings').click()
+      await page.getByTestId('provider-field-model').fill(model)
+      await page.getByTestId('provider-save').click()
+      await page.getByTestId('settings-back').click()
+      await page.getByTestId('byok-input').fill(`framing ${model}`)
+      await page.getByTestId('byok-send').click()
+      await page.waitForFunction(
+        text => {
+          const view = document.querySelector('[data-testid="byok-thread"]')
+          return view?.textContent?.includes(text) === true
+        },
+        expected,
+        { timeout: 20_000 },
+      )
+      record(checks, `${model} is handled (${expected})`, true)
+      if (model === 'mock-reasoning') {
+        // Reasoning frames must not leak into the answer.
+        const leakedReasoning = await page.evaluate(
+          `(() => {
+            const view = document.querySelector('[data-testid="byok-thread"]')
+            return /weighing the question/.test(view ? view.textContent : '')
+          })()`,
+        )
+        record(
+          checks,
+          'reasoning deltas are not shown as the answer',
+          leakedReasoning === false,
+        )
+      }
     }
 
     /* ------------------------------------------------------------ locking */
@@ -284,7 +358,7 @@ async function runBrowser(
 
     /* ------------------------------------------------------------- reload */
     await page.reload()
-    await page.getByTestId('mode-byok').click()
+    await selectMode(page, 'byok')
     await page.getByTestId('byok-chat').waitFor()
     await page.waitForFunction(
       () => {
@@ -352,7 +426,12 @@ async function main(): Promise<void> {
   const results: CaseResult[] = []
   for (const engine of selectedBrowsers) {
     results.push(
-      await runBrowser(engine, 'http://127.0.0.1:5198/', gateway.origin),
+      await runBrowser(
+        engine,
+        'http://127.0.0.1:5198/',
+        gateway.origin,
+        gateway.requests,
+      ),
     )
   }
 

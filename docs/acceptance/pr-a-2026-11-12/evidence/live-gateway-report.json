@@ -1,0 +1,274 @@
+{
+  "kind": "live-gateway-acceptance",
+  "gateway": "https://gw.moonbyte.top:8443/v1",
+  "model": "deepseek-v4.1-flash",
+  "mock": false,
+  "keyFingerprintSha256Prefix": "acb200da3816",
+  "note": "API key was supplied via ZEUS_LIVE_API_KEY at run time and is not recorded here.",
+  "createdAt": "2026-11-12T15:03:25.643Z",
+  "sourceCommit": "12ee87670a3fa741c1ac95fe29218ff68705a77b",
+  "results": [
+    {
+      "browser": "chromium",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "vault created and unlocked",
+          "ok": true
+        },
+        {
+          "name": "provider saved",
+          "ok": true,
+          "detail": "status=\"Saved.\""
+        },
+        {
+          "name": "the gateway answers the connection test",
+          "ok": true,
+          "detail": "Connected. 8 models available."
+        },
+        {
+          "name": "the first live reply arrives",
+          "ok": true
+        },
+        {
+          "name": "the reply contains the requested token",
+          "ok": true,
+          "detail": "zeus-live-ok\nI'm Claude, made by Anthropic"
+        },
+        {
+          "name": "the second turn still knows the first one",
+          "ok": true,
+          "detail": "zeus-live-ok"
+        },
+        {
+          "name": "the conversation survives a reload",
+          "ok": true
+        },
+        {
+          "name": "the vault unlocks again after a reload",
+          "ok": true
+        },
+        {
+          "name": "a long answer starts streaming",
+          "ok": true
+        },
+        {
+          "name": "Stop is clicked while the stream is still running",
+          "ok": true,
+          "detail": "{\"clicked\":true,\"clickedAt\":55}"
+        },
+        {
+          "name": "Stop ends the stream and marks the turn",
+          "ok": true,
+          "detail": "Stopped before the answer finished."
+        },
+        {
+          "name": "the answer stops growing after Stop",
+          "ok": true,
+          "detail": "atStop=55 settled=55"
+        },
+        {
+          "name": "a send after Stop works again",
+          "ok": true
+        },
+        {
+          "name": "an unknown model is reported as such",
+          "ok": true
+        },
+        {
+          "name": "the model error names the model, not a generic outage",
+          "ok": true,
+          "detail": "Request failed: this gateway has no channel for that model (503). Check the model id, or pick one from Load models.RetryDismiss"
+        },
+        {
+          "name": "the view stays usable after a model error",
+          "ok": true
+        },
+        {
+          "name": "the API key is absent from every browser store and the URL",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "no page exceptions and no gateway failures",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "browser": "firefox",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "vault created and unlocked",
+          "ok": true
+        },
+        {
+          "name": "provider saved",
+          "ok": true,
+          "detail": "status=\"Saved.\""
+        },
+        {
+          "name": "the gateway answers the connection test",
+          "ok": true,
+          "detail": "Connected. 8 models available."
+        },
+        {
+          "name": "the first live reply arrives",
+          "ok": true
+        },
+        {
+          "name": "the reply contains the requested token",
+          "ok": true,
+          "detail": "zeus-live-ok.\n"
+        },
+        {
+          "name": "the second turn still knows the first one",
+          "ok": true,
+          "detail": "zeus-live-ok"
+        },
+        {
+          "name": "the conversation survives a reload",
+          "ok": true
+        },
+        {
+          "name": "the vault unlocks again after a reload",
+          "ok": true
+        },
+        {
+          "name": "a long answer starts streaming",
+          "ok": true
+        },
+        {
+          "name": "Stop is clicked while the stream is still running",
+          "ok": true,
+          "detail": "{\"clicked\":true,\"clickedAt\":89}"
+        },
+        {
+          "name": "Stop ends the stream and marks the turn",
+          "ok": true,
+          "detail": "Stopped before the answer finished."
+        },
+        {
+          "name": "the answer stops growing after Stop",
+          "ok": true,
+          "detail": "atStop=89 settled=89"
+        },
+        {
+          "name": "a send after Stop works again",
+          "ok": true
+        },
+        {
+          "name": "an unknown model is reported as such",
+          "ok": true
+        },
+        {
+          "name": "the model error names the model, not a generic outage",
+          "ok": true,
+          "detail": "Request failed: this gateway has no channel for that model (503). Check the model id, or pick one from Load models.RetryDismiss"
+        },
+        {
+          "name": "the view stays usable after a model error",
+          "ok": true
+        },
+        {
+          "name": "the API key is absent from every browser store and the URL",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "no page exceptions and no gateway failures",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "browser": "webkit",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "vault created and unlocked",
+          "ok": true
+        },
+        {
+          "name": "provider saved",
+          "ok": true,
+          "detail": "status=\"Saved.\""
+        },
+        {
+          "name": "the gateway answers the connection test",
+          "ok": true,
+          "detail": "Connected. 8 models available."
+        },
+        {
+          "name": "the first live reply arrives",
+          "ok": true
+        },
+        {
+          "name": "the reply contains the requested token",
+          "ok": true,
+          "detail": "zeus-live-ok.\nI'm Claude, made by Anthropic."
+        },
+        {
+          "name": "the second turn still knows the first one",
+          "ok": true,
+          "detail": "zeus-live-ok"
+        },
+        {
+          "name": "the conversation survives a reload",
+          "ok": true
+        },
+        {
+          "name": "the vault unlocks again after a reload",
+          "ok": true
+        },
+        {
+          "name": "a long answer starts streaming",
+          "ok": true
+        },
+        {
+          "name": "Stop is clicked while the stream is still running",
+          "ok": true,
+          "detail": "{\"clicked\":true,\"clickedAt\":107}"
+        },
+        {
+          "name": "Stop ends the stream and marks the turn",
+          "ok": true,
+          "detail": "Stopped before the answer finished."
+        },
+        {
+          "name": "the answer stops growing after Stop",
+          "ok": true,
+          "detail": "atStop=107 settled=107"
+        },
+        {
+          "name": "a send after Stop works again",
+          "ok": true
+        },
+        {
+          "name": "an unknown model is reported as such",
+          "ok": true
+        },
+        {
+          "name": "the model error names the model, not a generic outage",
+          "ok": true,
+          "detail": "Request failed: this gateway has no channel for that model (503). Check the model id, or pick one from Load models.RetryDismiss"
+        },
+        {
+          "name": "the view stays usable after a model error",
+          "ok": true
+        },
+        {
+          "name": "the API key is absent from every browser store and the URL",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "no page exceptions and no gateway failures",
+          "ok": true
+        }
+      ]
+    }
+  ],
+  "passed": true
+}

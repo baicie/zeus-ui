@@ -26,6 +26,7 @@
     "examples/ai-host/src/**/*",
     "examples/ai-host/__tests__/**/*",
     "examples/ai-workbench/src/**/*",
+    "examples/ai-workbench/__tests__/**/*",
     "e2e/**/*"
   ],
   "exclude": [

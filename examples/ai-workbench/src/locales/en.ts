@@ -42,7 +42,7 @@ export const en = {
   'workbench.agentActivity': 'Agent activity',
   'workbench.closeActivityPanel': 'Close activity panel',
   'workbench.replayNotice':
-    'Public replay · read-only. Sending messages, proposing and approving are disabled.',
+    'Replay preview · read-only. This surface replays a recorded Agent session; it cannot send messages, propose changes or approve them. Switch the model picker to “My model” to chat with your own gateway.',
 
   /* ------------------------------------------------------------- welcome */
   'workbench.welcomeTitle': 'Where should we begin?',
@@ -83,6 +83,14 @@ export const en = {
   'workbench.runMode': 'Run mode',
   'workbench.modeAgent': 'Agent',
   'workbench.modeByok': 'My model',
+  'workbench.pickerOpen': 'Choose model',
+  'workbench.pickerAgentSection': 'Agent',
+  'workbench.pickerAgentHint': 'Read-only replay of a recorded Host session',
+  'workbench.pickerModelSection': 'Your model',
+  'workbench.pickerNoModel': 'not configured',
+  'workbench.pickerReplay': 'replay',
+  'workbench.pickerSetupModel': 'Set up your model',
+  'workbench.pickerSetupModelHint': 'Base URL, API key and model id',
   'workbench.backToChat': 'Back to chat',
   'workbench.language': 'Language',
   'workbench.languageDescription':
@@ -117,6 +125,7 @@ export const en = {
   'byok.noProviderConfigured': 'No provider configured',
   'byok.providerFallback': 'Provider',
   'byok.noModel': 'no model',
+  'byok.thinking': 'Thinking…',
   'byok.stopped': 'Stopped.',
   'byok.stoppedBeforeFinished': 'Stopped before the answer finished.',
   'byok.truncated': 'The answer was cut off at the token limit.',
