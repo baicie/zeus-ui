@@ -245,7 +245,6 @@ export default defineConfig({
             'packages/primitives/input/__tests__/input-runtime.spec.ts',
             // dialog focus/outside-click tests require a DOM environment.
             'packages/primitives/dialog/__tests__/dialog-runtime.spec.ts',
-            'packages/primitives/dialog/__tests__/dialog-interaction.spec.ts',
             // FormField and DropdownMenu runtime tests require DOM globals.
             'packages/primitives/form-field/__tests__/form-field.runtime.spec.ts',
             'packages/primitives/dropdown-menu/__tests__/dropdown-menu.runtime.spec.ts',
