@@ -1,13 +1,6 @@
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 import type { DOMContext } from '@zeus-web/zeus-compat'
-import {
-  defineElement,
-  event,
-  Host,
-  onCleanup,
-  prop,
-  Slot,
-} from '@zeus-js/zeus'
+import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
 import { provideDOMContext, resolveDOMContext } from '@zeus-web/zeus-compat'
 
 export interface DialogProps {
@@ -371,41 +364,6 @@ function setupDialogContent(
     }
   }
 
-  /*
-   * The `keydown` trap above is necessary but not sufficient.
-   *
-   * It can only redirect a Tab whose event reaches this panel, and on WebKit it
-   * often does not: once the panel itself holds focus (it has `tabindex="-1"`),
-   * the engine moves focus to the next element in the document and the keydown
-   * is delivered to that element, not here. The result is that a modal dialog
-   * on macOS Safari lets Tab walk straight into the page behind it — the exact
-   * failure a focus trap exists to prevent.
-   *
-   * `focusin` is the reliable signal: it fires *after* focus landed, wherever
-   * it landed, so pulling it back is possible even when the key event was never
-   * seen. Both handlers stay, because they cover different engines and the
-   * keydown path can prevent the move instead of correcting it — no focus
-   * flicker where it works.
-   *
-   * Only modal dialogs trap, and only while they are open: a non-modal one is
-   * meant to let focus leave.
-   */
-  const handleFocusIn = (event: FocusEvent) => {
-    if (!dialog?.isModal() || !isOpen()) return
-    const target = event.target
-    if (!(target instanceof Node)) return
-    if (panel.contains(target)) return
-    // The trigger that opened the dialog is outside it by design; returning
-    // focus there is what a close does, so it must not be treated as an escape.
-    if (
-      target instanceof Element &&
-      target.closest('[data-slot="dialog-trigger"]')
-    ) {
-      return
-    }
-    focusFirstElement(panel)
-  }
-
   ctx.expose({
     focus(): void {
       panel.focus()
@@ -420,14 +378,10 @@ function setupDialogContent(
     >
       <div
         ref={(element: HTMLDivElement | null) => {
-          if (!element) return
-          panel = element
-          dialog?.registerContent(element)
-          // Bound here rather than through `onFocusIn`: Zeus's JSX type does
-          // not carry that event name, and the listener must be on this exact
-          // node anyway. `onCleanup` is the element's own disposal scope.
-          element.addEventListener('focusin', handleFocusIn)
-          onCleanup(() => element.removeEventListener('focusin', handleFocusIn))
+          if (element) {
+            panel = element
+            dialog?.registerContent(element)
+          }
         }}
         id={dialog?.getContentId()}
         part="content"
