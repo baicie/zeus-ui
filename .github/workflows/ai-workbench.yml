@@ -268,14 +268,12 @@ jobs:
           # release was accepted against.
           ref: d7c82cfdd71efba1e3b84505e0414c3d1e1e94e3
           path: zeus-reference
-          # `sparse-checkout` defaults to cone mode, which treats the paths as
-          # *directories whose parents are also checked out*. That is what this
-          # wants, but the gate reads the files by exact path; disabling cone
-          # mode makes the checkout literal, so a path that stops existing
-          # fails here rather than inside the comparison.
-          sparse-checkout-cone-mode: false
-          sparse-checkout: |
-            /artifacts/design-acceptance/reference/chatgpt/*
+          # Deliberately not `sparse-checkout`. Two attempts at a sparse
+          # checkout — cone mode and a literal pattern — both created the
+          # directory tree without checking out C01.png, which `checkout`
+          # reports as success. The whole reference set is eight PNGs; taking
+          # the tree is cheaper than diagnosing why a selective checkout of it
+          # is empty, and the assertion below still verifies the file is there.
 
       - name: Restore the Playwright browser cache
         if: steps.change.outputs.run == 'true'
