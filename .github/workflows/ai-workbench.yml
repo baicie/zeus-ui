@@ -299,12 +299,13 @@ jobs:
           # (`/home/runner/work/<repo>/<repo>`). The first version linked into
           # `dirname(GITHUB_WORKSPACE)`, one level too deep, and the gate failed
           # with "reference captures not found".
-          target="$(dirname "$(dirname "${GITHUB_WORKSPACE}")")/zeus"
+          # The gate resolves `path.resolve(<repo root>, '../zeus/...')`, and on
+          # a runner `<repo root>` is `GITHUB_WORKSPACE`. So the sibling it
+          # wants is `dirname(GITHUB_WORKSPACE)/zeus`, not a directory above
+          # that — the earlier attempts were one level too high, which is why
+          # the link and the copy both looked correct and neither was found.
+          target="$(dirname "${GITHUB_WORKSPACE}")/zeus"
           mkdir -p "${target}"
-          # Copy rather than symlink. A link made the failure opaque: the path
-          # resolved to a directory that existed but was empty, and there is no
-          # way to tell from inside the gate whether the link or the checkout
-          # was wrong. A copy is unambiguous and the set is eight PNGs.
           cp -R "${GITHUB_WORKSPACE}/zeus-reference/." "${target}/"
           test -f "${target}/artifacts/design-acceptance/reference/chatgpt/C01.png" || {
             echo "::error::reference captures are not reachable at ${target}"
