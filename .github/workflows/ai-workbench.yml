@@ -181,35 +181,66 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
 
+      - name: Check out the pull request's base for a diff
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v5
+        with:
+          # The first checkout is the merge commit, at depth 1. Fetching the base
+          # itself is the only reliable way to diff a reusable workflow: an
+          # event payload from `workflow_call` does not carry
+          # `pull_request.base.sha`, and the first version of this filter read it
+          # as an empty string, diffed against nothing, and reported "no
+          # relevant change" for a pull request that had changed the Workbench.
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .base
+          fetch-depth: 1
+
       - name: Decide whether the visual surface changed
         id: change
         env:
           EVENT: ${{ github.event_name }}
-          BASE: ${{ github.event.pull_request.base.sha }}
-          HEAD: ${{ github.sha }}
         run: |
           set -euo pipefail
+          # Set `run` and say why, in one place, so a failure to decide can
+          # never read as "nothing to do".
+          decide() {
+            echo "run=$1" >> "$GITHUB_OUTPUT"
+            echo "::notice::visual gate run=$1 — $2"
+          }
           if [[ "${EVENT}" == "workflow_dispatch" ]]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
+            decide true "manual dispatch"
             exit 0
           fi
-          if [[ "${EVENT}" != "pull_request" ]]; then
-            # A push to main has no base to diff against; compare with the
-            # previous commit, which is what a push means.
-            BASE="$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)"
-          fi
-          changed="$(git diff --name-only "${BASE}" "${HEAD}" 2>/dev/null || true)"
-          echo "changed files:" && printf '%s\n' "${changed}" | sed '/^$/d'
-          if printf '%s\n' "${changed}" | grep -Eq '^(examples/ai-workbench/|packages/(ai|primitives|advanced|themes)/|scripts/checks/ai/)'; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
+          if [[ "${EVENT}" == "pull_request" ]]; then
+            if [[ ! -d .base/.git ]] && [[ ! -f .base/.git ]]; then
+              echo "::error::the pull request base checkout is missing; cannot decide whether the visual surface changed"
+              exit 1
+            fi
+            base="$(git -C .base rev-parse HEAD)"
+            changed="$(git diff --name-only "${base}" "${GITHUB_SHA}")"
+            what="the pull request diff"
           else
-            echo "run=false" >> "$GITHUB_OUTPUT"
+            # A push has no base revision in the payload. The previous commit is
+            # what a push means, and a shallow checkout may not have it, so fetch
+            # it explicitly rather than silently diffing nothing.
+            if ! git rev-parse --verify --quiet HEAD~1 >/dev/null; then
+              git fetch --quiet --depth=2 origin "${GITHUB_REF_NAME}"
+            fi
+            base="$(git rev-parse HEAD~1)"
+            changed="$(git diff --name-only "${base}" "${GITHUB_SHA}")"
+            what="the pushed commit range"
           fi
-
-      - name: Note the skip and why
-        if: steps.change.outputs.run != 'true'
-        run: |
-          echo "::notice::visual gate skipped: no AI Workbench, AI package or primitive change in this diff"
+          if [[ -z "${changed}" ]]; then
+            echo "::error::no changed files between ${base} and ${GITHUB_SHA}; that cannot be a real diff"
+            exit 1
+          fi
+          echo "changed files in ${what}:"
+          printf '%s\n' "${changed}"
+          if printf '%s\n' "${changed}" | grep -Eq '^(examples/ai-workbench/|packages/(ai|ai-core|ai-adapters|ai-primitives|ai-wc|primitives|advanced|themes)/|scripts/checks/ai/)'; then
+            decide true "the diff touches the Workbench, its packages or its gates"
+          else
+            decide false "the diff touches neither the Workbench nor the packages it renders"
+          fi
 
       - run: pnpm install --frozen-lockfile
         if: steps.change.outputs.run == 'true'
