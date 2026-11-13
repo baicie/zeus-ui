@@ -171,6 +171,30 @@ async function runBrowser(
     // The whole point of a chat is the next question, which only works if the
     // stored history is what was sent: assert the gateway received both turns
     // in order, with the assistant reply in between.
+    /*
+     * Firefox needed longer here than the other two engines on CI: the first
+     * reply's stream closes after the text is already on screen, and a second
+     * send issued in that window is queued behind it. 20s was enough on
+     * Chromium and WebKit and not always on Firefox, which made the gate fail
+     * for a reason that has nothing to do with the product.
+     *
+     * The wait is on the *state* rather than a fixed delay: the send button is
+     * only enabled again once the previous turn finished, so waiting for that
+     * is waiting for the actual precondition.
+     */
+    await expect
+      .poll(
+        () =>
+          page
+            .getByTestId('byok-send')
+            .isVisible()
+            .catch(() => false),
+        {
+          message: 'the send button comes back after the first reply',
+          timeout: 30_000,
+        },
+      )
+      .toBe(true)
     await page.getByTestId('byok-input').fill('second question')
     await page.getByTestId('byok-send').click()
     await page.waitForFunction(
@@ -179,7 +203,7 @@ async function runBrowser(
         return (view?.textContent?.match(/echo: /g) ?? []).length >= 2
       },
       null,
-      { timeout: 20_000 },
+      { timeout: 30_000 },
     )
     const secondTurn = requests.filter(entry => entry.messages !== undefined)
     const lastMessages = secondTurn[secondTurn.length - 1]?.messages ?? []

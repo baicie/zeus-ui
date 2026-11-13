@@ -291,8 +291,19 @@ jobs:
         if: steps.change.outputs.run == 'true'
         run: |
           set -euo pipefail
-          mkdir -p "$(dirname "${GITHUB_WORKSPACE}")/zeus"
-          ln -sfn "${GITHUB_WORKSPACE}/zeus-reference" "$(dirname "${GITHUB_WORKSPACE}")/zeus"
+          # The gate resolves `path.resolve(<zeus-ui root>, '../zeus/...')`,
+          # so it wants a sibling of the *repository root* — which on a runner
+          # is one level above `GITHUB_WORKSPACE`
+          # (`/home/runner/work/<repo>/<repo>`). The first version linked into
+          # `dirname(GITHUB_WORKSPACE)`, one level too deep, and the gate failed
+          # with "reference captures not found".
+          target="$(dirname "$(dirname "${GITHUB_WORKSPACE}")")/zeus"
+          mkdir -p "${target}"
+          ln -sfn "${GITHUB_WORKSPACE}/zeus-reference" "${target}"
+          test -d "${target}/artifacts/design-acceptance/reference/chatgpt" || {
+            echo "::error::reference captures are not reachable at ${target}"
+            exit 1
+          }
 
       - name: Visual comparison
         if: steps.change.outputs.run == 'true'
@@ -300,13 +311,17 @@ jobs:
           ZEUS_AI_WORKBENCH_VISUAL_BROWSER: chromium
         run: pnpm check:ai-workbench-visual
 
+      # `warn`, not `error`: this step runs after a failure too, and a missing
+      # directory there means the gate never got to write — which the gate's own
+      # failure already reported. Making the upload fail as well turns one
+      # problem into two and hides which one came first.
       - name: Keep frames, pairs and the report
         if: always() && steps.change.outputs.run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ai-workbench-visual-${{ github.run_id }}
           path: temp/ai-workbench-visual
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
 
   live:
