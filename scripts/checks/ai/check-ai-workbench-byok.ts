@@ -227,7 +227,30 @@ async function runBrowser(
     await page.getByTestId('settings-back').click()
     await page.getByTestId('byok-input').fill('cancel me')
     await page.getByTestId('byok-send').click()
-    await page.getByTestId('byok-stop').waitFor({ timeout: 10_000 })
+    /*
+     * Stop must be pressed *while the stream is still running*. Waiting for the
+     * button and then clicking races the stream: if the last chunk lands in
+     * between, the button is gone and Playwright reports a missing element,
+     * which says nothing about whether cancellation works.
+     *
+     * `mock-slow` streams long enough for this window, and the check below
+     * distinguishes the two failures: the button never appearing means the
+     * stream finished early, which is a fixture problem, not a product one.
+     */
+    await expect
+      .poll(
+        () =>
+          page
+            .getByTestId('byok-stop')
+            .isVisible()
+            .catch(() => false),
+        {
+          message:
+            'the Stop button must appear while mock-slow is streaming; if this times out the fixture finished too early',
+          timeout: 10_000,
+        },
+      )
+      .toBe(true)
     await page.getByTestId('byok-stop').click()
     await page.waitForFunction(
       () => {
