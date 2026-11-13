@@ -181,57 +181,69 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
 
-      - name: Check out the pull request's base for a diff
-        if: github.event_name == 'pull_request'
-        uses: actions/checkout@v5
-        with:
-          # The first checkout is the merge commit, at depth 1. Fetching the base
-          # itself is the only reliable way to diff a reusable workflow: an
-          # event payload from `workflow_call` does not carry
-          # `pull_request.base.sha`, and the first version of this filter read it
-          # as an empty string, diffed against nothing, and reported "no
-          # relevant change" for a pull request that had changed the Workbench.
-          ref: ${{ github.event.pull_request.base.sha }}
-          path: .base
-          fetch-depth: 1
+      # The change filter.
+      #
+      # A reusable workflow cannot read `github.event.pull_request.base.sha`:
+      # `workflow_call` hands the callee a payload where `event_name` is still
+      # the caller's event but the pull-request fields are gone. The first
+      # version of this filter read that missing field as an empty string,
+      # diffed against nothing, and reported "no relevant change" for a pull
+      # request that had changed `examples/ai-workbench/src/main.ts` — a silent
+      # skip, which is the one outcome R6-B forbids. A second version fell back
+      # to `HEAD~1`, which covers only the newest commit, so a docs-only or
+      # yml-only follow-up hid the Workbench change before it.
+      #
+      # The changed set now comes from GitHub's own view, which is what the pull
+      # request page shows and cannot silently be empty.
+      - name: Fetch the history the change filter needs
+        run: |
+          set -euo pipefail
+          git fetch --quiet --unshallow origin 2>/dev/null || git fetch --quiet origin
+          echo "history depth: $(git rev-list --count HEAD) commits"
 
       - name: Decide whether the visual surface changed
         id: change
         env:
           EVENT: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          # Set `run` and say why, in one place, so a failure to decide can
-          # never read as "nothing to do".
           decide() {
             echo "run=$1" >> "$GITHUB_OUTPUT"
             echo "::notice::visual gate run=$1 — $2"
           }
+
           if [[ "${EVENT}" == "workflow_dispatch" ]]; then
             decide true "manual dispatch"
             exit 0
           fi
-          if [[ "${EVENT}" == "pull_request" ]]; then
-            if [[ ! -d .base/.git ]] && [[ ! -f .base/.git ]]; then
-              echo "::error::the pull request base checkout is missing; cannot decide whether the visual surface changed"
-              exit 1
-            fi
-            base="$(git -C .base rev-parse HEAD)"
-            changed="$(git diff --name-only "${base}" "${GITHUB_SHA}")"
-            what="the pull request diff"
+
+          if [[ -n "${PR_NUMBER}" ]]; then
+            # GitHub's own list of the pull request's changed files: the same
+            # list the reviewer sees, and it needs no base commit locally.
+            changed="$(gh api --paginate \
+              "repos/${REPO}/pulls/${PR_NUMBER}/files?per_page=100" \
+              --jq '.[].filename')"
+            what="pull request #${PR_NUMBER}"
           else
-            # A push has no base revision in the payload. The previous commit is
-            # what a push means, and a shallow checkout may not have it, so fetch
-            # it explicitly rather than silently diffing nothing.
-            if ! git rev-parse --verify --quiet HEAD~1 >/dev/null; then
-              git fetch --quiet --depth=2 origin "${GITHUB_REF_NAME}"
+            # A dispatched reusable workflow reports the caller's event, so a
+            # pull request can arrive here as a push. The commit's own parent is
+            # the base; the push payload has no base revision to borrow.
+            base="$(gh api "repos/${REPO}/commits/${GITHUB_SHA}" --jq '.parents[0].sha // empty' || true)"
+            if [[ -n "${base}" ]]; then
+              changed="$(git diff --name-only "${base}" "${GITHUB_SHA}")"
+              what="commit range ${base:0:12}..${GITHUB_SHA:0:12}"
+            else
+              changed="$(git show --name-only --pretty=format: "${GITHUB_SHA}")"
+              what="the first commit ${GITHUB_SHA:0:12}"
             fi
-            base="$(git rev-parse HEAD~1)"
-            changed="$(git diff --name-only "${base}" "${GITHUB_SHA}")"
-            what="the pushed commit range"
           fi
+
+          changed="$(printf '%s\n' "${changed}" | sed '/^$/d')"
           if [[ -z "${changed}" ]]; then
-            echo "::error::no changed files between ${base} and ${GITHUB_SHA}; that cannot be a real diff"
+            echo "::error::no changed files reported for ${what}; that cannot be a real change set, so the visual gate cannot decide"
             exit 1
           fi
           echo "changed files in ${what}:"
@@ -252,7 +264,7 @@ jobs:
           repository: baicie/zeus
           # The reference set is a frozen artifact of the Core repository. A
           # moving `main` would let the target drift while the gate still
-          # passes, so it is pinned to the commit that carry the captures the
+          # passes, so it is pinned to the commit that carries the captures the
           # release was accepted against.
           ref: d7c82cfdd71efba1e3b84505e0414c3d1e1e94e3
           path: zeus-reference
