@@ -146,6 +146,16 @@ export function runComponentModeFixture(
   const dialog = document.createElement('zw-dialog') as DialogHost
   dialog.defaultOpen = true
   dialog.open = false
+  /*
+   * This dialog is controlled: `open` is written before it connects, so the
+   * component reports changes and leaves the value to its owner. The owner has
+   * to write back, or nothing would ever open — which is the contract, and the
+   * reason the earlier version of this fixture worked only by accident (the
+   * component used to overwrite a controlled prop it had written itself).
+   */
+  dialog.addEventListener('open-change', event => {
+    dialog.open = (event as CustomEvent<{ open: boolean }>).detail.open
+  })
   dialog.innerHTML =
     '<zw-dialog-trigger>Open</zw-dialog-trigger><zw-dialog-content><zw-dialog-title>Title</zw-dialog-title><zw-dialog-description>Description</zw-dialog-description><button>Inside</button><zw-dialog-close>Close</zw-dialog-close></zw-dialog-content>'
   const grid = document.createElement('zw-data-grid') as GridHost
