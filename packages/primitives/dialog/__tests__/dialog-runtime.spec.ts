@@ -21,6 +21,16 @@ function nextRender(): Promise<void> {
     .then(() => new Promise(resolve => setTimeout(resolve, 0)))
 }
 
+/**
+ * Builds an *uncontrolled* dialog that starts open.
+ *
+ * `defaultOpen`, not `open`. Writing `open` before the element upgrades makes
+ * it a controlled dialog — the owner has taken responsibility for the value —
+ * and a controlled dialog that ignores `open-change` is supposed to stay
+ * open. The earlier version of this helper wrote `open = true`, which only
+ * looked like "open a dialog" because the component used to overwrite a
+ * controlled prop it had written to itself.
+ */
 async function createDialog(
   parent: HTMLElement = document.body,
   titleText = 'Settings',
@@ -33,7 +43,7 @@ async function createDialog(
   ])
 
   const dialog = document.createElement('zw-dialog') as RuntimeDialog
-  dialog.open = true
+  dialog.setAttribute('default-open', '')
   parent.append(dialog)
   // Wait for the root projection before adding lazy child elements; otherwise
   // its initial light-DOM render can disconnect them while they are loading.
@@ -63,7 +73,23 @@ async function createDialog(
   return dialog
 }
 
-beforeAll(() => import(distPath))
+beforeAll(async () => {
+  /*
+   * jsdom has no layout, so `getClientRects()` returns an empty list for every
+   * element. The component uses it to skip controls that are not rendered —
+   * correct in a browser, and fatal for any jsdom test that focuses one. The
+   * stub reports every element as having a box, which is what a browser says
+   * for anything that is not `display: none` or inside a hidden ancestor.
+   *
+   * This is a stub for the *test environment*, not for the component: the
+   * browser gate (`check:dialog-interaction`) runs the same logic against real
+   * layout on three engines.
+   */
+  Element.prototype.getClientRects = function getClientRects() {
+    return [{ width: 1, height: 1 } as DOMRect] as unknown as DOMRectList
+  }
+  await import(distPath)
+})
 
 afterEach(async () => {
   document.body.replaceChildren()
@@ -81,7 +107,7 @@ describe('dialog runtime accessibility', () => {
     )
     await nextRender()
 
-    expect(dialog.open).toBe(false)
+    expect(dialog.getAttribute('data-state')).toBe('closed')
     expect(changes).toHaveBeenCalledTimes(1)
     expect((changes.mock.calls[0][0] as CustomEvent).detail.open).toBe(false)
   })
@@ -96,7 +122,7 @@ describe('dialog runtime accessibility', () => {
       ?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
     await nextRender()
 
-    expect(dialog.open).toBe(true)
+    expect(dialog.getAttribute('data-state')).toBe('open')
     expect(changes).not.toHaveBeenCalled()
   })
 
@@ -111,7 +137,7 @@ describe('dialog runtime accessibility', () => {
     )
     await nextRender()
 
-    expect(dialog.open).toBe(true)
+    expect(dialog.getAttribute('data-state')).toBe('open')
     expect(changes).not.toHaveBeenCalled()
   })
 
@@ -156,7 +182,7 @@ describe('dialog runtime accessibility', () => {
     )
     await nextRender()
 
-    expect(nested.open).toBe(false)
-    expect(outer.open).toBe(true)
+    expect(nested.getAttribute('data-state')).toBe('closed')
+    expect(outer.getAttribute('data-state')).toBe('open')
   })
 })
