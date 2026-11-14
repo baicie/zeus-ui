@@ -229,19 +229,30 @@ jobs:
             what="pull request #${PR_NUMBER}"
           else
             # A dispatched reusable workflow reports the caller's event, so a
-            # pull request can arrive here as a push. The commit's own parent is
-            # the base; the push payload has no base revision to borrow.
-            base="$(gh api "repos/${REPO}/commits/${GITHUB_SHA}" --jq '.parents[0].sha // empty' || true)"
-            if [[ -n "${base}" ]]; then
-              changed="$(git diff --name-only "${base}" "${GITHUB_SHA}")"
-              what="commit range ${base:0:12}..${GITHUB_SHA:0:12}"
+            # pull request can arrive here as a push. The push payload has no
+            # base revision to borrow, so the commit's own parents are used.
+            #
+            # A merge commit has **two** parents, and diffing against the first
+            # one alone describes only what came in from the other side. That
+            # reported an empty change set for a merge that brought `main` into
+            # a feature branch — the branch's own work is exactly what the
+            # single-parent diff omits. The union against every parent is the
+            # change the merge actually introduced.
+            parents="$(gh api "repos/${REPO}/commits/${GITHUB_SHA}" --jq '.parents[].sha' || true)"
+            if [[ -n "${parents}" ]]; then
+              changed=""
+              for parent in ${parents}; do
+                part="$(git diff --name-only "${parent}" "${GITHUB_SHA}")"
+                changed="${changed}${part}"$'\n'
+              done
+              what="commit range $(echo "${parents}" | tr '\n' ',' | sed 's/,$//' | cut -c1-60)..${GITHUB_SHA:0:12}"
             else
               changed="$(git show --name-only --pretty=format: "${GITHUB_SHA}")"
               what="the first commit ${GITHUB_SHA:0:12}"
             fi
           fi
 
-          changed="$(printf '%s\n' "${changed}" | sed '/^$/d')"
+          changed="$(printf '%s\n' "${changed}" | sed '/^$/d' | sort -u)"
           if [[ -z "${changed}" ]]; then
             echo "::error::no changed files reported for ${what}; that cannot be a real change set, so the visual gate cannot decide"
             exit 1
