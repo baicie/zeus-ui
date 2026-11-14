@@ -118,17 +118,23 @@ afterEach(async () => {
 })
 
 describe('uncontrolled dialog', () => {
-  it('opens from its state, publishes `open`, and reports once', async () => {
+  it('opens from its state and reports once', async () => {
     const { dialog, changes } = await mount()
 
     expect(state(dialog)).toBe('closed')
-    expect(dialog.open).toBe(false)
+    /*
+     * An uncontrolled dialog leaves `open` alone until something changes it.
+     * The state lives in `data-state`; `open` is the *controlled* input, and
+     * `undefined` is what tells an owner it is not controlling this element.
+     * See `packages/primitives/__tests__/boolean-default-state-runtime.spec.ts`,
+     * which asserts the same contract for every boolean primitive.
+     */
+    expect(dialog.open).toBeUndefined()
 
     dialog.show()
     await tick()
 
     expect(state(dialog)).toBe('open')
-    expect(dialog.open).toBe(true)
     expect(changes).toEqual([true])
   })
 
@@ -229,7 +235,7 @@ describe('uncontrolled dialog', () => {
     const { dialog, changes } = await mount({ defaultOpen: true })
 
     expect(state(dialog)).toBe('open')
-    expect(dialog.open).toBe(true)
+    expect(dialog.open).toBeUndefined()
     expect(changes).toEqual([])
   })
 })

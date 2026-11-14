@@ -373,32 +373,6 @@ function setupDialog(
     }, 0)
   }
 
-  /*
-   * Keep the public `open` property equal to the state for an uncontrolled
-   * dialog.
-   *
-   * Without this, `el.open` reads `undefined` on a dialog that is open through
-   * `defaultOpen` or its trigger: the value lives in the signal, and the prop
-   * is only written on an explicit `setOpen`. Owners and tests read `open` to
-   * find out what the component is doing, and a getter that says `undefined`
-   * while the panel is on screen is not an answer.
-   */
-  let published: boolean | undefined
-  createEffect(() => {
-    const isOpen = getOpen()
-    if (controlled) return
-    selfWritten = isOpen
-    if (published === isOpen) return
-    /*
-     * Compared against the last value *this effect* wrote, not against
-     * `props.open`. Reading the prop here would make the effect depend on the
-     * very slot it writes, and the runtime rejects that synchronously — the
-     * same defect class as the locale effect in the Admin app.
-     */
-    published = isOpen
-    ctx.host.open = isOpen
-  })
-
   createEffect(() => {
     const isOpen = getOpen()
     const wasOpen = previousOpen

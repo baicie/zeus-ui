@@ -107,7 +107,7 @@ describe('dialog runtime accessibility', () => {
     )
     await nextRender()
 
-    expect(dialog.open).toBe(false)
+    expect(dialog.getAttribute('data-state')).toBe('closed')
     expect(changes).toHaveBeenCalledTimes(1)
     expect((changes.mock.calls[0][0] as CustomEvent).detail.open).toBe(false)
   })
@@ -122,7 +122,7 @@ describe('dialog runtime accessibility', () => {
       ?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
     await nextRender()
 
-    expect(dialog.open).toBe(true)
+    expect(dialog.getAttribute('data-state')).toBe('open')
     expect(changes).not.toHaveBeenCalled()
   })
 
@@ -137,7 +137,7 @@ describe('dialog runtime accessibility', () => {
     )
     await nextRender()
 
-    expect(dialog.open).toBe(true)
+    expect(dialog.getAttribute('data-state')).toBe('open')
     expect(changes).not.toHaveBeenCalled()
   })
 
@@ -182,7 +182,7 @@ describe('dialog runtime accessibility', () => {
     )
     await nextRender()
 
-    expect(nested.open).toBe(false)
-    expect(outer.open).toBe(true)
+    expect(nested.getAttribute('data-state')).toBe('closed')
+    expect(outer.getAttribute('data-state')).toBe('open')
   })
 })
