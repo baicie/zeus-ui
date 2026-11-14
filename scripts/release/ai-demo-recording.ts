@@ -26,7 +26,6 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
 
-import { startAiHost } from '../../examples/ai-host/src/server'
 
 const FULL_SHA = /^[0-9a-f]{40}$/
 
@@ -48,6 +47,17 @@ for (const name of ['ui-commit', 'core-commit'] as const) {
     )
   }
 }
+
+/*
+ * Imported after the argument check, not at the top of the module.
+ *
+ * `startAiHost` pulls in `node:sqlite`. A top-level import makes *loading the
+ * file* require that module, so `--out` without `--ui-commit` — a usage error
+ * that should be answered by one line of text — instead dies on a missing
+ * builtin, and the exit code says nothing about what the caller got wrong.
+ * The check has no dependency on the Host; only a real recording does.
+ */
+const { startAiHost } = await import('../../examples/ai-host/src/server')
 
 const EDITOR_TOKEN = 'demo-editor-token-0123456789'
 const APPROVER_TOKEN = 'demo-approver-token-0123456789'
