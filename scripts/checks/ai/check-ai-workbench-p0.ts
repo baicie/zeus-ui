@@ -232,8 +232,22 @@ async function runInteractive(
     )
     await shoot(page, `${engine}-04-byok-empty`)
 
-    await page.getByTestId('byok-input').click()
-    await page.keyboard.type('byok draft')
+    /*
+     * `fill`, not click-then-type, and then wait for it to land.
+     *
+     * `fill` resolves the element, waits for it to be editable, sets the value
+     * and dispatches the input event in one operation. Click plus per-character
+     * typing spans two element resolutions; if the composer is re-rendered
+     * between them the characters land somewhere that is no longer the input,
+     * and the draft reads as empty afterwards — which the round-trip loop then
+     * reports as the app having dropped it. The wait below makes the setup step
+     * prove it happened rather than assume it.
+     */
+    await page.getByTestId('byok-input').fill('byok draft')
+    await waitForComposer(
+      page,
+      state => state.length === 1 && state[0]?.value === 'byok draft',
+    )
     const byokValue = await composerState(page)
     record(
       checks,
