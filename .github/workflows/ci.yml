@@ -21,6 +21,13 @@ jobs:
     if: ${{ github.event_name != 'push' || ! startsWith(github.event.head_commit.message, 'release:') }}
     uses: ./.github/workflows/showcase.yml
 
+  # The AI Workbench product gates. Separate from `test` so a Workbench-only
+  # change never pays for the DataGrid benchmark, and so the browser jobs keep
+  # their own cache and timeout.
+  ai-workbench:
+    if: ${{ github.event_name != 'push' || ! startsWith(github.event.head_commit.message, 'release:') }}
+    uses: ./.github/workflows/ai-workbench.yml
+
   build:
     if: ${{ github.event_name != 'push' || ! startsWith(github.event.head_commit.message, 'release:') }}
     runs-on: ubuntu-latest

@@ -12,23 +12,51 @@
  * reference service, not an LLM gateway.
  *
  * Usage:
- *   node --import tsx scripts/release/ai-demo-recording.mjs --out <file>
+ *   node --import tsx scripts/release/ai-demo-recording.ts \
+ *     --out <file> --ui-commit <40-hex> --core-commit <40-hex>
+ *
+ * Both commits are required and recorded. The Workbench demo is one half of a
+ * published pair with the Core Admin demo, and the recording is the demo's only
+ * statement of which UI it came from: passing the *Core* SHA here (which the
+ * demos workflow did before R6) makes the published metadata name a commit that
+ * never built this bundle.
  */
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
 
-import { startAiHost } from '../../examples/ai-host/src/server'
+const FULL_SHA = /^[0-9a-f]{40}$/
 
 const { values } = parseArgs({
   options: {
     out: { type: 'string' },
-    'ui-commit': { type: 'string', default: 'unknown' },
+    'ui-commit': { type: 'string' },
+    'core-commit': { type: 'string' },
   },
 })
 
 if (!values.out) throw new Error('--out is required')
+for (const name of ['ui-commit', 'core-commit'] as const) {
+  const value = values[name]
+  if (!value) throw new Error(`--${name} is required`)
+  if (!FULL_SHA.test(value)) {
+    throw new Error(
+      `--${name} must be a full 40-character lowercase SHA (got ${JSON.stringify(value)})`,
+    )
+  }
+}
+
+/*
+ * Imported after the argument check, not at the top of the module.
+ *
+ * `startAiHost` pulls in `node:sqlite`. A top-level import makes *loading the
+ * file* require that module, so `--out` without `--ui-commit` — a usage error
+ * that should be answered by one line of text — instead dies on a missing
+ * builtin, and the exit code says nothing about what the caller got wrong.
+ * The check has no dependency on the Host; only a real recording does.
+ */
+const { startAiHost } = await import('../../examples/ai-host/src/server')
 
 const EDITOR_TOKEN = 'demo-editor-token-0123456789'
 const APPROVER_TOKEN = 'demo-approver-token-0123456789'
@@ -186,7 +214,8 @@ try {
   const recording = {
     schema: 'zeus.ai-demo/v1',
     generatedAt: new Date().toISOString(),
-    uiCommit: values['ui-commit'] ?? 'unknown',
+    uiCommit: values['ui-commit']!,
+    coreCommit: values['core-commit']!,
     streamId: 'reference',
     events: snapshot.events,
     assets,

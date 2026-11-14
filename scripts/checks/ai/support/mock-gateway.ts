@@ -208,7 +208,12 @@ export async function startMockGateway(
       model === 'mock-echo'
         ? `echo: ${prompt}`
         : model === 'mock-slow'
-          ? 'slow response that arrives in pieces'
+          ? // Long enough that the stream outlives the gate's trip to the Stop
+            // button. Seven words at 220ms was ~1.5s of stream, and on CI the
+            // click sometimes arrived after the last chunk — the button was
+            // gone and the assertion reported a missing element rather than a
+            // cancellation that never happened.
+            'slow response that arrives in pieces so stop can be pressed while it is still streaming'
           : model === 'mock-markdown'
             ? 'The sea stretches endlessly beneath the open sky. Gentle waves dance along the shore, whispering secrets to the sand.\n\n```python\nprint("hello")\n```'
             : `mock reply to: ${prompt}`

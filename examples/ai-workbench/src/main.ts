@@ -1695,6 +1695,12 @@ function setMode(next: Mode): void {
     // Re-selecting Agent while already there is a no-op, but the first call
     // still has to claim the Host composer, and a provider may have been
     // removed meanwhile, so the label is re-derived too.
+    //
+    // The menu still has to close. This branch returns before the shared
+    // `setPickerOpen(false)` below, so without it a reader who opens the picker
+    // and picks the mode they are already in is left looking at an open menu
+    // with nothing happening — the state the production-build gate caught.
+    setPickerOpen(false)
     if (dock.activeId() !== 'host') dock.claim(hostComposer)
     renderPickerLabel()
     return

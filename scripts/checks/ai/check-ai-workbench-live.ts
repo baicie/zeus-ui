@@ -28,57 +28,27 @@
  *   unlocked; use a test key and rotate it afterwards.
  */
 import type { Page } from '@playwright/test'
+import type { EngineName } from './support/browsers'
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
+import { mkdirSync, rmSync } from 'node:fs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+
 import process from 'node:process'
 
-import { chromium, firefox, webkit } from '@playwright/test'
 import { createServer } from 'vite'
-
 import { startAiHost } from '../../../examples/ai-host/src/server'
+import { ENGINES, executableFor, requireBrowsers } from './support/browsers'
 import { startMockGateway } from './support/mock-gateway'
 import { expectSingleComposer, selectMode } from './support/workbench-ui'
 
 const root = path.resolve(import.meta.dirname, '../../..')
 const outDir = path.join(root, 'temp/ai-workbench-live')
-const cache = path.join(process.env.HOME ?? '', 'Library/Caches/ms-playwright')
 const HOST_TOKEN = 'workbench-token-0123456789'
 const WORKBENCH_PORT = 5211
 const HOST_PORT = 5212
 
-const engines = { chromium, firefox, webkit }
-
-const fallbackBinaries: Record<keyof typeof engines, (dir: string) => string> =
-  {
-    chromium: dir =>
-      path.join(
-        dir,
-        'chrome-mac-arm64',
-        'Google Chrome for Testing.app',
-        'Contents',
-        'MacOS',
-        'Google Chrome for Testing',
-      ),
-    firefox: dir =>
-      path.join(dir, 'firefox', 'Nightly.app', 'Contents', 'MacOS', 'firefox'),
-    webkit: dir => path.join(dir, 'pw_run.sh'),
-  }
-
-function executableFor(engine: keyof typeof engines): string | undefined {
-  if (existsSync(engines[engine].executablePath())) return undefined
-  if (!existsSync(cache)) return undefined
-  const prefix = engine === 'chromium' ? 'chromium-' : `${engine}-`
-  for (const entry of readdirSync(cache)
-    .filter(name => name.startsWith(prefix) && !name.includes('headless'))
-    .sort()
-    .reverse()) {
-    const candidate = fallbackBinaries[engine](path.join(cache, entry))
-    if (existsSync(candidate)) return candidate
-  }
-  return undefined
-}
+const engines = ENGINES
 
 interface LiveConfig {
   readonly baseUrl: string
@@ -212,7 +182,7 @@ interface LiveRequest {
 }
 
 async function runBrowser(
-  engine: keyof typeof engines,
+  engine: EngineName,
   url: string,
   config: LiveConfig,
   /**
@@ -759,11 +729,14 @@ async function main(): Promise<void> {
   await vite.listen()
 
   const results = []
+  // Fail closed, exactly like the mock gates: a live run that launched no
+  // browser proves nothing about a live gateway, so an empty or unknown
+  // selection, or a requested engine that is not installed, throws here.
+  const selected = requireBrowsers(process.env.ZEUS_AI_WORKBENCH_BROWSERS, {
+    fallback: ['chromium'],
+  })
   try {
-    for (const engine of (process.env.ZEUS_AI_WORKBENCH_BROWSERS ?? 'chromium')
-      .split(',')
-      .map(name => name.trim())
-      .filter((name): name is keyof typeof engines => name in engines)) {
+    for (const engine of selected) {
       results.push(
         await runBrowser(
           engine,
@@ -779,7 +752,12 @@ async function main(): Promise<void> {
     await mock?.close()
   }
 
-  const passed = results.every(entry => entry.status === 'passed')
+  const ran = new Set(results.map(entry => entry.browser))
+  const absent = selected.filter(engine => !ran.has(engine))
+  const passed =
+    results.length > 0 &&
+    absent.length === 0 &&
+    results.every(entry => entry.status === 'passed')
   await fs.writeFile(
     path.join(outDir, 'report.json'),
     `${JSON.stringify(

@@ -27,7 +27,10 @@ import { createReplayHost } from '@zeus-web/ai-core'
 export interface AiDemoRecording {
   readonly schema: 'zeus.ai-demo/v1'
   readonly generatedAt: string
+  /** The zeus-ui commit that built this bundle. */
   readonly uiCommit: string
+  /** The zeus (Core) commit paired with `uiCommit` when the demo was built. */
+  readonly coreCommit: string
   readonly streamId: string
   readonly events: readonly AnyDomainEvent[]
   /**
@@ -41,8 +44,14 @@ export interface AiDemoRecording {
 export function isAiDemoRecording(value: unknown): value is AiDemoRecording {
   if (!value || typeof value !== 'object') return false
   const candidate = value as Partial<AiDemoRecording>
+  // The commits are part of the contract, not decoration: the published demo
+  // must be able to say which pair of repositories produced it, so a recording
+  // without them is rejected rather than shown with an "unknown" label.
   return (
-    candidate.schema === 'zeus.ai-demo/v1' && Array.isArray(candidate.events)
+    candidate.schema === 'zeus.ai-demo/v1' &&
+    Array.isArray(candidate.events) &&
+    typeof candidate.uiCommit === 'string' &&
+    typeof candidate.coreCommit === 'string'
   )
 }
 

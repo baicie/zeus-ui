@@ -1,64 +1,29 @@
 import type { Browser, Page } from '@playwright/test'
 import { Buffer } from 'node:buffer'
 import { execFileSync } from 'node:child_process'
-import { existsSync, readdirSync } from 'node:fs'
 import fs from 'node:fs/promises'
-import { homedir } from 'node:os'
 
 import path from 'node:path'
 import process from 'node:process'
-import { chromium, expect, firefox, webkit } from '@playwright/test'
+import { expect } from '@playwright/test'
 import { createServer } from 'vite'
 
 import { expectNoAccessibilityViolations } from '../../../e2e/showcase/utils/accessibility'
 import { startAiHost } from '../../../examples/ai-host/src/server'
+import { ENGINES, executableFor, requireBrowsers } from './support/browsers'
 
 const AI_WORKBENCH_TOKEN = 'workbench-token-0123456789'
 const root = path.resolve(import.meta.dirname, '../../..')
 const output = path.join(root, 'temp/ai-workbench')
-const engines = { chromium, firefox, webkit }
-const browserNames = (
-  process.env.ZEUS_AI_WORKBENCH_BROWSERS ?? 'chromium,firefox,webkit'
-).split(',')
+const engines = ENGINES
+/*
+ * Fails closed: empty, unknown and not-installed selections all throw. The
+ * previous version split the variable and checked each name inside the loop,
+ * so an empty list ran no cases and `report.every(passed)` reported success.
+ */
+const browserNames = requireBrowsers(process.env.ZEUS_AI_WORKBENCH_BROWSERS)
 const port = 5196
 const hostPort = 5197
-const cache = path.join(homedir(), 'Library', 'Caches', 'ms-playwright')
-const fallbackBinaries: Record<string, (directory: string) => string> = {
-  chromium: directory =>
-    path.join(
-      directory,
-      'chrome-mac-arm64',
-      'Google Chrome for Testing.app',
-      'Contents',
-      'MacOS',
-      'Google Chrome for Testing',
-    ),
-  firefox: directory =>
-    path.join(
-      directory,
-      'firefox',
-      'Nightly.app',
-      'Contents',
-      'MacOS',
-      'firefox',
-    ),
-  webkit: directory => path.join(directory, 'pw_run.sh'),
-}
-
-function executableFor(engine: keyof typeof engines): string | undefined {
-  const browser = engines[engine]
-  if (existsSync(browser.executablePath())) return undefined
-  if (!existsSync(cache)) return undefined
-  const prefix = engine === 'chromium' ? 'chromium-' : `${engine}-`
-  for (const entry of readdirSync(cache)
-    .filter(name => name.startsWith(prefix))
-    .sort()
-    .reverse()) {
-    const candidate = fallbackBinaries[engine](path.join(cache, entry))
-    if (existsSync(candidate)) return candidate
-  }
-  return undefined
-}
 
 async function main(): Promise<void> {
   await fs.mkdir(output, { recursive: true })
@@ -81,15 +46,16 @@ async function main(): Promise<void> {
   try {
     await dev.listen()
     for (const name of browserNames) {
-      const engine = engines[name as keyof typeof engines]
-      if (!engine) throw new Error(`Unknown browser engine: ${name}`)
+      // The selection is already validated; this lookup cannot miss, and it is
+      // typed rather than cast so a future rename fails at compile time.
+      const engine = engines[name]
       const errors: string[] = []
       let browser: Browser | undefined
       let page: Page | undefined
       try {
         browser = await engine.launch({
           headless: true,
-          executablePath: executableFor(name as keyof typeof engines),
+          executablePath: executableFor(name),
         })
         const context = await browser.newContext({
           extraHTTPHeaders: {
@@ -306,6 +272,14 @@ async function main(): Promise<void> {
         await browser?.close()
       }
     }
+    // A gate that ran nothing is not a pass: the selection is non-empty by
+    // construction, so require one result per requested engine.
+    const ran = new Set(report.map(entry => entry.browser))
+    const absent = browserNames.filter(engine => !ran.has(engine))
+    const passed =
+      report.length > 0 &&
+      absent.length === 0 &&
+      report.every(result => result.status === 'passed')
     await fs.writeFile(
       path.join(output, 'report.json'),
       `${JSON.stringify(
@@ -316,19 +290,20 @@ async function main(): Promise<void> {
             encoding: 'utf8',
           }).trim(),
           host: process.env.ZEUS_AI_HOST_ORIGIN,
+          browsers: browserNames,
+          absentEngines: absent,
           results: report,
-          passed: report.every(result => result.status === 'passed'),
+          passed,
         },
         null,
         2,
       )}\n`,
     )
+    if (!passed) {
+      throw new Error(`AI Workbench gate failed: ${JSON.stringify(report)}`)
+    }
   } finally {
     await dev.close()
-  }
-
-  if (report.some(result => result.status !== 'passed')) {
-    throw new Error(`AI Workbench gate failed: ${JSON.stringify(report)}`)
   }
 }
 

@@ -24,10 +24,10 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 
-import { chromium } from '@playwright/test'
 import { createServer } from 'vite'
 
 import { startAiHost } from '../../../examples/ai-host/src/server'
+import { ENGINES, executableFor, requireBrowsers } from './support/browsers'
 import { startMockGateway } from './support/mock-gateway'
 import { selectMode } from './support/workbench-ui'
 
@@ -98,10 +98,33 @@ const MEASURE_JS = `(() => {
 })()`
 
 /** Runs Python with Pillow to compose images; returns parsed JSON. */
+/**
+ * Runs the Pillow composition and says so when Pillow is missing.
+ *
+ * A bare `python3 -c` against an image library that is not installed surfaces
+ * as a traceback at the first compose — *after* the screenshots were taken, so
+ * it reads like a comparison failure. The gate depends on Pillow; failing with
+ * that sentence and the install command is the difference between a five-second
+ * fix and reading the whole log.
+ */
 function compose(script: string, args: string[]): unknown {
-  const out = execFileSync('python3', ['-c', script, ...args], {
-    encoding: 'utf8',
-  })
+  let out: string
+  try {
+    out = execFileSync('python3', ['-c', script, ...args], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+  } catch (error) {
+    const stderr =
+      (error as { stderr?: string }).stderr ?? (error as Error).message
+    if (/No module named 'PIL'/.test(stderr)) {
+      throw new Error(
+        'the visual gate needs Pillow to compose the reference|ours pairs: ' +
+          'run `python3 -m pip install pillow` (CI installs it before this step)',
+      )
+    }
+    throw new Error(`composing the reference pair failed: ${stderr.trim()}`)
+  }
   return JSON.parse(out)
 }
 
@@ -435,7 +458,16 @@ async function main(): Promise<void> {
   })
   await vite.listen()
 
-  const browser = await chromium.launch()
+  // The visual gate compares one engine against one reference set; Chromium is
+  // the engine those captures came from. It still goes through the shared
+  // selection so a missing Chromium is a failure rather than a crash halfway
+  // through, and so its browser cache resolves the same way as the other gates.
+  const visualEngine = requireBrowsers(
+    process.env.ZEUS_AI_WORKBENCH_VISUAL_BROWSER ?? 'chromium',
+  )[0]
+  const browser = await ENGINES[visualEngine].launch({
+    executablePath: executableFor(visualEngine),
+  })
   const checks: Check[] = []
   try {
     checks.push(
@@ -467,7 +499,8 @@ async function main(): Promise<void> {
     ])
   }
 
-  const passed = checks.every(check => check.ok)
+  // A run that captured nothing is not a pass.
+  const passed = checks.length > 0 && checks.every(check => check.ok)
   await fs.writeFile(
     path.join(outDir, 'report.json'),
     `${JSON.stringify(

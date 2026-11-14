@@ -9,70 +9,35 @@
  * Run with `pnpm check:ai-workbench-byok`. Browsers default to Chromium; set
  * `ZEUS_AI_WORKBENCH_BROWSERS` for more.
  */
-import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
+import { mkdirSync, rmSync } from 'node:fs'
 import path from 'node:path'
 
-import { chromium, firefox, webkit } from '@playwright/test'
+import { expect } from '@playwright/test'
 import { createServer } from 'vite'
 
 import { startAiHost } from '../../../examples/ai-host/src/server'
+import { ENGINES, executableFor, requireBrowsers } from './support/browsers'
 import { startMockGateway } from './support/mock-gateway'
 import { expectSingleComposer, selectMode } from './support/workbench-ui'
 
 const root = path.resolve(import.meta.dirname, '../../..')
 const outDir = path.join(root, 'temp/ai-workbench-byok')
-const cache = path.join(process.env.HOME ?? '', 'Library/Caches/ms-playwright')
 
 const HOST_TOKEN = 'workbench-token-0123456789'
 const GATEWAY_KEY = 'mock-key-0123456789'
 const PASSPHRASE = 'correct horse battery staple'
 
-const engines = { chromium, firefox, webkit }
-
-const fallbackBinaries: Record<
-  keyof typeof engines,
-  (directory: string) => string
-> = {
-  chromium: directory =>
-    path.join(
-      directory,
-      'chrome-mac-arm64',
-      'Google Chrome for Testing.app',
-      'Contents',
-      'MacOS',
-      'Google Chrome for Testing',
-    ),
-  firefox: directory =>
-    path.join(
-      directory,
-      'firefox',
-      'Nightly.app',
-      'Contents',
-      'MacOS',
-      'firefox',
-    ),
-  webkit: directory => path.join(directory, 'pw_run.sh'),
-}
-
-function executableFor(engine: keyof typeof engines): string | undefined {
-  const browser = engines[engine]
-  if (existsSync(browser.executablePath())) return undefined
-  if (!existsSync(cache)) return undefined
-  const prefix = engine === 'chromium' ? 'chromium-' : `${engine}-`
-  for (const entry of readdirSync(cache)
-    .filter(name => name.startsWith(prefix) && !name.includes('headless'))
-    .sort()
-    .reverse()) {
-    const candidate = fallbackBinaries[engine](path.join(cache, entry))
-    if (existsSync(candidate)) return candidate
-  }
-  return undefined
-}
-
-const selectedBrowsers = (process.env.ZEUS_AI_WORKBENCH_BROWSERS ?? 'chromium')
-  .split(',')
-  .map(name => name.trim())
-  .filter((name): name is keyof typeof engines => name in engines)
+/*
+ * Selection fails closed: an empty or unknown request throws, and so does a
+ * requested engine that is not installed. The previous filter-based version
+ * returned `[]` for an unavailable engine and the gate reported PASS with zero
+ * results (`[].every(...)` is `true`).
+ */
+const selectedBrowsers = requireBrowsers(
+  process.env.ZEUS_AI_WORKBENCH_BROWSERS,
+  { fallback: ['chromium'] },
+)
+const engines = ENGINES
 
 interface CaseResult {
   browser: string
@@ -207,6 +172,30 @@ async function runBrowser(
     // The whole point of a chat is the next question, which only works if the
     // stored history is what was sent: assert the gateway received both turns
     // in order, with the assistant reply in between.
+    /*
+     * Firefox needed longer here than the other two engines on CI: the first
+     * reply's stream closes after the text is already on screen, and a second
+     * send issued in that window is queued behind it. 20s was enough on
+     * Chromium and WebKit and not always on Firefox, which made the gate fail
+     * for a reason that has nothing to do with the product.
+     *
+     * The wait is on the *state* rather than a fixed delay: the send button is
+     * only enabled again once the previous turn finished, so waiting for that
+     * is waiting for the actual precondition.
+     */
+    await expect
+      .poll(
+        () =>
+          page
+            .getByTestId('byok-send')
+            .isVisible()
+            .catch(() => false),
+        {
+          message: 'the send button comes back after the first reply',
+          timeout: 30_000,
+        },
+      )
+      .toBe(true)
     await page.getByTestId('byok-input').fill('second question')
     await page.getByTestId('byok-send').click()
     await page.waitForFunction(
@@ -215,7 +204,7 @@ async function runBrowser(
         return (view?.textContent?.match(/echo: /g) ?? []).length >= 2
       },
       null,
-      { timeout: 20_000 },
+      { timeout: 30_000 },
     )
     const secondTurn = requests.filter(entry => entry.messages !== undefined)
     const lastMessages = secondTurn[secondTurn.length - 1]?.messages ?? []
@@ -238,7 +227,30 @@ async function runBrowser(
     await page.getByTestId('settings-back').click()
     await page.getByTestId('byok-input').fill('cancel me')
     await page.getByTestId('byok-send').click()
-    await page.getByTestId('byok-stop').waitFor({ timeout: 10_000 })
+    /*
+     * Stop must be pressed *while the stream is still running*. Waiting for the
+     * button and then clicking races the stream: if the last chunk lands in
+     * between, the button is gone and Playwright reports a missing element,
+     * which says nothing about whether cancellation works.
+     *
+     * `mock-slow` streams long enough for this window, and the check below
+     * distinguishes the two failures: the button never appearing means the
+     * stream finished early, which is a fixture problem, not a product one.
+     */
+    await expect
+      .poll(
+        () =>
+          page
+            .getByTestId('byok-stop')
+            .isVisible()
+            .catch(() => false),
+        {
+          message:
+            'the Stop button must appear while mock-slow is streaming; if this times out the fixture finished too early',
+          timeout: 10_000,
+        },
+      )
+      .toBe(true)
     await page.getByTestId('byok-stop').click()
     await page.waitForFunction(
       () => {
@@ -439,8 +451,19 @@ async function main(): Promise<void> {
   await host.close()
   await gateway.close()
 
-  const passed = results.every(result => result.status === 'passed')
-  console.log(JSON.stringify({ results, passed }, null, 2))
+  // A gate that ran nothing is not a pass: every requested engine must have
+  // produced a result, and every result must have exercised at least one check.
+  const ran = new Set(results.map(result => result.browser))
+  const absent = selectedBrowsers.filter(engine => !ran.has(engine))
+  const empty = results.filter(result => result.checks.length === 0)
+  const passed =
+    results.length > 0 &&
+    absent.length === 0 &&
+    empty.length === 0 &&
+    results.every(result => result.status === 'passed')
+  console.log(
+    JSON.stringify({ results, absentEngines: absent, passed }, null, 2),
+  )
   if (!passed) throw new Error('BYOK gate failed')
 }
 
