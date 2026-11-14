@@ -101,6 +101,31 @@ async function composerState(page: Page): Promise<ComposerSnapshot[]> {
   return page.evaluate(COMPOSER_STATE) as Promise<ComposerSnapshot[]>
 }
 
+/**
+ * The composer state once it matches `expected`, or the last thing seen.
+ *
+ * `selectMode` returns when the picker closes, which is not the same moment
+ * the composer for the new mode has rendered. Sampling immediately is a race
+ * that a fast machine wins and a loaded CI runner loses: the P0 gate failed on
+ * `round trip 10` with the *previous* mode's composer still in the DOM, while
+ * the same run passed locally. Waiting for the expected state — with a
+ * deadline, and reporting whatever it last saw — keeps the assertion strict
+ * and removes the timing dependence.
+ */
+async function waitForComposer(
+  page: Page,
+  expected: (state: ComposerSnapshot[]) => boolean,
+  timeoutMs = 5_000,
+): Promise<ComposerSnapshot[]> {
+  const deadline = Date.now() + timeoutMs
+  let last = await composerState(page)
+  while (!expected(last) && Date.now() < deadline) {
+    await page.waitForTimeout(50)
+    last = await composerState(page)
+  }
+  return last
+}
+
 async function shoot(page: Page, name: string): Promise<void> {
   await page.screenshot({
     path: path.join(screenshots, `${name}.png`),
@@ -224,7 +249,10 @@ async function runInteractive(
     /* ------------------------------- 4. 20 round trips, draft survives */
     for (let index = 0; index < 20; index += 1) {
       await selectMode(page, 'host')
-      const onHost = await composerState(page)
+      const onHost = await waitForComposer(
+        page,
+        state => state.length === 1 && state[0]?.kind === 'host',
+      )
       if (onHost.length !== 1 || onHost[0].kind !== 'host') {
         record(
           checks,
@@ -234,7 +262,13 @@ async function runInteractive(
         )
       }
       await selectMode(page, 'byok')
-      const onByok = await composerState(page)
+      const onByok = await waitForComposer(
+        page,
+        state =>
+          state.length === 1 &&
+          state[0]?.kind === 'byok' &&
+          state[0]?.value === 'byok draft',
+      )
       if (
         onByok.length !== 1 ||
         onByok[0].kind !== 'byok' ||
