@@ -101,6 +101,31 @@ async function composerState(page: Page): Promise<ComposerSnapshot[]> {
   return page.evaluate(COMPOSER_STATE) as Promise<ComposerSnapshot[]>
 }
 
+/**
+ * The composer state once it matches `expected`, or the last thing seen.
+ *
+ * `selectMode` returns when the picker closes, which is not the same moment
+ * the composer for the new mode has rendered. Sampling immediately is a race
+ * that a fast machine wins and a loaded CI runner loses: the P0 gate failed on
+ * `round trip 10` with the *previous* mode's composer still in the DOM, while
+ * the same run passed locally. Waiting for the expected state — with a
+ * deadline, and reporting whatever it last saw — keeps the assertion strict
+ * and removes the timing dependence.
+ */
+async function waitForComposer(
+  page: Page,
+  expected: (state: ComposerSnapshot[]) => boolean,
+  timeoutMs = 5_000,
+): Promise<ComposerSnapshot[]> {
+  const deadline = Date.now() + timeoutMs
+  let last = await composerState(page)
+  while (!expected(last) && Date.now() < deadline) {
+    await page.waitForTimeout(50)
+    last = await composerState(page)
+  }
+  return last
+}
+
 async function shoot(page: Page, name: string): Promise<void> {
   await page.screenshot({
     path: path.join(screenshots, `${name}.png`),
@@ -207,8 +232,22 @@ async function runInteractive(
     )
     await shoot(page, `${engine}-04-byok-empty`)
 
-    await page.getByTestId('byok-input').click()
-    await page.keyboard.type('byok draft')
+    /*
+     * `fill`, not click-then-type, and then wait for it to land.
+     *
+     * `fill` resolves the element, waits for it to be editable, sets the value
+     * and dispatches the input event in one operation. Click plus per-character
+     * typing spans two element resolutions; if the composer is re-rendered
+     * between them the characters land somewhere that is no longer the input,
+     * and the draft reads as empty afterwards — which the round-trip loop then
+     * reports as the app having dropped it. The wait below makes the setup step
+     * prove it happened rather than assume it.
+     */
+    await page.getByTestId('byok-input').fill('byok draft')
+    await waitForComposer(
+      page,
+      state => state.length === 1 && state[0]?.value === 'byok draft',
+    )
     const byokValue = await composerState(page)
     record(
       checks,
@@ -224,7 +263,10 @@ async function runInteractive(
     /* ------------------------------- 4. 20 round trips, draft survives */
     for (let index = 0; index < 20; index += 1) {
       await selectMode(page, 'host')
-      const onHost = await composerState(page)
+      const onHost = await waitForComposer(
+        page,
+        state => state.length === 1 && state[0]?.kind === 'host',
+      )
       if (onHost.length !== 1 || onHost[0].kind !== 'host') {
         record(
           checks,
@@ -234,7 +276,13 @@ async function runInteractive(
         )
       }
       await selectMode(page, 'byok')
-      const onByok = await composerState(page)
+      const onByok = await waitForComposer(
+        page,
+        state =>
+          state.length === 1 &&
+          state[0]?.kind === 'byok' &&
+          state[0]?.value === 'byok draft',
+      )
       if (
         onByok.length !== 1 ||
         onByok[0].kind !== 'byok' ||

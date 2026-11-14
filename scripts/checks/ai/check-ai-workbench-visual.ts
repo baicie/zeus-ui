@@ -387,10 +387,38 @@ async function run(browser: Browser, url: string, gateway: string) {
       ),
     )
 
-    /* ---- C08: mobile ---- */
+    /* ---- C08: mobile, dark, empty Agent chat ----
+     *
+     * The reference capture is a dark, empty mobile chat with the welcome line
+     * and one suggestion. Capturing whatever state the previous steps left —
+     * a light BYOK thread — produced a pair that could not be compared at all:
+     * different theme, different surface, different content. The state is
+     * rebuilt here explicitly so the two images are of the same thing.
+     *
+     * The state is set *before* the viewport shrinks: at 390px the sidebar is a
+     * drawer, so the controls that build this state (new chat, the mode picker)
+     * are off-screen and cannot be clicked.
+     */
+    await selectMode(page, 'host')
+    await page.getByTestId('new-conversation').click()
+    if (
+      (await page.evaluate('document.documentElement.dataset.theme')) !== 'dark'
+    ) {
+      await page.getByTestId('theme-toggle').click()
+    }
     await page.setViewportSize(MOBILE)
-    await page.waitForTimeout(300)
+    await page.waitForTimeout(400)
     await capture(page, 'C08')
+    record(
+      checks,
+      'C08: the mobile capture is dark and empty, like the reference',
+      await page.evaluate(`(() => {
+        const dark = document.documentElement.dataset.theme === 'dark'
+        const welcome = document.querySelector('[data-testid="welcome"]')
+        const empty = welcome && !welcome.hidden
+        return Boolean(dark && empty)
+      })()`),
+    )
     const mobile = await measure(page)
     record(
       checks,

@@ -310,6 +310,57 @@ a {
   height: 16px;
 }
 
+/*
+ * Search sits directly under the button that opens it, at the same inset as the
+ * conversation rows, so the list it filters is immediately below. The field is
+ * the only control in the sidebar that is not a row: it is a real input, and it
+ * carries the reference's 36px row height so opening it does not shift the list.
+ */
+.wb-sidebar-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  margin: 2px 0;
+  padding: 0 8px;
+  border: 1px solid var(--wb-border-default);
+  border-radius: var(--wb-radius-md);
+  background: var(--wb-surface-base);
+}
+
+.wb-sidebar-search:focus-within {
+  border-color: var(--wb-accent-default);
+}
+
+.wb-search-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--wb-text-primary);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.wb-search-input::placeholder {
+  color: var(--wb-text-muted);
+}
+
+.wb-search-clear {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--wb-radius-sm);
+  color: var(--wb-text-muted);
+}
+
+.wb-search-clear:hover {
+  background: var(--wb-surface-hover);
+  color: var(--wb-text-primary);
+}
+
 .wb-sidebar-empty {
   padding: 8px 10px;
   color: var(--wb-text-muted);
@@ -835,6 +886,22 @@ a {
 
   .wb-model-picker {
     font-size: 16px;
+  }
+  .wb-model-picker {
+    font-size: 16px;
+  }
+
+  /*
+   * On a phone the reference's top bar is a menu button, the product name and
+   * the account action — nothing else. The connection lamp, the activity drawer
+   * and the theme switch are desktop affordances: at 390px they crowd the title
+   * and, in the case of the drawer, cover the answer. The connection state is
+   * still reachable through the activity panel on a wide viewport, and the theme
+   * follows the system preference here.
+   */
+  .wb-topbar-actions .wb-activity-toggle,
+  .wb-topbar-actions [data-testid='connection'] {
+    display: none;
   }
 
   .wb-welcome {

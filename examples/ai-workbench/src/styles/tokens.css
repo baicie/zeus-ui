@@ -26,6 +26,17 @@
   --wb-surface-code: #f2f2f2;
   --wb-surface-code-header: #f7f7f7;
 
+  /*
+   * Code tokens. The hues are the reference capture's: call names read blue,
+   * strings green, comments grey. Contrast against `--wb-surface-code` is at
+   * least 4.5:1 for every one of them on both themes.
+   */
+  --wb-code-keyword: #9b2393;
+  --wb-code-string: #1a7f37;
+  --wb-code-comment: #6e7781;
+  --wb-code-number: #b35900;
+  --wb-code-function: #2451da;
+
   --wb-border-default: #e2e2e2;
   --wb-border-subtle: #ececec;
   --wb-border-strong: #d0d0d0;
@@ -74,6 +85,12 @@
   --wb-surface-inset: #171717;
   --wb-surface-code: #0d0d0d;
   --wb-surface-code-header: #171717;
+
+  --wb-code-keyword: #ff7ab2;
+  --wb-code-string: #7ee787;
+  --wb-code-comment: #8b949e;
+  --wb-code-number: #ffa657;
+  --wb-code-function: #79c0ff;
 
   --wb-border-default: #272727;
   --wb-border-subtle: #1f1f1f;

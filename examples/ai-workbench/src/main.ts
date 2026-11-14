@@ -61,6 +61,7 @@ import { mountProviderPanel } from './byok/provider-panel'
 import { createComposerDock } from './composer-dock'
 import { createCopy, refreshOnLanguageChange } from './copy'
 import { createDeferredDemoHost, isDemoBuild } from './demo-host'
+import { highlightCodeBlocks } from './highlight'
 import {
   applyInitialLanguage,
   getAiLocale,
@@ -252,7 +253,87 @@ newChatButton.append(icon(ICONS.compose), copy.text('workbench.newChat'))
 const searchChatsButton = el('button', 'wb-nav-item')
 searchChatsButton.type = 'button'
 searchChatsButton.dataset.testid = 'search-chats'
+searchChatsButton.setAttribute('aria-expanded', 'false')
 searchChatsButton.append(icon(ICONS.search), copy.text('workbench.searchChats'))
+
+/*
+ * Search filters the conversations the reader can actually open in the mode
+ * they are in: the Host's stream in Agent mode, the local BYOK rows in My
+ * model. It never merges the two, because they are different stores with
+ * different permissions — offering a Host row while the reader is in BYOK would
+ * promise a conversation this surface cannot open, and the reverse would expose
+ * local chat titles to a mode that has no business listing them.
+ *
+ * The field is inline in the sidebar rather than a modal: the list it filters is
+ * right below it, so the result is visible while typing.
+ */
+const searchRow = el('div', 'wb-sidebar-search')
+searchRow.hidden = true
+const searchInput = el('input', 'wb-search-input')
+searchInput.type = 'search'
+searchInput.dataset.testid = 'search-input'
+copy.attr(searchInput, 'aria-label', 'workbench.searchChats')
+copy.attr(searchInput, 'placeholder', 'workbench.searchPlaceholder')
+const searchClear = el('button', 'wb-search-clear')
+searchClear.type = 'button'
+searchClear.dataset.testid = 'search-clear'
+copy.attr(searchClear, 'aria-label', 'workbench.searchClear')
+searchClear.append(icon(ICONS.close, 14))
+searchRow.append(searchInput, searchClear)
+
+/*
+ * The empty state has to describe the search that produced it. "No chats yet."
+ * under a query that matched nothing would be a lie: the chats exist, the query
+ * does not match them. `searchEmpty` is shown instead, and it says what was
+ * searched.
+ */
+const searchEmpty = el('p', 'wb-sidebar-empty wb-search-empty')
+searchEmpty.dataset.testid = 'search-empty'
+searchEmpty.hidden = true
+
+let searchQuery = ''
+// The notice is rewritten where it is shown, with the query in hand. Binding it
+// through `copy.custom` would tie it to the language-refresh pass, which does
+// not run when the query changes — the notice would keep the previous text.
+function renderSearchEmpty(): void {
+  searchEmpty.textContent = t('workbench.searchEmpty', { query: searchQuery })
+}
+
+function setSearchOpen(open: boolean): void {
+  searchRow.hidden = !open
+  searchChatsButton.setAttribute('aria-expanded', String(open))
+  if (open) {
+    searchInput.focus()
+    return
+  }
+  // Closing clears, so the list the reader returns to is the full list and not
+  // a silently filtered one.
+  if (searchQuery) {
+    searchQuery = ''
+    searchInput.value = ''
+    renderConversationList()
+  }
+}
+
+searchChatsButton.addEventListener('click', () => {
+  setSearchOpen(Boolean(searchRow.hidden))
+})
+searchInput.addEventListener('input', () => {
+  searchQuery = searchInput.value.trim()
+  renderConversationList()
+})
+searchInput.addEventListener('keydown', event => {
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    setSearchOpen(false)
+  }
+})
+searchClear.addEventListener('click', () => {
+  searchQuery = ''
+  searchInput.value = ''
+  renderConversationList()
+  searchInput.focus()
+})
 
 const recentLabel = el('p', 'wb-sidebar-section')
 recentLabel.append(copy.text('workbench.recent'))
@@ -266,9 +347,11 @@ conversationEmpty.append(copy.text('workbench.noChats'))
 sidebarScroll.append(
   newChatButton,
   searchChatsButton,
+  searchRow,
   recentLabel,
   conversationListRoot,
   conversationEmpty,
+  searchEmpty,
 )
 
 const sidebarFoot = el('div', 'wb-sidebar-foot')
@@ -376,6 +459,14 @@ welcomeTitle.append(copy.text('workbench.welcomeTitle'))
 // A suggestion that fills the composer with a real prompt; it never pretends
 // to send, and it is a real action rather than a decorative chip.
 welcome.append(welcomeTitle)
+
+/*
+ * Observers watching each timeline element, so a rebuild can stop the old one.
+ * Declared here, above the first `createTimeline()` call: the module builds a
+ * timeline during its own initialization, and a `const` below that point would
+ * be in its temporal dead zone.
+ */
+const timelineObservers = new WeakMap<Element, MutationObserver>()
 
 let timeline = createTimeline()
 
@@ -578,6 +669,26 @@ function createTimeline(): HTMLElement {
   element.setAttribute('label', t('workbench.timelineLabel'))
   element.dataset.testid = 'timeline'
   element.classList.add('timeline')
+  /*
+   * The timeline renders its own code blocks as plain text, by the same
+   * framework-neutral contract the BYOK view relies on. Colouring them here
+   * keeps both surfaces identical: a reader comparing Agent output with their
+   * own model's should not see two different code presentations.
+   *
+   * An observer rather than a hook: the element owns its DOM and re-renders
+   * when a message streams, and the highlighter is idempotent, so reacting to
+   * the nodes appearing is enough and needs no cooperation from the component.
+   */
+  const observer = new MutationObserver(() => highlightCodeBlocks(element))
+  observer.observe(element, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+  })
+  // Kept on the element so the rebuild path below can stop it. `activateConversation`
+  // removes this node and creates a new timeline; an observer left running on a
+  // detached element would keep re-highlighting it forever.
+  timelineObservers.set(element, observer)
   return element
 }
 
@@ -717,14 +828,38 @@ seededTitles.set(conversationId, {})
  * are local rows in IndexedDB. Showing the Host's "Reference conversation"
  * while the reader is in their own model would offer a row that cannot open.
  */
+/**
+ * Whether a conversation matches the current query.
+ *
+ * Titles are data, not copy, so the match is case-insensitive substring on the
+ * title the reader sees. The body is searched too for BYOK rows, where the title
+ * is often generic ("New chat") and the message text is what a person actually
+ * remembers.
+ */
+function matchesQuery(text: string): boolean {
+  if (!searchQuery) return true
+  return text.toLowerCase().includes(searchQuery.toLowerCase())
+}
+
 function renderConversationList(): void {
   conversationListRoot.replaceChildren()
+  // The search-empty notice belongs to whichever list rendered last; each
+  // branch sets it for itself.
+  searchEmpty.hidden = true
   if (mode === 'byok') {
     renderByokConversationList()
     return
   }
-  conversationEmpty.hidden = knownConversations.size > 0
-  for (const entry of knownConversations.values()) {
+  const visible = [...knownConversations.values()].filter(entry =>
+    matchesQuery(entry.title),
+  )
+  conversationEmpty.hidden = knownConversations.size > 0 || !searchQuery
+  if (searchQuery && visible.length === 0 && knownConversations.size > 0) {
+    renderSearchEmpty()
+    searchEmpty.hidden = false
+    searchEmpty.dataset.query = searchQuery
+  }
+  for (const entry of visible) {
     const row = el('li', 'wb-conversation-row')
     row.dataset.conversationId = entry.id
     if (entry.id === conversationId) row.classList.add('is-active')
@@ -777,13 +912,40 @@ function renderByokConversationList(): void {
   conversationEmpty.hidden = entries.length > 0
   // Before the view exists the store may already hold conversations; reading
   // it directly keeps the sidebar truthful on the first render.
-  const rows =
+  const all =
     entries.length > 0
       ? entries
       : conversationStore.list().map(item => ({
           id: item.id,
           title: item.title,
         }))
+  /*
+   * BYOK rows are matched on the title and on their message text. The stored
+   * title is frequently the default "New chat" — a person looking for a thread
+   * remembers what they said in it, not the label. Only this mode's own rows
+   * are searched: the Host's conversations are not in this store, and mixing
+   * them here would cross the permission boundary the two modes keep.
+   */
+  // The body search reads the store, so it only runs when a query is active.
+  // `renderConversationList` sits on the mode-switch path, and reading the
+  // store there on every switch (as an earlier version did) added synchronous
+  // work to a path whose contract is that a switch is cheap and the draft in
+  // the composer survives it.
+  const storedById = searchQuery
+    ? new Map(conversationStore.list().map(item => [item.id, item]))
+    : undefined
+  const rows = all.filter(entry => {
+    if (!searchQuery) return true
+    if (matchesQuery(entry.title)) return true
+    const stored = storedById?.get(entry.id)
+    return Boolean(stored?.turns.some(turn => matchesQuery(turn.content ?? '')))
+  })
+  conversationEmpty.hidden = all.length > 0 || Boolean(searchQuery)
+  if (searchQuery && rows.length === 0 && all.length > 0) {
+    renderSearchEmpty()
+    searchEmpty.hidden = false
+    searchEmpty.dataset.query = searchQuery
+  }
   for (const entry of rows) {
     const row = el('li', 'wb-conversation-row')
     row.dataset.conversationId = entry.id
@@ -1000,6 +1162,8 @@ function activateConversation(id: string): void {
     AiElementInstance & { controller: unknown }
   >('zw-ai-composer')
   if (control) control.controller = composer
+  timelineObservers.get(timeline)?.disconnect()
+  timelineObservers.delete(timeline)
   timeline.remove()
   timeline = createTimeline()
   threadInner.append(timeline)

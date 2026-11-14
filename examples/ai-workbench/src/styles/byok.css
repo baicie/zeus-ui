@@ -116,9 +116,42 @@
 
 .byok-body [data-part='code'] {
   overflow: hidden;
-  margin: 8px 0 16px;
-  border-radius: 12px;
+  margin: 10px 0 18px;
+  border-radius: 14px;
   background: var(--wb-surface-code);
+}
+
+/*
+ * Code tokens.
+ *
+ * The palette is the reference's: function and call names in blue, strings in
+ * the green the reference uses, comments quiet, numbers and literals distinct
+ * from identifiers. Colours are tokens so the dark theme follows without a
+ * second rule set.
+ */
+.wb-token-keyword {
+  color: var(--wb-code-keyword);
+}
+
+.wb-token-string {
+  color: var(--wb-code-string);
+}
+
+.wb-token-comment {
+  color: var(--wb-code-comment);
+  font-style: italic;
+}
+
+.wb-token-number {
+  color: var(--wb-code-number);
+}
+
+.wb-token-function {
+  color: var(--wb-code-function);
+}
+
+.wb-token-literal {
+  color: var(--wb-code-number);
 }
 
 .byok-body [data-part='code'] figcaption {
@@ -126,7 +159,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 12px 0;
+  padding: 10px 14px 0;
   color: var(--wb-text-muted);
   font-family: var(--wb-font-mono);
   font-size: 12px;
@@ -162,11 +195,11 @@
 .byok-body [data-part='code'] pre {
   overflow-x: auto;
   margin: 0;
-  padding: 6px 12px 12px;
+  padding: 8px 14px 14px;
   background: none;
   font-family: var(--wb-font-mono);
-  font-size: 13px;
-  line-height: 20px;
+  font-size: 13.5px;
+  line-height: 21px;
 }
 
 .byok-body pre {
