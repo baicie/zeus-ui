@@ -26,7 +26,6 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
 
-
 const FULL_SHA = /^[0-9a-f]{40}$/
 
 const { values } = parseArgs({
