@@ -113,42 +113,57 @@ describe('ai demo recording provenance', () => {
     expect(Object.keys(recording.assets as object).length).toBeGreaterThan(0)
   })
 
-  it('names the same pair and the same stream every time it runs', async () => {
-    // The recording is made from a live Host, so ids and timestamps are the
-    // Host's own and differ per run. What must not differ is what makes the
-    // file a *pairing* record: the commits, the stream identity, the sequence
-    // of domain events and the diff assets that sequence implies. Requiring
-    // byte equality here would mean freezing the Host's clock and UUIDs, which
-    // would be testing the Host's determinism, not the demo's provenance.
-    const first = path.join(scratch(), 'first.json')
-    const second = path.join(scratch(), 'second.json')
-    const args = ['--ui-commit', UI_SHA, '--core-commit', CORE_SHA]
-    await invoke(['--out', first, ...args])
-    await invoke(['--out', second, ...args])
+  /*
+   * Two full recordings, each booting the reference Host over HTTP. The
+   * default 5 s is enough for one on a fast machine and not for two on a
+   * Windows runner: this case failed `unit-test-windows` while every other
+   * test in the job passed, and the failure was `Test timed out in 5000ms`,
+   * not an assertion.
+   *
+   * Raising the limit does not weaken the assertion — the comparison is still
+   * between two real recordings. What it stops is a slow runner being reported
+   * as a provenance defect.
+   */
+  it(
+    'names the same pair and the same stream every time it runs',
+    { timeout: 60_000 },
+    async () => {
+      // The recording is made from a live Host, so ids and timestamps are the
+      // Host's own and differ per run. What must not differ is what makes the
+      // file a *pairing* record: the commits, the stream identity, the sequence
+      // of domain events and the diff assets that sequence implies. Requiring
+      // byte equality here would mean freezing the Host's clock and UUIDs, which
+      // would be testing the Host's determinism, not the demo's provenance.
+      const first = path.join(scratch(), 'first.json')
+      const second = path.join(scratch(), 'second.json')
+      const args = ['--ui-commit', UI_SHA, '--core-commit', CORE_SHA]
+      await invoke(['--out', first, ...args])
+      await invoke(['--out', second, ...args])
 
-    interface Event {
-      type?: string
-      payload?: unknown
-    }
-    const identity = (file: string) => {
-      const value = JSON.parse(readFileSync(file, 'utf8')) as {
-        schema?: string
-        uiCommit?: string
-        coreCommit?: string
-        streamId?: string
-        events?: Event[]
-        assets?: Record<string, string>
+      interface Event {
+        type?: string
+        payload?: unknown
       }
-      return {
-        schema: value.schema,
-        uiCommit: value.uiCommit,
-        coreCommit: value.coreCommit,
-        streamId: value.streamId,
-        eventTypes: (value.events ?? []).map(event => event.type),
-        // Asset ids embed the approval id, so compare what the assets *are*.
-        assetBodies: Object.values(value.assets ?? {}).sort(),
+      const identity = (file: string) => {
+        const value = JSON.parse(readFileSync(file, 'utf8')) as {
+          schema?: string
+          uiCommit?: string
+          coreCommit?: string
+          streamId?: string
+          events?: Event[]
+          assets?: Record<string, string>
+        }
+        return {
+          schema: value.schema,
+          uiCommit: value.uiCommit,
+          coreCommit: value.coreCommit,
+          streamId: value.streamId,
+          eventTypes: (value.events ?? []).map(event => event.type),
+          // Asset ids embed the approval id, so compare what the assets *are*.
+          assetBodies: Object.values(value.assets ?? {}).sort(),
+        }
       }
-    }
-    expect(identity(second)).toEqual(identity(first))
-  })
+      expect(identity(second)).toEqual(identity(first))
+    },
+  )
 })
