@@ -435,10 +435,15 @@ describe('pin discovery', () => {
     }
 
     const pins = listCorePins(root)
+    /*
+     * `path.relative` returns the platform separator, so comparing against a
+     * forward-slash literal passes on POSIX and fails on Windows. Normalise
+     * before asserting — the production code reports whatever the platform
+     * produces, and the test should not encode one of them.
+     */
+    const files = pins.map(pin => pin.file.replace(/\\/g, '/'))
     for (const group of ['benchmarks', 'apps', 'examples']) {
-      expect(pins.map(pin => pin.file)).toContain(
-        `${group}/sample/package.json`,
-      )
+      expect(files).toContain(`${group}/sample/package.json`)
     }
   })
 
@@ -459,6 +464,7 @@ describe('pin discovery', () => {
     )
     const result = evaluateStatic({ uiRoot: root, uiVersion: VERSION })
     expect(result.ok).toBe(false)
-    expect(result.errors.join(' ')).toMatch(/examples\/ai-workbench/)
+    /* Accept either separator: the message carries the platform's path. */
+    expect(result.errors.join(' ')).toMatch(/examples[\\/]ai-workbench/)
   })
 })
