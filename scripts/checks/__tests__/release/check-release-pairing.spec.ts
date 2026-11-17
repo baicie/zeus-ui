@@ -468,3 +468,204 @@ describe('pin discovery', () => {
     expect(result.errors.join(' ')).toMatch(/examples[\\/]ai-workbench/)
   })
 })
+
+/*
+ * The pair for a bootstrap release.
+ *
+ * A bootstrap tag cannot name a UI commit and cannot move, so reading only the
+ * tagged record would make every bootstrap release permanently unpairable.
+ * The pair is recorded afterwards under `pair/v<version>`, and these cases are
+ * the checks that make that record trustworthy rather than merely present.
+ */
+describe('bootstrap → pair', () => {
+  const CORE_TAG_COMMIT = 'd'.repeat(40)
+  const PAIR_COMMIT = 'e'.repeat(40)
+  const UI = 'c'.repeat(40)
+
+  function bootstrapRecord(): string {
+    return `${JSON.stringify(
+      {
+        schema: CORE_PAIRING_SCHEMA,
+        coreVersion: VERSION,
+        uiCommit: null,
+        uiVersion: VERSION,
+        verifiedAt: '2026-11-17T00:00:00.000Z',
+        bootstrap: true,
+      },
+      null,
+      2,
+    )}\n`
+  }
+
+  function attestation(overrides: Record<string, unknown> = {}): string {
+    return `${JSON.stringify(
+      {
+        schema: 'zeus.pair-attestation/v1',
+        releaseTag: `v${VERSION}`,
+        coreCommit: CORE_TAG_COMMIT,
+        coreVersion: VERSION,
+        uiCommit: UI,
+        uiVersion: VERSION,
+        bootstrap: true,
+        verifiedAt: '2026-11-17T00:00:00.000Z',
+        ...overrides,
+      },
+      null,
+      2,
+    )}\n`
+  }
+
+  function bootstrapInput(
+    overrides: Partial<OnlinePairingInput> = {},
+  ): OnlinePairingInput {
+    return {
+      uiRoot: uiTree(),
+      uiVersion: VERSION,
+      uiCommit: UI,
+      resolveCoreTag: () => CORE_TAG_COMMIT,
+      resolvePairTag: () => PAIR_COMMIT,
+      readCoreFile: (_commit, file) => {
+        if (file.endsWith('release-pairing/v0.2.0-rc.0.json')) {
+          return bootstrapRecord()
+        }
+        if (file.includes('attestations')) return attestation()
+        return undefined
+      },
+      ...overrides,
+    }
+  }
+
+  it('passes when the attestation agrees with the release tag and the UI commit', () => {
+    const result = evaluatePairing(bootstrapInput())
+    expect(result.errors).toEqual([])
+    expect(result.ok).toBe(true)
+    expect(result.record?.uiCommit).toBe(UI)
+  })
+
+  it('fails when no pair attestation exists', () => {
+    const result = evaluatePairing(
+      bootstrapInput({ resolvePairTag: () => undefined }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(
+      /no pair\/v0\.2\.0-rc\.0 attestation/,
+    )
+  })
+
+  /*
+   * The failure the whole design turns on: an attestation naming a Core commit
+   * other than the one the release tag points at. Accepting it would pair the
+   * UI with a tree this version never published.
+   */
+  it('fails when the attestation names a different Core commit', () => {
+    const result = evaluatePairing(
+      bootstrapInput({
+        readCoreFile: (_commit, file) =>
+          file.endsWith('.json') && file.includes('release-pairing/v')
+            ? bootstrapRecord()
+            : attestation({ coreCommit: 'f'.repeat(40) }),
+      }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/names Core commit/)
+  })
+
+  it('fails when the attestation names a different UI commit', () => {
+    const result = evaluatePairing(
+      bootstrapInput({
+        readCoreFile: (_commit, file) =>
+          file.includes('release-pairing/v')
+            ? bootstrapRecord()
+            : attestation({ uiCommit: 'f'.repeat(40) }),
+      }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/names UI commit/)
+  })
+
+  it('fails when the attestation version differs', () => {
+    const result = evaluatePairing(
+      bootstrapInput({
+        readCoreFile: (_commit, file) =>
+          file.includes('release-pairing/v')
+            ? bootstrapRecord()
+            : attestation({ uiVersion: '0.2.0-rc.1' }),
+      }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/uiVersion/)
+  })
+
+  it('fails when the attestation claims a paired release', () => {
+    const result = evaluatePairing(
+      bootstrapInput({
+        readCoreFile: (_commit, file) =>
+          file.includes('release-pairing/v')
+            ? bootstrapRecord()
+            : attestation({ bootstrap: false }),
+      }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/must record bootstrap: true/)
+  })
+
+  it('fails when the pair tag has no attestation file', () => {
+    const result = evaluatePairing(
+      bootstrapInput({
+        readCoreFile: (_commit, file) =>
+          file.includes('release-pairing/v') ? bootstrapRecord() : undefined,
+      }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(
+      /which has no release-pairing\/attestations/,
+    )
+  })
+
+  it('fails when the attestation is not JSON', () => {
+    const result = evaluatePairing(
+      bootstrapInput({
+        readCoreFile: (_commit, file) =>
+          file.includes('release-pairing/v') ? bootstrapRecord() : '{not json',
+      }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/not valid JSON/)
+  })
+
+  it('fails when the attestation schema is unknown', () => {
+    const result = evaluatePairing(
+      bootstrapInput({
+        readCoreFile: (_commit, file) =>
+          file.includes('release-pairing/v')
+            ? bootstrapRecord()
+            : attestation({ schema: 'other/v1' }),
+      }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/schema must be/)
+  })
+
+  /*
+   * A record that is unpaired but does not declare it is ambiguous, and an
+   * ambiguous record must not be read as either state.
+   */
+  it('refuses a null uiCommit that does not declare bootstrap', () => {
+    const result = evaluatePairing(
+      bootstrapInput({
+        readCoreFile: (_commit, file) =>
+          file.includes('release-pairing/v')
+            ? JSON.stringify({
+                schema: CORE_PAIRING_SCHEMA,
+                coreVersion: VERSION,
+                uiCommit: null,
+                uiVersion: VERSION,
+                verifiedAt: '2026-11-17T00:00:00.000Z',
+              })
+            : attestation(),
+      }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/does not declare bootstrap/)
+  })
+})

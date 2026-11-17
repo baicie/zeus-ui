@@ -84,6 +84,26 @@ export function shellVariable(value: string): string {
 }
 
 /**
+ * The guard that keeps an evidence-free dispatch from publishing.
+ *
+ * A static pairing report answers "do the pins agree" and leaves every commit
+ * field null. `core_commit` is supplied separately by the dispatch input, so a
+ * static report plus a syntactically valid SHA would look complete while the
+ * pair was never checked. The mode is what distinguishes them, and it has to
+ * be asserted in both workflows rather than trusted from the dispatch.
+ */
+export const PAIRING_MODE_GUARD: readonly string[] = [
+  '# A static pairing report carries no Core commit at all, so a',
+  '# dispatch that reached here with mode=static is evidence-free even',
+  '# though `core_commit` happens to parse. The mode says which question',
+  '# was answered; only `online` answers the pairing one.',
+  'if [ "$PAIRING_MODE" != "online" ]; then',
+  `  echo "::error::pairing_mode is '$PAIRING_MODE'; publish requires an online pairing check"`,
+  '  exit 1',
+  'fi',
+]
+
+/**
  * The version decides the npm dist-tag. This shell is the workflow-side copy of
  * the rule in `scripts/release/channel.ts`; `releaseChannelCases()` documents
  * the mapping both implementations must agree on, and the unit tests assert
@@ -608,7 +628,16 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
     getObject(release, 'outputs', 'release.jobs.release'),
     {
       release_sha: githubExpression('steps.tag_release.outputs.sha'),
-      core_commit: githubExpression('steps.pairing_core.outputs.core_commit'),
+      /*
+       * `core-commit`, not `core_commit`: the step now writes a hyphenated
+       * output key. The underscore version was referenced for months while the
+       * step wrote nothing at all, which is why the dispatch job refused with
+       * "pairing record coreCommit is not a full SHA" after the tag existed.
+       * The pairing check now derives it from the report it just produced, so
+       * this key has a producer rather than only consumers.
+       */
+      core_commit: githubExpression('steps.pairing_core.outputs.core-commit'),
+      pairing_mode: githubExpression('steps.pairing_core.outputs.mode'),
     },
     'release.jobs.release.outputs',
     errors,
@@ -770,6 +799,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
       TAG: githubExpression('inputs.tag'),
       RELEASE_SHA: githubExpression('needs.release.outputs.release_sha'),
       CORE_COMMIT: githubExpression('needs.release.outputs.core_commit'),
+      PAIRING_MODE: githubExpression('needs.release.outputs.pairing_mode'),
     },
     'release.jobs.dispatch-publish.env',
     errors,
@@ -789,7 +819,8 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
       '  --raw-field version="$VERSION" \\',
       '  --raw-field tag="$TAG" \\',
       '  --raw-field release_sha="$RELEASE_SHA" \\',
-      '  --raw-field core_commit="$CORE_COMMIT"',
+      '  --raw-field core_commit="$CORE_COMMIT" \\',
+      '  --raw-field pairing_mode="$PAIRING_MODE"',
     ].join('\n'),
     'release.jobs.dispatch-publish.steps.Dispatch publish workflow.run',
     errors,
@@ -806,6 +837,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
       TAG: githubExpression('inputs.tag'),
       RELEASE_SHA: githubExpression('needs.release.outputs.release_sha'),
       CORE_COMMIT: githubExpression('needs.release.outputs.core_commit'),
+      PAIRING_MODE: githubExpression('needs.release.outputs.pairing_mode'),
     },
     'release.jobs.dispatch-publish.steps.Dispatch publish workflow.env',
     errors,
@@ -1035,6 +1067,12 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
     errors,
   )
   expectEqual(
+    getObject(inputs, 'pairing_mode', 'publish.on.workflow_call.inputs'),
+    { required: true, type: 'string' },
+    'publish.on.workflow_call.inputs.pairing_mode',
+    errors,
+  )
+  expectEqual(
     dispatchInputs,
     {
       version: {
@@ -1055,6 +1093,11 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       },
       core_commit: {
         description: 'Immutable paired Zeus Core commit SHA',
+        required: true,
+        type: 'string',
+      },
+      pairing_mode: {
+        description: 'How the pair was established (must be `online`)',
         required: true,
         type: 'string',
       },
@@ -1110,6 +1153,7 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       '  echo "::error::core_commit must be a full 40-character SHA"',
       '  exit 1',
       'fi',
+      ...PAIRING_MODE_GUARD,
     ].join('\n'),
     'publish.jobs.publish.steps.Verify dispatch context.run',
     errors,
@@ -1125,6 +1169,7 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       TAG: githubExpression('inputs.tag'),
       RELEASE_SHA: githubExpression('inputs.release_sha'),
       CORE_COMMIT: githubExpression('inputs.core_commit'),
+      PAIRING_MODE: githubExpression('inputs.pairing_mode'),
     },
     'publish.jobs.publish.steps.Verify dispatch context.env',
     errors,
@@ -1192,6 +1237,7 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
         '  echo "::error::core_commit must be a full 40-character SHA"',
         '  exit 1',
         'fi',
+        ...PAIRING_MODE_GUARD,
       ].join('\n'),
       [
         'test "$(git rev-parse HEAD)" = "$RELEASE_SHA"',

@@ -15,6 +15,9 @@ on:
       core_commit:
         required: true
         type: string
+      pairing_mode:
+        required: true
+        type: string
     secrets:
       NPM_PUBLISH_TOKEN:
         required: true
@@ -38,6 +41,10 @@ on:
         type: string
       core_commit:
         description: Immutable paired Zeus Core commit SHA
+        required: true
+        type: string
+      pairing_mode:
+        description: How the pair was established (must be `online`)
         required: true
         type: string
 
@@ -79,11 +86,20 @@ jobs:
             echo "::error::core_commit must be a full 40-character SHA"
             exit 1
           fi
+          # A static pairing report carries no Core commit at all, so a
+          # dispatch that reached here with mode=static is evidence-free even
+          # though `core_commit` happens to parse. The mode says which question
+          # was answered; only `online` answers the pairing one.
+          if [ "$PAIRING_MODE" != "online" ]; then
+            echo "::error::pairing_mode is '$PAIRING_MODE'; publish requires an online pairing check"
+            exit 1
+          fi
         env:
           VERSION: ${{ inputs.version }}
           TAG: ${{ inputs.tag }}
           RELEASE_SHA: ${{ inputs.release_sha }}
           CORE_COMMIT: ${{ inputs.core_commit }}
+          PAIRING_MODE: ${{ inputs.pairing_mode }}
 
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:

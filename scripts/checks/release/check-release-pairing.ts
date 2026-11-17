@@ -76,6 +76,14 @@ import { resolveChannel } from '../../release/channel'
  */
 export const CORE_PAIRING_SCHEMA = 'zeus.release-pairing/v1'
 export const CORE_PAIRING_DIRECTORY = 'release-pairing'
+/**
+ * The schema of the attestation that supplies a pair for a bootstrap release.
+ *
+ * Defined in Core at `scripts/release/pair-attestation.ts`; duplicated here
+ * because the UI must refuse a payload it does not recognise, and reading the
+ * constant from Core would make a Core-side typo silently accept anything.
+ */
+export const PAIR_ATTESTATION_SCHEMA = 'zeus.pair-attestation/v1'
 
 const FULL_SHA = /^[0-9a-f]{40}$/i
 const EXACT_VERSION = /^\d+\.\d+\.\d+(?:-[0-9a-z]+(?:[.-][0-9a-z]+)*)?$/i
@@ -93,10 +101,19 @@ export const INDEPENDENT_CORE_PINS: Readonly<Record<string, string>> = {
 export interface CorePairingRecord {
   readonly schema: string
   readonly coreVersion: string
-  readonly uiCommit: string
+  /**
+   * The paired UI commit, or `null` when the release published unpaired.
+   *
+   * `null` is not a missing value: it states that the tag was created before
+   * any UI commit could exist, which is what a new version line's first RC
+   * does. Such a record is only complete together with a pair attestation.
+   */
+  readonly uiCommit: string | null
   readonly uiVersion: string
   readonly verifiedAt: string
   readonly firstPublish?: readonly string[]
+  /** The record declared it published unpaired. */
+  readonly bootstrap?: boolean
 }
 
 export interface CorePin {
@@ -125,6 +142,14 @@ export interface OnlinePairingInput extends StaticPairingInput {
   readonly uiCommit: string
   /** Resolves `v<coreVersion>` on Core to a commit, or explains why not. */
   readonly resolveCoreTag?: (tag: string) => string | undefined
+  /**
+   * Resolves `pair/v<coreVersion>` on Core to a commit, or `undefined`.
+   *
+   * Separate from `resolveCoreTag` because the two are different tags in
+   * different namespaces, and a bootstrap release needs both: the release tag
+   * to prove what was published, the pair tag to prove who it was paired with.
+   */
+  readonly resolvePairTag?: (tag: string) => string | undefined
   /** Reads a file from a Core commit. */
   readonly readCoreFile?: (commit: string, file: string) => string | undefined
 }
@@ -253,6 +278,27 @@ export function evaluatePairing(input: OnlinePairingInput): PairingResult {
   const parsed = parseCorePairingRecord(raw, errors)
   if (!parsed) return { ok: false, channel, errors }
 
+  /*
+   * A bootstrap release published before any UI commit existed, so the record
+   * inside its tag names `uiCommit: null` — and that tag cannot move. Reading
+   * only this file would make every bootstrap release permanently unpairable.
+   *
+   * The pair is therefore established afterwards, by a protected `pair/v…`
+   * tag pointing at a commit that attests the same Core commit plus the UI
+   * candidate. The attestation is read here, and it is *required* to agree
+   * with the tagged record on everything both of them state.
+   */
+  if (parsed.uiCommit === null) {
+    return evaluateBootstrapPairing({
+      input,
+      coreVersion,
+      tagCommit,
+      channel,
+      errors,
+      record: parsed,
+    })
+  }
+
   if (parsed.coreVersion !== coreVersion) {
     errors.push(
       `Core record coreVersion ${parsed.coreVersion} != expected ${coreVersion}`,
@@ -280,6 +326,149 @@ export function evaluatePairing(input: OnlinePairingInput): PairingResult {
     ...(errors.length === 0 ? { record: parsed } : { record: parsed }),
     errors,
   }
+}
+
+/**
+ * The pair for a release whose Core tag published unpaired.
+ *
+ * ## Why this is a separate path rather than a fallback
+ *
+ * A bootstrap release cannot name a UI commit: the UI lockfile resolves only
+ * after those packages are on the registry, and the record has to be inside
+ * the tagged commit. So the tag is permanent and says `uiCommit: null`, and
+ * the pair is recorded afterwards under a protected `pair/v<version>` tag that
+ * names the same Core commit plus a UI candidate.
+ *
+ * ## What is checked
+ *
+ * The attestation is not trusted for anything the caller can establish:
+ *
+ * - its `coreCommit` must equal the commit `v<version>` resolves to, so a pair
+ *   cannot describe a Core tree that was never published under this version;
+ * - its `uiCommit` must equal the release's commit, so the pair cannot name a
+ *   candidate other than the one being released;
+ * - its version fields must agree with the release;
+ * - it must be read from the commit the `pair/v<version>` tag points at, not
+ *   from a branch, so a later edit to `main` changes nothing about it.
+ *
+ * Every one of those failing is a refusal. There is no partial credit: a pair
+ * that half-matches describes two different things.
+ */
+function evaluateBootstrapPairing(args: {
+  input: OnlinePairingInput
+  coreVersion: string
+  tagCommit: string
+  channel: ReleaseChannel
+  errors: string[]
+  record: CorePairingRecord
+}): PairingResult {
+  const { input, coreVersion, tagCommit, channel, errors, record } = args
+
+  const resolvePairTag =
+    input.resolvePairTag ?? (tag => resolveCoreTagOnGitHub(tag))
+  const pairTag = `pair/v${coreVersion}`
+  const pairCommit = resolvePairTag(pairTag)
+  if (pairCommit === undefined) {
+    errors.push(
+      `Core tag v${coreVersion} published unpaired, and no ${pairTag} attestation exists; the pair was never recorded, so this release cannot claim it`,
+    )
+    return { ok: false, channel, record, errors }
+  }
+  if (!FULL_SHA.test(pairCommit)) {
+    errors.push(`${pairTag} did not resolve to a commit`)
+    return { ok: false, channel, record, errors }
+  }
+
+  const readCoreFile = input.readCoreFile ?? readCoreFileAtCommit
+  const attestationPath = `release-pairing/attestations/v${coreVersion}.json`
+  const raw = readCoreFile(pairCommit, attestationPath)
+  if (raw === undefined) {
+    errors.push(
+      `${pairTag} points at ${pairCommit}, which has no ${attestationPath}`,
+    )
+    return { ok: false, channel, record, errors }
+  }
+
+  let value: unknown
+  try {
+    value = JSON.parse(raw)
+  } catch (error) {
+    errors.push(
+      `pair attestation is not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
+    )
+    return { ok: false, channel, record, errors }
+  }
+  if (!isPlainObject(value)) {
+    errors.push('pair attestation must be a JSON object')
+    return { ok: false, channel, record, errors }
+  }
+
+  if (value.schema !== PAIR_ATTESTATION_SCHEMA) {
+    errors.push(`pair attestation schema must be ${PAIR_ATTESTATION_SCHEMA}`)
+  }
+  if (value.releaseTag !== `v${coreVersion}`) {
+    errors.push(
+      `pair attestation releaseTag ${String(value.releaseTag)} != v${coreVersion}`,
+    )
+  }
+
+  /*
+   * The comparison that makes this a pair. Core published at `tagCommit`; the
+   * attestation must name that exact commit. Anything else pairs the UI with a
+   * Core tree that this version never published.
+   */
+  const attestedCore =
+    typeof value.coreCommit === 'string' ? value.coreCommit : ''
+  if (attestedCore.toLowerCase() !== tagCommit.toLowerCase()) {
+    errors.push(
+      `pair attestation names Core commit ${attestedCore || '(missing)'}, but v${coreVersion} points at ${tagCommit}`,
+    )
+  }
+
+  const attestedUi = typeof value.uiCommit === 'string' ? value.uiCommit : ''
+  if (!FULL_SHA.test(attestedUi)) {
+    errors.push('pair attestation uiCommit is not a full 40-character SHA')
+  } else if (attestedUi.toLowerCase() !== input.uiCommit.toLowerCase()) {
+    errors.push(
+      `pair attestation names UI commit ${attestedUi}, but this release is ${input.uiCommit}`,
+    )
+  }
+
+  if (value.coreVersion !== coreVersion) {
+    errors.push(
+      `pair attestation coreVersion ${String(value.coreVersion)} != ${coreVersion}`,
+    )
+  }
+  if (value.uiVersion !== input.uiVersion) {
+    errors.push(
+      `pair attestation uiVersion ${String(value.uiVersion)} != release version ${input.uiVersion}`,
+    )
+  }
+  /*
+   * The tagged record and the attestation both describe this release, so they
+   * must agree on the one fact they share beyond the version: that it was
+   * published unpaired. An attestation claiming `bootstrap: false` describes a
+   * release whose tag carries a pair — which this tag does not.
+   */
+  if (value.bootstrap !== true) {
+    errors.push(
+      'pair attestation must record bootstrap: true, because the release tag it pairs with published unpaired',
+    )
+  }
+
+  return {
+    ok: errors.length === 0,
+    channel,
+    record: {
+      ...record,
+      uiCommit: attestedUi,
+    },
+    errors,
+  }
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function parseCorePairingRecord(
@@ -312,9 +501,32 @@ function parseCorePairingRecord(
       typeErrors.push(`Core pairing record ${field} must be an exact version`)
     }
   }
-  if (typeof record.uiCommit !== 'string' || !FULL_SHA.test(record.uiCommit)) {
+  /*
+   * `uiCommit` is either a full SHA or `null`.
+   *
+   * `null` means the tag published unpaired, which is legal only for a new
+   * version line's first RC and only when the record says `bootstrap: true`.
+   * Accepting `null` here without that flag would turn "the field is missing"
+   * into "the release is paired" — the ambiguity the flag exists to remove.
+   */
+  const bootstrapDeclared = record.bootstrap === true
+  if (record.uiCommit === null) {
+    if (!bootstrapDeclared) {
+      typeErrors.push(
+        'Core pairing record uiCommit is null but the record does not declare bootstrap',
+      )
+    }
+  } else if (
+    typeof record.uiCommit !== 'string' ||
+    !FULL_SHA.test(record.uiCommit)
+  ) {
     typeErrors.push(
-      'Core pairing record uiCommit must be a full 40-character SHA',
+      'Core pairing record uiCommit must be a full 40-character SHA, or null on a bootstrap record',
+    )
+  }
+  if (bootstrapDeclared && typeof record.uiCommit === 'string') {
+    typeErrors.push(
+      'Core pairing record declares bootstrap but also names a UI commit; a release is paired or unpaired, never both',
     )
   }
   if (typeErrors.length > 0) {
@@ -473,6 +685,104 @@ export function writeCorePairingTemplate(
   return file
 }
 
+/**
+ * The report a release uploads as evidence.
+ *
+ * ## Why it is a separate artifact from the exit code
+ *
+ * The workflows upload `release-pairing.json` with `if-no-files-found: error`,
+ * so the file is a hard requirement — but before this existed, nothing wrote
+ * it. The `--out` flag was accepted and ignored, which meant the upload step
+ * failed after every check had passed, or (worse, if the flag had been
+ * dropped) an artifact from an earlier run could be what got preserved.
+ *
+ * ## What makes it evidence rather than a log
+ *
+ * It records the mode it ran in and refuses to be read as the other one. A
+ * static pass and an online pass answer different questions — "the pins agree"
+ * versus "the pair was proven against an immutable tag" — and a reader who
+ * cannot tell which they are holding has no way to know whether the pair was
+ * ever checked.
+ *
+ * It is written on failure too. A refusal that leaves no record is a refusal
+ * nobody can diagnose, and the recovery path for a half-published release
+ * depends on knowing exactly which clause failed.
+ */
+export const PAIRING_REPORT_SCHEMA = 'zeus.ui-pairing-report/v1'
+
+export interface PairingReport {
+  readonly schema: typeof PAIRING_REPORT_SCHEMA
+  /** `static` answers offline questions only; `online` adds the pair. */
+  readonly mode: 'static' | 'online'
+  readonly version: string
+  readonly channel: ReleaseChannel | null
+  readonly ok: boolean
+  readonly errors: readonly string[]
+  readonly verifiedAt: string
+  /** Everything below is `null` in static mode, by construction. */
+  readonly coreTag: string | null
+  readonly coreTagCommit: string | null
+  readonly pairTag: string | null
+  readonly pairTagCommit: string | null
+  readonly coreCommit: string | null
+  readonly uiCommit: string | null
+}
+
+export interface WritePairingReportInput {
+  readonly result: PairingResult
+  readonly mode: 'static' | 'online'
+  readonly version: string
+  readonly uiCommit?: string
+  readonly coreTagCommit?: string
+  readonly pairTagCommit?: string
+  readonly coreCommit?: string
+}
+
+export function buildPairingReport(
+  input: WritePairingReportInput,
+): PairingReport {
+  const online = input.mode === 'online'
+  return {
+    schema: PAIRING_REPORT_SCHEMA,
+    mode: input.mode,
+    version: input.version,
+    channel: input.result.channel ?? null,
+    ok: input.result.ok,
+    errors: [...input.result.errors],
+    verifiedAt: new Date().toISOString(),
+    /*
+     * `coreTag` is named in both modes because it is the tag whose immutability
+     * the pair depends on. The rest are online-only: a static run has not read
+     * any of them, and emitting a placeholder would let a reader mistake "not
+     * looked up" for "looked up and empty".
+     */
+    coreTag: `v${input.version}`,
+    coreTagCommit: online ? (input.coreTagCommit ?? null) : null,
+    pairTag: online ? `pair/v${input.version}` : null,
+    pairTagCommit: online ? (input.pairTagCommit ?? null) : null,
+    coreCommit: online
+      ? (input.coreCommit ?? input.coreTagCommit ?? null)
+      : null,
+    uiCommit: online ? (input.uiCommit ?? null) : null,
+  }
+}
+
+/**
+ * Writes the report, returning the path.
+ *
+ * Failure to write is not swallowed: the workflow's next step requires the
+ * file, and a run that silently skipped writing it would surface as a missing
+ * artifact far from the cause.
+ */
+export function writePairingReport(
+  file: string,
+  report: PairingReport,
+): string {
+  mkdirSync(path.dirname(file), { recursive: true })
+  writeFileSync(file, `${JSON.stringify(report, null, 2)}\n`)
+  return file
+}
+
 function main(): void {
   const { values } = parseArgs({
     options: {
@@ -486,11 +796,23 @@ function main(): void {
   })
   if (!values.version) {
     console.error(
-      'usage: check-release-pairing --version <v> [--ui-root <path>] [--online --release-sha <sha>]',
+      'usage: check-release-pairing --version <v> [--ui-root <path>] [--online --release-sha <sha>] [--out <file>]',
     )
     process.exitCode = 2
     return
   }
+  if (values.online && !values['release-sha']) {
+    /*
+     * An online run without the release SHA cannot compare anything: every
+     * commit-comparison would be against the empty string, and a record that
+     * disagrees with `''` produces a confusing message. Refusing here names the
+     * omission instead.
+     */
+    console.error('usage: --online requires --release-sha <40-character SHA>')
+    process.exitCode = 2
+    return
+  }
+
   const uiRoot = path.resolve(values['ui-root']!)
   const result = values.online
     ? evaluatePairing({
@@ -510,6 +832,24 @@ function main(): void {
       })
 
   for (const error of result.errors) console.error(pc.red(error))
+
+  if (values.out) {
+    /*
+     * Written before the exit code is decided, so a failing run still leaves
+     * the evidence its recovery depends on.
+     */
+    const report = buildPairingReport({
+      result,
+      mode: values.online ? 'online' : 'static',
+      version: values.version,
+      ...(values.online && values['release-sha']
+        ? { uiCommit: values['release-sha'] }
+        : {}),
+    })
+    writePairingReport(values.out, report)
+    console.log(pc.dim(`wrote ${values.out} (${report.mode}, ok=${report.ok})`))
+  }
+
   if (result.ok) {
     console.log(
       pc.green(

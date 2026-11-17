@@ -109,7 +109,8 @@ jobs:
       contents: write
     outputs:
       release_sha: ${{ steps.tag_release.outputs.sha }}
-      core_commit: ${{ steps.pairing_core.outputs.core_commit }}
+      core_commit: ${{ steps.pairing_core.outputs.core-commit }}
+      pairing_mode: ${{ steps.pairing_core.outputs.mode }}
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
       VERSION: ${{ inputs.version }}
@@ -158,6 +159,14 @@ jobs:
       # The committed pairing record is what binds this UI release to a Core
       # candidate. It is read here, before the tag exists, so an unpairable
       # version can never be tagged in the first place.
+      #
+      # `core_commit` is derived from the tag the check just proved, never
+      # typed. Before this, the step declared `id: pairing_core` and wrote no
+      # output at all, so `core_commit` was the empty string and the dispatch
+      # job refused with "pairing record coreCommit is not a full SHA" — after
+      # the tag had already been created. The derivation happens here, in the
+      # same step that verified it, so there is no window in which the value
+      # could come from anywhere else.
       - name: Verify immutable Core/UI pairing
         id: pairing_core
         run: |
@@ -166,6 +175,24 @@ jobs:
             --release-sha "$GITHUB_SHA" \
             --online \
             --out "$PAIRING_REPORT"
+
+          # Read back what the check proved. The report is the same artifact
+          # uploaded as evidence, so the value that gets dispatched and the
+          # value an auditor sees are the same bytes.
+          CORE_COMMIT=$(node -p "const r=require('$PAIRING_REPORT'); r.coreCommit ?? ''")
+          PAIRING_MODE=$(node -p "require('$PAIRING_REPORT').mode")
+          if ! [[ "$CORE_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::the pairing report carries no coreCommit; an online check must resolve the Core tag it verified"
+            exit 1
+          fi
+          if [ "$PAIRING_MODE" != "online" ]; then
+            echo "::error::the pairing report says mode=$PAIRING_MODE; a release dispatch must be backed by an online check"
+            exit 1
+          fi
+          {
+            echo "core-commit=$CORE_COMMIT"
+            echo "mode=$PAIRING_MODE"
+          } >> "$GITHUB_OUTPUT"
         env:
           VERSION: ${{ inputs.version }}
           PAIRING_REPORT: ${{ runner.temp }}/release-pairing.json
@@ -213,23 +240,44 @@ jobs:
       TAG: ${{ inputs.tag }}
       RELEASE_SHA: ${{ needs.release.outputs.release_sha }}
       CORE_COMMIT: ${{ needs.release.outputs.core_commit }}
+      PAIRING_MODE: ${{ needs.release.outputs.pairing_mode }}
 
     steps:
-      # The Core commit comes from the pairing record read by the release job;
-      # a moved Core branch or a hand-typed SHA can never be dispatched. The
-      # tag is re-resolved here so the dispatch proves the Core release the UI
-      # was built against is the one that actually exists.
+      # The Core commit comes from the pairing check that already ran and was
+      # written into the uploaded report; a moved Core branch or a hand-typed
+      # SHA can never be dispatched. This step re-resolves the release tag and
+      # requires it to match, so the dispatch proves the Core release the UI was
+      # built against is the one that actually exists.
+      #
+      # The mode check is not decoration: a `static` report has all the
+      # commit fields null, so a workflow that somehow dispatched one would be
+      # sending evidence-free values down the same path.
       - name: Verify the Core release is immutable
         run: |
-          if ! [[ "$CORE_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "::error::pairing record coreCommit is not a full SHA"
+          if [ "$PAIRING_MODE" != "online" ]; then
+            echo "::error::pairing mode is '$PAIRING_MODE'; the dispatch must be backed by an online pairing check"
             exit 1
           fi
-          test "$(gh api "repos/baicie/zeus/commits/v$VERSION" --jq '.sha')" = "$CORE_COMMIT"
+          if ! [[ "$CORE_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::the pairing check produced no coreCommit; refusing to dispatch an unreferenced Core commit"
+            exit 1
+          fi
+          tag_sha="$(gh api "repos/baicie/zeus/git/ref/tags/v$VERSION" \
+            --jq '.object | if .type == "tag" then "annotated" else .sha end')"
+          if [ "$tag_sha" = "annotated" ]; then
+            # An annotated tag names a tag object; peel it to the commit.
+            object="$(gh api "repos/baicie/zeus/git/ref/tags/v$VERSION" --jq '.object.sha')"
+            tag_sha="$(gh api "repos/baicie/zeus/git/tags/$object" --jq '.object.sha')"
+          fi
+          if [ "$tag_sha" != "$CORE_COMMIT" ]; then
+            echo "::error::Core tag v$VERSION points at $tag_sha, but the pair was verified against $CORE_COMMIT"
+            exit 1
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
           CORE_COMMIT: ${{ needs.release.outputs.core_commit }}
+          PAIRING_MODE: ${{ needs.release.outputs.pairing_mode }}
 
       - name: Dispatch publish workflow
         run: |
@@ -239,10 +287,12 @@ jobs:
             --raw-field version="$VERSION" \
             --raw-field tag="$TAG" \
             --raw-field release_sha="$RELEASE_SHA" \
-            --raw-field core_commit="$CORE_COMMIT"
+            --raw-field core_commit="$CORE_COMMIT" \
+            --raw-field pairing_mode="$PAIRING_MODE"
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
           TAG: ${{ inputs.tag }}
           RELEASE_SHA: ${{ needs.release.outputs.release_sha }}
           CORE_COMMIT: ${{ needs.release.outputs.core_commit }}
+          PAIRING_MODE: ${{ needs.release.outputs.pairing_mode }}
