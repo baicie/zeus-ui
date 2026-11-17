@@ -1324,10 +1324,16 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       'env',
       'publish.jobs.publish.steps.Verify immutable Core/UI pairing',
     ),
+    /*
+     * No `CORE_COMMIT`: the Core commit is resolved from the tag inside the
+     * checker, not passed in. An input that names it is an input a caller can
+     * get wrong, and the whole point of reading Core's record is that Core
+     * says which UI commit it paired with rather than the dispatcher saying
+     * which Core commit to trust.
+     */
     {
       VERSION: githubExpression('inputs.version'),
       RELEASE_SHA: githubExpression('inputs.release_sha'),
-      CORE_COMMIT: githubExpression('inputs.core_commit'),
       PAIRING_REPORT: `${githubExpression('runner.temp')}/release-pairing.json`,
       GH_TOKEN: githubExpression('github.token'),
     },
