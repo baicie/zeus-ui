@@ -6,6 +6,7 @@ import { parse } from 'yaml'
 import {
   CHECKOUT_ACTION_REF,
   githubExpression,
+  PAIRING_MODE_GUARD,
   pairingCommand,
   PNPM_SETUP_ACTION_REF,
   publishPreflightCommand,
@@ -421,6 +422,7 @@ describe('release script contract', () => {
       TAG: githubExpression('inputs.tag'),
       RELEASE_SHA: githubExpression('needs.release.outputs.release_sha'),
       CORE_COMMIT: githubExpression('needs.release.outputs.core_commit'),
+      PAIRING_MODE: githubExpression('needs.release.outputs.pairing_mode'),
     })
     expect(getActionRefs(dispatchPublish)).toEqual([])
     expect(String(dispatchPublishStep.run).trim()).toBe(
@@ -431,7 +433,8 @@ describe('release script contract', () => {
         '  --raw-field version="$VERSION" \\',
         '  --raw-field tag="$TAG" \\',
         '  --raw-field release_sha="$RELEASE_SHA" \\',
-        '  --raw-field core_commit="$CORE_COMMIT"',
+        '  --raw-field core_commit="$CORE_COMMIT" \\',
+        '  --raw-field pairing_mode="$PAIRING_MODE"',
       ].join('\n'),
     )
     expect(getObject(dispatchPublishStep, 'env')).toEqual({
@@ -440,6 +443,7 @@ describe('release script contract', () => {
       TAG: githubExpression('inputs.tag'),
       RELEASE_SHA: githubExpression('needs.release.outputs.release_sha'),
       CORE_COMMIT: githubExpression('needs.release.outputs.core_commit'),
+      PAIRING_MODE: githubExpression('needs.release.outputs.pairing_mode'),
     })
     expect(getStepOrder(validateContext)).toEqual([
       'Verify release context',
@@ -564,6 +568,16 @@ describe('release script contract', () => {
       required: true,
       type: 'string',
     })
+    /*
+     * `workflow_call` takes it too. Only `release.yml` dispatches publish
+     * today, so nothing exercises this path — which is exactly why the input
+     * has to be declared: a future reusable caller would otherwise reach the
+     * mode guard with an empty value and be refused for the wrong reason.
+     */
+    expect(getObject(inputs, 'pairing_mode')).toEqual({
+      required: true,
+      type: 'string',
+    })
     expect(dispatchInputs).toEqual({
       version: {
         description: 'Release version without the v prefix',
@@ -583,6 +597,16 @@ describe('release script contract', () => {
       },
       core_commit: {
         description: 'Immutable paired Zeus Core commit SHA',
+        required: true,
+        type: 'string',
+      },
+      /*
+       * Required, not optional. A dispatch without it is refused inside the
+       * workflow, and making it optional here would let the dispatch succeed
+       * and fail later at the guard.
+       */
+      pairing_mode: {
+        description: 'How the pair was established (must be `online`)',
         required: true,
         type: 'string',
       },
@@ -613,6 +637,7 @@ describe('release script contract', () => {
         '  echo "::error::core_commit must be a full 40-character SHA"',
         '  exit 1',
         'fi',
+        ...PAIRING_MODE_GUARD,
       ].join('\n'),
     )
     expect(getObject(verifyContext, 'env')).toEqual({
@@ -620,6 +645,7 @@ describe('release script contract', () => {
       TAG: githubExpression('inputs.tag'),
       RELEASE_SHA: githubExpression('inputs.release_sha'),
       CORE_COMMIT: githubExpression('inputs.core_commit'),
+      PAIRING_MODE: githubExpression('inputs.pairing_mode'),
     })
     expect(getObject(checkout, 'with')).toEqual({
       'fetch-depth': 0,
@@ -650,6 +676,7 @@ describe('release script contract', () => {
         '  echo "::error::core_commit must be a full 40-character SHA"',
         '  exit 1',
         'fi',
+        ...PAIRING_MODE_GUARD,
       ].join('\n'),
       [
         'test "$(git rev-parse HEAD)" = "$RELEASE_SHA"',
