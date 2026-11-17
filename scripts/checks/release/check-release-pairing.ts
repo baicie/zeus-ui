@@ -367,8 +367,21 @@ export function listCorePins(uiRoot: string): CorePin[] {
       }
     }
   }
-  const packages = path.join(uiRoot, 'packages')
-  if (existsSync(packages)) visit(packages)
+  /*
+   * Every workspace member, not just `packages/`.
+   *
+   * `pnpm-workspace.yaml` also lists `benchmarks/*`, `apps/*` and `examples/*`.
+   * Scanning only `packages/` let `examples/ai-workbench` — which still pinned
+   * `@zeus-js/zeus@0.1.1-beta.20` while the other 46 packages moved to
+   * `0.2.0-rc.0` — pass the static half as `passed`. The mismatch surfaced
+   * later, as an unresolvable install against the registry, which is a much
+   * worse place to find it: the tree looked complete and the failure named a
+   * package rather than the file that was stale.
+   */
+  for (const group of ['packages', 'benchmarks', 'apps', 'examples']) {
+    const directory = path.join(uiRoot, group)
+    if (existsSync(directory)) visit(directory)
+  }
   return pins
 }
 

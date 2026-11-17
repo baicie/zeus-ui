@@ -405,4 +405,60 @@ describe('pin discovery', () => {
     expect(names).toContain('@zeus-js/zeus')
     expect(names).toContain('@zeus-js/vite-plugin')
   })
+
+  /*
+   * `pnpm-workspace.yaml` lists `benchmarks/*`, `apps/*` and `examples/*` as
+   * well as `packages/*`. Scanning only `packages/` let a real candidate —
+   * `ca8cf2c8`, whose `examples/ai-workbench` still pinned
+   * `@zeus-js/zeus@0.1.1-beta.20` while the rest of the tree moved to
+   * `0.2.0-rc.0` — report `passed (rc, static)`.
+   *
+   * The stale pin then surfaced as an unresolvable install against the
+   * registry, which names a package rather than the file that was stale.
+   */
+  it('finds pins outside packages/, in every workspace group', () => {
+    const root = temporary('zeus-ui-groups-')
+    for (const group of ['benchmarks', 'apps', 'examples']) {
+      fs.mkdirSync(path.join(root, group, 'sample'), { recursive: true })
+      fs.writeFileSync(
+        path.join(root, group, 'sample/package.json'),
+        `${JSON.stringify(
+          {
+            name: `@zeus-web/${group}-sample`,
+            version: '0.2.0-rc.0',
+            dependencies: { '@zeus-js/zeus': '0.1.1-beta.20' },
+          },
+          null,
+          2,
+        )}\n`,
+      )
+    }
+
+    const pins = listCorePins(root)
+    for (const group of ['benchmarks', 'apps', 'examples']) {
+      expect(pins.map(pin => pin.file)).toContain(
+        `${group}/sample/package.json`,
+      )
+    }
+  })
+
+  it('fails a release whose stale pin is outside packages/', () => {
+    const root = uiTree()
+    fs.mkdirSync(path.join(root, 'examples/ai-workbench'), { recursive: true })
+    fs.writeFileSync(
+      path.join(root, 'examples/ai-workbench/package.json'),
+      `${JSON.stringify(
+        {
+          name: '@zeus-web/example-ai-workbench',
+          version: VERSION,
+          dependencies: { '@zeus-js/zeus': '0.1.1-beta.20' },
+        },
+        null,
+        2,
+      )}\n`,
+    )
+    const result = evaluateStatic({ uiRoot: root, uiVersion: VERSION })
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/examples\/ai-workbench/)
+  })
 })
