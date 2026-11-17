@@ -339,7 +339,13 @@ describe('release script contract', () => {
     expect(getObject(release, 'permissions')).toEqual({ contents: 'write' })
     expect(getObject(release, 'outputs')).toEqual({
       release_sha: githubExpression('steps.tag_release.outputs.sha'),
-      core_commit: githubExpression('steps.pairing_core.outputs.core_commit'),
+      /*
+       * The output that used to be referenced without a producer. It now names
+       * the hyphenated key the step actually writes, and `pairing_mode` travels
+       * beside it so a static report cannot be mistaken for an online one.
+       */
+      core_commit: githubExpression('steps.pairing_core.outputs.core-commit'),
+      pairing_mode: githubExpression('steps.pairing_core.outputs.mode'),
     })
     expect(getObject(release, 'env')).toEqual({
       PUPPETEER_SKIP_DOWNLOAD: 'true',
@@ -741,5 +747,131 @@ describe('release script contract', () => {
         resolve(process.cwd(), 'scripts/commands/remove-npm-dist-tag.ts'),
       ),
     ).toBe(false)
+  })
+})
+
+/*
+ * Every `steps.<id>.outputs.<key>` a job declares must be written by a step
+ * with that id. This is the defect that motivated the check: `release.yml`
+ * declared `core_commit: ${{ steps.pairing_core.outputs.core_commit }}` for
+ * months while the step with `id: pairing_core` wrote no output at all. The
+ * expression evaluates to the empty string, `dispatch-publish` refuses with
+ * "pairing record coreCommit is not a full SHA", and by then the UI tag has
+ * already been pushed.
+ *
+ * Structural YAML checks cannot see this. They read the workflow, and the
+ * workflow is self-consistent: it references an output, and an output is
+ * declared. What is missing is the producer, which lives in a shell script
+ * inside a step.
+ */
+describe('referenced outputs have producers', () => {
+  /*
+   * Both workflows are parsed by the same helper, so a future `outputs:` block
+   * in `publish.yml` is held to the same rule rather than silently exempt.
+   * Today `publish.yml` exposes none, which the second test asserts — that is a
+   * different claim from "the file was not checked".
+   */
+  const workflows = ['release.yml', 'publish.yml'] as const
+
+  function workflowSource(file: string): string {
+    return readFileSync(
+      resolve(process.cwd(), '.github/workflows', file),
+      'utf8',
+    )
+  }
+
+  /*
+   * The keys a step writes with `>> "$GITHUB_OUTPUT"`, whether written one per
+   * line or as a grouped block. Both forms appear in these files, and a parser
+   * that understood only the first would report a false failure on the second.
+   */
+  function producedKeys(source: string, stepId: string): Set<string> {
+    const keys = new Set<string>()
+    const lines = source.split('\n')
+    let inStep = false
+    let stepIndent = 0
+    for (let index = 0; index < lines.length; index += 1) {
+      const line = lines[index] ?? ''
+      const idMatch = /^\s*-\s+name:.*$/u.exec(line)
+      if (idMatch) {
+        /*
+         * A new list item starts a new step. Whether it is ours is decided by
+         * the `id:` line that follows, so scan forward to the next item.
+         */
+        const start = index
+        inStep = false
+        stepIndent = (line.match(/^\s*/u)?.[0].length ?? 0) + 2
+        for (let scan = start; scan < lines.length; scan += 1) {
+          const candidate = lines[scan] ?? ''
+          if (scan > start && /^\s*-\s+name:/u.test(candidate)) break
+          const idLine = /^\s*id:\s*(\S+)\s*$/u.exec(candidate)
+          if (idLine) {
+            inStep = idLine[1] === stepId
+            break
+          }
+        }
+        continue
+      }
+      if (!inStep) continue
+      const indent = line.match(/^\s*/u)?.[0].length ?? 0
+      if (indent === 0 && line.trim().length > 0) {
+        inStep = false
+        continue
+      }
+      if (indent < stepIndent - 2 && line.trim().length > 0) {
+        inStep = false
+        continue
+      }
+      for (const match of line.matchAll(/echo "([\w-]+)=/gu)) {
+        keys.add(match[1]!)
+      }
+    }
+    return keys
+  }
+
+  it('writes every output key that a workflow exposes', () => {
+    for (const file of workflows) {
+      const source = workflowSource(file)
+      const outputs =
+        /outputs:\n((?:\s+[a-z_]+:.*\n)+)/u.exec(source)?.[1] ?? ''
+      const referenced = [
+        ...outputs.matchAll(/steps\.([\w-]+)\.outputs\.([\w-]+)/gu),
+      ]
+      if (file === 'release.yml') {
+        /*
+         * `release.yml` must expose at least one output; a regex that silently
+         * matched nothing would make this whole suite vacuous.
+         */
+        expect(referenced.length).toBeGreaterThan(0)
+      }
+      for (const [, stepId, key] of referenced) {
+        expect(
+          producedKeys(source, stepId!).has(key!),
+          `${file} exposes steps.${stepId}.outputs.${key} but no step with id ${stepId} writes it`,
+        ).toBe(true)
+      }
+    }
+  })
+
+  it('derives core_commit from the pairing report rather than from an input', () => {
+    const source = workflowSource('release.yml')
+    /*
+     * The value must come from the file the check just produced. A dispatch
+     * input or a hard-coded SHA would let a wrong commit be paired with an
+     * otherwise valid release.
+     */
+    expect(source).toMatch(
+      /CORE_COMMIT=\$\(node -p "const r=require\('\$PAIRING_REPORT'\); r\.coreCommit \?\? ''"\)/,
+    )
+    expect(source).toMatch(
+      /PAIRING_MODE=\$\(node -p "require\('\$PAIRING_REPORT'\)\.mode"\)/,
+    )
+  })
+
+  it('refuses a static report on the release path', () => {
+    const source = workflowSource('release.yml')
+    expect(source).toMatch(
+      /if \[ "\$PAIRING_MODE" != "online" \]; then[\s\S]{0,160}exit 1/u,
+    )
   })
 })
