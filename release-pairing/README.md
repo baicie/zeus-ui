@@ -1,71 +1,75 @@
 # Release pairing records
 
-Every Zeus UI release that is not a `beta` needs one immutable record here,
-named after the exact release version:
+This directory is **retired**. It is kept as a pointer, not as a record store.
 
-```
-release-pairing/<version>.json
-```
+## What changed
 
-The record is the only accepted source of the Zeus Core commit a UI release was
-built against. It is read from the git object database at the release SHA by
-`scripts/checks/release/check-release-pairing.ts`, so a file written after the
-checkout cannot satisfy the gate.
+Zeus UI used to keep its own pairing record here, naming both the Core commit
+and **its own** commit. That last field made the protocol impossible to
+satisfy:
+
+- writing a commit's SHA into a file changes that commit's SHA, so the record
+  could only ever be correct for a commit that is not the one carrying it;
+- the previous README told maintainers to amend repeatedly "until the record
+  names the commit it is committed in", which never converges — it is a fixed
+  point problem with no fixed point;
+- across the two repositories the references formed a cycle: Core named UI, UI
+  named Core, and neither could be finalised first.
+
+## The protocol now
+
+**Core is the anchor, and the dependency is one-way.** The authoritative record
+lives in the Core repository at `release-pairing/v<version>.json`:
 
 ```json
 {
-  "schema": "zeus-ui.release-pairing/v1",
-  "uiVersion": "0.2.0-rc.0",
-  "uiCommit": "<40-character UI commit that carries this file>",
+  "schema": "zeus.release-pairing/v1",
   "coreVersion": "0.2.0-rc.0",
-  "coreCommit": "<40-character Core commit tagged v0.2.0-rc.0>",
-  "channel": "rc"
+  "uiCommit": "<the UI candidate commit>",
+  "uiVersion": "0.2.0-rc.0",
+  "verifiedAt": "2026-11-16T00:00:00.000Z",
+  "firstPublish": ["@zeus-js/i18n"]
 }
 ```
 
-Rules enforced by the gate:
+### Order of operations
 
-- `uiVersion` must equal the release version, and `coreVersion` must equal it
-  too: Core and UI release on one version line.
-- `channel` must be the channel derived from the version
-  (`rc` -> `rc`, `x.y.z` -> `latest`).
-- `uiCommit` must be the exact release SHA, never a branch or a short SHA.
-- `coreCommit` must be the commit that `v<coreVersion>` resolves to in
-  `baicie/zeus`; a retagged or unpublished Core candidate fails closed.
-- every `@zeus-js/*` pin in the workspace must equal `coreVersion`.
+1. **Commit and push the UI release candidate.** Its SHA is whatever git
+   computed. Nothing needs to know it in advance, and nothing in the UI tree
+   records it.
+2. **Core commits the record naming that SHA**, and Core is tagged. The record
+   is then in the tagged tree, so it cannot change without changing what the tag
+   points at.
+3. **The UI release reads Core's tag**, resolves it to a commit, reads the
+   record from _that_ commit, and requires its own release SHA to equal the
+   `uiCommit` the record names.
 
-A `beta` release is the pre-contract development channel and may omit the
-record. `rc` and `latest` require it.
+At no point does either repository need to know a SHA that does not exist yet.
 
-## Creating a record
+### Where the check lives
 
-The record cannot be written before the Core commit and the UI commit are both
-final, because it contains both. The order is:
+`scripts/checks/release/check-release-pairing.ts` in this repository, in two
+halves:
 
-1. Core RC is merged to `main` and `v<version>` is tagged at that commit.
-2. The UI release commit is prepared; it bumps the `@zeus-js/*` pins and adds
-   `release-pairing/<version>.json` naming its own commit.
-3. The UI release workflow reads the record at that commit, re-resolves
-   `v<version>` on Core, and only then creates the UI tag.
+| Mode                                         | Runs             | Checks                                                        | Network |
+| -------------------------------------------- | ---------------- | ------------------------------------------------------------- | ------- |
+| `--version <v>` (static)                     | UI pull requests | version line, `@zeus-js/*` pins, channel                      | no      |
+| `--version <v> --online --release-sha <sha>` | UI release       | the above, plus Core's tag, Core's record, the SHA comparison | yes     |
 
-Writing the UI commit into the record makes the commit self-referential. Resolve
-it with a two-step amend, and never tag before the record matches:
+The split exists so a UI pull request is not blocked by a Core tag that does not
+exist until after the Core release — which is after the PR merges. Requiring the
+tag in the static half would deadlock every UI PR permanently.
 
-```bash
-# 1. commit the pin bump and a record with a placeholder uiCommit
-# 2. amend with the resulting commit SHA
-ui_commit="$(git rev-parse HEAD)"
-node -e '
-  const fs = require("node:fs")
-  const file = process.argv[1]
-  const record = JSON.parse(fs.readFileSync(file, "utf8"))
-  record.uiCommit = process.argv[2]
-  fs.writeFileSync(file, `${JSON.stringify(record, null, 2)}\n`)
-' "release-pairing/<version>.json" "$ui_commit"
-git add "release-pairing/<version>.json"
-git commit --amend --no-edit
-```
+### Failure behaviour
 
-The amended commit has a new SHA, so repeat step 2 until the record names the
-commit it is committed in. `check:release-pairing --version <version>
---release-sha <sha>` reports the mismatch until it does.
+A missing Core tag, an unreadable record, a malformed record, a record naming a
+different UI commit, and an unreachable GitHub all fail the release. None of
+them degrades to a pass. `beta` is the only channel that skips the online half,
+because it is the pre-contract channel and has no Core tag by design.
+
+## Why the directory still exists
+
+Nothing reads it. It is kept so the next person who looks for the record finds
+this explanation instead of an empty directory — and so a stray file added here
+in future is caught by the UI check, which no longer accepts records from this
+repository.

@@ -164,9 +164,8 @@ jobs:
           pnpm exec tsx scripts/checks/release/check-release-pairing.ts \
             --version "$VERSION" \
             --release-sha "$GITHUB_SHA" \
+            --online \
             --out "$PAIRING_REPORT"
-          core_commit="$(node -p "require('./release-pairing/$VERSION.json').coreCommit")"
-          echo "core_commit=$core_commit" >> "$GITHUB_OUTPUT"
         env:
           VERSION: ${{ inputs.version }}
           PAIRING_REPORT: ${{ runner.temp }}/release-pairing.json

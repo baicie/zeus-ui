@@ -122,12 +122,20 @@ export function publishPreflightCommand(): string {
   ].join('\n')
 }
 
+/**
+ * The pairing command a publishing workflow must run.
+ *
+ * `--online` is the part that matters: without it the checker only reads the
+ * UI tree, so it would never consult Core's tag or Core's record. A publish
+ * that ran the static half and called it verified would be checking nothing
+ * about the pair.
+ */
 export function pairingCommand(version = '$VERSION'): string {
   return [
     'pnpm exec tsx scripts/checks/release/check-release-pairing.ts \\',
     `  --version "${version}" \\`,
     '  --release-sha "$RELEASE_SHA" \\',
-    '  --core-commit "$CORE_COMMIT" \\',
+    '  --online \\',
     '  --out "$PAIRING_REPORT"',
   ].join('\n')
 }
