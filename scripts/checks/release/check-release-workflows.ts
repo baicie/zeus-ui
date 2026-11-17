@@ -122,12 +122,20 @@ export function publishPreflightCommand(): string {
   ].join('\n')
 }
 
+/**
+ * The pairing command a publishing workflow must run.
+ *
+ * `--online` is the part that matters: without it the checker only reads the
+ * UI tree, so it would never consult Core's tag or Core's record. A publish
+ * that ran the static half and called it verified would be checking nothing
+ * about the pair.
+ */
 export function pairingCommand(version = '$VERSION'): string {
   return [
     'pnpm exec tsx scripts/checks/release/check-release-pairing.ts \\',
     `  --version "${version}" \\`,
     '  --release-sha "$RELEASE_SHA" \\',
-    '  --core-commit "$CORE_COMMIT" \\',
+    '  --online \\',
     '  --out "$PAIRING_REPORT"',
   ].join('\n')
 }
@@ -1316,10 +1324,16 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       'env',
       'publish.jobs.publish.steps.Verify immutable Core/UI pairing',
     ),
+    /*
+     * No `CORE_COMMIT`: the Core commit is resolved from the tag inside the
+     * checker, not passed in. An input that names it is an input a caller can
+     * get wrong, and the whole point of reading Core's record is that Core
+     * says which UI commit it paired with rather than the dispatcher saying
+     * which Core commit to trust.
+     */
     {
       VERSION: githubExpression('inputs.version'),
       RELEASE_SHA: githubExpression('inputs.release_sha'),
-      CORE_COMMIT: githubExpression('inputs.core_commit'),
       PAIRING_REPORT: `${githubExpression('runner.temp')}/release-pairing.json`,
       GH_TOKEN: githubExpression('github.token'),
     },

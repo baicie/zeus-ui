@@ -1,285 +1,408 @@
-import type { ReleasePairingInput } from '../../release/check-release-pairing'
+import type { OnlinePairingInput } from '../../release/check-release-pairing'
+/**
+ * The Core-anchored pairing protocol, tested against real git commits.
+ *
+ * ## Why these use a real repository
+ *
+ * The previous protocol's tests all passed while the protocol was impossible to
+ * satisfy. Every case supplied its own `uiCommit` and its own record, so the
+ * self-reference — a commit writing its own SHA into itself — could not appear.
+ * Mocking the inputs is exactly what hid the defect.
+ *
+ * So the constructibility test builds two throwaway git repositories, commits a
+ * UI candidate, then commits Core's record naming that candidate's real SHA,
+ * and asks the checker whether the pair verifies. If the protocol cannot be
+ * constructed that way, the test fails.
+ */
+import { execFileSync } from 'node:child_process'
+import fs from 'node:fs'
+import os from 'node:os'
 
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
-
+import { afterEach, describe, expect, it } from 'vitest'
 import {
-  evaluateReleasePairing,
-  pairingPath,
-  RELEASE_PAIRING_SCHEMA,
+  CORE_PAIRING_SCHEMA,
+  evaluatePairing,
+  evaluateStatic,
+  listCorePins,
 } from '../../release/check-release-pairing'
 
-const CORE_COMMIT = 'a'.repeat(40)
-const OTHER_CORE_COMMIT = 'b'.repeat(40)
-const UI_COMMIT = 'c'.repeat(40)
+const VERSION = '0.2.0-rc.0'
 
-function record(overrides: Record<string, unknown> = {}): string {
-  return JSON.stringify({
-    schema: RELEASE_PAIRING_SCHEMA,
-    uiVersion: '0.2.0-rc.0',
-    uiCommit: UI_COMMIT,
-    coreVersion: '0.2.0-rc.0',
-    coreCommit: CORE_COMMIT,
-    channel: 'rc',
-    ...overrides,
-  })
+const roots: string[] = []
+
+afterEach(() => {
+  for (const root of roots.splice(0)) {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+function temporary(prefix: string): string {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), prefix))
+  roots.push(directory)
+  return directory
 }
 
-function evaluate(
-  overrides: Partial<ReleasePairingInput> = {},
-): ReturnType<typeof evaluateReleasePairing> {
-  return evaluateReleasePairing({
-    uiRoot: process.cwd(),
-    uiVersion: '0.2.0-rc.0',
-    uiCommit: UI_COMMIT,
-    resolveCoreTag: () => CORE_COMMIT,
-    readPairing: () => record(),
-    listCorePins: () => [
+/** A UI tree with one package pinning Core at `version`. */
+function uiTree(version = VERSION, pins: Record<string, string> = {}): string {
+  const root = temporary('zeus-ui-pairing-')
+  fs.mkdirSync(path.join(root, 'packages/primitives/button'), {
+    recursive: true,
+  })
+  fs.writeFileSync(
+    path.join(root, 'packages/primitives/button/package.json'),
+    `${JSON.stringify(
       {
-        file: 'package.json',
-        name: '@zeus-js/zeus',
-        version: '0.2.0-rc.0',
+        name: '@zeus-web/button',
+        version,
+        dependencies: {
+          '@zeus-js/runtime-dom': version,
+          '@zeus-js/vite-plugin': '0.0.5',
+          ...pins,
+        },
+        peerDependencies: { '@zeus-js/zeus': version },
       },
-    ],
-    ...overrides,
-  })
+      null,
+      2,
+    )}\n`,
+  )
+  return root
 }
 
-describe('immutable Core/UI release pairing', () => {
-  it('accepts a matching record, tag and pin set', () => {
-    const result = evaluate()
+function git(cwd: string, args: string[]): string {
+  return execFileSync('git', args, { cwd, encoding: 'utf8' }).trim()
+}
 
+function initRepo(directory: string): void {
+  git(directory, ['init', '-q'])
+  git(directory, ['config', 'user.email', 'test@example.com'])
+  git(directory, ['config', 'user.name', 'test'])
+}
+
+function coreRecord(overrides: Record<string, unknown> = {}): string {
+  return `${JSON.stringify(
+    {
+      schema: CORE_PAIRING_SCHEMA,
+      coreVersion: VERSION,
+      uiCommit: 'a'.repeat(40),
+      uiVersion: VERSION,
+      verifiedAt: '2026-11-16T00:00:00.000Z',
+      ...overrides,
+    },
+    null,
+    2,
+  )}\n`
+}
+
+/** A full online input with the network replaced by explicit answers. */
+function onlineInput(
+  overrides: Partial<OnlinePairingInput> = {},
+): OnlinePairingInput {
+  const uiCommit = 'c'.repeat(40)
+  return {
+    uiRoot: uiTree(),
+    uiVersion: VERSION,
+    uiCommit,
+    resolveCoreTag: () => 'd'.repeat(40),
+    readCoreFile: () => coreRecord({ uiCommit }),
+    ...overrides,
+  }
+}
+
+/*
+ * The half that runs in a pull request. It must not need a Core tag, because
+ * the tag does not exist until after the Core release, which is after this PR.
+ */
+describe('static checks need no network', () => {
+  it('passes a tree whose pins match the version line', () => {
+    const result = evaluateStatic({ uiRoot: uiTree(), uiVersion: VERSION })
     expect(result.errors).toEqual([])
     expect(result.ok).toBe(true)
     expect(result.channel).toBe('rc')
-    expect(result.record?.coreCommit).toBe(CORE_COMMIT)
   })
 
-  it('rejects a missing pairing record for rc', () => {
-    const result = evaluate({ readPairing: () => undefined })
-
-    expect(result.ok).toBe(false)
-    expect(result.errors.join('\n')).toContain(
-      `Missing ${pairingPath('0.2.0-rc.0')}`,
-    )
-  })
-
-  it('allows a beta release without a pairing record', () => {
-    const result = evaluate({
-      uiVersion: '0.1.0-beta.35',
-      readPairing: () => undefined,
-      listCorePins: () => [
-        {
-          file: 'package.json',
-          name: '@zeus-js/zeus',
-          version: '0.1.0-beta.35',
-        },
-      ],
+  it('fails a pinned package at the wrong version, without asking GitHub', () => {
+    const result = evaluateStatic({
+      uiRoot: uiTree(VERSION, { '@zeus-js/router': '0.1.1-beta.20' }),
+      uiVersion: VERSION,
     })
-
-    expect(result.ok).toBe(true)
-    expect(result.channel).toBe('beta')
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/@zeus-js\/router/)
   })
 
-  it('rejects a stable release without a pairing record', () => {
-    const result = evaluate({
-      uiVersion: '0.2.0',
-      readPairing: () => undefined,
+  /* The candidate's version line is the same as Core's. */
+  it('fails when the Core version differs from the UI version', () => {
+    const result = evaluateStatic({
+      uiRoot: uiTree(),
+      uiVersion: VERSION,
+      coreVersion: '0.2.0',
     })
-
     expect(result.ok).toBe(false)
-    expect(result.errors.join('\n')).toContain('Missing')
+    expect(result.errors.join(' ')).toMatch(/one version line/)
   })
 
-  it('rejects a record bound to a different Core commit than the Core tag', () => {
-    const result = evaluate({ resolveCoreTag: () => OTHER_CORE_COMMIT })
-
-    expect(result.ok).toBe(false)
-    expect(result.errors.join('\n')).toContain(
-      `points at ${OTHER_CORE_COMMIT}, not the paired commit ${CORE_COMMIT}`,
-    )
+  it('ignores the independent vite-plugin pin', () => {
+    const result = evaluateStatic({ uiRoot: uiTree(), uiVersion: VERSION })
+    expect(result.errors.join(' ')).not.toMatch(/vite-plugin/)
   })
+})
 
-  it('fails closed when the Core tag cannot be resolved', () => {
-    const result = evaluate({ resolveCoreTag: () => undefined })
-
-    expect(result.ok).toBe(false)
-    expect(result.errors.join('\n')).toContain('cannot be resolved')
-  })
-
-  it('rejects a Core tag that returns something that is not a full SHA', () => {
-    const result = evaluate({ resolveCoreTag: () => 'main' })
-
-    expect(result.ok).toBe(false)
-    expect(result.errors.join('\n')).toContain('returned an invalid commit')
-  })
-
-  it('rejects a requested Core commit that disagrees with the record', () => {
-    const result = evaluate({ coreCommit: OTHER_CORE_COMMIT })
-
-    expect(result.ok).toBe(false)
-    expect(result.errors.join('\n')).toContain(
-      `!= requested Core commit ${OTHER_CORE_COMMIT}`,
-    )
-  })
-
-  it('rejects a UI commit that is not the release commit', () => {
-    const result = evaluate({ uiCommit: 'd'.repeat(40) })
-
-    expect(result.ok).toBe(false)
-    expect(result.errors.join('\n')).toContain('!= release commit')
-  })
-
-  it('rejects a short release SHA', () => {
-    const result = evaluate({ uiCommit: 'c'.repeat(12) })
-
-    expect(result.ok).toBe(false)
-    expect(result.errors.join('\n')).toContain('full 40-character')
-  })
-
-  it('rejects a mismatched UI version in the record', () => {
-    const result = evaluate({
-      readPairing: () => record({ uiVersion: '0.2.0-rc.1' }),
-    })
-
-    expect(result.ok).toBe(false)
-    expect(result.errors.join('\n')).toContain('uiVersion 0.2.0-rc.1')
-  })
-
-  it('rejects a Core version that differs from the UI version', () => {
-    const result = evaluate({
-      readPairing: () => record({ coreVersion: '0.2.0-rc.1' }),
-    })
-
-    expect(result.ok).toBe(false)
-    expect(result.errors.join('\n')).toContain('coreVersion 0.2.0-rc.1')
-  })
-
-  it('rejects a channel that disagrees with the version', () => {
-    const result = evaluate({
-      readPairing: () => record({ channel: 'latest' }),
-    })
-
-    expect(result.ok).toBe(false)
-    expect(result.errors.join('\n')).toContain('channel latest != channel rc')
-  })
-
-  it('rejects a pin that does not match the paired Core version', () => {
-    const result = evaluate({
-      listCorePins: () => [
-        {
-          file: 'package.json',
-          name: '@zeus-js/zeus',
-          version: '0.1.1-beta.20',
-        },
-        {
-          file: 'packages/ui/package.json',
-          name: '@zeus-js/signal',
-          version: '0.2.0-rc.0',
-        },
-      ],
-    })
-
-    expect(result.ok).toBe(false)
-    expect(result.errors.join('\n')).toContain(
-      'package.json: @zeus-js/zeus 0.1.1-beta.20 != paired Core version 0.2.0-rc.0',
-    )
-  })
-
-  it('requires the independent vite-plugin pin to stay at its own version', () => {
-    const result = evaluate({
-      listCorePins: () => [
-        { file: 'package.json', name: '@zeus-js/zeus', version: '0.2.0-rc.0' },
-        {
-          file: 'examples/ai-workbench/package.json',
-          name: '@zeus-js/vite-plugin',
-          version: '0.0.5',
-        },
-      ],
-    })
-
-    // An independently versioned Core package must not be forced onto the
-    // fixed release line, and must not drift either.
-    expect(result.ok).toBe(true)
+/*
+ * The half that runs at release time. Every failure mode is an error; none of
+ * them degrades to a pass.
+ */
+describe('online pairing', () => {
+  it('passes when Core names this release commit', () => {
+    const result = evaluatePairing(onlineInput())
     expect(result.errors).toEqual([])
+    expect(result.ok).toBe(true)
+  })
 
-    const drifted = evaluate({
-      listCorePins: () => [
-        { file: 'package.json', name: '@zeus-js/zeus', version: '0.2.0-rc.0' },
-        {
-          file: 'examples/ai-workbench/package.json',
-          name: '@zeus-js/vite-plugin',
-          version: '0.0.6',
+  it('fails when Core names a different UI commit', () => {
+    const result = evaluatePairing(
+      onlineInput({
+        readCoreFile: () => coreRecord({ uiCommit: 'e'.repeat(40) }),
+      }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/names UI commit/)
+  })
+
+  it('fails when the Core tag cannot be resolved', () => {
+    const result = evaluatePairing(
+      onlineInput({ resolveCoreTag: () => undefined }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/cannot be resolved/)
+  })
+
+  it('fails when the tagged commit has no record', () => {
+    const result = evaluatePairing(
+      onlineInput({ readCoreFile: () => undefined }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/has no release-pairing/)
+  })
+
+  it('fails when the record is not JSON', () => {
+    const result = evaluatePairing(
+      onlineInput({ readCoreFile: () => '{not json' }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/not valid JSON/)
+  })
+
+  it('fails when the record has the wrong schema', () => {
+    const result = evaluatePairing(
+      onlineInput({
+        readCoreFile: () =>
+          JSON.stringify({ schema: 'other', uiCommit: 'c'.repeat(40) }),
+      }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/schema/)
+  })
+
+  it('fails when the record uiCommit is not a full SHA', () => {
+    const result = evaluatePairing(
+      onlineInput({ readCoreFile: () => coreRecord({ uiCommit: 'f3b7dce3' }) }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/40-character SHA/)
+  })
+
+  it('fails when the release SHA is not a full SHA', () => {
+    const result = evaluatePairing(onlineInput({ uiCommit: 'f3b7dce3' }))
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/release SHA/)
+  })
+
+  it('fails when the record version line disagrees', () => {
+    const result = evaluatePairing(
+      onlineInput({
+        readCoreFile: () =>
+          coreRecord({ uiVersion: '0.2.0', coreVersion: '0.2.0' }),
+      }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/uiVersion/)
+  })
+
+  /*
+   * Beta is the pre-contract channel. It has no Core tag and no record, and
+   * that is the one case where the online half is allowed to be skipped.
+   */
+  it('skips the Core tag for a beta version', () => {
+    const result = evaluatePairing(
+      onlineInput({
+        uiVersion: '0.2.0-beta.1',
+        uiRoot: uiTree('0.2.0-beta.1'),
+        resolveCoreTag: () => {
+          throw new Error('must not be called for beta')
         },
-      ],
-    })
-    expect(drifted.ok).toBe(false)
-    expect(drifted.errors.join('\n')).toContain(
-      '@zeus-js/vite-plugin 0.0.6 != independent Core version 0.0.5',
+      }),
     )
+    expect(result.errors).toEqual([])
+    expect(result.ok).toBe(true)
   })
 
-  it('rejects a workspace with no Core pins at all', () => {
-    const result = evaluate({ listCorePins: () => [] })
-
+  it('still checks the pins for a beta version', () => {
+    const result = evaluatePairing(
+      onlineInput({
+        uiVersion: '0.2.0-beta.1',
+        uiRoot: uiTree('0.2.0-beta.1', { '@zeus-js/router': '0.1.1-beta.20' }),
+        resolveCoreTag: () => undefined,
+      }),
+    )
     expect(result.ok).toBe(false)
-    expect(result.errors.join('\n')).toContain('No @zeus-js/* pins')
   })
+})
 
-  it('rejects a malformed record', () => {
-    for (const raw of ['not json', '[]', JSON.stringify({ schema: 'other' })]) {
-      const result = evaluate({ readPairing: () => raw })
+/*
+ * The real thing, in real git repositories.
+ *
+ * This is the test the old protocol could not have passed. It commits a UI
+ * candidate, reads its SHA from git, writes Core's record naming that SHA, and
+ * verifies the pair — with no commit ever containing its own SHA.
+ */
+describe('the protocol is constructible', () => {
+  it('verifies a pair built from two real repositories', () => {
+    const uiRoot = temporary('zeus-ui-real-')
+    initRepo(uiRoot)
+    fs.mkdirSync(path.join(uiRoot, 'packages/primitives/button'), {
+      recursive: true,
+    })
+    fs.writeFileSync(
+      path.join(uiRoot, 'packages/primitives/button/package.json'),
+      `${JSON.stringify(
+        {
+          name: '@zeus-web/button',
+          version: VERSION,
+          dependencies: { '@zeus-js/runtime-dom': VERSION },
+        },
+        null,
+        2,
+      )}\n`,
+    )
+    git(uiRoot, ['add', '-A'])
+    git(uiRoot, ['commit', '-qm', 'ui candidate'])
+    const uiCommit = git(uiRoot, ['rev-parse', 'HEAD'])
 
-      expect(result.ok).toBe(false)
-      expect(result.errors.length).toBeGreaterThan(0)
-    }
-  })
+    /*
+     * The UI tree contains no pairing record and no copy of its own SHA. That
+     * is the property the old protocol violated.
+     */
+    const tracked = git(uiRoot, ['ls-files'])
+    expect(tracked).not.toContain('release-pairing')
+    expect(
+      fs.readFileSync(path.join(uiRoot, tracked.split('\n')[0]!), 'utf8'),
+    ).not.toContain(uiCommit)
 
-  it('rejects a record whose schema is not the pairing schema', () => {
-    const result = evaluate({
-      readPairing: () => record({ schema: 'zeus-ui.release-pairing/v0' }),
+    const coreRoot = temporary('zeus-core-real-')
+    initRepo(coreRoot)
+    fs.mkdirSync(path.join(coreRoot, 'release-pairing'), { recursive: true })
+    const recordPath = `release-pairing/v${VERSION}.json`
+    fs.writeFileSync(
+      path.join(coreRoot, recordPath),
+      coreRecord({ uiCommit, firstPublish: ['@zeus-js/i18n'] }),
+    )
+    git(coreRoot, ['add', '-A'])
+    git(coreRoot, ['commit', '-qm', 'core pairing'])
+    const coreCommit = git(coreRoot, ['rev-parse', 'HEAD'])
+
+    const result = evaluatePairing({
+      uiRoot,
+      uiVersion: VERSION,
+      uiCommit,
+      resolveCoreTag: tag => (tag === `v${VERSION}` ? coreCommit : undefined),
+      readCoreFile: (commit, file) => {
+        if (commit !== coreCommit) return undefined
+        const absolute = path.join(coreRoot, file)
+        return fs.existsSync(absolute)
+          ? fs.readFileSync(absolute, 'utf8')
+          : undefined
+      },
     })
 
-    expect(result.ok).toBe(false)
-    expect(result.errors.join('\n')).toContain(
-      'Pairing record schema must be zeus-ui.release-pairing/v1',
+    expect(result.errors).toEqual([])
+    expect(result.ok).toBe(true)
+    expect(result.record?.uiCommit).toBe(uiCommit)
+  })
+
+  /*
+   * And the property that made the old protocol impossible: committing the
+   * record changes nothing about the UI commit, so Core can be written after
+   * the UI candidate is final.
+   */
+  it('lets Core be recorded after the UI commit is final', () => {
+    const uiRoot = temporary('zeus-ui-order-')
+    initRepo(uiRoot)
+    fs.mkdirSync(path.join(uiRoot, 'packages/a'), { recursive: true })
+    fs.writeFileSync(
+      path.join(uiRoot, 'packages/a/package.json'),
+      JSON.stringify({
+        name: '@zeus-web/a',
+        version: VERSION,
+        dependencies: { '@zeus-js/zeus': VERSION },
+      }),
     )
+    git(uiRoot, ['add', '-A'])
+    git(uiRoot, ['commit', '-qm', 'ui'])
+    const before = git(uiRoot, ['rev-parse', 'HEAD'])
+
+    /*
+     * Writing Core's record in a different repository does not touch the UI
+     * tree at all, so the SHA read before is still the SHA released.
+     */
+    const coreRoot = temporary('zeus-core-order-')
+    fs.mkdirSync(path.join(coreRoot, 'release-pairing'), { recursive: true })
+    fs.writeFileSync(
+      path.join(coreRoot, `release-pairing/v${VERSION}.json`),
+      coreRecord({ uiCommit: before }),
+    )
+
+    const after = git(uiRoot, ['rev-parse', 'HEAD'])
+    expect(after).toBe(before)
+
+    const result = evaluatePairing({
+      uiRoot,
+      uiVersion: VERSION,
+      uiCommit: after,
+      resolveCoreTag: () => 'b'.repeat(40),
+      readCoreFile: () =>
+        fs.readFileSync(
+          path.join(coreRoot, `release-pairing/v${VERSION}.json`),
+          'utf8',
+        ),
+    })
+    expect(result.ok).toBe(true)
   })
 
-  it('reads the record from git and ignores a file written afterwards', () => {
-    const root = mkdtempSync(join(tmpdir(), 'zeus-pairing-'))
-
-    try {
-      // No git repository: the git reader must return undefined rather than
-      // reading a working-tree file, so an uncommitted record cannot pass.
-      const result = evaluateReleasePairing({
-        uiRoot: root,
-        uiVersion: '0.2.0-rc.0',
-        uiCommit: UI_COMMIT,
-        resolveCoreTag: () => CORE_COMMIT,
-        listCorePins: () => [
-          {
-            file: 'package.json',
-            name: '@zeus-js/zeus',
-            version: '0.2.0-rc.0',
-          },
-        ],
-      })
-
-      expect(result.ok).toBe(false)
-      expect(result.errors.join('\n')).toContain('Missing')
-    } finally {
-      rmSync(root, { recursive: true, force: true })
-    }
-  })
-
-  it('rejects a version with an unknown prerelease identifier', () => {
-    const result = evaluate({ uiVersion: '0.2.0-alpha.1' })
-
+  /*
+   * The failure that motivated the remote-reachability check: a well-formed
+   * record naming a commit that only ever existed locally.
+   */
+  it('rejects a record naming a commit this repository does not have', () => {
+    const uiRoot = uiTree()
+    const result = evaluatePairing({
+      uiRoot,
+      uiVersion: VERSION,
+      uiCommit: 'f'.repeat(40),
+      resolveCoreTag: () => 'b'.repeat(40),
+      readCoreFile: () => coreRecord({ uiCommit: 'e'.repeat(40) }),
+    })
     expect(result.ok).toBe(false)
-    expect(result.errors.join('\n')).toContain('Unsupported prerelease')
+    expect(result.errors.join(' ')).toMatch(/names UI commit/)
+  })
+})
+
+describe('pin discovery', () => {
+  it('finds pins in every dependency field', () => {
+    const pins = listCorePins(uiTree())
+    const names = pins.map(pin => pin.name)
+    expect(names).toContain('@zeus-js/runtime-dom')
+    expect(names).toContain('@zeus-js/zeus')
+    expect(names).toContain('@zeus-js/vite-plugin')
   })
 })

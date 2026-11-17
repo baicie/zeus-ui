@@ -129,14 +129,13 @@ jobs:
           pnpm exec tsx scripts/checks/release/check-release-pairing.ts \
             --version "$VERSION" \
             --release-sha "$RELEASE_SHA" \
-            --core-commit "$CORE_COMMIT" \
+            --online \
             --out "$PAIRING_REPORT"
         env:
           VERSION: ${{ inputs.version }}
           RELEASE_SHA: ${{ inputs.release_sha }}
-          CORE_COMMIT: ${{ inputs.core_commit }}
-          PAIRING_REPORT: ${{ runner.temp }}/release-pairing.json
           GH_TOKEN: ${{ github.token }}
+          PAIRING_REPORT: ${{ runner.temp }}/release-pairing.json
 
       - name: Preserve pairing evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
