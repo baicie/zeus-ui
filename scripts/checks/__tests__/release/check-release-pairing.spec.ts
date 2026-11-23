@@ -22,8 +22,8 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 import {
-  CORE_PAIRING_SCHEMA,
   compareExpectedCoreCommit,
+  CORE_PAIRING_SCHEMA,
   evaluatePairing,
   evaluateStatic,
   listCorePins,
