@@ -22,6 +22,7 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  buildPairingReport,
   compareExpectedCoreCommit,
   CORE_PAIRING_SCHEMA,
   evaluatePairing,
@@ -346,6 +347,20 @@ describe('publishing dispatch Core commit', () => {
     coreCommit: 'd'.repeat(40),
     errors: [] as string[],
   }
+
+  it('reports the verified Core tag without inventing a beta pair record', () => {
+    const report = buildPairingReport({
+      result: verified,
+      mode: 'online',
+      version: '0.1.0-beta.35',
+      coreVersion: '0.2.0-rc.5',
+      uiCommit: 'f'.repeat(40),
+    })
+    expect(report.coreTag).toBe('v0.2.0-rc.5')
+    expect(report.coreTagCommit).toBe('d'.repeat(40))
+    expect(report.coreCommit).toBe('d'.repeat(40))
+    expect(report.pairTag).toBeNull()
+  })
 
   it('accepts the commit actually resolved from the Core tag', () => {
     expect(compareExpectedCoreCommit(verified, 'd'.repeat(40)).ok).toBe(true)
