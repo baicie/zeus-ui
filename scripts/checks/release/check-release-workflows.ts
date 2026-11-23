@@ -156,6 +156,7 @@ export function pairingCommand(version = '$VERSION'): string {
     `  --version "${version}" \\`,
     '  --core-version "$CORE_VERSION" \\',
     '  --release-sha "$RELEASE_SHA" \\',
+    '  --expected-core-commit "$CORE_COMMIT" \\',
     '  --online \\',
     '  --out "$PAIRING_REPORT"',
   ].join('\n')
@@ -1387,15 +1388,13 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       'publish.jobs.publish.steps.Verify immutable Core/UI pairing',
     ),
     /*
-     * No `CORE_COMMIT`: the Core commit is resolved from the tag inside the
-     * checker, not passed in. An input that names it is an input a caller can
-     * get wrong, and the whole point of reading Core's record is that Core
-     * says which UI commit it paired with rather than the dispatcher saying
-     * which Core commit to trust.
+     * A caller-supplied Core SHA is compared to the independently verified
+     * Core tag. It never substitutes for resolving the tag itself.
      */
     {
       VERSION: githubExpression('inputs.version'),
       CORE_VERSION: githubExpression('inputs.core_version'),
+      CORE_COMMIT: githubExpression('inputs.core_commit'),
       RELEASE_SHA: githubExpression('inputs.release_sha'),
       PAIRING_REPORT: `${githubExpression('runner.temp')}/release-pairing.json`,
       GH_TOKEN: githubExpression('github.token'),
