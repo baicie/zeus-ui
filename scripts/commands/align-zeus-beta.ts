@@ -1,11 +1,31 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
+import { resolveWorkspaceZeusVersion } from '../checks/contract/check-zeus-beta-alignment'
 import { listZeusDependencyManifests } from '../release/zeus-dependency-manifests'
 import { createZeusPeerRequirement } from '../release/zeus-peer-requirement'
 
-const DEFAULT_VERSION = '0.1.1-beta.20'
+/**
+ * Only used when the workspace pins no `@zeus-js` dependency at all.
+ */
+const DEFAULT_VERSION = '0.2.0-rc.5'
+
 const ZEUS_SCOPE = '@zeus-js/'
+
+/**
+ * Packages that carry their own version line and must not follow the
+ * `@zeus-js/zeus` release.
+ *
+ * `check-zeus-beta-alignment.ts` has always known this — it substitutes the
+ * same map when it decides whether a pin is correct. This command did not, so
+ * aligning to 0.2.0-rc.5 rewrote `@zeus-js/vite-plugin` from its real `0.0.5`
+ * to `0.2.0-rc.5`, a version that does not exist. `pnpm install` then failed
+ * with ERR_PNPM_NO_MATCHING_VERSION, which is a confusing way to be told the
+ * aligner invented a dependency.
+ */
+const INDEPENDENT_PACKAGE_VERSIONS: Readonly<Record<string, string>> = {
+  '@zeus-js/vite-plugin': '0.0.5',
+}
 
 const DEP_FIELDS = [
   'dependencies',
@@ -26,6 +46,11 @@ interface PackageJson {
 
 export interface AlignZeusBetaOptions {
   root?: string
+  /**
+   * The version to align to. When absent it is read from the workspace, so
+   * running the command after a Zeus release aligns to that release instead
+   * of to whatever literal was last hand-edited here.
+   */
   version?: string
 }
 
@@ -39,9 +64,12 @@ export function alignZeusBeta(
   options: AlignZeusBetaOptions = {},
 ): AlignZeusBetaResult {
   const root = options.root ?? process.cwd()
-  const version = options.version ?? DEFAULT_VERSION
-  const peerRange = createExpectedPeerRange(version)
   const packageJsonFiles = listZeusDependencyManifests(root)
+  const version =
+    options.version ??
+    resolveWorkspaceZeusVersion(packageJsonFiles) ??
+    DEFAULT_VERSION
+  const peerRange = createExpectedPeerRange(version)
   const changedFiles: string[] = []
 
   for (const file of packageJsonFiles) {
@@ -62,8 +90,10 @@ export function alignZeusBeta(
           continue
         }
 
-        if (deps[dependencyName] !== version) {
-          deps[dependencyName] = version
+        const expected = INDEPENDENT_PACKAGE_VERSIONS[dependencyName] ?? version
+
+        if (deps[dependencyName] !== expected) {
+          deps[dependencyName] = expected
           changed = true
         }
       }
@@ -82,7 +112,8 @@ export function alignZeusBeta(
         }
 
         const expected =
-          dependencyName === '@zeus-js/zeus' ? peerRange : version
+          INDEPENDENT_PACKAGE_VERSIONS[dependencyName] ??
+          (dependencyName === '@zeus-js/zeus' ? peerRange : version)
 
         if (deps[dependencyName] !== expected) {
           deps[dependencyName] = expected

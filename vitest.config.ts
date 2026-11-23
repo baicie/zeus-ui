@@ -70,6 +70,49 @@ function advancedComponentsCompiler(): Plugin {
 }
 
 /**
+ * Compiles the headless component sources with the Zeus DOM transform.
+ *
+ * The specs under `examples/headless/__tests__` mount the real custom elements,
+ * so the component sources must reach the test run already compiled: left as
+ * plain `.tsx` they hit `ZEUS_JSX_COMPILATION_REQUIRED`. Upstream `zeus` runs
+ * the same sources through `compileTestViews` for exactly this reason.
+ */
+function headlessComponentsCompiler(): Plugin {
+  return {
+    name: 'zeus:headless-components-test-compiler',
+    enforce: 'pre',
+    transform(code, id) {
+      const filename = id.replace(/[?#].*$/, '')
+
+      if (!/[\\/]examples[\\/]headless[\\/]src[\\/].*\.tsx$/.test(filename)) {
+        return null
+      }
+
+      const result = transformModule({
+        source: code,
+        filename,
+        target: 'dom',
+        runtimeModule: '@zeus-js/runtime-dom',
+        delegateEvents: true,
+        sourceMap: true,
+      })
+      const diagnostic = result.diagnostics.find(
+        entry => entry.severity === 'error',
+      )
+
+      if (diagnostic) {
+        throw new Error(`${diagnostic.code}: ${diagnostic.message}`)
+      }
+
+      return {
+        code: result.code,
+        map: result.map,
+      }
+    },
+  }
+}
+
+/**
  * Compiles `e2e/**\/*.native.tsx` fixtures with the Zeus DOM transform.
  *
  * The cross-host contract matrix consumes components through the Native host
@@ -212,6 +255,7 @@ export default defineConfig({
     projects: [
       {
         extends: true,
+        plugins: [headlessComponentsCompiler()],
         test: {
           name: 'unit',
           include: [
@@ -230,6 +274,9 @@ export default defineConfig({
             'scripts/checks/__tests__/showcase-metadata/**/*.test.ts',
             'scripts/checks/__tests__/showcase-metadata/**/*.spec.ts',
             'examples/ai-host/__tests__/**/*.spec.ts',
+            // Headless component library. Each spec builds its own JSDOM, so
+            // they run in the `unit` project rather than `unit-jsdom`.
+            'examples/headless/__tests__/**/*.spec.tsx',
             'examples/showcase-shared/src/__tests__/**/*.spec.ts',
           ],
           exclude: [

@@ -1,0 +1,28 @@
+{
+  "name": "@zeus-web/example-headless-demo",
+  "type": "module",
+  "private": true,
+  "sideEffects": [
+    "dist/wc/*.js",
+    "dist/wc/**/*.js",
+    "**/*.css"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zeus-js/runtime-dom": "0.2.0-rc.5",
+    "@zeus-js/web-c-runtime": "0.2.0-rc.5",
+    "@zeus-js/zeus": "0.2.0-rc.5",
+    "@zeus-ui/headless": "workspace:*"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.2",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "typescript": "^6.0.3",
+    "vite": "^8.2.1"
+  }
+}

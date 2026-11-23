@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "jsx": "react-jsx",
+    "jsxImportSource": "@zeus-js/zeus",
+    "baseUrl": ".",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": false,
+    "noImplicitAny": false,
+    "noUnusedLocals": false,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "ignoreDeprecations": "6.0"
+  },
+  "include": [
+    "src",
+    "../../packages/global.d.ts",
+    "../../packages/core/zeus/src/jsx.d.ts"
+  ]
+}

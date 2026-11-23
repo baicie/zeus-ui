@@ -5,8 +5,28 @@ import { pathToFileURL } from 'node:url'
 import { listZeusDependencyManifests } from '../../release/zeus-dependency-manifests'
 import { createZeusPeerRequirement } from '../../release/zeus-peer-requirement'
 
-const DEFAULT_EXPECTED_ZEUS_VERSION = '0.1.1-beta.20'
+/**
+ * The version this workspace should be aligned to, read from the workspace.
+ *
+ * This used to be the literal `0.1.1-beta.20`. Every time Zeus published, the
+ * pin had to be edited here as well, and forgetting it did not fail loudly —
+ * the check compared the *new* tree against the *old* version and reported
+ * every correct pin as wrong. Measured after moving to 0.2.0-rc.5: 147 pins at
+ * the new version, all flagged as misaligned.
+ *
+ * The workspace is the authority for what it is aligned to. The pins are
+ * already required to agree with each other — that is what this check is —
+ * so the version they agree on is the version to hold them to. Pass
+ * `--version` to assert a specific one instead.
+ */
 const ZEUS_SCOPE = '@zeus-js/'
+
+/**
+ * Only used when the workspace pins no `@zeus-js` dependency at all — an
+ * empty tree, or one whose manifests could not be read. Keeping a value here
+ * means such a tree is still checked rather than silently passing.
+ */
+const FALLBACK_EXPECTED_ZEUS_VERSION = '0.2.0-rc.5'
 const INDEPENDENT_PACKAGE_VERSIONS: Readonly<Record<string, string>> = {
   '@zeus-js/vite-plugin': '0.0.5',
 }
@@ -61,11 +81,13 @@ export function checkZeusBetaAlignment(
   options: CheckZeusBetaAlignmentOptions = {},
 ): CheckZeusBetaAlignmentResult {
   const root = options.root ?? process.cwd()
-  const expectedVersion =
-    options.expectedVersion ?? DEFAULT_EXPECTED_ZEUS_VERSION
-  const expectedPeerRange = createExpectedPeerRange(expectedVersion)
   const packageJsonFiles =
     options.packageJsonFiles ?? listZeusDependencyManifests(root)
+  const expectedVersion =
+    options.expectedVersion ??
+    resolveWorkspaceZeusVersion(packageJsonFiles) ??
+    FALLBACK_EXPECTED_ZEUS_VERSION
+  const expectedPeerRange = createExpectedPeerRange(expectedVersion)
   const primitiveRolldownConfig =
     options.primitiveRolldownConfig ??
     join(root, 'scripts/rolldown/createPrimitiveRolldownConfig.ts')
@@ -242,6 +264,64 @@ function readPackageJson(file: string): PackageJson {
   return JSON.parse(readFileSync(file, 'utf8')) as PackageJson
 }
 
+/**
+ * Reads the version the workspace pins itself to.
+ *
+ * Only `@zeus-js` dependencies that follow the coordinated line count;
+ * `vite-plugin` is exempt and carries its own version. A workspace with no
+ * such pins has nothing to check against, so the caller falls back to the
+ * recorded baseline rather than guessing.
+ */
+export function resolveWorkspaceZeusVersion(files: string[]): string | null {
+  const counts = new Map<string, number>()
+
+  for (const file of files) {
+    let pkg: PackageJson
+
+    try {
+      pkg = readPackageJson(file)
+    } catch {
+      continue
+    }
+
+    for (const field of [...DEP_FIELDS, ...PEER_DEP_FIELDS]) {
+      const deps = pkg[field]
+
+      if (!deps) {
+        continue
+      }
+
+      for (const [name, version] of Object.entries(deps)) {
+        if (!name.startsWith(ZEUS_SCOPE)) {
+          continue
+        }
+
+        if (name in INDEPENDENT_PACKAGE_VERSIONS) {
+          continue
+        }
+
+        if (typeof version !== 'string' || !/^\d+\.\d+\.\d+/.test(version)) {
+          continue
+        }
+
+        counts.set(version, (counts.get(version) ?? 0) + 1)
+      }
+    }
+  }
+
+  let winner: string | null = null
+  let best = 0
+
+  for (const [version, count] of counts) {
+    if (count > best) {
+      best = count
+      winner = version
+    }
+  }
+
+  return winner
+}
+
 function createExpectedPeerRange(version: string): string {
   if (!/^\d+\.\d+\.\d+/.test(version)) {
     return `>=${version}`
@@ -254,7 +334,7 @@ function slash(value: string): string {
   return value.replace(/\\/g, '/')
 }
 
-function parseExpectedVersionArg(argv: string[]): string {
+function parseExpectedVersionArg(argv: string[]): string | null {
   const index = argv.indexOf('--version')
 
   if (index >= 0) {
@@ -267,7 +347,7 @@ function parseExpectedVersionArg(argv: string[]): string {
     return version
   }
 
-  return DEFAULT_EXPECTED_ZEUS_VERSION
+  return null
 }
 
 function printResult(result: CheckZeusBetaAlignmentResult): void {
@@ -324,7 +404,7 @@ function printResult(result: CheckZeusBetaAlignmentResult): void {
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const expectedVersion = parseExpectedVersionArg(process.argv.slice(2))
   const result = checkZeusBetaAlignment({
-    expectedVersion,
+    ...(expectedVersion ? { expectedVersion } : {}),
   })
 
   printResult(result)

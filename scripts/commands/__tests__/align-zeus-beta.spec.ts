@@ -18,7 +18,7 @@ afterEach(() => {
 })
 
 describe('alignZeusBeta', () => {
-  it('defaults prerelease @zeus-js/zeus peers to the coordinated beta', () => {
+  it('aligns to an explicit version when one is given', () => {
     const root = createTempRoot()
 
     writePackage(root, 'package.json', {
@@ -44,7 +44,9 @@ describe('alignZeusBeta', () => {
       },
     })
 
-    const result = alignZeusBeta({ root })
+    // `version` is explicit here: without it the target is read from the
+    // workspace, and this fixture deliberately pins two different versions.
+    const result = alignZeusBeta({ root, version: '0.1.1-beta.20' })
 
     expect(result.version).toBe('0.1.1-beta.20')
     expect(result.peerRange).toBe('0.1.1-beta.20')
@@ -70,6 +72,42 @@ describe('alignZeusBeta', () => {
         '@zeus-js/web-c-runtime': '0.1.1-beta.20',
         '@zeus-web/virtual': 'workspace:*',
       },
+    })
+  })
+
+  it('aligns to the version the workspace already pins when none is given', () => {
+    const root = createTempRoot()
+
+    writePackage(root, 'package.json', {
+      name: 'zeus-ui-workspace',
+      private: true,
+      devDependencies: {
+        '@zeus-js/zeus': '0.2.0-rc.5',
+        '@zeus-js/runtime-dom': '0.2.0-rc.5',
+      },
+    })
+
+    writePackage(root, 'packages/primitives/button/package.json', {
+      name: '@zeus-web/button',
+      dependencies: {
+        // The one manifest still on the previous line.
+        '@zeus-js/runtime-dom': '0.1.1-beta.20',
+      },
+      peerDependencies: {
+        '@zeus-js/zeus': '0.1.1-beta.20',
+      },
+    })
+
+    const result = alignZeusBeta({ root })
+
+    // Without a `version` argument the target comes from the workspace, so a
+    // release no longer needs this file edited before it can be run.
+    expect(result.version).toBe('0.2.0-rc.5')
+    expect(
+      readPackage(root, 'packages/primitives/button/package.json'),
+    ).toMatchObject({
+      dependencies: { '@zeus-js/runtime-dom': '0.2.0-rc.5' },
+      peerDependencies: { '@zeus-js/zeus': '0.2.0-rc.5' },
     })
   })
 
@@ -188,6 +226,34 @@ describe('alignZeusBeta', () => {
         '@zeus-js/zeus': '0.1.0-beta.8',
         react: '^19.0.0',
         vue: '^3.5.0',
+      },
+    })
+  })
+
+  it('leaves independently versioned packages on their own line', () => {
+    const root = createTempRoot()
+
+    writePackage(root, 'package.json', {
+      name: 'zeus-ui-workspace',
+      private: true,
+      devDependencies: {
+        '@zeus-js/zeus': '0.1.1-beta.20',
+        '@zeus-js/vite-plugin': '0.0.5',
+      },
+    })
+
+    alignZeusBeta({
+      root,
+      version: '0.2.0-rc.5',
+    })
+
+    // `@zeus-js/vite-plugin` has its own version line. Rewriting it to the
+    // coordinated version invents a dependency that was never published, and
+    // `pnpm install` then fails on ERR_PNPM_NO_MATCHING_VERSION.
+    expect(readPackage(root, 'package.json')).toMatchObject({
+      devDependencies: {
+        '@zeus-js/zeus': '0.2.0-rc.5',
+        '@zeus-js/vite-plugin': '0.0.5',
       },
     })
   })
