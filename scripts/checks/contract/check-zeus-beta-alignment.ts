@@ -272,7 +272,7 @@ function readPackageJson(file: string): PackageJson {
  * such pins has nothing to check against, so the caller falls back to the
  * recorded baseline rather than guessing.
  */
-function resolveWorkspaceZeusVersion(files: string[]): string | null {
+export function resolveWorkspaceZeusVersion(files: string[]): string | null {
   const counts = new Map<string, number>()
 
   for (const file of files) {

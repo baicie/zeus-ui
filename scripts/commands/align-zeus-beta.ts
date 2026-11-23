@@ -1,10 +1,15 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
+import { resolveWorkspaceZeusVersion } from '../checks/contract/check-zeus-beta-alignment'
 import { listZeusDependencyManifests } from '../release/zeus-dependency-manifests'
 import { createZeusPeerRequirement } from '../release/zeus-peer-requirement'
 
-const DEFAULT_VERSION = '0.1.1-beta.20'
+/**
+ * Only used when the workspace pins no `@zeus-js` dependency at all.
+ */
+const DEFAULT_VERSION = '0.2.0-rc.5'
+
 const ZEUS_SCOPE = '@zeus-js/'
 
 /**
@@ -41,6 +46,11 @@ interface PackageJson {
 
 export interface AlignZeusBetaOptions {
   root?: string
+  /**
+   * The version to align to. When absent it is read from the workspace, so
+   * running the command after a Zeus release aligns to that release instead
+   * of to whatever literal was last hand-edited here.
+   */
   version?: string
 }
 
@@ -54,9 +64,12 @@ export function alignZeusBeta(
   options: AlignZeusBetaOptions = {},
 ): AlignZeusBetaResult {
   const root = options.root ?? process.cwd()
-  const version = options.version ?? DEFAULT_VERSION
-  const peerRange = createExpectedPeerRange(version)
   const packageJsonFiles = listZeusDependencyManifests(root)
+  const version =
+    options.version ??
+    resolveWorkspaceZeusVersion(packageJsonFiles) ??
+    DEFAULT_VERSION
+  const peerRange = createExpectedPeerRange(version)
   const changedFiles: string[] = []
 
   for (const file of packageJsonFiles) {
