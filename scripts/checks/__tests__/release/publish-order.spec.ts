@@ -5,7 +5,9 @@
  * prevents is a property of the 46 packages as they exist today, and a
  * fixture would keep passing after the workspace changed.
  */
+import { spawnSync } from 'node:child_process'
 import { readdirSync, readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { join, resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -16,6 +18,9 @@ import {
   publishKind,
 } from '../../../release/publish-order'
 
+const require = createRequire(import.meta.url)
+const TSX = require.resolve('tsx/cli')
+const CLI = resolve(__dirname, '../../release/check-release-pairing.ts')
 const ROOT = resolve(__dirname, '../../../..')
 
 interface Manifest {
@@ -154,5 +159,27 @@ describe('publish order', () => {
         { name: 'b', deps: ['a'] },
       ]),
     ).toThrow(/cycle/)
+  })
+})
+
+/**
+ * The precheck runs `check:release-pairing` with no arguments, so the CLI must
+ * derive both versions from the workspace.
+ *
+ * Before this, the command exited 2 with a usage line, which made the
+ * precheck entry impossible to pass — a gate that can only be removed.
+ */
+describe('check-release-pairing CLI defaults', () => {
+  it('runs without arguments and reads the versions from the workspace', () => {
+    const result = spawnSync(process.execPath, [TSX, CLI], {
+      cwd: ROOT,
+      encoding: 'utf8',
+    })
+
+    expect(result.error).toBeUndefined()
+    expect(result.status).toBe(0)
+    expect(`${result.stdout}${result.stderr}`).toMatch(
+      /UI release pairing \d+\.\d+\.\d+/,
+    )
   })
 })

@@ -65,6 +65,14 @@ export default defineReleaseConfig({
       ['pnpm', 'build'],
       ['pnpm', 'check:exports'],
       ['pnpm', 'check:build-output'],
+      /*
+       * The pairing check belongs in the precheck, not only in the release
+       * workflow. `release.yml` refuses a report without a Core commit for
+       * rc/latest, and a report whose Core tag cannot be resolved — but it
+       * runs after the version is cut. Answering the same question here means
+       * a mispaired tree fails before anything irreversible happens.
+       */
+      ['pnpm', 'check:release-pairing'],
       ['pnpm', 'site:check'],
     ],
   },

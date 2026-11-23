@@ -68,6 +68,8 @@ import pc from 'picocolors'
 
 import { resolveChannel } from '../../release/channel'
 import { planPairing } from '../../release/release-protocol'
+import { resolveWorkspaceZeusVersion } from '../../release/zeus-alignment-contract'
+import { listZeusDependencyManifests } from '../../release/zeus-dependency-manifests'
 
 /**
  * The shape of **Core's** record, which is the authority.
@@ -981,6 +983,37 @@ export function compareExpectedCoreCommit(
   }
 }
 
+/**
+ * The UI version from the workspace's own manifest.
+ *
+ * Used only as a CLI default; an explicit `--version` always wins. The value
+ * comes from `package.json` rather than from a pin, because the UI version is
+ * what the UI publishes, not what it depends on.
+ */
+function readWorkspaceUiVersion(): string | undefined {
+  try {
+    const raw = readFileSync(path.resolve('package.json'), 'utf8')
+    const version = (JSON.parse(raw) as { version?: string }).version
+    return typeof version === 'string' ? version : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * The Core version the workspace's `@zeus-js` pins agree on.
+ *
+ * This is the fact `evaluateStatic` checks from the other side: if the pins
+ * disagree, this returns `null` and the release is refused — which is the
+ * intended outcome, not an error to paper over.
+ */
+function resolveWorkspaceCoreVersion(uiRoot: string): string | undefined {
+  return (
+    resolveWorkspaceZeusVersion(listZeusDependencyManifests(uiRoot)) ??
+    undefined
+  )
+}
+
 function main(): void {
   const { values } = parseArgs({
     options: {
@@ -993,9 +1026,25 @@ function main(): void {
       out: { type: 'string' },
     },
   })
-  if (!values.version) {
+  /*
+   * Both versions default to the workspace, so `pnpm check:release-pairing`
+   * works from the precheck with no arguments. Requiring them made the
+   * precheck entry fail with exit 2 on every run, which is a gate that can
+   * only be passed by deleting it.
+   *
+   * `coreVersion` is still required by `planPairing` — the default here is the
+   * version the workspace's `@zeus-js` pins agree on, which is the same fact
+   * stated from the other side. If they disagree, the resolver returns null
+   * and `planPairing` refuses.
+   */
+  const uiVersion = values.version ?? readWorkspaceUiVersion()
+  const coreVersion =
+    values['core-version'] ??
+    resolveWorkspaceCoreVersion(path.resolve(values['ui-root'] ?? '.'))
+
+  if (!uiVersion) {
     console.error(
-      'usage: check-release-pairing --version <v> [--ui-root <path>] [--online --release-sha <sha>] [--out <file>]',
+      'usage: check-release-pairing --version <v> [--core-version <v>] [--ui-root <path>] [--online --release-sha <sha>] [--out <file>]',
     )
     process.exitCode = 2
     return
@@ -1018,24 +1067,34 @@ function main(): void {
     return
   }
 
-  const uiRoot = path.resolve(values['ui-root']!)
+  const uiRoot = path.resolve(values['ui-root'] ?? '.')
+
+  if (!coreVersion) {
+    console.error(
+      'No Core version could be resolved from the workspace pins; pass --core-version',
+    )
+    process.exitCode = 2
+    return
+  }
+
   const evaluated = values.online
     ? evaluatePairing({
         uiRoot,
-        uiVersion: values.version,
-        ...(values['core-version']
-          ? { coreVersion: values['core-version'] }
-          : {}),
+        uiVersion,
+        coreVersion,
         uiCommit: values['release-sha'] ?? '',
       })
     : evaluateStatic({
         uiRoot,
-        uiVersion: values.version,
-        ...(values['core-version']
-          ? { coreVersion: values['core-version'] }
-          : {}),
+        uiVersion,
+        coreVersion,
       })
 
+  /*
+   * The dispatch supplies a Core SHA; compare it with the commit the tag just
+   * resolved to rather than trusting it. A syntactically valid but unrelated
+   * SHA must fail before anything is published.
+   */
   const result =
     values['expected-core-commit'] === undefined
       ? evaluated
@@ -1051,7 +1110,7 @@ function main(): void {
     const report = buildPairingReport({
       result,
       mode: values.online ? 'online' : 'static',
-      version: values.version,
+      version: uiVersion,
       /*
        * The Core version travels with the report. v1 omitted it, so the report
        * builder fell back to the *UI* version for the Core tag and the
@@ -1075,7 +1134,7 @@ function main(): void {
   if (result.ok) {
     console.log(
       pc.green(
-        `UI release pairing ${values.version} passed (${result.channel}${values.online ? ', online' : ', static'})`,
+        `UI release pairing ${uiVersion} passed (${result.channel}${values.online ? ', online' : ', static'})`,
       ),
     )
   } else {
