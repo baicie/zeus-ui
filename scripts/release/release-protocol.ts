@@ -23,14 +23,14 @@
  *
  * | channel  | Core tag required | pairing record required | why |
  * | -------- | ----------------- | ----------------------- | --- |
- * | `beta`   | no                | no                      | pre-contract: the UI depends on published Core packages and proves it through `verifyCorePins` alone |
+ * | `beta`   | yes (online)      | no                      | the UI pins published Core packages and verifies the immutable Core tag; no cross-repo pairing record |
  * | `rc`     | yes               | yes                     | release candidate: a named, immutable Core commit |
  * | `latest` | yes               | yes                     | stable: same as rc, and the record may not be a bootstrap |
  *
  * `beta` is not "unchecked". It still requires every `@zeus-js/*` pin to name
- * one Core version that actually exists on the registry — see
- * `CORE_PIN_RULE`. What it does not require is a pairing record, because the
- * UI's dependency pins are the whole contract at that stage.
+ * one Core version that actually exists on the registry. At publish time the
+ * Core tag must resolve to a commit; beta does not require a separate UI/Core
+ * attestation record.
  */
 
 export type ReleaseChannelName = 'beta' | 'rc' | 'latest'
@@ -73,7 +73,7 @@ const RULES: Readonly<Record<ReleaseChannelName, ChannelRule>> = {
     requiresPairing: false,
     allowsBootstrap: false,
     rationale:
-      'beta is the pre-contract channel: the UI proves its Core binding through exact dependency pins, not a pairing record',
+      'beta is the pre-contract channel: exact Core pins and its immutable Core tag are required, but no cross-repository pairing record',
   },
   rc: {
     channel: 'rc',
@@ -188,9 +188,13 @@ export function planPairing(
 
   if (!rule.requiresPairing) {
     /*
-     * Beta still has to say which Core it targets, but no commit and no
-     * record. `coreVersion` was already validated above.
+     * Static beta checks validate exact Core pins; the online publish path
+     * also requires the immutable Core tag's commit, even though beta has no
+     * cross-repository pair attestation record.
      */
+    if (options.online === true && !FULL_SHA.test(identity.coreCommit ?? '')) {
+      errors.push('beta online release requires a verified 40-character Core tag commit')
+    }
     return {
       ok: errors.length === 0,
       channel,
