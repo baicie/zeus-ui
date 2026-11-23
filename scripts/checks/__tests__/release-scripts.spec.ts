@@ -346,7 +346,9 @@ describe('release script contract', () => {
        * beside it so a static report cannot be mistaken for an online one.
        */
       core_commit: githubExpression('steps.pairing_core.outputs.core-commit'),
+      core_tag: githubExpression('steps.pairing_core.outputs.core-tag'),
       pairing_mode: githubExpression('steps.pairing_core.outputs.mode'),
+      channel: githubExpression('steps.pairing_core.outputs.channel'),
     })
     expect(getObject(release, 'env')).toEqual({
       PUPPETEER_SKIP_DOWNLOAD: 'true',

@@ -637,7 +637,9 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
        * this key has a producer rather than only consumers.
        */
       core_commit: githubExpression('steps.pairing_core.outputs.core-commit'),
+      core_tag: githubExpression('steps.pairing_core.outputs.core-tag'),
       pairing_mode: githubExpression('steps.pairing_core.outputs.mode'),
+      channel: githubExpression('steps.pairing_core.outputs.channel'),
     },
     'release.jobs.release.outputs',
     errors,
