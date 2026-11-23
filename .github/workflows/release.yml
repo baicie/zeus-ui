@@ -7,6 +7,10 @@ on:
         description: 'Release version, for example 0.1.0-beta.0, 0.2.0-rc.0 or 0.2.0'
         required: true
         type: string
+      core_version:
+        description: 'The Zeus Core version this UI release was verified against, for example 0.2.0-rc.5. Required, and never derived from version.'
+        required: true
+        type: string
       tag:
         description: npm dist-tag
         required: true
@@ -110,7 +114,11 @@ jobs:
     outputs:
       release_sha: ${{ steps.tag_release.outputs.sha }}
       core_commit: ${{ steps.pairing_core.outputs.core-commit }}
+      # The Core tag the report verified, e.g. v0.2.0-rc.5. The dispatch
+      # re-resolves this tag; building it from the UI version was v1's bug.
+      core_tag: ${{ steps.pairing_core.outputs.core-tag }}
       pairing_mode: ${{ steps.pairing_core.outputs.mode }}
+      channel: ${{ steps.pairing_core.outputs.channel }}
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
       VERSION: ${{ inputs.version }}
@@ -170,8 +178,14 @@ jobs:
       - name: Verify immutable Core/UI pairing
         id: pairing_core
         run: |
+          # `--core-version` is required and is not derivable from VERSION.
+          # The two repositories release on separate version lines: Core is
+          # 0.2.0-rc.5 while the UI line is 0.1.0-beta.N. Passing only
+          # --version made the old checker build the Core tag out of the UI
+          # version and look up a tag that cannot exist.
           pnpm exec tsx scripts/checks/release/check-release-pairing.ts \
             --version "$VERSION" \
+            --core-version "$CORE_VERSION" \
             --release-sha "$GITHUB_SHA" \
             --online \
             --out "$PAIRING_REPORT"
@@ -180,21 +194,48 @@ jobs:
           # uploaded as evidence, so the value that gets dispatched and the
           # value an auditor sees are the same bytes.
           CORE_COMMIT=$(node -p "const r=require('$PAIRING_REPORT'); r.coreCommit ?? ''")
+          CORE_TAG=$(node -p "const r=require('$PAIRING_REPORT'); r.coreTag ?? ''")
           PAIRING_MODE=$(node -p "require('$PAIRING_REPORT').mode")
-          if ! [[ "$CORE_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "::error::the pairing report carries no coreCommit; an online check must resolve the Core tag it verified"
-            exit 1
-          fi
+          CHANNEL=$(node -p "require('$PAIRING_REPORT').channel ?? ''")
+
           if [ "$PAIRING_MODE" != "online" ]; then
             echo "::error::the pairing report says mode=$PAIRING_MODE; a release dispatch must be backed by an online check"
             exit 1
           fi
+
+          # The commit requirement is per channel, not universal. `beta` is the
+          # pre-contract channel: its Core binding is the exact @zeus-js pins,
+          # which the static half already proved. `rc` and `latest` name an
+          # immutable Core commit and cannot proceed without one.
+          #
+          # Protocol v1 required it unconditionally here while the checker
+          # skipped pairing for beta, so a beta release passed the check and
+          # was then refused by the workflow that had just run it.
+          case "$CHANNEL" in
+            beta)
+              echo "::notice::channel=$CHANNEL pairs through dependency pins; no Core commit is required"
+              ;;
+            rc|latest)
+              if ! [[ "$CORE_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+                echo "::error::channel=$CHANNEL requires the Core commit it was verified against, and the pairing report carries none"
+                exit 1
+              fi
+              ;;
+            *)
+              echo "::error::the pairing report names no known channel (channel='$CHANNEL')"
+              exit 1
+              ;;
+          esac
+
           {
             echo "core-commit=$CORE_COMMIT"
+            echo "core-tag=$CORE_TAG"
             echo "mode=$PAIRING_MODE"
+            echo "channel=$CHANNEL"
           } >> "$GITHUB_OUTPUT"
         env:
           VERSION: ${{ inputs.version }}
+          CORE_VERSION: ${{ inputs.core_version }}
           PAIRING_REPORT: ${{ runner.temp }}/release-pairing.json
           GH_TOKEN: ${{ github.token }}
 
@@ -262,20 +303,28 @@ jobs:
             echo "::error::the pairing check produced no coreCommit; refusing to dispatch an unreferenced Core commit"
             exit 1
           fi
-          tag_sha="$(gh api "repos/baicie/zeus/git/ref/tags/v$VERSION" \
+          # The Core tag comes from the report, never from `v$VERSION`.
+          # `VERSION` is the UI version: on 0.1.0-beta.35 it built the tag
+          # `v0.1.0-beta.35` in the Core repository, which cannot exist.
+          if [ -z "$CORE_TAG" ]; then
+            echo "::error::the pairing report names no coreTag; it must record the Core tag it verified"
+            exit 1
+          fi
+          tag_sha="$(gh api "repos/baicie/zeus/git/ref/tags/$CORE_TAG" \
             --jq '.object | if .type == "tag" then "annotated" else .sha end')"
           if [ "$tag_sha" = "annotated" ]; then
             # An annotated tag names a tag object; peel it to the commit.
-            object="$(gh api "repos/baicie/zeus/git/ref/tags/v$VERSION" --jq '.object.sha')"
+            object="$(gh api "repos/baicie/zeus/git/ref/tags/$CORE_TAG" --jq '.object.sha')"
             tag_sha="$(gh api "repos/baicie/zeus/git/tags/$object" --jq '.object.sha')"
           fi
           if [ "$tag_sha" != "$CORE_COMMIT" ]; then
-            echo "::error::Core tag v$VERSION points at $tag_sha, but the pair was verified against $CORE_COMMIT"
+            echo "::error::Core tag $CORE_TAG points at $tag_sha, but the pair was verified against $CORE_COMMIT"
             exit 1
           fi
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
+          CORE_TAG: ${{ needs.release.outputs.core_tag }}
           CORE_COMMIT: ${{ needs.release.outputs.core_commit }}
           PAIRING_MODE: ${{ needs.release.outputs.pairing_mode }}
 

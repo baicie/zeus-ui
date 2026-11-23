@@ -67,6 +67,7 @@ import { parseArgs } from 'node:util'
 import pc from 'picocolors'
 
 import { resolveChannel } from '../../release/channel'
+import { planPairing } from '../../release/release-protocol'
 
 /**
  * The shape of **Core's** record, which is the authority.
@@ -75,7 +76,22 @@ import { resolveChannel } from '../../release/channel'
  * longer keeps a record, and a shared schema would invite one back.
  */
 export const CORE_PAIRING_SCHEMA = 'zeus.release-pairing/v1'
-export const CORE_PAIRING_DIRECTORY = 'release-pairing'
+/**
+ * Where a Core tag keeps its pairing record, in the order to try.
+ *
+ * Core moved the directory to `meta/release/pairing` and the tags created
+ * before that move still carry `release-pairing`, and a tag cannot be edited.
+ * Core's own reader (`TAGGED_RECORD_PATHS` in `pair-attestation.ts`) lists
+ * both for this reason. This checker only knew the old path, so every record
+ * written after the move read as missing.
+ */
+export const CORE_PAIRING_DIRECTORIES = [
+  'meta/release/pairing',
+  'release-pairing',
+] as const
+
+/** Kept for the callers that name a single directory. */
+export const CORE_PAIRING_DIRECTORY = CORE_PAIRING_DIRECTORIES[0]
 /**
  * The schema of the attestation that supplies a pair for a bootstrap release.
  *
@@ -158,6 +174,23 @@ export interface PairingResult {
   readonly ok: boolean
   readonly channel?: ReleaseChannel
   readonly record?: CorePairingRecord
+  /**
+   * The Core tag this release must resolve, `v<coreVersion>`.
+   *
+   * Carried on the result because the report needs it: v1 built the report
+   * from the version alone, so every consumer re-derived the tag and one of
+   * them derived it from the *UI* version.
+   */
+  readonly coreTag?: string
+  /**
+   * The Core commit the pair was verified against.
+   *
+   * Only an online run can know this. It is on the result rather than passed
+   * separately to the report builder because v1 lost it in exactly that gap:
+   * the runner resolved the tag, the report was built without it, and the
+   * workflow then refused a report that "carries no coreCommit".
+   */
+  readonly coreCommit?: string
   readonly errors: readonly string[]
 }
 
@@ -175,15 +208,29 @@ export function evaluateStatic(input: StaticPairingInput): PairingResult {
     return { ok: false, errors: [...channelResult.errors] }
   }
   const channel = channelResult.channel!
-  const coreVersion = input.coreVersion ?? input.uiVersion
 
-  if (coreVersion !== input.uiVersion) {
-    errors.push(
-      `Core version ${coreVersion} must equal the UI version ${input.uiVersion}; Zeus Core and Zeus UI release on one version line`,
-    )
-  }
+  /*
+   * The two repositories release on separate version lines, so the pairing
+   * contract is "the UI names the Core it was verified against", not "the two
+   * strings are equal". `planPairing` owns that rule; see
+   * `scripts/release/release-protocol.ts` for why v1's equality requirement
+   * rejected every real release.
+   *
+   * `coreVersion` is required here. It used to default to `uiVersion`, which
+   * made a caller that forgot it silently assert the lines were the same.
+   */
+  const plan = planPairing({
+    uiVersion: input.uiVersion,
+    coreVersion: input.coreVersion ?? '',
+    uiCommit: null,
+    coreCommit: null,
+  })
+  errors.push(...plan.errors.filter(e => !errors.includes(e)))
+  const coreVersion = input.coreVersion
+
   if (!EXACT_VERSION.test(input.uiVersion)) {
-    errors.push(`UI version ${input.uiVersion} is not an exact version`)
+    const message = `UI version ${input.uiVersion} is not an exact version`
+    if (!errors.includes(message)) errors.push(message)
   }
 
   /*
@@ -205,6 +252,16 @@ export function evaluateStatic(input: StaticPairingInput): PairingResult {
       }
       continue
     }
+
+    /*
+     * No Core version means `planPairing` already refused the release; a
+     * comparison against `undefined` would add one identical error per pin and
+     * bury that one.
+     */
+    if (coreVersion === undefined) {
+      continue
+    }
+
     if (pin.version !== coreVersion) {
       errors.push(
         `${pin.file}: ${pin.name} ${pin.version} != paired Core version ${coreVersion}`,
@@ -212,7 +269,12 @@ export function evaluateStatic(input: StaticPairingInput): PairingResult {
     }
   }
 
-  return { ok: errors.length === 0, channel, errors }
+  return {
+    ok: errors.length === 0,
+    channel,
+    ...(plan.coreTag ? { coreTag: plan.coreTag } : {}),
+    errors,
+  }
 }
 
 /**
@@ -228,8 +290,19 @@ export function evaluatePairing(input: OnlinePairingInput): PairingResult {
   const channel = staticResult.channel
   if (channel === undefined) return { ok: false, errors }
 
-  const coreVersion = input.coreVersion ?? input.uiVersion
+  /*
+   * No `?? input.uiVersion` fallback: the Core version is its own input, and
+   * defaulting it to the UI version is what sent v1's dispatch looking for a
+   * Core tag named after the UI release.
+   */
+  const coreVersion = input.coreVersion
+
+  if (coreVersion === undefined) {
+    return { ok: false, channel, errors }
+  }
+
   const requirePairing = input.requirePairing ?? channel !== 'beta'
+  const coreTag = `v${coreVersion}`
 
   if (!FULL_SHA.test(input.uiCommit)) {
     errors.push('release SHA must be a full 40-character UI commit SHA')
@@ -243,12 +316,13 @@ export function evaluatePairing(input: OnlinePairingInput): PairingResult {
     return {
       ok: errors.length === 0,
       channel,
+      coreTag,
       errors: errors.length === 0 ? [] : errors,
     }
   }
 
   const resolveCoreTag = input.resolveCoreTag ?? resolveCoreTagOnGitHub
-  const tagCommit = resolveCoreTag(`v${coreVersion}`)
+  const tagCommit = resolveCoreTag(coreTag)
   if (tagCommit === undefined) {
     errors.push(
       `Core tag v${coreVersion} cannot be resolved; the paired Core release does not exist or GitHub could not be reached`,
@@ -257,7 +331,7 @@ export function evaluatePairing(input: OnlinePairingInput): PairingResult {
   }
   if (!FULL_SHA.test(tagCommit)) {
     errors.push(`Core tag v${coreVersion} did not resolve to a commit`)
-    return { ok: false, channel, errors }
+    return { ok: false, channel, coreTag, errors }
   }
 
   /*
@@ -265,18 +339,35 @@ export function evaluatePairing(input: OnlinePairingInput): PairingResult {
    * not from a branch. A record that only exists on `main` after the tag says
    * nothing about what was released.
    */
-  const recordPath = `${CORE_PAIRING_DIRECTORY}/v${coreVersion}.json`
   const readCoreFile = input.readCoreFile ?? readCoreFileAtCommit
-  const raw = readCoreFile(tagCommit, recordPath)
+  let raw: string | undefined
+  let recordPath = ''
+
+  /*
+   * Both directories, newest first. The tags created before the move carry
+   * the old one permanently, so a single-path read makes one half of the
+   * published history unreadable.
+   */
+  for (const directory of CORE_PAIRING_DIRECTORIES) {
+    const candidate = `${directory}/v${coreVersion}.json`
+    const contents = readCoreFile(tagCommit, candidate)
+
+    if (contents !== undefined) {
+      raw = contents
+      recordPath = candidate
+      break
+    }
+  }
+
   if (raw === undefined) {
     errors.push(
-      `Core tag v${coreVersion} points at ${tagCommit}, which has no ${recordPath}`,
+      `Core tag v${coreVersion} points at ${tagCommit}, which has no ${CORE_PAIRING_DIRECTORIES.map(d => `${d}/v${coreVersion}.json`).join(' or ')}`,
     )
-    return { ok: false, channel, errors }
+    return { ok: false, channel, coreTag, errors }
   }
 
   const parsed = parseCorePairingRecord(raw, errors)
-  if (!parsed) return { ok: false, channel, errors }
+  if (!parsed) return { ok: false, channel, coreTag, errors }
 
   /*
    * A bootstrap release published before any UI commit existed, so the record
@@ -301,7 +392,7 @@ export function evaluatePairing(input: OnlinePairingInput): PairingResult {
 
   if (parsed.coreVersion !== coreVersion) {
     errors.push(
-      `Core record coreVersion ${parsed.coreVersion} != expected ${coreVersion}`,
+      `Core record ${recordPath} coreVersion ${parsed.coreVersion} != expected ${coreVersion}`,
     )
   }
   if (parsed.uiVersion !== input.uiVersion) {
@@ -323,7 +414,9 @@ export function evaluatePairing(input: OnlinePairingInput): PairingResult {
   return {
     ok: errors.length === 0,
     channel,
-    ...(errors.length === 0 ? { record: parsed } : { record: parsed }),
+    coreTag,
+    coreCommit: tagCommit,
+    record: parsed,
     errors,
   }
 }
@@ -372,11 +465,25 @@ function evaluateBootstrapPairing(args: {
     errors.push(
       `Core tag v${coreVersion} published unpaired, and no ${pairTag} attestation exists; the pair was never recorded, so this release cannot claim it`,
     )
-    return { ok: false, channel, record, errors }
+    return {
+      ok: false,
+      channel,
+      coreTag: `v${coreVersion}`,
+      coreCommit: tagCommit,
+      record,
+      errors,
+    }
   }
   if (!FULL_SHA.test(pairCommit)) {
     errors.push(`${pairTag} did not resolve to a commit`)
-    return { ok: false, channel, record, errors }
+    return {
+      ok: false,
+      channel,
+      coreTag: `v${coreVersion}`,
+      coreCommit: tagCommit,
+      record,
+      errors,
+    }
   }
 
   const readCoreFile = input.readCoreFile ?? readCoreFileAtCommit
@@ -386,7 +493,14 @@ function evaluateBootstrapPairing(args: {
     errors.push(
       `${pairTag} points at ${pairCommit}, which has no ${attestationPath}`,
     )
-    return { ok: false, channel, record, errors }
+    return {
+      ok: false,
+      channel,
+      coreTag: `v${coreVersion}`,
+      coreCommit: tagCommit,
+      record,
+      errors,
+    }
   }
 
   let value: unknown
@@ -396,11 +510,25 @@ function evaluateBootstrapPairing(args: {
     errors.push(
       `pair attestation is not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
     )
-    return { ok: false, channel, record, errors }
+    return {
+      ok: false,
+      channel,
+      coreTag: `v${coreVersion}`,
+      coreCommit: tagCommit,
+      record,
+      errors,
+    }
   }
   if (!isPlainObject(value)) {
     errors.push('pair attestation must be a JSON object')
-    return { ok: false, channel, record, errors }
+    return {
+      ok: false,
+      channel,
+      coreTag: `v${coreVersion}`,
+      coreCommit: tagCommit,
+      record,
+      errors,
+    }
   }
 
   if (value.schema !== PAIR_ATTESTATION_SCHEMA) {
@@ -459,6 +587,8 @@ function evaluateBootstrapPairing(args: {
   return {
     ok: errors.length === 0,
     channel,
+    coreTag: `v${coreVersion}`,
+    coreCommit: tagCommit,
     record: {
       ...record,
       uiCommit: attestedUi,
@@ -731,7 +861,12 @@ export interface PairingReport {
 export interface WritePairingReportInput {
   readonly result: PairingResult
   readonly mode: 'static' | 'online'
+  /** The UI version being released. */
   readonly version: string
+  /** The Core version this UI release was verified against. */
+  readonly coreVersion?: string
+  /** Explicit Core tag override; defaults to the result's `coreTag`. */
+  readonly coreTag?: string
   readonly uiCommit?: string
   readonly coreTagCommit?: string
   readonly pairTagCommit?: string
@@ -756,12 +891,30 @@ export function buildPairingReport(
      * any of them, and emitting a placeholder would let a reader mistake "not
      * looked up" for "looked up and empty".
      */
-    coreTag: `v${input.version}`,
+    /*
+     * The report states the Core tag from the *result*, not from the release
+     * version. v1 wrote `v${input.version}`, where `version` is the UI
+     * version, so the report named a Core tag that cannot exist whenever the
+     * two version lines differ.
+     */
+    coreTag: input.result.coreTag ?? input.coreTag ?? null,
     coreTagCommit: online ? (input.coreTagCommit ?? null) : null,
-    pairTag: online ? `pair/v${input.version}` : null,
+    pairTag: input.result.coreTag
+      ? `pair/${input.result.coreTag}`
+      : online && input.coreVersion
+        ? `pair/v${input.coreVersion}`
+        : null,
     pairTagCommit: online ? (input.pairTagCommit ?? null) : null,
+    /*
+     * Carried on the result by the runner that resolved it. This is the field
+     * the release workflow refuses to proceed without, and v1 dropped it here
+     * because the report was built from the version string alone.
+     */
     coreCommit: online
-      ? (input.coreCommit ?? input.coreTagCommit ?? null)
+      ? (input.coreCommit ??
+        input.result.coreCommit ??
+        input.coreTagCommit ??
+        null)
       : null,
     uiCommit: online ? (input.uiCommit ?? null) : null,
   }
@@ -842,6 +995,18 @@ function main(): void {
       result,
       mode: values.online ? 'online' : 'static',
       version: values.version,
+      /*
+       * The Core version travels with the report. v1 omitted it, so the report
+       * builder fell back to the *UI* version for the Core tag and the
+       * workflow then rejected the report for carrying no coreCommit.
+       *
+       * `coreCommit` is not passed here: `evaluatePairing` resolved it and put
+       * it on the result, which is the single place it can come from without
+       * the caller re-deriving it.
+       */
+      ...(values['core-version']
+        ? { coreVersion: values['core-version'] }
+        : {}),
       ...(values.online && values['release-sha']
         ? { uiCommit: values['release-sha'] }
         : {}),

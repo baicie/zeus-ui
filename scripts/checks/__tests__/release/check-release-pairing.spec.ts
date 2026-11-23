@@ -103,6 +103,12 @@ function onlineInput(
   return {
     uiRoot: uiTree(),
     uiVersion: VERSION,
+    /*
+     * Required since Protocol v2: the Core version is its own input and is
+     * never defaulted from the UI version. Here the two coincide, which v2
+     * allows.
+     */
+    coreVersion: VERSION,
     uiCommit,
     resolveCoreTag: () => 'd'.repeat(40),
     readCoreFile: () => coreRecord({ uiCommit }),
@@ -116,7 +122,11 @@ function onlineInput(
  */
 describe('static checks need no network', () => {
   it('passes a tree whose pins match the version line', () => {
-    const result = evaluateStatic({ uiRoot: uiTree(), uiVersion: VERSION })
+    const result = evaluateStatic({
+      uiRoot: uiTree(),
+      uiVersion: VERSION,
+      coreVersion: VERSION,
+    })
     expect(result.errors).toEqual([])
     expect(result.ok).toBe(true)
     expect(result.channel).toBe('rc')
@@ -126,24 +136,64 @@ describe('static checks need no network', () => {
     const result = evaluateStatic({
       uiRoot: uiTree(VERSION, { '@zeus-js/router': '0.1.1-beta.20' }),
       uiVersion: VERSION,
+      coreVersion: VERSION,
     })
     expect(result.ok).toBe(false)
     expect(result.errors.join(' ')).toMatch(/@zeus-js\/router/)
   })
 
-  /* The candidate's version line is the same as Core's. */
-  it('fails when the Core version differs from the UI version', () => {
+  /*
+   * Protocol v2 reversed this assertion.
+   *
+   * v1 required `coreVersion === uiVersion` and this test pinned that as
+   * correct. Core and UI are separate version lines — Core is 0.2.0-rc.5, UI
+   * is 0.1.0-beta.35 — so the requirement rejected every real release. What
+   * the check must do instead is hold the pins to the Core version the release
+   * names.
+   *
+   * The fixture's pins are at VERSION, so naming a different Core version is
+   * a pin mismatch. The message must say *that*, not "one version line".
+   */
+  it('holds the pins to the Core version the release names', () => {
     const result = evaluateStatic({
       uiRoot: uiTree(),
       uiVersion: VERSION,
       coreVersion: '0.2.0',
     })
+
     expect(result.ok).toBe(false)
-    expect(result.errors.join(' ')).toMatch(/one version line/)
+    expect(result.errors.join(' ')).toMatch(/paired Core version 0\.2\.0/)
+    expect(result.errors.join(' ')).not.toMatch(/one version line/)
+  })
+
+  it('accepts a Core version that differs from the UI version when pins match', () => {
+    // The real pair: UI on its own line, pins on Core's.
+    const result = evaluateStatic({
+      uiRoot: uiTree(),
+      uiVersion: '0.1.0-beta.35',
+      coreVersion: VERSION,
+    })
+
+    expect(result.errors.join(' ')).not.toMatch(/one version line/)
+    expect(result.errors.join(' ')).not.toMatch(/paired Core version/)
+  })
+
+  it('requires a Core version rather than assuming the UI one', () => {
+    const result = evaluateStatic({
+      uiRoot: uiTree(),
+      uiVersion: VERSION,
+    } as never)
+
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/must name the Core version/)
   })
 
   it('ignores the independent vite-plugin pin', () => {
-    const result = evaluateStatic({ uiRoot: uiTree(), uiVersion: VERSION })
+    const result = evaluateStatic({
+      uiRoot: uiTree(),
+      uiVersion: VERSION,
+      coreVersion: VERSION,
+    })
     expect(result.errors.join(' ')).not.toMatch(/vite-plugin/)
   })
 })
@@ -182,7 +232,14 @@ describe('online pairing', () => {
       onlineInput({ readCoreFile: () => undefined }),
     )
     expect(result.ok).toBe(false)
-    expect(result.errors.join(' ')).toMatch(/has no release-pairing/)
+    /*
+     * Both directories, because Core moved the record to `meta/release/pairing`
+     * and the tags created before the move carry the old path permanently.
+     */
+    expect(result.errors.join(' ')).toMatch(/has no meta\/release\/pairing/)
+    expect(result.errors.join(' ')).toMatch(
+      /release-pairing\/v0\.2\.0-rc\.0\.json/,
+    )
   })
 
   it('fails when the record is not JSON', () => {
@@ -238,6 +295,9 @@ describe('online pairing', () => {
       onlineInput({
         uiVersion: '0.2.0-beta.1',
         uiRoot: uiTree('0.2.0-beta.1'),
+        // The pins are at beta.1, so the Core version this release names is
+        // beta.1. It is its own input; v2 does not derive it from the UI one.
+        coreVersion: '0.2.0-beta.1',
         resolveCoreTag: () => {
           throw new Error('must not be called for beta')
         },
@@ -267,68 +327,79 @@ describe('online pairing', () => {
  * verifies the pair — with no commit ever containing its own SHA.
  */
 describe('the protocol is constructible', () => {
-  it('verifies a pair built from two real repositories', () => {
-    const uiRoot = temporary('zeus-ui-real-')
-    initRepo(uiRoot)
-    fs.mkdirSync(path.join(uiRoot, 'packages/primitives/button'), {
-      recursive: true,
-    })
-    fs.writeFileSync(
-      path.join(uiRoot, 'packages/primitives/button/package.json'),
-      `${JSON.stringify(
-        {
-          name: '@zeus-web/button',
-          version: VERSION,
-          dependencies: { '@zeus-js/runtime-dom': VERSION },
+  /*
+   * Two real git repositories, several commits each. The default 5s is a
+   * budget for pure computation; this test shells out to git on every
+   * assertion setup and takes 6-8s on a loaded machine, which made it the one
+   * flaky test in this file rather than a wrong one.
+   */
+  it(
+    'verifies a pair built from two real repositories',
+    { timeout: 30_000 },
+    () => {
+      const uiRoot = temporary('zeus-ui-real-')
+      initRepo(uiRoot)
+      fs.mkdirSync(path.join(uiRoot, 'packages/primitives/button'), {
+        recursive: true,
+      })
+      fs.writeFileSync(
+        path.join(uiRoot, 'packages/primitives/button/package.json'),
+        `${JSON.stringify(
+          {
+            name: '@zeus-web/button',
+            version: VERSION,
+            dependencies: { '@zeus-js/runtime-dom': VERSION },
+          },
+          null,
+          2,
+        )}\n`,
+      )
+      git(uiRoot, ['add', '-A'])
+      git(uiRoot, ['commit', '-qm', 'ui candidate'])
+      const uiCommit = git(uiRoot, ['rev-parse', 'HEAD'])
+
+      /*
+       * The UI tree contains no pairing record and no copy of its own SHA. That
+       * is the property the old protocol violated.
+       */
+      const tracked = git(uiRoot, ['ls-files'])
+      expect(tracked).not.toContain('release-pairing')
+      expect(
+        fs.readFileSync(path.join(uiRoot, tracked.split('\n')[0]!), 'utf8'),
+      ).not.toContain(uiCommit)
+
+      const coreRoot = temporary('zeus-core-real-')
+      initRepo(coreRoot)
+      fs.mkdirSync(path.join(coreRoot, 'release-pairing'), { recursive: true })
+      const recordPath = `release-pairing/v${VERSION}.json`
+      fs.writeFileSync(
+        path.join(coreRoot, recordPath),
+        coreRecord({ uiCommit, firstPublish: ['@zeus-js/i18n'] }),
+      )
+      git(coreRoot, ['add', '-A'])
+      git(coreRoot, ['commit', '-qm', 'core pairing'])
+      const coreCommit = git(coreRoot, ['rev-parse', 'HEAD'])
+
+      const result = evaluatePairing({
+        uiRoot,
+        uiVersion: VERSION,
+        coreVersion: VERSION,
+        uiCommit,
+        resolveCoreTag: tag => (tag === `v${VERSION}` ? coreCommit : undefined),
+        readCoreFile: (commit, file) => {
+          if (commit !== coreCommit) return undefined
+          const absolute = path.join(coreRoot, file)
+          return fs.existsSync(absolute)
+            ? fs.readFileSync(absolute, 'utf8')
+            : undefined
         },
-        null,
-        2,
-      )}\n`,
-    )
-    git(uiRoot, ['add', '-A'])
-    git(uiRoot, ['commit', '-qm', 'ui candidate'])
-    const uiCommit = git(uiRoot, ['rev-parse', 'HEAD'])
+      })
 
-    /*
-     * The UI tree contains no pairing record and no copy of its own SHA. That
-     * is the property the old protocol violated.
-     */
-    const tracked = git(uiRoot, ['ls-files'])
-    expect(tracked).not.toContain('release-pairing')
-    expect(
-      fs.readFileSync(path.join(uiRoot, tracked.split('\n')[0]!), 'utf8'),
-    ).not.toContain(uiCommit)
-
-    const coreRoot = temporary('zeus-core-real-')
-    initRepo(coreRoot)
-    fs.mkdirSync(path.join(coreRoot, 'release-pairing'), { recursive: true })
-    const recordPath = `release-pairing/v${VERSION}.json`
-    fs.writeFileSync(
-      path.join(coreRoot, recordPath),
-      coreRecord({ uiCommit, firstPublish: ['@zeus-js/i18n'] }),
-    )
-    git(coreRoot, ['add', '-A'])
-    git(coreRoot, ['commit', '-qm', 'core pairing'])
-    const coreCommit = git(coreRoot, ['rev-parse', 'HEAD'])
-
-    const result = evaluatePairing({
-      uiRoot,
-      uiVersion: VERSION,
-      uiCommit,
-      resolveCoreTag: tag => (tag === `v${VERSION}` ? coreCommit : undefined),
-      readCoreFile: (commit, file) => {
-        if (commit !== coreCommit) return undefined
-        const absolute = path.join(coreRoot, file)
-        return fs.existsSync(absolute)
-          ? fs.readFileSync(absolute, 'utf8')
-          : undefined
-      },
-    })
-
-    expect(result.errors).toEqual([])
-    expect(result.ok).toBe(true)
-    expect(result.record?.uiCommit).toBe(uiCommit)
-  })
+      expect(result.errors).toEqual([])
+      expect(result.ok).toBe(true)
+      expect(result.record?.uiCommit).toBe(uiCommit)
+    },
+  )
 
   /*
    * And the property that made the old protocol impossible: committing the
@@ -368,6 +439,7 @@ describe('the protocol is constructible', () => {
     const result = evaluatePairing({
       uiRoot,
       uiVersion: VERSION,
+      coreVersion: VERSION,
       uiCommit: after,
       resolveCoreTag: () => 'b'.repeat(40),
       readCoreFile: () =>
@@ -388,6 +460,7 @@ describe('the protocol is constructible', () => {
     const result = evaluatePairing({
       uiRoot,
       uiVersion: VERSION,
+      coreVersion: VERSION,
       uiCommit: 'f'.repeat(40),
       resolveCoreTag: () => 'b'.repeat(40),
       readCoreFile: () => coreRecord({ uiCommit: 'e'.repeat(40) }),
@@ -462,7 +535,11 @@ describe('pin discovery', () => {
         2,
       )}\n`,
     )
-    const result = evaluateStatic({ uiRoot: root, uiVersion: VERSION })
+    const result = evaluateStatic({
+      uiRoot: root,
+      uiVersion: VERSION,
+      coreVersion: VERSION,
+    })
     expect(result.ok).toBe(false)
     /* Accept either separator: the message carries the platform's path. */
     expect(result.errors.join(' ')).toMatch(/examples[\\/]ai-workbench/)
@@ -521,11 +598,20 @@ describe('bootstrap → pair', () => {
     return {
       uiRoot: uiTree(),
       uiVersion: VERSION,
+      coreVersion: VERSION,
       uiCommit: UI,
       resolveCoreTag: () => CORE_TAG_COMMIT,
       resolvePairTag: () => PAIR_COMMIT,
       readCoreFile: (_commit, file) => {
-        if (file.endsWith('release-pairing/v0.2.0-rc.0.json')) {
+        /*
+         * Both record directories, as the reader now tries them. The fixture
+         * answers for either so the test is about the attestation, not the
+         * path.
+         */
+        if (
+          file.endsWith('meta/release/pairing/v0.2.0-rc.0.json') ||
+          file.endsWith('release-pairing/v0.2.0-rc.0.json')
+        ) {
           return bootstrapRecord()
         }
         if (file.includes('attestations')) return attestation()
@@ -561,7 +647,13 @@ describe('bootstrap → pair', () => {
     const result = evaluatePairing(
       bootstrapInput({
         readCoreFile: (_commit, file) =>
-          file.endsWith('.json') && file.includes('release-pairing/v')
+          /*
+           * Match the record path exactly. `includes('release-pairing/v')`
+           * also matches `meta/release/pairing/v…`, so the attestation path
+           * would answer with the record and this test would assert nothing.
+           */
+          file.endsWith('pairing/v0.2.0-rc.0.json') &&
+          file.includes('/pairing/')
             ? bootstrapRecord()
             : attestation({ coreCommit: 'f'.repeat(40) }),
       }),
@@ -574,7 +666,8 @@ describe('bootstrap → pair', () => {
     const result = evaluatePairing(
       bootstrapInput({
         readCoreFile: (_commit, file) =>
-          file.includes('release-pairing/v')
+          file.endsWith('pairing/v0.2.0-rc.0.json') &&
+          file.includes('/pairing/')
             ? bootstrapRecord()
             : attestation({ uiCommit: 'f'.repeat(40) }),
       }),
@@ -587,7 +680,8 @@ describe('bootstrap → pair', () => {
     const result = evaluatePairing(
       bootstrapInput({
         readCoreFile: (_commit, file) =>
-          file.includes('release-pairing/v')
+          file.endsWith('pairing/v0.2.0-rc.0.json') &&
+          file.includes('/pairing/')
             ? bootstrapRecord()
             : attestation({ uiVersion: '0.2.0-rc.1' }),
       }),
@@ -600,7 +694,8 @@ describe('bootstrap → pair', () => {
     const result = evaluatePairing(
       bootstrapInput({
         readCoreFile: (_commit, file) =>
-          file.includes('release-pairing/v')
+          file.endsWith('pairing/v0.2.0-rc.0.json') &&
+          file.includes('/pairing/')
             ? bootstrapRecord()
             : attestation({ bootstrap: false }),
       }),
@@ -637,7 +732,8 @@ describe('bootstrap → pair', () => {
     const result = evaluatePairing(
       bootstrapInput({
         readCoreFile: (_commit, file) =>
-          file.includes('release-pairing/v')
+          file.endsWith('pairing/v0.2.0-rc.0.json') &&
+          file.includes('/pairing/')
             ? bootstrapRecord()
             : attestation({ schema: 'other/v1' }),
       }),
@@ -654,7 +750,8 @@ describe('bootstrap → pair', () => {
     const result = evaluatePairing(
       bootstrapInput({
         readCoreFile: (_commit, file) =>
-          file.includes('release-pairing/v')
+          file.endsWith('pairing/v0.2.0-rc.0.json') &&
+          file.includes('/pairing/')
             ? JSON.stringify({
                 schema: CORE_PAIRING_SCHEMA,
                 coreVersion: VERSION,
