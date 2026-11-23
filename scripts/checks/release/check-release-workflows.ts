@@ -150,6 +150,18 @@ export function publishPreflightCommand(): string {
  * that ran the static half and called it verified would be checking nothing
  * about the pair.
  */
+/**
+ * Offline Core alignment gate run during a release rehearsal. It validates
+ * exact package pins without requiring a GitHub token or publishing anything.
+ */
+export function staticPairingCommand(): string {
+  return [
+    'pnpm exec tsx scripts/checks/release/check-release-pairing.ts \\',
+    '  --version "$VERSION" \\',
+    '  --core-version "$CORE_VERSION"',
+  ].join('\n')
+}
+
 export function pairingCommand(version = '$VERSION'): string {
   return [
     'pnpm exec tsx scripts/checks/release/check-release-pairing.ts \\',
@@ -384,6 +396,11 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
     'Dry-run release',
     'release.jobs.dry-run',
   )
+  const dryRunPairing = getNamedStep(
+    dryRunJob,
+    'Verify Core version alignment (static)',
+    'release.jobs.dry-run',
+  )
   const realRelease = getNamedStep(
     release,
     'Verify prepared release',
@@ -449,6 +466,17 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
       type: 'string',
     },
     'release.on.workflow_dispatch.inputs.version',
+    errors,
+  )
+  expectEqual(
+    getObject(inputs, 'core_version', 'release.on.workflow_dispatch.inputs'),
+    {
+      description:
+        'The Zeus Core version this UI release was verified against, for example 0.2.0-rc.5. Required, and never derived from version.',
+      required: true,
+      type: 'string',
+    },
+    'release.on.workflow_dispatch.inputs.core_version',
     errors,
   )
   expectEqual(
@@ -554,6 +582,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
     {
       PUPPETEER_SKIP_DOWNLOAD: 'true',
       VERSION: githubExpression('inputs.version'),
+      CORE_VERSION: githubExpression('inputs.core_version'),
       TAG: githubExpression('inputs.tag'),
     },
     'release.jobs.dry-run.env',
@@ -585,6 +614,12 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
     dryRunInstallSteps.length,
     1,
     'release.jobs.dry-run frozen install step count',
+    errors,
+  )
+  expectEqual(
+    String(dryRunPairing.run).trim(),
+    staticPairingCommand(),
+    'release.jobs.dry-run.steps.Verify Core version alignment (static).run',
     errors,
   )
   expectEqual(
@@ -862,6 +897,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
       PNPM_SETUP_ACTION_REF,
       SETUP_NODE_ACTION_REF,
       'pnpm install --frozen-lockfile',
+      'Verify Core version alignment (static)',
       'Dry-run release',
     ],
     'release.jobs.dry-run step order',
@@ -912,6 +948,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
     [
       'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
       'pnpm install --frozen-lockfile',
+      staticPairingCommand(),
       'pnpm release "$VERSION" --tag "$TAG" --dry',
     ],
     'release.jobs.dry-run run command order',
