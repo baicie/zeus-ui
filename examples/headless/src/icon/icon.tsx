@@ -1,6 +1,7 @@
-import { createEffect, defineElement, Host } from '@zeus-js/zeus'
+import type { IconName } from './icons'
 
-import { icons, type IconName } from './icons'
+import { createEffect, defineElement, Host } from '@zeus-js/zeus'
+import { icons } from './icons'
 
 export interface IconProps {
   name?: IconName
@@ -19,7 +20,10 @@ function setup(props: IconProps) {
   }
 
   createEffect(() => {
-    props.name
+    // Reading the prop is the point: it makes the effect re-run when the icon
+    // name changes. `void` marks it as a deliberate read for the dependency
+    // graph rather than a statement someone forgot to finish.
+    void props.name
     if (svg) renderIcon()
   })
 

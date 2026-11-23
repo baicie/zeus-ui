@@ -91,6 +91,37 @@ export default defineConfig(
     },
   },
 
+  // Browser entry points and jsdom tests for the headless examples, moved
+  // here from `zeus`. `src/main.tsx` mounts into `#root` and the
+  // `__tests__` files build their DOM by hand, so both reach for `document`
+  // for the same reason `examples/ai-showcase/**` above does.
+  {
+    files: [
+      'examples/headless/__tests__/**',
+      'examples/headless-demo/src/main.tsx',
+      'examples/registry-react/src/main.tsx',
+      'examples/use-headless-cli/src/main.tsx',
+      'examples/use-headless-react/src/main.tsx',
+    ],
+    rules: {
+      'no-restricted-globals': 'off',
+    },
+  },
+
+  // Demo buttons that call `alert()` to show the press handler fired. These
+  // are training examples, not product surfaces, and the alert is the whole
+  // point of the demo.
+  {
+    files: [
+      'examples/use-headless-cli/**',
+      'examples/use-headless-react/**',
+      'examples/use-headless-vue/**',
+    ],
+    rules: {
+      'no-alert': 'off',
+    },
+  },
+
   // Let ESLint format TypeScript files via @stylistic instead of Prettier
   {
     files: ['**/*.ts', '**/*.tsx'],

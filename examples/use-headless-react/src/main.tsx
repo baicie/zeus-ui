@@ -1,5 +1,3 @@
-import { StrictMode, useState } from 'react'
-import { createRoot } from 'react-dom/client'
 import {
   ZButton,
   ZCheckbox,
@@ -10,11 +8,13 @@ import {
   ZDialogTrigger,
   ZInput,
   ZSwitch,
-  ZTabPanel,
   ZTabList,
-  ZTabTrigger,
+  ZTabPanel,
   ZTabs,
+  ZTabTrigger,
 } from '@zeus-ui/headless/react'
+import { StrictMode, useState } from 'react'
+import { createRoot } from 'react-dom/client'
 
 import '@zeus-ui/headless/styles.css'
 

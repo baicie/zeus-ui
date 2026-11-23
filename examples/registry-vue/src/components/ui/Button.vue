@@ -2,8 +2,13 @@
 import { computed } from 'vue'
 import { cn } from '@/lib/utils'
 
-const buttonVariants = (variant: string, size: string) =>
-  cn(
+const props = withDefaults(defineProps<Props>(), {
+  variant: 'default',
+  size: 'md',
+})
+
+function buttonVariants(variant: string, size: string) {
+  return cn(
     'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium',
     'transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[hsl(var(--z-ring))]',
     'disabled:pointer-events-none disabled:opacity-50',
@@ -24,6 +29,7 @@ const buttonVariants = (variant: string, size: string) =>
     size === 'lg' && 'h-10 rounded-md px-8',
     size === 'icon' && 'h-9 w-9',
   )
+}
 
 interface Props {
   variant?:
@@ -36,11 +42,6 @@ interface Props {
   size?: 'sm' | 'md' | 'lg' | 'icon'
   className?: string
 }
-
-const props = withDefaults(defineProps<Props>(), {
-  variant: 'default',
-  size: 'md',
-})
 
 const className = computed(() => buttonVariants(props.variant, props.size))
 </script>

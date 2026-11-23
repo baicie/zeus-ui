@@ -26,12 +26,12 @@ const className = computed(() =>
 
 <template>
   <button
+    :id="id"
     type="button"
     role="checkbox"
     :aria-checked="checked"
     :data-state="checked ? 'checked' : 'unchecked'"
     :disabled="disabled"
-    :id="id"
     :class="className"
     @click="emit('update:checked', !checked)"
   >

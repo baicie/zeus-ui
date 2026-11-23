@@ -1,8 +1,8 @@
+import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
+
 import { defineElement, event, Host, Slot } from '@zeus-js/zeus'
 
 import { isEnterOrSpace } from '../shared/keyboard'
-
-import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 
 export interface CheckboxProps {
   checked?: boolean
@@ -10,7 +10,7 @@ export interface CheckboxProps {
   disabled?: boolean
 }
 
-type CheckboxEmits = {
+interface CheckboxEmits {
   checkedChange: EventDefinition<{ checked: boolean }>
 }
 

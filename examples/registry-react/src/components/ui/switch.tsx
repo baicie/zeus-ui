@@ -8,10 +8,10 @@ export interface SwitchProps extends React.ComponentPropsWithoutRef<'button'> {
 }
 
 export const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
-  function Switch(
+  (
     { checked, onCheckedChange, className, disabled, ...props },
     ref,
-  ) {
+  ) => {
     return (
       <button
         ref={ref}

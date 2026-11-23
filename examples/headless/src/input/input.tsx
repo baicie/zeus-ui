@@ -1,6 +1,6 @@
-import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
-
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
+
+import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
 
 export interface InputProps {
   value?: string
@@ -13,16 +13,16 @@ export interface InputProps {
   formatter?: (value: string) => string
 }
 
-type InputEmits = {
+interface InputEmits {
   valueChange: EventDefinition<{ value: string; nativeEvent: Event }>
   focusChange: EventDefinition<{ focused: boolean; nativeEvent: FocusEvent }>
 }
 
 type InputHost = HTMLElement & {
   value?: string
-  focus(): void
-  blur(): void
-  select(): void
+  focus: () => void
+  blur: () => void
+  select: () => void
 }
 
 function setup(

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Button from '@/components/ui/Button.vue'
-import Switch from '@/components/ui/Switch.vue'
 import Checkbox from '@/components/ui/Checkbox.vue'
+import Switch from '@/components/ui/Switch.vue'
 </script>
 
 <template>

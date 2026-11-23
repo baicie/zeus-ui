@@ -8,10 +8,10 @@ export interface CheckboxProps extends React.ComponentPropsWithoutRef<'button'> 
 }
 
 export const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>(
-  function Checkbox(
+  (
     { checked, onCheckedChange, className, disabled, id, ...props },
     ref,
-  ) {
+  ) => {
     return (
       <button
         ref={ref}

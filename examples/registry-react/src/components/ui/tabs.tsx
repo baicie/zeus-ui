@@ -8,10 +8,10 @@ export interface TabsProps extends React.ComponentPropsWithoutRef<'div'> {
   onValueChange?: (value: string) => void
 }
 
-export const Tabs = React.forwardRef<HTMLDivElement, TabsProps>(function Tabs(
+export const Tabs = React.forwardRef<HTMLDivElement, TabsProps>((
   { defaultValue, value, onValueChange, className, children, ...props },
   ref,
-) {
+) => {
   const [internalValue, setInternalValue] = React.useState(defaultValue ?? '')
   const currentValue = value ?? internalValue
 
@@ -47,7 +47,7 @@ export const Tabs = React.forwardRef<HTMLDivElement, TabsProps>(function Tabs(
 export interface TabsListProps extends React.ComponentPropsWithoutRef<'div'> {}
 
 export const TabsList = React.forwardRef<HTMLDivElement, TabsListProps>(
-  function TabsList({ className, ...props }, ref) {
+  ({ className, ...props }, ref) => {
     return (
       <div
         ref={ref}
@@ -68,7 +68,7 @@ export interface TabsTriggerProps extends React.ComponentPropsWithoutRef<'button
 export const TabsTrigger = React.forwardRef<
   HTMLButtonElement,
   TabsTriggerProps
->(function TabsTrigger({ className, value, ...props }, ref) {
+>(({ className, value, ...props }, ref) => {
   return (
     <button
       ref={ref}
@@ -90,7 +90,7 @@ export interface TabsPanelProps extends React.ComponentPropsWithoutRef<'div'> {
 }
 
 export const TabsPanel = React.forwardRef<HTMLDivElement, TabsPanelProps>(
-  function TabsPanel({ className, value, ...props }, ref) {
+  ({ className, value, ...props }, ref) => {
     return (
       <div
         ref={ref}

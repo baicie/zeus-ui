@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import {
   ZButton,
   ZCheckbox,
@@ -10,11 +9,12 @@ import {
   ZDialogTrigger,
   ZInput,
   ZSwitch,
-  ZTabPanel,
   ZTabList,
-  ZTabTrigger,
+  ZTabPanel,
   ZTabs,
+  ZTabTrigger,
 } from '@zeus-ui/headless/vue'
+import { ref } from 'vue'
 
 import '@zeus-ui/headless/styles.css'
 
@@ -81,8 +81,8 @@ function trimStart(value: string) {
       <h2>Input</h2>
       <div class="demo-section">
         <ZInput
-          type="email"
           v-model:value="email"
+          type="email"
           placeholder="name@example.com"
           required
           :invalid="!email.includes('@')"
@@ -110,9 +110,9 @@ function trimStart(value: string) {
 
       <div class="demo-section">
         <ZInput
+          v-model:value="search"
           type="search"
           size="lg"
-          v-model:value="search"
           placeholder="Search components"
           :formatter="trimStart"
         >

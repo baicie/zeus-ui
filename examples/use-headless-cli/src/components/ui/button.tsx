@@ -1,6 +1,7 @@
-import * as React from 'react'
+import type { VariantProps } from 'class-variance-authority'
 import { ZButton } from '@zeus-ui/headless/react'
-import { cva, type VariantProps } from 'class-variance-authority'
+import { cva } from 'class-variance-authority'
+import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
@@ -48,7 +49,7 @@ export interface ButtonProps
 export const Button = React.forwardRef<
   React.ElementRef<typeof ZButton>,
   ButtonProps
->(function Button({ className, variant, size, ...props }, ref) {
+>(({ className, variant, size, ...props }, ref) => {
   return (
     <ZButton
       ref={ref}

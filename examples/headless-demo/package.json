@@ -1,7 +1,7 @@
 {
   "name": "@zeus-web/example-headless-demo",
-  "private": true,
   "type": "module",
+  "private": true,
   "sideEffects": [
     "dist/wc/*.js",
     "dist/wc/**/*.js",

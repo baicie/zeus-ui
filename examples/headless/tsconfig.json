@@ -1,16 +1,16 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "baseUrl": ".",
-    "strict": false,
-    "noUnusedLocals": false,
     "jsx": "react-jsx",
     "jsxImportSource": "@zeus-js/zeus",
-    "skipLibCheck": true,
+    "baseUrl": ".",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": false,
     "noImplicitAny": false,
+    "noUnusedLocals": false,
     "noEmit": true,
+    "skipLibCheck": true,
     "ignoreDeprecations": "6.0"
   },
   "include": [

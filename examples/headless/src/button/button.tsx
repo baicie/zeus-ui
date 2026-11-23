@@ -1,6 +1,6 @@
-import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
-
 import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
+
+import { defineElement, event, Host, prop, Slot } from '@zeus-js/zeus'
 
 export interface ButtonProps {
   variant?:
@@ -14,7 +14,7 @@ export interface ButtonProps {
   disabled?: boolean
 }
 
-type ButtonEmits = {
+interface ButtonEmits {
   press: EventDefinition<{ nativeEvent: MouseEvent }>
 }
 

@@ -1,12 +1,12 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "strict": true,
     "jsx": "react-jsx",
     "jsxImportSource": "@zeus-js/zeus",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "types": ["@zeus-js/zeus/jsx"],
+    "strict": true,
     "skipLibCheck": true
   },
   "include": ["src", "../../packages/global.d.ts"]

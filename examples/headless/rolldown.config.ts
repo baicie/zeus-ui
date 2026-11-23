@@ -1,5 +1,5 @@
-import { defineConfig } from 'rolldown'
 import zeus, { componentLibrary } from '@zeus-js/web-c/rolldown'
+import { defineConfig } from 'rolldown'
 
 export default defineConfig({
   input: 'src/index.ts',

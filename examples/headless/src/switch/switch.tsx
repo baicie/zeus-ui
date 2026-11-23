@@ -1,15 +1,15 @@
+import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
+
 import { defineElement, event, Host, Slot } from '@zeus-js/zeus'
 
 import { isEnterOrSpace } from '../shared/keyboard'
-
-import type { DefineElementContext, EventDefinition } from '@zeus-js/zeus'
 
 export interface SwitchProps {
   checked?: boolean
   disabled?: boolean
 }
 
-type SwitchEmits = {
+interface SwitchEmits {
   checkedChange: EventDefinition<{ checked: boolean }>
 }
 

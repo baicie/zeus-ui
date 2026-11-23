@@ -114,8 +114,8 @@ describe('z-input', () => {
     const el = document.querySelector('z-input') as HTMLElement & {
       value?: string
       formatter?: (value: string) => string
-      focus(): void
-      select(): void
+      focus: () => void
+      select: () => void
     }
     const listener = vi.fn()
     el.addEventListener('value-change', listener)

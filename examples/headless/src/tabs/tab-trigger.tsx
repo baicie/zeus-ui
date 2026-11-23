@@ -1,7 +1,7 @@
 import { defineElement, Host, Slot } from '@zeus-js/zeus'
 
-import { findTabsHost, setTabsValue } from './context'
 import { isEnterOrSpace } from '../shared/keyboard'
+import { findTabsHost, setTabsValue } from './context'
 
 export interface TabTriggerProps {
   value?: string

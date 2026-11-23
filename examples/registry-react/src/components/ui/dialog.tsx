@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 export const Dialog = React.forwardRef<
   HTMLDivElement,
   React.ComponentPropsWithoutRef<'div'>
->(function Dialog({ className, ...props }, ref) {
+>(({ className, ...props }, ref) => {
   return (
     <div ref={ref} className={cn('fixed inset-0 z-50', className)} {...props} />
   )
@@ -14,14 +14,14 @@ export const Dialog = React.forwardRef<
 export const DialogTrigger = React.forwardRef<
   HTMLButtonElement,
   React.ButtonHTMLAttributes<HTMLButtonElement>
->(function DialogTrigger({ className, ...props }, ref) {
+>(({ className, ...props }, ref) => {
   return <button ref={ref} className={className} {...props} />
 })
 
 export const DialogContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentPropsWithoutRef<'div'>
->(function DialogContent({ className, ...props }, ref) {
+>(({ className, ...props }, ref) => {
   return (
     <div
       ref={ref}
@@ -46,7 +46,7 @@ export const DialogContent = React.forwardRef<
 export const DialogHeader = React.forwardRef<
   HTMLDivElement,
   React.ComponentPropsWithoutRef<'div'>
->(function DialogHeader({ className, ...props }, ref) {
+>(({ className, ...props }, ref) => {
   return (
     <div
       ref={ref}
@@ -62,7 +62,7 @@ export const DialogHeader = React.forwardRef<
 export const DialogTitle = React.forwardRef<
   HTMLHeadingElement,
   React.ComponentPropsWithoutRef<'h2'>
->(function DialogTitle({ className, ...props }, ref) {
+>(({ className, ...props }, ref) => {
   return (
     <h2
       ref={ref}
@@ -78,7 +78,7 @@ export const DialogTitle = React.forwardRef<
 export const DialogDescription = React.forwardRef<
   HTMLParagraphElement,
   React.ComponentPropsWithoutRef<'p'>
->(function DialogDescription({ className, ...props }, ref) {
+>(({ className, ...props }, ref) => {
   return (
     <p
       ref={ref}
