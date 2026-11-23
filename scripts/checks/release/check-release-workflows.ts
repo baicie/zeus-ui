@@ -143,14 +143,6 @@ export function publishPreflightCommand(): string {
 }
 
 /**
- * The pairing command a publishing workflow must run.
- *
- * `--online` is the part that matters: without it the checker only reads the
- * UI tree, so it would never consult Core's tag or Core's record. A publish
- * that ran the static half and called it verified would be checking nothing
- * about the pair.
- */
-/**
  * Offline Core alignment gate run during a release rehearsal. It validates
  * exact package pins without requiring a GitHub token or publishing anything.
  */
@@ -162,6 +154,14 @@ export function staticPairingCommand(): string {
   ].join('\n')
 }
 
+/**
+ * The pairing command a publishing workflow must run.
+ *
+ * `--online` is the part that matters: without it the checker only reads the
+ * UI tree, so it would never consult Core's tag or Core's record. A publish
+ * that ran the static half and called it verified would be checking nothing
+ * about the pair.
+ */
 export function pairingCommand(version = '$VERSION'): string {
   return [
     'pnpm exec tsx scripts/checks/release/check-release-pairing.ts \\',
