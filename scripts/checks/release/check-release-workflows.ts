@@ -154,6 +154,7 @@ export function pairingCommand(version = '$VERSION'): string {
   return [
     'pnpm exec tsx scripts/checks/release/check-release-pairing.ts \\',
     `  --version "${version}" \\`,
+    '  --core-version "$CORE_VERSION" \\',
     '  --release-sha "$RELEASE_SHA" \\',
     '  --online \\',
     '  --out "$PAIRING_REPORT"',
@@ -821,6 +822,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
       '  --raw-field version="$VERSION" \\',
       '  --raw-field tag="$TAG" \\',
       '  --raw-field release_sha="$RELEASE_SHA" \\',
+      '  --raw-field core_version="$CORE_VERSION" \\',
       '  --raw-field core_commit="$CORE_COMMIT" \\',
       '  --raw-field pairing_mode="$PAIRING_MODE"',
     ].join('\n'),
@@ -838,6 +840,7 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
       VERSION: githubExpression('inputs.version'),
       TAG: githubExpression('inputs.tag'),
       RELEASE_SHA: githubExpression('needs.release.outputs.release_sha'),
+      CORE_VERSION: githubExpression('inputs.core_version'),
       CORE_COMMIT: githubExpression('needs.release.outputs.core_commit'),
       PAIRING_MODE: githubExpression('needs.release.outputs.pairing_mode'),
     },
@@ -1063,6 +1066,12 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
     errors,
   )
   expectEqual(
+    getObject(inputs, 'core_version', 'publish.on.workflow_call.inputs'),
+    { required: true, type: 'string' },
+    'publish.on.workflow_call.inputs.core_version',
+    errors,
+  )
+  expectEqual(
     getObject(inputs, 'core_commit', 'publish.on.workflow_call.inputs'),
     { required: true, type: 'string' },
     'publish.on.workflow_call.inputs.core_commit',
@@ -1090,6 +1099,11 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       },
       release_sha: {
         description: 'Immutable release commit SHA',
+        required: true,
+        type: 'string',
+      },
+      core_version: {
+        description: 'Exact published Zeus Core version',
         required: true,
         type: 'string',
       },
@@ -1381,6 +1395,7 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
      */
     {
       VERSION: githubExpression('inputs.version'),
+      CORE_VERSION: githubExpression('inputs.core_version'),
       RELEASE_SHA: githubExpression('inputs.release_sha'),
       PAIRING_REPORT: `${githubExpression('runner.temp')}/release-pairing.json`,
       GH_TOKEN: githubExpression('github.token'),
