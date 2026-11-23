@@ -346,7 +346,9 @@ describe('release script contract', () => {
        * beside it so a static report cannot be mistaken for an online one.
        */
       core_commit: githubExpression('steps.pairing_core.outputs.core-commit'),
+      core_tag: githubExpression('steps.pairing_core.outputs.core-tag'),
       pairing_mode: githubExpression('steps.pairing_core.outputs.mode'),
+      channel: githubExpression('steps.pairing_core.outputs.channel'),
     })
     expect(getObject(release, 'env')).toEqual({
       PUPPETEER_SKIP_DOWNLOAD: 'true',
@@ -433,6 +435,7 @@ describe('release script contract', () => {
         '  --raw-field version="$VERSION" \\',
         '  --raw-field tag="$TAG" \\',
         '  --raw-field release_sha="$RELEASE_SHA" \\',
+        '  --raw-field core_version="$CORE_VERSION" \\',
         '  --raw-field core_commit="$CORE_COMMIT" \\',
         '  --raw-field pairing_mode="$PAIRING_MODE"',
       ].join('\n'),
@@ -442,6 +445,7 @@ describe('release script contract', () => {
       VERSION: githubExpression('inputs.version'),
       TAG: githubExpression('inputs.tag'),
       RELEASE_SHA: githubExpression('needs.release.outputs.release_sha'),
+      CORE_VERSION: githubExpression('inputs.core_version'),
       CORE_COMMIT: githubExpression('needs.release.outputs.core_commit'),
       PAIRING_MODE: githubExpression('needs.release.outputs.pairing_mode'),
     })
@@ -574,6 +578,10 @@ describe('release script contract', () => {
      * has to be declared: a future reusable caller would otherwise reach the
      * mode guard with an empty value and be refused for the wrong reason.
      */
+    expect(getObject(inputs, 'core_version')).toEqual({
+      required: true,
+      type: 'string',
+    })
     expect(getObject(inputs, 'pairing_mode')).toEqual({
       required: true,
       type: 'string',
@@ -592,6 +600,11 @@ describe('release script contract', () => {
       },
       release_sha: {
         description: 'Immutable release commit SHA',
+        required: true,
+        type: 'string',
+      },
+      core_version: {
+        description: 'Exact published Zeus Core version',
         required: true,
         type: 'string',
       },
