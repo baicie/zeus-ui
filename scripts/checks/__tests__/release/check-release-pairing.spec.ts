@@ -305,7 +305,9 @@ describe('online pairing', () => {
           return coreCommit
         },
         readCoreFile: () => {
-          throw new Error('beta does not require a cross-repository pair record')
+          throw new Error(
+            'beta does not require a cross-repository pair record',
+          )
         },
       }),
     )
