@@ -27,11 +27,11 @@ chosen Core version; independently versioned packages (currently
 
 ## Three release channels
 
-| UI channel | Core tag | Cross-repository pairing record | Rule |
-| --- | --- | --- | --- |
-| Beta | Required at online release time | Not required | Exact published Core pins and real immutable Core tag |
-| RC | Required | Required | Tag and Core pairing record or a valid bootstrap attestation must identify the UI candidate |
-| Stable (`latest`) | Required | Required | Verified pair, no unpaired bootstrap acceptance |
+| UI channel        | Core tag                        | Cross-repository pairing record | Rule                                                                                        |
+| ----------------- | ------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------- |
+| Beta              | Required at online release time | Not required                    | Exact published Core pins and real immutable Core tag                                       |
+| RC                | Required                        | Required                        | Tag and Core pairing record or a valid bootstrap attestation must identify the UI candidate |
+| Stable (`latest`) | Required                        | Required                        | Verified pair, no unpaired bootstrap acceptance                                             |
 
 The **Beta exemption is only from a separate cross-repository pairing
 record**. It is not an exemption from proving the published Core tag exists.
