@@ -23,6 +23,7 @@ import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   CORE_PAIRING_SCHEMA,
+  compareExpectedCoreCommit,
   evaluatePairing,
   evaluateStatic,
   listCorePins,
@@ -334,6 +335,32 @@ describe('online pairing', () => {
       }),
     )
     expect(result.ok).toBe(false)
+  })
+})
+
+describe('publishing dispatch Core commit', () => {
+  const verified = {
+    ok: true,
+    channel: 'beta' as const,
+    coreTag: 'v0.2.0-rc.5',
+    coreCommit: 'd'.repeat(40),
+    errors: [] as string[],
+  }
+
+  it('accepts the commit actually resolved from the Core tag', () => {
+    expect(compareExpectedCoreCommit(verified, 'd'.repeat(40)).ok).toBe(true)
+  })
+
+  it('refuses a valid-looking but mismatched dispatch SHA', () => {
+    const result = compareExpectedCoreCommit(verified, 'a'.repeat(40))
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/does not match publish dispatch/)
+  })
+
+  it('refuses a malformed commit even when the pairing checker passed', () => {
+    const result = compareExpectedCoreCommit(verified, 'abcd')
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/full 40-character SHA/)
   })
 })
 
