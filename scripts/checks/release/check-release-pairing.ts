@@ -310,14 +310,26 @@ export function evaluatePairing(input: OnlinePairingInput): PairingResult {
 
   if (!requirePairing) {
     /*
-     * Beta is the pre-contract channel: no Core tag, no record. Skipping is
-     * correct here and nowhere else, and it is reported rather than silent.
+     * Beta does not need a cross-repository pairing record, but publishing a
+     * consumer requires the Core release itself to be immutable and real.
+     * Resolve the Core tag independently of the UI version and carry its SHA
+     * into the report. The workflow's later verification must not be able to
+     * mistake a pin-only static check for an immutable release binding.
      */
+    const resolveCoreTag = input.resolveCoreTag ?? resolveCoreTagOnGitHub
+    const coreCommit = resolveCoreTag(coreTag)
+    if (coreCommit === undefined || !FULL_SHA.test(coreCommit)) {
+      errors.push(
+        `Core tag ${coreTag} cannot be resolved to a 40-character commit; a beta release must consume an immutable published Core release`,
+      )
+      return { ok: false, channel, coreTag, errors }
+    }
     return {
       ok: errors.length === 0,
       channel,
       coreTag,
-      errors: errors.length === 0 ? [] : errors,
+      coreCommit,
+      errors,
     }
   }
 
