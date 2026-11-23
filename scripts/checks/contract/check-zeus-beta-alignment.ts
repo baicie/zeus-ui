@@ -2,40 +2,33 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import {
+  createExpectedPeerRange,
+  FALLBACK_EXPECTED_ZEUS_VERSION,
+  INDEPENDENT_PACKAGE_VERSIONS,
+  resolveWorkspaceZeusVersion,
+  DEP_FIELDS as SHARED_DEP_FIELDS,
+  ZEUS_SCOPE,
+} from '../../release/zeus-alignment-contract'
 import { listZeusDependencyManifests } from '../../release/zeus-dependency-manifests'
-import { createZeusPeerRequirement } from '../../release/zeus-peer-requirement'
 
 /**
  * The version this workspace should be aligned to, read from the workspace.
  *
- * This used to be the literal `0.1.1-beta.20`. Every time Zeus published, the
- * pin had to be edited here as well, and forgetting it did not fail loudly —
- * the check compared the *new* tree against the *old* version and reported
- * every correct pin as wrong. Measured after moving to 0.2.0-rc.5: 147 pins at
- * the new version, all flagged as misaligned.
+ * This used to be a literal. Every time Zeus published, the pin had to be
+ * edited here too, and forgetting it did not fail loudly — the check compared
+ * the *new* tree against the *old* version and reported every correct pin as
+ * wrong. Measured after moving to 0.2.0-rc.5: 147 pins, all flagged.
  *
  * The workspace is the authority for what it is aligned to. The pins are
  * already required to agree with each other — that is what this check is —
  * so the version they agree on is the version to hold them to. Pass
- * `--version` to assert a specific one instead.
+ * `--version` to assert a specific one instead. `zeus-alignment-contract`
+ * holds the rule so the writing command cannot drift from this one.
  */
-const ZEUS_SCOPE = '@zeus-js/'
-
-/**
- * Only used when the workspace pins no `@zeus-js` dependency at all — an
- * empty tree, or one whose manifests could not be read. Keeping a value here
- * means such a tree is still checked rather than silently passing.
- */
-const FALLBACK_EXPECTED_ZEUS_VERSION = '0.2.0-rc.5'
-const INDEPENDENT_PACKAGE_VERSIONS: Readonly<Record<string, string>> = {
-  '@zeus-js/vite-plugin': '0.0.5',
-}
-
-const DEP_FIELDS = [
-  'dependencies',
-  'devDependencies',
-  'optionalDependencies',
-] as const
+const DEP_FIELDS = SHARED_DEP_FIELDS.filter(
+  field => field !== 'peerDependencies',
+)
 
 const PEER_DEP_FIELDS = ['peerDependencies'] as const
 
@@ -262,72 +255,6 @@ function checkNoLocalWcDtsPatch(options: {
 
 function readPackageJson(file: string): PackageJson {
   return JSON.parse(readFileSync(file, 'utf8')) as PackageJson
-}
-
-/**
- * Reads the version the workspace pins itself to.
- *
- * Only `@zeus-js` dependencies that follow the coordinated line count;
- * `vite-plugin` is exempt and carries its own version. A workspace with no
- * such pins has nothing to check against, so the caller falls back to the
- * recorded baseline rather than guessing.
- */
-export function resolveWorkspaceZeusVersion(files: string[]): string | null {
-  const counts = new Map<string, number>()
-
-  for (const file of files) {
-    let pkg: PackageJson
-
-    try {
-      pkg = readPackageJson(file)
-    } catch {
-      continue
-    }
-
-    for (const field of [...DEP_FIELDS, ...PEER_DEP_FIELDS]) {
-      const deps = pkg[field]
-
-      if (!deps) {
-        continue
-      }
-
-      for (const [name, version] of Object.entries(deps)) {
-        if (!name.startsWith(ZEUS_SCOPE)) {
-          continue
-        }
-
-        if (name in INDEPENDENT_PACKAGE_VERSIONS) {
-          continue
-        }
-
-        if (typeof version !== 'string' || !/^\d+\.\d+\.\d+/.test(version)) {
-          continue
-        }
-
-        counts.set(version, (counts.get(version) ?? 0) + 1)
-      }
-    }
-  }
-
-  let winner: string | null = null
-  let best = 0
-
-  for (const [version, count] of counts) {
-    if (count > best) {
-      best = count
-      winner = version
-    }
-  }
-
-  return winner
-}
-
-function createExpectedPeerRange(version: string): string {
-  if (!/^\d+\.\d+\.\d+/.test(version)) {
-    return `>=${version}`
-  }
-
-  return createZeusPeerRequirement(version)
 }
 
 function slash(value: string): string {
