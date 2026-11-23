@@ -8,41 +8,43 @@ export interface TabsProps extends React.ComponentPropsWithoutRef<'div'> {
   onValueChange?: (value: string) => void
 }
 
-export const Tabs = React.forwardRef<HTMLDivElement, TabsProps>((
-  { defaultValue, value, onValueChange, className, children, ...props },
-  ref,
-) => {
-  const [internalValue, setInternalValue] = React.useState(defaultValue ?? '')
-  const currentValue = value ?? internalValue
+export const Tabs = React.forwardRef<HTMLDivElement, TabsProps>(
+  (
+    { defaultValue, value, onValueChange, className, children, ...props },
+    ref,
+  ) => {
+    const [internalValue, setInternalValue] = React.useState(defaultValue ?? '')
+    const currentValue = value ?? internalValue
 
-  const handleChange = React.useCallback(
-    (v: string) => {
-      if (value === undefined) setInternalValue(v)
-      onValueChange?.(v)
-    },
-    [value, onValueChange],
-  )
+    const handleChange = React.useCallback(
+      (v: string) => {
+        if (value === undefined) setInternalValue(v)
+        onValueChange?.(v)
+      },
+      [value, onValueChange],
+    )
 
-  return (
-    <div ref={ref} className={className} data-value={currentValue} {...props}>
-      {React.Children.map(children, child => {
-        if (React.isValidElement(child)) {
-          return React.cloneElement(
-            child as React.ReactElement<{
-              value?: string
-              onChange?: (v: string) => void
-            }>,
-            {
-              value: currentValue,
-              onChange: handleChange,
-            },
-          )
-        }
-        return child
-      })}
-    </div>
-  )
-})
+    return (
+      <div ref={ref} className={className} data-value={currentValue} {...props}>
+        {React.Children.map(children, child => {
+          if (React.isValidElement(child)) {
+            return React.cloneElement(
+              child as React.ReactElement<{
+                value?: string
+                onChange?: (v: string) => void
+              }>,
+              {
+                value: currentValue,
+                onChange: handleChange,
+              },
+            )
+          }
+          return child
+        })}
+      </div>
+    )
+  },
+)
 
 export interface TabsListProps extends React.ComponentPropsWithoutRef<'div'> {}
 
