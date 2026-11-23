@@ -193,7 +193,9 @@ export function planPairing(
      * cross-repository pair attestation record.
      */
     if (options.online === true && !FULL_SHA.test(identity.coreCommit ?? '')) {
-      errors.push('beta online release requires a verified 40-character Core tag commit')
+      errors.push(
+        'beta online release requires a verified 40-character Core tag commit',
+      )
     }
     return {
       ok: errors.length === 0,
