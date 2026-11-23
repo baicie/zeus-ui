@@ -287,24 +287,42 @@ describe('online pairing', () => {
   })
 
   /*
-   * Beta is the pre-contract channel. It has no Core tag and no record, and
-   * that is the one case where the online half is allowed to be skipped.
+   * Beta skips the cross-repository pairing RECORD, not the Core release
+   * identity. The Core must be an immutable tagged release before its packages
+   * can be used by this publishing consumer.
    */
-  it('skips the Core tag for a beta version', () => {
+  it('requires an immutable Core tag but no pairing record for beta', () => {
+    const coreCommit = 'd'.repeat(40)
     const result = evaluatePairing(
       onlineInput({
         uiVersion: '0.2.0-beta.1',
         uiRoot: uiTree('0.2.0-beta.1'),
-        // The pins are at beta.1, so the Core version this release names is
-        // beta.1. It is its own input; v2 does not derive it from the UI one.
         coreVersion: '0.2.0-beta.1',
-        resolveCoreTag: () => {
-          throw new Error('must not be called for beta')
+        resolveCoreTag: tag => {
+          expect(tag).toBe('v0.2.0-beta.1')
+          return coreCommit
+        },
+        readCoreFile: () => {
+          throw new Error('beta does not require a cross-repository pair record')
         },
       }),
     )
     expect(result.errors).toEqual([])
     expect(result.ok).toBe(true)
+    expect(result.coreCommit).toBe(coreCommit)
+  })
+
+  it('fails closed if the beta Core tag is missing', () => {
+    const result = evaluatePairing(
+      onlineInput({
+        uiVersion: '0.2.0-beta.1',
+        uiRoot: uiTree('0.2.0-beta.1'),
+        coreVersion: '0.2.0-beta.1',
+        resolveCoreTag: () => undefined,
+      }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/Core tag .* cannot be resolved/)
   })
 
   it('still checks the pins for a beta version', () => {
