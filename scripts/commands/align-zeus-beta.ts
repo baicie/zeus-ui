@@ -1,37 +1,25 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
-import { resolveWorkspaceZeusVersion } from '../checks/contract/check-zeus-beta-alignment'
+import {
+  createExpectedPeerRange,
+  FALLBACK_EXPECTED_ZEUS_VERSION,
+  INDEPENDENT_PACKAGE_VERSIONS,
+  resolveWorkspaceZeusVersion,
+  DEP_FIELDS as SHARED_DEP_FIELDS,
+  ZEUS_SCOPE,
+} from '../release/zeus-alignment-contract'
 import { listZeusDependencyManifests } from '../release/zeus-dependency-manifests'
-import { createZeusPeerRequirement } from '../release/zeus-peer-requirement'
 
 /**
- * Only used when the workspace pins no `@zeus-js` dependency at all.
- */
-const DEFAULT_VERSION = '0.2.0-rc.5'
-
-const ZEUS_SCOPE = '@zeus-js/'
-
-/**
- * Packages that carry their own version line and must not follow the
- * `@zeus-js/zeus` release.
+ * Every dependency field the contract covers, minus `peerDependencies`.
  *
- * `check-zeus-beta-alignment.ts` has always known this — it substitutes the
- * same map when it decides whether a pin is correct. This command did not, so
- * aligning to 0.2.0-rc.5 rewrote `@zeus-js/vite-plugin` from its real `0.0.5`
- * to `0.2.0-rc.5`, a version that does not exist. `pnpm install` then failed
- * with ERR_PNPM_NO_MATCHING_VERSION, which is a confusing way to be told the
- * aligner invented a dependency.
+ * Peers are treated differently: their value is a *range* for `@zeus-js/zeus`
+ * and an exact version for everything else.
  */
-const INDEPENDENT_PACKAGE_VERSIONS: Readonly<Record<string, string>> = {
-  '@zeus-js/vite-plugin': '0.0.5',
-}
-
-const DEP_FIELDS = [
-  'dependencies',
-  'devDependencies',
-  'optionalDependencies',
-] as const
+const DEP_FIELDS = SHARED_DEP_FIELDS.filter(
+  field => field !== 'peerDependencies',
+)
 
 const PEER_DEP_FIELDS = ['peerDependencies'] as const
 
@@ -68,7 +56,7 @@ export function alignZeusBeta(
   const version =
     options.version ??
     resolveWorkspaceZeusVersion(packageJsonFiles) ??
-    DEFAULT_VERSION
+    FALLBACK_EXPECTED_ZEUS_VERSION
   const peerRange = createExpectedPeerRange(version)
   const changedFiles: string[] = []
 
@@ -137,28 +125,23 @@ export function alignZeusBeta(
   }
 }
 
-function createExpectedPeerRange(version: string): string {
-  if (!/^\d+\.\d+\.\d+/.test(version)) {
-    return '*'
-  }
-
-  return createZeusPeerRequirement(version)
-}
-
-function parseVersionArg(argv: string[]): string {
-  const version = argv[0]
-
-  if (!version) {
-    return DEFAULT_VERSION
-  }
-
-  return version
+/**
+ * The version named on the command line, or `null` when none was given.
+ *
+ * Returning a default here was the defect: a non-null value meant
+ * `alignZeusBeta` took its `options.version` branch, so
+ * `resolveWorkspaceZeusVersion` never ran and the command aligned to whatever
+ * literal was written here — the previous release, once Zeus published a new
+ * one.
+ */
+function parseVersionArg(argv: string[]): string | null {
+  return argv[0] ?? null
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const version = parseVersionArg(process.argv.slice(2))
   const result = alignZeusBeta({
-    version,
+    ...(version ? { version } : {}),
   })
 
   console.log(`Aligned @zeus-js/* to ${result.version}`)
