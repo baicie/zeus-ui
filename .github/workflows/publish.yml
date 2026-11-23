@@ -153,11 +153,13 @@ jobs:
             --version "$VERSION" \
             --core-version "$CORE_VERSION" \
             --release-sha "$RELEASE_SHA" \
+            --expected-core-commit "$CORE_COMMIT" \
             --online \
             --out "$PAIRING_REPORT"
         env:
           VERSION: ${{ inputs.version }}
           CORE_VERSION: ${{ inputs.core_version }}
+          CORE_COMMIT: ${{ inputs.core_commit }}
           RELEASE_SHA: ${{ inputs.release_sha }}
           GH_TOKEN: ${{ github.token }}
           PAIRING_REPORT: ${{ runner.temp }}/release-pairing.json
