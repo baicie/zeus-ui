@@ -948,12 +948,41 @@ export function writePairingReport(
   return file
 }
 
+/**
+ * The publish dispatch carries a Core SHA. Compare it with the commit just
+ * resolved from the immutable Core tag, never trust the dispatch value as the
+ * source of truth. A syntactically valid but unrelated SHA must fail before
+ * any package is published.
+ */
+export function compareExpectedCoreCommit(
+  result: PairingResult,
+  expectedCommit: string,
+): PairingResult {
+  const errors = [...result.errors]
+  if (!FULL_SHA.test(expectedCommit)) {
+    errors.push('expected Core commit must be a full 40-character SHA')
+  } else if (
+    !result.coreCommit ||
+    result.coreCommit.toLowerCase() !== expectedCommit.toLowerCase()
+  ) {
+    errors.push(
+      `verified Core commit ${result.coreCommit ?? '(missing)'} does not match publish dispatch ${expectedCommit}`,
+    )
+  }
+  return {
+    ...result,
+    ok: result.ok && errors.length === 0,
+    errors,
+  }
+}
+
 function main(): void {
   const { values } = parseArgs({
     options: {
       'ui-root': { type: 'string', default: process.cwd() },
       version: { type: 'string' },
       'core-version': { type: 'string' },
+      'expected-core-commit': { type: 'string' },
       'release-sha': { type: 'string' },
       online: { type: 'boolean', default: false },
       out: { type: 'string' },
@@ -978,8 +1007,14 @@ function main(): void {
     return
   }
 
+  if (values['expected-core-commit'] !== undefined && !values.online) {
+    console.error('--expected-core-commit requires --online')
+    process.exitCode = 2
+    return
+  }
+
   const uiRoot = path.resolve(values['ui-root']!)
-  const result = values.online
+  const evaluated = values.online
     ? evaluatePairing({
         uiRoot,
         uiVersion: values.version,
@@ -995,6 +1030,11 @@ function main(): void {
           ? { coreVersion: values['core-version'] }
           : {}),
       })
+
+  const result =
+    values['expected-core-commit'] === undefined
+      ? evaluated
+      : compareExpectedCoreCommit(evaluated, values['expected-core-commit'])
 
   for (const error of result.errors) console.error(pc.red(error))
 
