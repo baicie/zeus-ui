@@ -65,6 +65,28 @@ export function createPrimitiveRolldownConfig() {
     })
   })
 
+  it('holds the workspace to the version the workspace pins', () => {
+    const root = createTempRoot()
+
+    // No `expectedVersion` passed: the version comes from the tree. Before
+    // this, the check carried a literal `0.1.1-beta.20` and reported every
+    // correct pin at a newer version as misaligned — 147 of them after the
+    // move to 0.2.0-rc.5.
+    writePackage(root, 'package.json', {
+      name: 'zeus-ui-workspace',
+      private: true,
+      devDependencies: {
+        '@zeus-js/zeus': '0.2.0-rc.5',
+        '@zeus-js/runtime-dom': '0.2.0-rc.5',
+      },
+    })
+
+    const result = checkZeusBetaAlignment({ root })
+
+    expect(result.ok).toBe(true)
+    expect(result.expectedVersion).toBe('0.2.0-rc.5')
+  })
+
   it('fails when root @zeus-js dependencies are still beta.5', () => {
     const root = createTempRoot()
 
