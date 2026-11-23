@@ -192,6 +192,34 @@ describe('alignZeusBeta', () => {
     })
   })
 
+  it('leaves independently versioned packages on their own line', () => {
+    const root = createTempRoot()
+
+    writePackage(root, 'package.json', {
+      name: 'zeus-ui-workspace',
+      private: true,
+      devDependencies: {
+        '@zeus-js/zeus': '0.1.1-beta.20',
+        '@zeus-js/vite-plugin': '0.0.5',
+      },
+    })
+
+    alignZeusBeta({
+      root,
+      version: '0.2.0-rc.5',
+    })
+
+    // `@zeus-js/vite-plugin` has its own version line. Rewriting it to the
+    // coordinated version invents a dependency that was never published, and
+    // `pnpm install` then fails on ERR_PNPM_NO_MATCHING_VERSION.
+    expect(readPackage(root, 'package.json')).toMatchObject({
+      devDependencies: {
+        '@zeus-js/zeus': '0.2.0-rc.5',
+        '@zeus-js/vite-plugin': '0.0.5',
+      },
+    })
+  })
+
   it('skips package.json files under dist and node_modules', () => {
     const root = createTempRoot()
 

@@ -7,6 +7,21 @@ import { createZeusPeerRequirement } from '../release/zeus-peer-requirement'
 const DEFAULT_VERSION = '0.1.1-beta.20'
 const ZEUS_SCOPE = '@zeus-js/'
 
+/**
+ * Packages that carry their own version line and must not follow the
+ * `@zeus-js/zeus` release.
+ *
+ * `check-zeus-beta-alignment.ts` has always known this — it substitutes the
+ * same map when it decides whether a pin is correct. This command did not, so
+ * aligning to 0.2.0-rc.5 rewrote `@zeus-js/vite-plugin` from its real `0.0.5`
+ * to `0.2.0-rc.5`, a version that does not exist. `pnpm install` then failed
+ * with ERR_PNPM_NO_MATCHING_VERSION, which is a confusing way to be told the
+ * aligner invented a dependency.
+ */
+const INDEPENDENT_PACKAGE_VERSIONS: Readonly<Record<string, string>> = {
+  '@zeus-js/vite-plugin': '0.0.5',
+}
+
 const DEP_FIELDS = [
   'dependencies',
   'devDependencies',
@@ -62,8 +77,10 @@ export function alignZeusBeta(
           continue
         }
 
-        if (deps[dependencyName] !== version) {
-          deps[dependencyName] = version
+        const expected = INDEPENDENT_PACKAGE_VERSIONS[dependencyName] ?? version
+
+        if (deps[dependencyName] !== expected) {
+          deps[dependencyName] = expected
           changed = true
         }
       }
@@ -82,7 +99,8 @@ export function alignZeusBeta(
         }
 
         const expected =
-          dependencyName === '@zeus-js/zeus' ? peerRange : version
+          INDEPENDENT_PACKAGE_VERSIONS[dependencyName] ??
+          (dependencyName === '@zeus-js/zeus' ? peerRange : version)
 
         if (deps[dependencyName] !== expected) {
           deps[dependencyName] = expected
