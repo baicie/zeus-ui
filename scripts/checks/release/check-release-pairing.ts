@@ -910,12 +910,17 @@ export function buildPairingReport(
      * two version lines differ.
      */
     coreTag: input.result.coreTag ?? input.coreTag ?? null,
-    coreTagCommit: online ? (input.coreTagCommit ?? null) : null,
-    pairTag: input.result.coreTag
-      ? `pair/${input.result.coreTag}`
-      : online && input.coreVersion
-        ? `pair/v${input.coreVersion}`
-        : null,
+    coreTagCommit: online
+      ? (input.coreTagCommit ?? input.result.coreCommit ?? null)
+      : null,
+    pairTag:
+      input.result.channel === 'beta'
+        ? null
+        : input.result.coreTag
+          ? `pair/${input.result.coreTag}`
+          : online && input.coreVersion
+            ? `pair/v${input.coreVersion}`
+            : null,
     pairTagCommit: online ? (input.pairTagCommit ?? null) : null,
     /*
      * Carried on the result by the runner that resolved it. This is the field
