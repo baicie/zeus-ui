@@ -69,7 +69,7 @@
     "docs:build:deps": "pnpm showcase:e2e:deps",
     "docs:ci": "pnpm docs:build:deps && pnpm docs:check && pnpm docs:build",
     "examples:contract": "tsx scripts/checks/examples/check-examples.ts",
-    "examples:check": "pnpm examples:contract && pnpm -F \"@zeus-web/example-*\" --filter=\"!@zeus-web/example-next-app\" --workspace-concurrency=1 check",
+    "examples:check": "pnpm examples:contract && pnpm --filter @zeus-ui/headless build && pnpm -F \"@zeus-web/example-*\" --filter=\"!@zeus-web/example-next-app\" --workspace-concurrency=1 check",
     "examples:build": "pnpm showcase:e2e:deps && pnpm --filter @zeus-web/example-react-showcase exec vite build && pnpm --filter @zeus-web/example-vue-showcase exec vite build && pnpm --filter @zeus-web/example-native-showcase exec vite build && pnpm --filter @zeus-web/example-advanced-showcase exec vite build",
     "showcase:react": "pnpm --filter @zeus-web/example-react-showcase dev",
     "showcase:vue": "pnpm --filter @zeus-web/example-vue-showcase dev",

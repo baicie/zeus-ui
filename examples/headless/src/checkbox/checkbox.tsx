@@ -10,7 +10,7 @@ export interface CheckboxProps {
   disabled?: boolean
 }
 
-interface CheckboxEmits {
+type CheckboxEmits = {
   checkedChange: EventDefinition<{ checked: boolean }>
 }
 

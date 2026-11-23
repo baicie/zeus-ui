@@ -9,7 +9,7 @@ export interface SwitchProps {
   disabled?: boolean
 }
 
-interface SwitchEmits {
+type SwitchEmits = {
   checkedChange: EventDefinition<{ checked: boolean }>
 }
 

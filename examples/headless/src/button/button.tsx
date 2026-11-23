@@ -14,7 +14,7 @@ export interface ButtonProps {
   disabled?: boolean
 }
 
-interface ButtonEmits {
+type ButtonEmits = {
   press: EventDefinition<{ nativeEvent: MouseEvent }>
 }
 

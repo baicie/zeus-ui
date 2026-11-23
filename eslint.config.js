@@ -122,6 +122,26 @@ export default defineConfig(
     },
   },
 
+  // The `*Emits` shapes are type aliases, not interfaces, on purpose.
+  // `DefineElementContext<Host, E>` constrains `E extends EmitsOptions`, and
+  // `EmitsOptions` is `{ [key: string]: EventDefinition<unknown> }`. A type
+  // alias gets an implicit index signature and satisfies that constraint; an
+  // interface does not, so `tsc` rejects `interface ButtonEmits { press: ... }`
+  // with TS2344. This is the same reason upstream `zeus/examples/headless`
+  // declares them as `type`. Keep the antfu default off these four files or
+  // `eslint --fix` will silently turn them into interfaces and break the build.
+  {
+    files: [
+      'examples/headless/src/button/button.tsx',
+      'examples/headless/src/checkbox/checkbox.tsx',
+      'examples/headless/src/input/input.tsx',
+      'examples/headless/src/switch/switch.tsx',
+    ],
+    rules: {
+      'ts/consistent-type-definitions': 'off',
+    },
+  },
+
   // Let ESLint format TypeScript files via @stylistic instead of Prettier
   {
     files: ['**/*.ts', '**/*.tsx'],

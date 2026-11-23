@@ -13,7 +13,7 @@ export interface InputProps {
   formatter?: (value: string) => string
 }
 
-interface InputEmits {
+type InputEmits = {
   valueChange: EventDefinition<{ value: string; nativeEvent: Event }>
   focusChange: EventDefinition<{ focused: boolean; nativeEvent: FocusEvent }>
 }
