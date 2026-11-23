@@ -15,6 +15,7 @@ import {
   revalidateReleaseTagScript,
   SETUP_NODE_ACTION_REF,
   shellVariable,
+  staticPairingCommand,
   UPLOAD_ARTIFACT_ACTION_REF,
 } from '../release/check-release-workflows'
 
@@ -201,6 +202,7 @@ describe('release script contract', () => {
     const workflowDispatch = getObject(triggers, 'workflow_dispatch')
     const inputs = getObject(workflowDispatch, 'inputs')
     const versionInput = getObject(inputs, 'version')
+    const coreVersionInput = getObject(inputs, 'core_version')
     const tagInput = getObject(inputs, 'tag')
     const dryRunInput = getObject(inputs, 'dry_run')
     const concurrency = getObject(workflow, 'concurrency')
@@ -239,6 +241,10 @@ describe('release script contract', () => {
     const dryRunRevision = getNamedStep(dryRunJob, 'Verify dispatch revision')
     const revision = getNamedStep(release, 'Verify dispatch revision')
     const dryRun = getNamedStep(dryRunJob, 'Dry-run release')
+    const dryRunPairing = getNamedStep(
+      dryRunJob,
+      'Verify Core version alignment (static)',
+    )
     const realRelease = getNamedStep(release, 'Verify prepared release')
     const tagRelease = getNamedStep(release, 'Tag release')
     const pairingStep = getNamedStep(
@@ -270,6 +276,12 @@ describe('release script contract', () => {
     expect(versionInput).toEqual({
       description:
         'Release version, for example 0.1.0-beta.0, 0.2.0-rc.0 or 0.2.0',
+      required: true,
+      type: 'string',
+    })
+    expect(coreVersionInput).toEqual({
+      description:
+        'The Zeus Core version this UI release was verified against, for example 0.2.0-rc.5. Required, and never derived from version.',
       required: true,
       type: 'string',
     })
@@ -314,6 +326,7 @@ describe('release script contract', () => {
     expect(getObject(dryRunJob, 'env')).toEqual({
       PUPPETEER_SKIP_DOWNLOAD: 'true',
       VERSION: githubExpression('inputs.version'),
+      CORE_VERSION: githubExpression('inputs.core_version'),
       TAG: githubExpression('inputs.tag'),
     })
     expect(getActionRefs(dryRunJob)).toEqual(RELEASE_ACTION_REFS)
@@ -325,6 +338,7 @@ describe('release script contract', () => {
     expect(dryRunRevision.run).toBe(
       'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
     )
+    expect(String(dryRunPairing.run).trim()).toBe(staticPairingCommand())
     expect(String(dryRun.run).trim()).toBe(
       'pnpm release "$VERSION" --tag "$TAG" --dry',
     )
@@ -459,6 +473,7 @@ describe('release script contract', () => {
       PNPM_SETUP_ACTION_REF,
       SETUP_NODE_ACTION_REF,
       'pnpm install --frozen-lockfile',
+      'Verify Core version alignment (static)',
       'Dry-run release',
     ])
     expect(getStepOrder(release)).toEqual([
@@ -486,6 +501,7 @@ describe('release script contract', () => {
     expect(getRunCommands(dryRunJob)).toEqual([
       'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
       'pnpm install --frozen-lockfile',
+      staticPairingCommand(),
       'pnpm release "$VERSION" --tag "$TAG" --dry',
     ])
     expect(getRunCommands(release)).toEqual([
