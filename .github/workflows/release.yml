@@ -79,6 +79,7 @@ jobs:
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
       VERSION: ${{ inputs.version }}
+      CORE_VERSION: ${{ inputs.core_version }}
       TAG: ${{ inputs.tag }}
 
     steps:
@@ -100,6 +101,16 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - run: pnpm install --frozen-lockfile
+
+      # Fail on a mismatched Core/UI dependency tree in the read-only
+      # rehearsal, before an operator has any reason to create an immutable tag.
+      # This checks local pins only; online Core tag and pair verification
+      # remains mandatory in the publishing path.
+      - name: Verify Core version alignment (static)
+        run: |
+          pnpm exec tsx scripts/checks/release/check-release-pairing.ts \
+            --version "$VERSION" \
+            --core-version "$CORE_VERSION"
 
       - name: Dry-run release
         run: |
