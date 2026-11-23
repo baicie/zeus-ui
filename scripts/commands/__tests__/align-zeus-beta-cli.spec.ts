@@ -15,12 +15,22 @@
  */
 import { spawnSync } from 'node:child_process'
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-const CLI = resolve(__dirname, '../align-zeus-beta.ts')
+const require = createRequire(import.meta.url)
+const TSX_CLI = require.resolve('tsx/cli')
+// `import.meta.url` rather than the injected `__dirname`: this package is
+// `"type": "module"`, and the URL form is what Node documents for ESM. It also
+// yields a file-URL-derived absolute path on every platform.
+const CLI = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  '../align-zeus-beta.ts',
+)
 
 const tempRoots: string[] = []
 
@@ -61,12 +71,29 @@ function writeWorkspace(root: string): void {
   )
 }
 
+/**
+ * Runs the CLI as a real child process, without a shell and without `npx`.
+ *
+ * `spawnSync('npx', …)` works on POSIX and fails on Windows: `npx` there is
+ * `npx.cmd`, and Node cannot execute a `.cmd` without `shell: true`. The
+ * process never starts, so `status` is `null`, `stdout`/`stderr` are
+ * `undefined`, and the test reports `CLI exited null` — an error that says
+ * nothing about the aligner.
+ *
+ * Resolving `tsx`'s own entry and running it under the current Node binary
+ * avoids the whole class: no shell, no `.cmd` shim, no PATH lookup, identical
+ * argv on every platform. `process.execPath` is the Node that is already
+ * running the tests, so the CLI is exercised on the same runtime.
+ */
 function runCli(root: string, args: string[]): string {
-  const result = spawnSync('npx', ['tsx', CLI, ...args], {
+  const result = spawnSync(process.execPath, [TSX_CLI, CLI, ...args], {
     cwd: root,
     encoding: 'utf8',
-    env: { ...process.env, npm_config_yes: 'true' },
   })
+
+  if (result.error) {
+    throw new Error(`failed to start CLI: ${result.error.message}`)
+  }
 
   if (result.status !== 0) {
     throw new Error(
