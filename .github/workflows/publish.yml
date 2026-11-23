@@ -12,6 +12,9 @@ on:
       release_sha:
         required: true
         type: string
+      core_version:
+        required: true
+        type: string
       core_commit:
         required: true
         type: string
@@ -37,6 +40,10 @@ on:
           - latest
       release_sha:
         description: Immutable release commit SHA
+        required: true
+        type: string
+      core_version:
+        description: Exact published Zeus Core version
         required: true
         type: string
       core_commit:
@@ -144,11 +151,13 @@ jobs:
         run: |
           pnpm exec tsx scripts/checks/release/check-release-pairing.ts \
             --version "$VERSION" \
+            --core-version "$CORE_VERSION" \
             --release-sha "$RELEASE_SHA" \
             --online \
             --out "$PAIRING_REPORT"
         env:
           VERSION: ${{ inputs.version }}
+          CORE_VERSION: ${{ inputs.core_version }}
           RELEASE_SHA: ${{ inputs.release_sha }}
           GH_TOKEN: ${{ github.token }}
           PAIRING_REPORT: ${{ runner.temp }}/release-pairing.json
