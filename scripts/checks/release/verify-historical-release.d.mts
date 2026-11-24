@@ -39,9 +39,12 @@ export interface HistoricalReleaseReport {
 
 export interface VerificationDependencies {
   fetchJson?: (url: string) => Promise<{ status: number, body: unknown }>
-  downloadAndHash?: (
-    url: string,
-  ) => Promise<{ ok: boolean, status?: number, sha512?: string, bytes?: number }>
+  downloadAndHash?: (url: string) => Promise<{
+    ok: boolean
+    status?: number
+    sha512?: string
+    bytes?: number
+  }>
 }
 
 export declare function parseArgs(args: string[]): Record<string, string>

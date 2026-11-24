@@ -18,11 +18,15 @@ import { pathToFileURL } from 'node:url'
 import { parse } from 'yaml'
 
 /** Commands that would turn a verification run into a publish run. */
-export const FORBIDDEN_COMMAND
-  = /\b(?:npm|pnpm)\s+(?:publish|dist-tag|unpublish)\b|\bnpm\s+(?:deprecate|owner|access)\b/
+export const FORBIDDEN_COMMAND =
+  /\b(?:npm|pnpm)\s+(?:publish|dist-tag|unpublish)\b|\bnpm\s+(?:deprecate|owner|access)\b/
 
 /** Secrets a verification workflow has no business reading. */
-export const FORBIDDEN_SECRETS = ['NPM_PUBLISH_TOKEN', 'NODE_AUTH_TOKEN', 'NPM_TOKEN']
+export const FORBIDDEN_SECRETS = [
+  'NPM_PUBLISH_TOKEN',
+  'NODE_AUTH_TOKEN',
+  'NPM_TOKEN',
+]
 
 /** Removes shell comments so prose cannot trip a command check. */
 export function stripShellComments(script) {
@@ -47,7 +51,9 @@ export function findPublishOffences(workflow) {
       const run = typeof step.run === 'string' ? step.run : ''
 
       if (FORBIDDEN_COMMAND.test(stripShellComments(run))) {
-        offenders.push(`${jobName} / ${label}: contains a publish, dist-tag or unpublish command`)
+        offenders.push(
+          `${jobName} / ${label}: contains a publish, dist-tag or unpublish command`,
+        )
       }
 
       const env = JSON.stringify(step.env ?? {})
@@ -70,7 +76,9 @@ export function findPermissionOffences(workflow) {
     if (!permissions || typeof permissions !== 'object') return
 
     if (permissions.contents === 'write') {
-      offences.push(`${scope}: contents is write, but verification must be read-only`)
+      offences.push(
+        `${scope}: contents is write, but verification must be read-only`,
+      )
     }
   }
 
@@ -87,13 +95,13 @@ export function checkVerifyWorkflow(file) {
   const source = readFileSync(file, 'utf8')
   const workflow = parse(source)
 
-  return [
-    ...findPublishOffences(workflow),
-    ...findPermissionOffences(workflow),
-  ]
+  return [...findPublishOffences(workflow), ...findPermissionOffences(workflow)]
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   const file = resolve(
     process.argv[2] ?? '.github/workflows/verify-published-release.yml',
   )
@@ -105,5 +113,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     process.exit(1)
   }
 
-  console.log(`${file} cannot publish: no publish commands, no publish tokens, read-only`)
+  console.log(
+    `${file} cannot publish: no publish commands, no publish tokens, read-only`,
+  )
 }

@@ -33,7 +33,16 @@
  */
 import { Buffer } from 'node:buffer'
 import { createHash } from 'node:crypto'
-import { createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import {
+  createWriteStream,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pipeline } from 'node:stream/promises'
@@ -84,9 +93,10 @@ export function readTargetPackages(targetRoot) {
   const packages = []
   const roots = ['packages']
 
-  const walk = (directory) => {
+  const walk = directory => {
     for (const entry of readdirSync(directory)) {
-      if (entry === 'node_modules' || entry === 'dist' || entry.startsWith('.')) continue
+      if (entry === 'node_modules' || entry === 'dist' || entry.startsWith('.'))
+        continue
 
       const path = join(directory, entry)
       const stats = statSync(path)
@@ -101,7 +111,8 @@ export function readTargetPackages(targetRoot) {
       try {
         const manifest = JSON.parse(readFileSync(path, 'utf8'))
 
-        if (!manifest.name?.startsWith('@zeus-web/') || manifest.private) continue
+        if (!manifest.name?.startsWith('@zeus-web/') || manifest.private)
+          continue
 
         packages.push({
           name: manifest.name,
@@ -164,7 +175,10 @@ function sha512Hex(base64Digest) {
 async function downloadAndHash(url) {
   const directory = join(tmpdir(), 'zeus-historical-tarball')
   mkdirSync(directory, { recursive: true })
-  const file = join(directory, `${createHash('sha1').update(url).digest('hex')}.tgz`)
+  const file = join(
+    directory,
+    `${createHash('sha1').update(url).digest('hex')}.tgz`,
+  )
 
   try {
     const response = await fetch(url, {
@@ -179,7 +193,11 @@ async function downloadAndHash(url) {
     const hash = createHash('sha512')
     hash.update(readFileSync(file))
 
-    return { ok: true, sha512: hash.digest('hex'), bytes: readFileSync(file).length }
+    return {
+      ok: true,
+      sha512: hash.digest('hex'),
+      bytes: readFileSync(file).length,
+    }
   } finally {
     rmSync(file, { force: true })
   }
@@ -194,11 +212,15 @@ async function downloadAndHash(url) {
 export async function verifyHistoricalRelease(options, deps = {}) {
   const fetchJsonImpl = deps.fetchJson ?? fetchJson
   const downloadAndHashImpl = deps.downloadAndHash ?? downloadAndHash
-  const registry = options.registry.endsWith('/') ? options.registry : `${options.registry}/`
+  const registry = options.registry.endsWith('/')
+    ? options.registry
+    : `${options.registry}/`
   const target = readTargetPackages(options.target)
 
   /** @type {Record<string, {status: ItemStatus, detail: string, failures: string[]}>} */
-  const items = Object.fromEntries(ITEMS.map(item => [item, { status: 'PASS', detail: '', failures: [] }]))
+  const items = Object.fromEntries(
+    ITEMS.map(item => [item, { status: 'PASS', detail: '', failures: [] }]),
+  )
 
   const fail = (item, message) => {
     items[item].status = 'FAIL'
@@ -213,7 +235,10 @@ export async function verifyHistoricalRelease(options, deps = {}) {
     const response = await fetchJsonImpl(url)
 
     if (response.status === 404 || !response.body) {
-      fail('VERSION_AVAILABILITY', `${pkg.name}: registry has no package (HTTP ${response.status})`)
+      fail(
+        'VERSION_AVAILABILITY',
+        `${pkg.name}: registry has no package (HTTP ${response.status})`,
+      )
       continue
     }
 
@@ -233,42 +258,73 @@ export async function verifyHistoricalRelease(options, deps = {}) {
     const integrity = entry.dist?.integrity
 
     if (!tarball || !integrity) {
-      fail('PACKAGE_INTEGRITY', `${pkg.name}: dist.tarball or dist.integrity is missing`)
-    } else if (typeof integrity === 'string' && integrity.startsWith('sha512-')) {
+      fail(
+        'PACKAGE_INTEGRITY',
+        `${pkg.name}: dist.tarball or dist.integrity is missing`,
+      )
+    } else if (
+      typeof integrity === 'string' &&
+      integrity.startsWith('sha512-')
+    ) {
       const downloaded = await downloadAndHashImpl(tarball)
 
       if (!downloaded.ok) {
-        fail('PACKAGE_INTEGRITY', `${pkg.name}: tarball download failed (HTTP ${downloaded.status})`)
-      } else if (downloaded.sha512 !== sha512Hex(integrity.slice('sha512-'.length))) {
-        fail('PACKAGE_INTEGRITY', `${pkg.name}: tarball sha512 does not match dist.integrity`)
+        fail(
+          'PACKAGE_INTEGRITY',
+          `${pkg.name}: tarball download failed (HTTP ${downloaded.status})`,
+        )
+      } else if (
+        downloaded.sha512 !== sha512Hex(integrity.slice('sha512-'.length))
+      ) {
+        fail(
+          'PACKAGE_INTEGRITY',
+          `${pkg.name}: tarball sha512 does not match dist.integrity`,
+        )
       }
     }
 
     // DEPENDENCY_CONTRACT: every internal dependency must point at a version
     // that exists. A published package naming a sibling that is not on the
     // registry is the failure mode the publish order exists to prevent.
-    for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
+    for (const field of [
+      'dependencies',
+      'peerDependencies',
+      'optionalDependencies',
+    ]) {
       for (const [name, range] of Object.entries(pkg[field] ?? {})) {
-        if (!name.startsWith('@zeus-web/') && !name.startsWith('@zeus-js/')) continue
+        if (!name.startsWith('@zeus-web/') && !name.startsWith('@zeus-js/'))
+          continue
 
         const targetUrl = `${registry}${encodeURIComponent(name)}`
         const targetResponse = await fetchJsonImpl(targetUrl)
 
         if (!targetResponse.body) {
-          fail('DEPENDENCY_CONTRACT', `${pkg.name} -> ${name}: dependency package is not on the registry`)
+          fail(
+            'DEPENDENCY_CONTRACT',
+            `${pkg.name} -> ${name}: dependency package is not on the registry`,
+          )
           continue
         }
 
-        const wanted = String(range).replace(/^[\^~>=<\s]+/, '').split(' ')[0]
+        const wanted = String(range)
+          .replace(/^[\^~>=<\s]+/, '')
+          .split(' ')[0]
         const available = Object.keys(targetResponse.body.versions ?? {})
 
         dependencies.push(`${pkg.name} -> ${name}@${wanted}`)
 
-        if (wanted && !available.includes(wanted) && !String(range).includes('workspace:')) {
+        if (
+          wanted &&
+          !available.includes(wanted) &&
+          !String(range).includes('workspace:')
+        ) {
           // A range rather than an exact pin is allowed; an exact pin naming a
           // missing version is not.
           if (!/^[~^]/.test(String(range))) {
-            fail('DEPENDENCY_CONTRACT', `${pkg.name} -> ${name}@${wanted}: that version is not published`)
+            fail(
+              'DEPENDENCY_CONTRACT',
+              `${pkg.name} -> ${name}@${wanted}: that version is not published`,
+            )
           }
         }
       }
@@ -279,7 +335,10 @@ export async function verifyHistoricalRelease(options, deps = {}) {
     const observed = distTags[options.tag]
 
     if (observed !== options.version) {
-      fail('BETA_DIST_TAG', `${pkg.name}: dist-tag ${options.tag} points at ${observed ?? 'nothing'}`)
+      fail(
+        'BETA_DIST_TAG',
+        `${pkg.name}: dist-tag ${options.tag} points at ${observed ?? 'nothing'}`,
+      )
     }
 
     // PROVENANCE: presence and shape. Verifying the Sigstore chain is what
@@ -301,17 +360,19 @@ export async function verifyHistoricalRelease(options, deps = {}) {
   // HISTORICAL_LATEST_BASELINE can only be supplied by the original run.
   if (options.baselineFound !== 'true') {
     items.HISTORICAL_LATEST_BASELINE.status = 'UNKNOWN'
-    items.HISTORICAL_LATEST_BASELINE.detail
-      = 'The original publish run carries no latest-baseline artifact. The pre-release latest values cannot be recovered, and deriving them from the post-release registry would compare the release with itself.'
+    items.HISTORICAL_LATEST_BASELINE.detail =
+      'The original publish run carries no latest-baseline artifact. The pre-release latest values cannot be recovered, and deriving them from the post-release registry would compare the release with itself.'
   } else {
-    items.HISTORICAL_LATEST_BASELINE.detail = 'Compared against the baseline recorded by the original publish run.'
+    items.HISTORICAL_LATEST_BASELINE.detail =
+      'Compared against the baseline recorded by the original publish run.'
   }
 
   items.VERSION_AVAILABILITY.detail = `${availability.length}/${target.length} packages expose ${options.version}`
   items.PACKAGE_INTEGRITY.detail = `${availability.length} tarballs checked against dist.integrity`
   items.DEPENDENCY_CONTRACT.detail = `${dependencies.length} internal dependency edges resolved`
   items.BETA_DIST_TAG.detail = `dist-tag ${options.tag} === ${options.version}`
-  items.PROVENANCE.detail = 'SLSA v1 attestation present on every published package'
+  items.PROVENANCE.detail =
+    'SLSA v1 attestation present on every published package'
 
   /*
    * A full PASS requires every item to pass *and* the baseline to be present.
@@ -339,7 +400,10 @@ export async function verifyHistoricalRelease(options, deps = {}) {
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   const options = parseArgs(process.argv.slice(2))
   const out = process.argv.includes('--out')
     ? process.argv[process.argv.indexOf('--out') + 1]
@@ -348,20 +412,24 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   verifyHistoricalRelease({
     ...options,
     baselineFound: options['baseline-found'] ?? 'false',
-  }).then((report) => {
-    if (out) writeFileSync(resolve(out), `${JSON.stringify(report, null, 2)}\n`)
-
-    for (const item of ITEMS) {
-      const entry = report.items[item]
-      console.log(`${entry.status.padEnd(7)} ${item}  ${entry.detail}`)
-
-      for (const failure of entry.failures) console.error(`        ${failure}`)
-    }
-
-    console.log(`verdict: ${report.verdict}`)
-    process.exit(report.verdict === 'PASS' ? 0 : 1)
-  }).catch((error) => {
-    console.error(error)
-    process.exit(1)
   })
+    .then(report => {
+      if (out)
+        writeFileSync(resolve(out), `${JSON.stringify(report, null, 2)}\n`)
+
+      for (const item of ITEMS) {
+        const entry = report.items[item]
+        console.log(`${entry.status.padEnd(7)} ${item}  ${entry.detail}`)
+
+        for (const failure of entry.failures)
+          console.error(`        ${failure}`)
+      }
+
+      console.log(`verdict: ${report.verdict}`)
+      process.exit(report.verdict === 'PASS' ? 0 : 1)
+    })
+    .catch(error => {
+      console.error(error)
+      process.exit(1)
+    })
 }
