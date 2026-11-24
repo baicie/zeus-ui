@@ -1,75 +1,85 @@
-# Release pairing records
+# Zeus Core / UI release pairing
 
-This directory is **retired**. It is kept as a pointer, not as a record store.
+The UI repository **does not keep its own pairing record**. This directory
+remains only as an explanation of the historical protocol. Do not add JSON
+records here.
 
-## What changed
+## Two independent version identities
 
-Zeus UI used to keep its own pairing record here, naming both the Core commit
-and **its own** commit. That last field made the protocol impossible to
-satisfy:
+Zeus Core publishes `@zeus-js/*` and Zeus UI publishes `@zeus-web/*`.
+Their SemVer version strings **do not need to be equal**. For example, the UI
+release candidate `0.1.0-beta.35` targets published Core
+`0.2.0-rc.5`. The binding is the precise Core version recorded in the UI
+package dependency pins, not equality of the two package version strings.
 
-- writing a commit's SHA into a file changes that commit's SHA, so the record
-  could only ever be correct for a commit that is not the one carrying it;
-- the previous README told maintainers to amend repeatedly "until the record
-  names the commit it is committed in", which never converges — it is a fixed
-  point problem with no fixed point;
-- across the two repositories the references formed a cycle: Core named UI, UI
-  named Core, and neither could be finalised first.
+A release must name both identities:
 
-## The protocol now
+- `version` / `uiVersion`: the UI package version and its npm dist-tag.
+- `core_version` / `coreVersion`: the exact **published Core version**
+  used to build, test and typecheck the UI workspace.
+- `uiCommit`: the UI release revision, which must be on the UI main branch.
+- `coreCommit`: the revision obtained **from Core's immutable tag**, never
+  a free-form SHA supplied in place of verifying the tag.
 
-**Core is the anchor, and the dependency is one-way.** The authoritative record
-lives in the Core repository at `release-pairing/v<version>.json`:
+Every coordinated `@zeus-js/*` dependency and peer constraint must match the
+chosen Core version; independently versioned packages (currently
+`@zeus-js/vite-plugin@0.0.5`) retain their own version.
 
-```json
-{
-  "schema": "zeus.release-pairing/v1",
-  "coreVersion": "0.2.0-rc.0",
-  "uiCommit": "<the UI candidate commit>",
-  "uiVersion": "0.2.0-rc.0",
-  "verifiedAt": "2026-11-16T00:00:00.000Z",
-  "firstPublish": ["@zeus-js/i18n"]
-}
-```
+## Three release channels
 
-### Order of operations
+| UI channel        | Core tag                        | Cross-repository pairing record | Rule                                                                                        |
+| ----------------- | ------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------- |
+| Beta              | Required at online release time | Not required                    | Exact published Core pins and real immutable Core tag                                       |
+| RC                | Required                        | Required                        | Tag and Core pairing record or a valid bootstrap attestation must identify the UI candidate |
+| Stable (`latest`) | Required                        | Required                        | Verified pair, no unpaired bootstrap acceptance                                             |
 
-1. **Commit and push the UI release candidate.** Its SHA is whatever git
-   computed. Nothing needs to know it in advance, and nothing in the UI tree
-   records it.
-2. **Core commits the record naming that SHA**, and Core is tagged. The record
-   is then in the tagged tree, so it cannot change without changing what the tag
-   points at.
-3. **The UI release reads Core's tag**, resolves it to a commit, reads the
-   record from _that_ commit, and requires its own release SHA to equal the
-   `uiCommit` the record names.
+The **Beta exemption is only from a separate cross-repository pairing
+record**. It is not an exemption from proving the published Core tag exists.
+The online check resolves `v<coreVersion>` and captures its commit, while
+the offline checks verify the package pins.
 
-At no point does either repository need to know a SHA that does not exist yet.
+The Core release tag's own immutable pairing record is stored in
+`meta/release/pairing/v<coreVersion>.json` in current Core releases. Some
+historical tags have it at `release-pairing/v<coreVersion>.json`; these
+must remain readable because protected tags cannot be rewritten. An
+unpaired Core bootstrap record (`uiCommit: null`) requires a later
+`pair/v<coreVersion>` attestation before an RC UI release can claim a pair.
 
-### Where the check lives
+## Safe release sequence (operator checklist)
 
-`scripts/checks/release/check-release-pairing.ts` in this repository, in two
-halves:
+1. Complete Core publication and confirm all referenced versions exist on
+   npm. Inspect the immutable `v<coreVersion>` tag and its commit.
+2. Commit the UI candidate and verify exact `@zeus-js/*` pins, lockfile,
+   package exports, peer ranges, tests and the actual consumer build.
+3. For RC/stable, establish and verify the required Core record or protected
+   pairing attestation that names this UI commit. Beta needs the Core tag
+   but no separate pairing record.
+4. On **UI main**, run a read-only release dry-run with explicit UI version,
+   Core version and dist-tag; inspect the generated reports and failures.
+5. Only with explicit approval, run the publishing release workflow. It must
+   validate pairing **before** creating UI's immutable release tag.
+6. The publish workflow independently re-resolves the Core tag and compares
+   its commit with the dispatch value **before** touching npm. A wrong or
+   missing version, SHA, dist-tag, record, or permission is a hard refusal.
 
-| Mode                                         | Runs             | Checks                                                        | Network |
-| -------------------------------------------- | ---------------- | ------------------------------------------------------------- | ------- |
-| `--version <v>` (static)                     | UI pull requests | version line, `@zeus-js/*` pins, channel                      | no      |
-| `--version <v> --online --release-sha <sha>` | UI release       | the above, plus Core's tag, Core's record, the SHA comparison | yes     |
+Do not manually cut a UI release tag before prerequisites have passed.
+Protected tags cannot safely be moved or reused, and npm versions cannot be
+overwritten to repair a half-published release. Advance to a new candidate
+version when recovery requires new immutable identities.
 
-The split exists so a UI pull request is not blocked by a Core tag that does not
-exist until after the Core release — which is after the PR merges. Requiring the
-tag in the static half would deadlock every UI PR permanently.
+## What an acceptance report proves
 
-### Failure behaviour
+A passing static pairing check proves only that the declared version and
+package pins are internally consistent. An online Beta check additionally
+resolves the immutable published Core tag. An online RC/stable check also
+verifies the necessary cross-repository pairing record and UI revision.
 
-A missing Core tag, an unreadable record, a malformed record, a record naming a
-different UI commit, and an unreachable GitHub all fail the release. None of
-them degrades to a pass. `beta` is the only channel that skips the online half,
-because it is the pre-contract channel and has no Core tag by design.
+None of these checks prove that the UI works at runtime. The independent
+Core + UI published-package consumer and browser acceptance live in
+[`baicie/zeus-ecosystem`](https://github.com/baicie/zeus-ecosystem).
+Release readiness must not be confused with full consumer compatibility.
 
-## Why the directory still exists
-
-Nothing reads it. It is kept so the next person who looks for the record finds
-this explanation instead of an empty directory — and so a stray file added here
-in future is caught by the UI check, which no longer accepts records from this
-repository.
+For the implementation, see
+`scripts/release/release-protocol.ts`,
+`scripts/checks/release/check-release-pairing.ts`,
+`.github/workflows/release.yml` and `.github/workflows/publish.yml`.
