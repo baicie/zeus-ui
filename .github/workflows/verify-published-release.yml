@@ -1,0 +1,235 @@
+# Read-only re-verification of a published release.
+#
+# ## Why this exists
+#
+# beta.35 published all 46 packages, then failed `Verify published packages`
+# because the registry had not finished propagating. The packages were fine;
+# the run was red. The only way to make the check green was to re-run the whole
+# publish workflow, which means the verification step could not be repeated
+# without also re-entering the publish path.
+#
+# This workflow separates the two. It answers one question — "is the release
+# that npm serves the release we intended?" — and it is structurally unable to
+# do anything else:
+#
+# - no `NPM_PUBLISH_TOKEN`: the only secret needed is `GITHUB_TOKEN`, which is
+#   read-only here;
+# - `permissions: contents: read`: it cannot create, move or delete a tag;
+# - no `npm publish`, `npm dist-tag`, `npm unpublish` anywhere in the file;
+# - it never checks out to write; everything it produces is an artifact.
+#
+# ## Inputs
+#
+# The original publish run ID and its latest-baseline artifact are inputs on
+# purpose. Re-deriving the baseline from the post-release registry would make
+# the check compare the release against itself — it would "pass" no matter
+# what had been published. When the original baseline is unavailable the run
+# must say so, not invent one.
+name: Verify Published Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Released version to verify, for example 0.1.0-beta.35'
+        required: true
+        type: string
+      tag:
+        description: npm dist-tag that must point at this version
+        required: true
+        default: beta
+        type: choice
+        options:
+          - beta
+          - rc
+          - latest
+      release_sha:
+        description: The 40-character commit the release tag points at
+        required: true
+        type: string
+      publish_run_id:
+        description: The publish workflow run that produced the release, used to locate the original latest-baseline artifact
+        required: true
+        type: string
+      baseline_artifact:
+        description: Name of the latest-baseline artifact on that run
+        required: true
+        default: ui-publish-latest-baseline
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-published-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+
+    steps:
+      # This workflow must never publish, so it checks out the tag it is
+      # verifying and nothing else. A tag, not a branch: the tree has to be the
+      # one that produced the artifacts.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: refs/tags/v${{ inputs.version }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      # The guard is the point of the workflow: a future edit that adds a
+      # publish command should fail here, before it can reach npm.
+      #
+      # It parses the workflow and inspects only step `run` bodies. A grep over
+      # the whole file was the first attempt and was useless: it matched the
+      # comment above describing what must not happen, and the
+      # `release:verify:published` script name.
+      - name: Assert this workflow cannot publish
+        run: |
+          node -e '
+            const { readFileSync } = require("node:fs")
+            const { parse } = require("yaml")
+
+            const workflow = parse(readFileSync(".github/workflows/verify-published-release.yml", "utf8"))
+            const forbidden = /\b(npm|pnpm)\s+(publish|dist-tag|unpublish)\b|\bnpm\s+(deprecate|owner|access)\b/
+            const offenders = []
+
+            for (const [jobName, job] of Object.entries(workflow.jobs ?? {})) {
+              for (const step of job.steps ?? []) {
+                const run = typeof step.run === "string" ? step.run : ""
+                // Shell comments describe what must not happen; they are not
+                // commands. Stripping them is what makes this check usable.
+                const commands = run
+                  .split("\n")
+                  .map(line => line.replace(/(^|\s)#.*$/, ""))
+                  .join("\n")
+                if (forbidden.test(commands)) offenders.push(`${jobName} / ${step.name ?? "unnamed"}`)
+                // A verification workflow has no business holding a publish token.
+                for (const key of ["NPM_PUBLISH_TOKEN", "NODE_AUTH_TOKEN", "NPM_TOKEN"]) {
+                  if (JSON.stringify(step.env ?? {}).includes(`secrets.${key}`)) {
+                    offenders.push(`${jobName} / ${step.name ?? "unnamed"} reads secrets.${key}`)
+                  }
+                }
+              }
+            }
+
+            if (offenders.length > 0) {
+              console.error("::error::verify-published-release.yml must not publish: " + offenders.join(", "))
+              process.exit(1)
+            }
+            console.log("no publish commands or publish tokens present")
+          '
+
+      - name: Resolve the release tag commit
+        run: |
+          tag_sha="$(git rev-parse HEAD)"
+          if [ "$tag_sha" != "$RELEASE_SHA" ]; then
+            echo "::error::v$VERSION points at $tag_sha, expected $RELEASE_SHA"
+            exit 1
+          fi
+          echo "release tag matches the requested commit"
+        env:
+          VERSION: ${{ inputs.version }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+
+      # The baseline is downloaded from the original publish run, never
+      # regenerated here. Regenerating would compare the release to itself.
+      - name: Restore the original latest dist-tag baseline
+        run: |
+          mkdir -p "$BASELINE_DIR"
+          gh run download "$PUBLISH_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "$BASELINE_ARTIFACT" \
+            --dir "$BASELINE_DIR"
+
+          baseline="$BASELINE_DIR/published-latest-baseline.json"
+          if [ ! -f "$baseline" ]; then
+            echo "::error::the publish run $PUBLISH_RUN_ID carries no $BASELINE_ARTIFACT artifact; re-verification cannot compare against the pre-release state without it"
+            exit 1
+          fi
+          echo "restored baseline from run $PUBLISH_RUN_ID"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASELINE_DIR: ${{ runner.temp }}/baseline
+          PUBLISH_RUN_ID: ${{ inputs.publish_run_id }}
+          BASELINE_ARTIFACT: ${{ inputs.baseline_artifact }}
+
+      # Read-only verification. The window defaults to ten minutes and is
+      # raised here because this run exists precisely for the tail of npm's
+      # propagation, which is slower than the publish-time window.
+      - name: Verify published packages against the registry
+        run: |
+          pnpm release:verify:published \
+            --version "$VERSION" \
+            --tag "$TAG" \
+            --latest-baseline "$BASELINE" \
+            --release-sha "$RELEASE_SHA" \
+            --report "$REPORT"
+        env:
+          VERSION: ${{ inputs.version }}
+          TAG: ${{ inputs.tag }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          BASELINE: ${{ runner.temp }}/baseline/published-latest-baseline.json
+          REPORT: ${{ runner.temp }}/registry-verification.json
+          ZEUS_REGISTRY_VERIFICATION_WINDOW_SECONDS: '600'
+
+      - name: Summarize the verdict
+        if: always()
+        run: |
+          if [ ! -f "$REPORT" ]; then
+            {
+              echo "## Registry verification: no report"
+              echo
+              echo "The verification step produced no report, so nothing can be concluded."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          node -e '
+            const report = require(process.env.REPORT)
+            const s = report.summary
+            const lines = [
+              `## Registry verification: ${s.verified}/${s.total} verified`,
+              "",
+              `- window: ${report.windowMs / 1000}s (deadline ${report.deadlineAt})`,
+              `- propagation pending: ${s.propagationPending}`,
+              `- registry unavailable: ${s.registryUnavailable}`,
+              `- contract mismatch: ${s.contractMismatch}`,
+              `- verification timeout: ${s.verificationTimeout}`,
+            ]
+            const bad = report.packages.filter(p => p.status !== "VERIFIED")
+            if (bad.length > 0) {
+              lines.push("", "| package | status | kind | attempts |", "| --- | --- | --- | --- |")
+              for (const p of bad) {
+                lines.push(`| ${p.package} | ${p.status} | ${p.errorKind ?? ""} | ${p.attempts} |`)
+              }
+            }
+            require("node:fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n")
+          '
+        env:
+          REPORT: ${{ runner.temp }}/registry-verification.json
+
+      # Evidence is kept whether the verdict passed or failed. A re-run that
+      # leaves no artifact proves nothing about the release.
+      - name: Preserve registry verification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ui-registry-reverification
+          path: ${{ runner.temp }}/registry-verification.json
+          if-no-files-found: warn

@@ -209,10 +209,23 @@ jobs:
           path: ${{ runner.temp }}/publish-preflight.json
           if-no-files-found: error
 
+      # The baseline records what `latest` pointed at *before* this release, so
+      # a first publish that binds `latest` can be told apart from a regression.
+      # beta.35 failed verification and the baseline was gone with the runner,
+      # which made the failure impossible to re-check afterwards. Uploading it
+      # is what allows a read-only re-verification to reuse the original state
+      # instead of regenerating one from the post-release world.
       - name: Capture latest dist-tag baseline
         run: pnpm release:capture:latest --output "$LATEST_BASELINE"
         env:
           LATEST_BASELINE: ${{ runner.temp }}/published-latest-baseline.json
+
+      - name: Preserve latest dist-tag baseline
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ui-publish-latest-baseline
+          path: ${{ runner.temp }}/published-latest-baseline.json
+          if-no-files-found: error
 
       - name: Publish package
         run: |
@@ -223,10 +236,34 @@ jobs:
           TAG: ${{ inputs.tag }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
 
+      # Verification is a distinct responsibility from publishing: it reads the
+      # registry and writes evidence, and never publishes. Keeping it in its own
+      # step is what lets verify-published-release.yml repeat it later without
+      # any npm write access.
       - name: Verify published packages
-        run: pnpm release:verify:published --version "$VERSION" --tag "$TAG" --latest-baseline "$LATEST_BASELINE" --release-sha "$RELEASE_SHA"
+        run: |
+          pnpm release:verify:published \
+            --version "$VERSION" \
+            --tag "$TAG" \
+            --latest-baseline "$LATEST_BASELINE" \
+            --release-sha "$RELEASE_SHA" \
+            --report "$VERIFICATION_REPORT"
         env:
           LATEST_BASELINE: ${{ runner.temp }}/published-latest-baseline.json
+          VERIFICATION_REPORT: ${{ runner.temp }}/registry-verification.json
           RELEASE_SHA: ${{ inputs.release_sha }}
           VERSION: ${{ inputs.version }}
           TAG: ${{ inputs.tag }}
+          ZEUS_REGISTRY_VERIFICATION_WINDOW_SECONDS: '600'
+
+      # Evidence is uploaded with `if: always()` so a failed verification still
+      # leaves the structured report behind. That is the whole point of the
+      # report: a red check with no artifact is what made beta.35's failure
+      # take a re-run to diagnose.
+      - name: Preserve registry verification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ui-registry-verification
+          path: ${{ runner.temp }}/registry-verification.json
+          if-no-files-found: warn

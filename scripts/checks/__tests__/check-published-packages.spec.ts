@@ -9,10 +9,10 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-
 import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
+
 import {
   parseCapturePublishedLatestOptions,
   runCapturePublishedLatest,
@@ -28,9 +28,10 @@ import {
   parsePublishedPackageOptions,
   parseRegistryPackageMetadata,
   readPublishedPackageLatestBaseline,
-  verifyPublishedPackageRegistry,
+  verifyRegistry,
   verifySlsaProvenanceBundle,
 } from '../release/check-published-packages'
+import { DEFAULT_VERIFICATION_POLICY } from '../release/registry-verification-policy'
 
 const RELEASE_SHA = '3a37683c855455d9a980609f9d7c54152d00b561'
 const PACKAGE_DIGEST =
@@ -835,10 +836,17 @@ describe('published package smoke check', () => {
     expect(problems).toEqual([])
   })
 
-  it('stops after the two-minute registry propagation window', () => {
-    const verificationError = new Error('attestation is still unavailable')
+  it('gives up at the shared deadline instead of retrying a fixed count', () => {
+    /*
+     * The old policy was twelve 10s waits, which is what failed beta.35 while
+     * npm was still propagating. The window is now a deadline shared by every
+     * package, and the retry count follows from how long the backoff fits —
+     * there is no longer a fixed number of attempts to assert.
+     *
+     * A contract error is used so the failure is immediate and deterministic;
+     * the deadline behaviour itself is covered by the policy's own tests.
+     */
     let attempts = 0
-    const waits: number[] = []
     const options = {
       latestBaselinePath: '/tmp/latest.json',
       releaseSha: RELEASE_SHA,
@@ -848,7 +856,7 @@ describe('published package smoke check', () => {
       version: '0.1.0-beta.1',
     }
 
-    return verifyPublishedPackageRegistry(
+    return verifyRegistry(
       ['@zeus-web/button'],
       options,
       createLatestBaseline(),
@@ -856,33 +864,40 @@ describe('published package smoke check', () => {
         fetchMetadata: () => {
           attempts += 1
 
-          return Promise.reject(verificationError)
+          // A 200 that fails the contract is not retryable. The classifier
+          // reads the status from the message, so an opaque error would be
+          // treated as a network blip and retried until the window closed.
+          return Promise.resolve(
+            Object.assign(
+              createPublishedMetadata({ version: '0.1.0-beta.1' }),
+              {
+                provenanceStatement: undefined,
+              },
+            ),
+          )
         },
-        wait: milliseconds => {
-          waits.push(milliseconds)
-          return Promise.resolve()
-        },
+        wait: () => Promise.resolve(),
       },
-    ).then(
-      () => {
-        throw new Error('Expected registry verification to fail')
-      },
-      error => {
-        expect(error).toBe(verificationError)
-        expect(attempts).toBe(13)
-        expect(waits).toEqual(Array.from({ length: 12 }).fill(10_000))
-        expect('Registry verification attempt').toHaveBeenWarnedTimes(12)
-      },
-    )
+      // A short window keeps this test fast; the default is ten minutes and
+      // these assertions are about classification, not duration.
+      { ...DEFAULT_VERIFICATION_POLICY, windowMs: 500 },
+    ).then(report => {
+      // A 200 that does not satisfy the contract is not worth waiting for.
+      expect(attempts).toBe(1)
+      expect(report.summary.verified).toBe(0)
+      expect(report.packages[0]!.status).toBe('CONTRACT_MISMATCH')
+    })
   })
 
-  it('waits for the retry delay before the next registry attempt', () => {
+  it('retries a version that has not propagated yet', () => {
+    /*
+     * A missing version *is* worth waiting for — that is the whole reason the
+     * window exists. This asserts the retry happens and then succeeds, without
+     * pinning the delay: backoff is exponential with jitter, so the exact
+     * milliseconds are no longer a stable thing to assert. The backoff shape
+     * is covered in registry-verification-policy.spec.ts.
+     */
     let attempts = 0
-    let releaseWait = () => {}
-    let signalWaitStarted = () => {}
-    const waitStarted = new Promise<void>(resolve => {
-      signalWaitStarted = resolve
-    })
     const version = '0.1.0-beta.1'
     const options = {
       latestBaselinePath: '/tmp/latest.json',
@@ -893,10 +908,8 @@ describe('published package smoke check', () => {
       version,
     }
     const availableMetadata = createPublishedMetadata({ version })
-    const propagationMetadata = Object.assign({}, availableMetadata, {
-      provenanceStatement: undefined,
-    })
-    const verification = verifyPublishedPackageRegistry(
+
+    return verifyRegistry(
       ['@zeus-web/button'],
       options,
       createLatestBaseline(),
@@ -904,32 +917,23 @@ describe('published package smoke check', () => {
         fetchMetadata: () => {
           attempts += 1
 
-          return Promise.resolve(
-            attempts === 1 ? propagationMetadata : availableMetadata,
-          )
-        },
-        wait: milliseconds => {
-          expect(milliseconds).toBe(10_000)
-          signalWaitStarted()
+          // The first attempt reports the version as absent, which the policy
+          // classifies as propagation, not as a contract failure.
+          if (attempts === 1) {
+            return Promise.reject(
+              new Error('@zeus-web/button: registry returned HTTP 404'),
+            )
+          }
 
-          return new Promise<void>(resolve => {
-            releaseWait = resolve
-          })
+          return Promise.resolve(availableMetadata)
         },
+        wait: () => Promise.resolve(),
       },
-    )
-
-    return waitStarted
-      .then(() => {
-        expect(attempts).toBe(1)
-        releaseWait()
-
-        return verification
-      })
-      .then(() => {
-        expect(attempts).toBe(2)
-        expect('Registry verification attempt 1').toHaveBeenWarnedTimes(1)
-      })
+      { ...DEFAULT_VERIFICATION_POLICY, windowMs: 500 },
+    ).then(report => {
+      expect(attempts).toBeGreaterThan(1)
+      expect(report.summary.verified).toBe(1)
+    })
   })
 
   it('accepts registry-created latest at the exact first beta version', () => {
