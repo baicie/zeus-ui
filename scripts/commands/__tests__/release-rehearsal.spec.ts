@@ -75,65 +75,85 @@ describe('planRehearsal', () => {
 describe('worktree lifecycle', () => {
   const root = findGitRoot(process.cwd())
 
+  /*
+   * `git worktree add` shells out and copies a full checkout; on a Windows
+   * runner that takes longer than vitest's 5s default, and the test failed
+   * with a bare "Test timed out" that says nothing about why. The work itself
+   * is fine — it just needs a budget that matches what it does.
+   */
+  const WORKTREE_TIMEOUT_MS = 60_000
+
   it('finds the repository this test runs in', () => {
     expect(root).toBeDefined()
   })
 
-  it('creates a detached worktree and removes it again', () => {
-    if (!root) return
+  it(
+    'creates a detached worktree and removes it again',
+    () => {
+      if (!root) return
 
-    const worktree = createRehearsalWorktree(root)
+      const worktree = createRehearsalWorktree(root)
 
-    try {
-      expect(worktree).toContain('zeus-release-rehearsal-')
-      // A detached worktree cannot advance a branch, so a rehearsal can never
-      // leave the caller on a different commit.
-      const branch = execFileSync(
-        'git',
-        ['rev-parse', '--abbrev-ref', 'HEAD'],
-        {
-          cwd: worktree,
-          encoding: 'utf8',
-        },
-      ).trim()
+      try {
+        expect(worktree).toContain('zeus-release-rehearsal-')
+        // A detached worktree cannot advance a branch, so a rehearsal can never
+        // leave the caller on a different commit.
+        const branch = execFileSync(
+          'git',
+          ['rev-parse', '--abbrev-ref', 'HEAD'],
+          {
+            cwd: worktree,
+            encoding: 'utf8',
+          },
+        ).trim()
 
-      expect(branch).toBe('HEAD')
-    } finally {
+        expect(branch).toBe('HEAD')
+      } finally {
+        removeRehearsalWorktree(root, worktree)
+      }
+
+      expect(existsSync(worktree)).toBe(false)
+    },
+    WORKTREE_TIMEOUT_MS,
+  )
+
+  it(
+    'shares node_modules with the checkout instead of copying it',
+    () => {
+      if (!root) return
+
+      const worktree = createRehearsalWorktree(root)
+
+      try {
+        linkDependencies(process.cwd(), worktree)
+
+        const target = `${worktree}/node_modules`
+
+        if (!existsSync(`${process.cwd()}/node_modules`)) return
+
+        expect(existsSync(target)).toBe(true)
+        // A symlink, not a copy: copying node_modules per rehearsal would cost
+        // gigabytes and go stale the moment the caller installs something.
+        expect(lstatSync(target).isSymbolicLink()).toBe(true)
+      } finally {
+        removeRehearsalWorktree(root, worktree)
+      }
+    },
+    WORKTREE_TIMEOUT_MS,
+  )
+
+  it(
+    'removes a worktree twice without throwing',
+    () => {
+      if (!root) return
+
+      const worktree = createRehearsalWorktree(root)
+
       removeRehearsalWorktree(root, worktree)
-    }
-
-    expect(existsSync(worktree)).toBe(false)
-  })
-
-  it('shares node_modules with the checkout instead of copying it', () => {
-    if (!root) return
-
-    const worktree = createRehearsalWorktree(root)
-
-    try {
-      linkDependencies(process.cwd(), worktree)
-
-      const target = `${worktree}/node_modules`
-
-      if (!existsSync(`${process.cwd()}/node_modules`)) return
-
-      expect(existsSync(target)).toBe(true)
-      // A symlink, not a copy: copying node_modules per rehearsal would cost
-      // gigabytes and go stale the moment the caller installs something.
-      expect(lstatSync(target).isSymbolicLink()).toBe(true)
-    } finally {
-      removeRehearsalWorktree(root, worktree)
-    }
-  })
-
-  it('removes a worktree twice without throwing', () => {
-    if (!root) return
-
-    const worktree = createRehearsalWorktree(root)
-
-    removeRehearsalWorktree(root, worktree)
-    // The `exit` hook and the promise chain both call this; idempotence is
-    // what keeps that from turning a clean run into a crash on exit.
-    expect(() => removeRehearsalWorktree(root, worktree)).not.toThrow()
-  })
+      // The `exit` hook and the promise chain both call this; idempotence is
+      // what keeps that from turning a clean run into a crash on exit.
+      expect(() => removeRehearsalWorktree(root, worktree)).not.toThrow()
+    },
+    WORKTREE_TIMEOUT_MS,
+  )
 })

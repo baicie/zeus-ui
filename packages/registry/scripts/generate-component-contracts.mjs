@@ -1,5 +1,3 @@
-/* eslint-disable style/brace-style */
-
 import { readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import process from 'node:process'

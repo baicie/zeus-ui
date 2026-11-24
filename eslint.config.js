@@ -142,9 +142,14 @@ export default defineConfig(
     },
   },
 
-  // Let ESLint format TypeScript files via @stylistic instead of Prettier
+  // Let ESLint format TypeScript files via @stylistic instead of Prettier.
+  //
+  // `.mts` and `.mjs` belong here too. Without them, `.d.mts` fell through to
+  // antfu's default `style/member-delimiter-style`, which demands commas where
+  // Prettier writes semicolons — so whichever tool ran last broke the other,
+  // and CI's format-check failed on a file that was already formatted.
   {
-    files: ['**/*.ts', '**/*.tsx'],
+    files: ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.mjs'],
     plugins: {
       style: stylistic,
     },

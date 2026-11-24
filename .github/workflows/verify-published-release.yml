@@ -47,6 +47,10 @@ on:
         description: The 40-character commit the release tag points at
         required: true
         type: string
+      tool_ref:
+        description: Full commit SHA of the verifier to run; never a branch
+        required: true
+        type: string
       publish_run_id:
         description: The publish workflow run that produced the release, used to locate the original latest-baseline artifact
         required: true
@@ -73,24 +77,77 @@ jobs:
       actions: read
 
     steps:
-      # This workflow must never publish, so it checks out the tag it is
-      # verifying and nothing else. A tag, not a branch: the tree has to be the
-      # one that produced the artifacts.
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      # Two checkouts, deliberately.
+      #
+      # The first version of this workflow checked out the release tag and then
+      # ran the verifier from that same tree. That cannot work for a historical
+      # release: the verifier did not exist when v0.1.0-beta.35 was tagged.
+      # Confirmed against the real tag — verify-published-release.yml returns
+      # 404 at refs/tags/v0.1.0-beta.35.
+      #
+      # So the tool comes from a commit the caller names, and the target comes
+      # from the immutable tag. Each is recorded separately. The tool may be
+      # newer than the target; what the *expected* contract is still comes from
+      # the target, never from the tool.
+      - name: Check out the release tag as data
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: refs/tags/v${{ inputs.version }}
+          path: target
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Check out the verifier tool
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ inputs.tool_ref }}
+          path: tools
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Record what was checked out
+        id: checkouts
+        run: |
+          target_sha="$(git -C target rev-parse HEAD)"
+          tool_sha="$(git -C tools rev-parse HEAD)"
+
+          if [ "$target_sha" != "$RELEASE_SHA" ]; then
+            echo "::error::v$VERSION resolves to $target_sha, expected $RELEASE_SHA"
+            exit 1
+          fi
+          if [ "$tool_sha" != "$TOOL_REF" ]; then
+            echo "::error::verifier checked out at $tool_sha, expected $TOOL_REF"
+            exit 1
+          fi
+
+          {
+            echo "## Checkouts"
+            echo
+            echo "| role | ref | commit |"
+            echo "| --- | --- | --- |"
+            echo "| target (data) | v$VERSION | $target_sha |"
+            echo "| verifier (tool) | $TOOL_REF | $tool_sha |"
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          VERSION: ${{ inputs.version }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          TOOL_REF: ${{ inputs.tool_ref }}
+
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          package_json_file: tools/package.json
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
-          node-version-file: .node-version
+          node-version-file: tools/.node-version
           cache: pnpm
+          cache-dependency-path: tools/pnpm-lock.yaml
           registry-url: https://registry.npmjs.org
 
-      - run: pnpm install --frozen-lockfile
+      # Only the tool is installed. Nothing executes from the target tree.
+      - name: Install the verifier
+        working-directory: tools
+        run: pnpm install --frozen-lockfile
 
       # The guard is the point of the workflow: a future edit that adds a
       # publish command should fail here, before it can reach npm.
@@ -100,6 +157,7 @@ jobs:
       # comment above describing what must not happen, and the
       # `release:verify:published` script name.
       - name: Assert this workflow cannot publish
+        working-directory: tools
         run: |
           node -e '
             const { readFileSync } = require("node:fs")
@@ -147,22 +205,62 @@ jobs:
           VERSION: ${{ inputs.version }}
           RELEASE_SHA: ${{ inputs.release_sha }}
 
-      # The baseline is downloaded from the original publish run, never
-      # regenerated here. Regenerating would compare the release to itself.
+      # The expected contract comes from the target, not the tool. A verifier
+      # running months later must check the release against what the release
+      # itself declared, or it would compare the release to itself.
+      - name: Read the expected contract from the target
+        run: |
+          node -e '
+            const { readFileSync } = require("node:fs")
+            const manifest = JSON.parse(readFileSync("target/package.json", "utf8"))
+            const expected = manifest.version
+
+            if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(expected)) {
+              console.error("::error::target/package.json has no usable version: " + expected)
+              process.exit(1)
+            }
+            if (expected !== process.env.VERSION) {
+              console.error("::error::target declares " + expected + ", run asked for " + process.env.VERSION)
+              process.exit(1)
+            }
+            console.log("contract version " + expected + " read from the release tag")
+          '
+        env:
+          VERSION: ${{ inputs.version }}
+
+      # The baseline comes from the original publish run, never regenerated
+      # here: regenerating compares the release against the post-release
+      # registry, which passes no matter what shipped.
+      #
+      # A missing baseline is not fatal to the other checks. It stays UNKNOWN
+      # and keeps the verdict from being a full PASS. Substituting a fresh
+      # baseline would be the exact failure this workflow exists to prevent.
       - name: Restore the original latest dist-tag baseline
+        id: baseline
         run: |
           mkdir -p "$BASELINE_DIR"
-          gh run download "$PUBLISH_RUN_ID" \
-            --repo "$GITHUB_REPOSITORY" \
-            --name "$BASELINE_ARTIFACT" \
-            --dir "$BASELINE_DIR"
 
-          baseline="$BASELINE_DIR/published-latest-baseline.json"
-          if [ ! -f "$baseline" ]; then
-            echo "::error::the publish run $PUBLISH_RUN_ID carries no $BASELINE_ARTIFACT artifact; re-verification cannot compare against the pre-release state without it"
-            exit 1
+          if gh run download "$PUBLISH_RUN_ID" \
+              --repo "$GITHUB_REPOSITORY" \
+              --name "$BASELINE_ARTIFACT" \
+              --dir "$BASELINE_DIR" 2>/dev/null \
+            && [ -f "$BASELINE_DIR/published-latest-baseline.json" ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "restored the baseline recorded by run $PUBLISH_RUN_ID"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### HISTORICAL_LATEST_BASELINE: UNKNOWN"
+              echo
+              echo "Run $PUBLISH_RUN_ID carries no \`$BASELINE_ARTIFACT\` artifact."
+              echo "It was published before the baseline was ever uploaded, so the"
+              echo "pre-release \`latest\` values cannot be recovered."
+              echo
+              echo "Independent checks still run. This item stays UNKNOWN and the"
+              echo "verdict cannot be a full PASS."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::no original baseline on run $PUBLISH_RUN_ID; HISTORICAL_LATEST_BASELINE stays UNKNOWN"
           fi
-          echo "restored baseline from run $PUBLISH_RUN_ID"
         env:
           GH_TOKEN: ${{ github.token }}
           BASELINE_DIR: ${{ runner.temp }}/baseline
@@ -173,6 +271,9 @@ jobs:
       # raised here because this run exists precisely for the tail of npm's
       # propagation, which is slower than the publish-time window.
       - name: Verify published packages against the registry
+        id: registry
+        continue-on-error: true
+        working-directory: tools
         run: |
           pnpm release:verify:published \
             --version "$VERSION" \
@@ -188,48 +289,104 @@ jobs:
           REPORT: ${{ runner.temp }}/registry-verification.json
           ZEUS_REGISTRY_VERIFICATION_WINDOW_SECONDS: '600'
 
+      # Independent of the registry check: these do not need a baseline and
+      # must still be reported when the baseline is missing.
+      - name: Verify tarballs, integrity, dependencies, tags and provenance
+        id: packages
+        continue-on-error: true
+        run: |
+          node tools/scripts/checks/release/verify-historical-release.mjs \
+            --version "$VERSION" \
+            --tag "$TAG" \
+            --target target \
+            --registry https://registry.npmjs.org \
+            --baseline-found "$BASELINE_FOUND" \
+            --out "$OUT"
+        env:
+          VERSION: ${{ inputs.version }}
+          TAG: ${{ inputs.tag }}
+          BASELINE_FOUND: ${{ steps.baseline.outputs.found }}
+          OUT: ${{ runner.temp }}/historical-verification.json
+
       - name: Summarize the verdict
         if: always()
         run: |
-          if [ ! -f "$REPORT" ]; then
-            {
-              echo "## Registry verification: no report"
-              echo
-              echo "The verification step produced no report, so nothing can be concluded."
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
+          {
+            echo "## Verification of $VERSION"
+            echo
+            echo "- registry check: $REGISTRY_OUTCOME"
+            echo "- package checks: $PACKAGES_OUTCOME"
+            echo "- original baseline: $([ "$BASELINE_FOUND" = "true" ] && echo present || echo UNKNOWN)"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -f "$PACKAGES_REPORT" ]; then
+            node -e '
+              const report = require(process.env.PACKAGES_REPORT)
+              const lines = [
+                "| item | status | detail |",
+                "| --- | --- | --- |",
+                ...Object.entries(report.items).map(
+                  ([name, entry]) => `| ${name} | ${entry.status} | ${entry.detail} |`,
+                ),
+                "",
+                `**verdict: ${report.verdict}**`,
+                "",
+              ]
+              require("node:fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n")
+            '
+          else
+            echo "No package verification report was produced." >> "$GITHUB_STEP_SUMMARY"
           fi
 
-          node -e '
-            const report = require(process.env.REPORT)
-            const s = report.summary
-            const lines = [
-              `## Registry verification: ${s.verified}/${s.total} verified`,
-              "",
-              `- window: ${report.windowMs / 1000}s (deadline ${report.deadlineAt})`,
-              `- propagation pending: ${s.propagationPending}`,
-              `- registry unavailable: ${s.registryUnavailable}`,
-              `- contract mismatch: ${s.contractMismatch}`,
-              `- verification timeout: ${s.verificationTimeout}`,
-            ]
-            const bad = report.packages.filter(p => p.status !== "VERIFIED")
-            if (bad.length > 0) {
-              lines.push("", "| package | status | kind | attempts |", "| --- | --- | --- | --- |")
-              for (const p of bad) {
-                lines.push(`| ${p.package} | ${p.status} | ${p.errorKind ?? ""} | ${p.attempts} |`)
-              }
-            }
-            require("node:fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n")
-          '
+          if [ -f "$REGISTRY_REPORT" ]; then
+            node -e '
+              const report = require(process.env.REGISTRY_REPORT)
+              const lines = [
+                `Registry: ${report.summary.verified}/${report.summary.total} verified`,
+                "",
+                ...report.packages
+                  .filter(pkg => pkg.status !== "VERIFIED")
+                  .map(pkg => `- ${pkg.package}: ${pkg.status}${pkg.errorKind ? ` (${pkg.errorKind})` : ""}`),
+                "",
+              ]
+              require("node:fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n")
+            '
+          fi
         env:
-          REPORT: ${{ runner.temp }}/registry-verification.json
+          REGISTRY_REPORT: ${{ runner.temp }}/registry-verification.json
+          PACKAGES_REPORT: ${{ runner.temp }}/historical-verification.json
+          BASELINE_FOUND: ${{ steps.baseline.outputs.found }}
+          REGISTRY_OUTCOME: ${{ steps.registry.outcome }}
+          PACKAGES_OUTCOME: ${{ steps.packages.outcome }}
 
       # Evidence is kept whether the verdict passed or failed. A re-run that
       # leaves no artifact proves nothing about the release.
-      - name: Preserve registry verification evidence
+      - name: Preserve verification evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: ui-registry-reverification
-          path: ${{ runner.temp }}/registry-verification.json
+          name: ui-release-reverification
+          path: |
+            ${{ runner.temp }}/registry-verification.json
+            ${{ runner.temp }}/historical-verification.json
           if-no-files-found: warn
+
+      # A full PASS needs the registry check, the package checks, and the
+      # original baseline. A missing baseline keeps this red on purpose: the
+      # release is not fully accepted, and reporting otherwise is the failure
+      # this workflow exists to prevent.
+      - name: Enforce the verdict
+        if: always()
+        run: |
+          if [ "$REGISTRY_OUTCOME" != "success" ] \
+            || [ "$PACKAGES_OUTCOME" != "success" ] \
+            || [ "$BASELINE_FOUND" != "true" ]; then
+            echo "::error::release $VERSION is not fully accepted; see the summary and artifacts"
+            exit 1
+          fi
+          echo "release $VERSION verified against the registry with the original baseline"
+        env:
+          REGISTRY_OUTCOME: ${{ steps.registry.outcome }}
+          PACKAGES_OUTCOME: ${{ steps.packages.outcome }}
+          BASELINE_FOUND: ${{ steps.baseline.outputs.found }}
