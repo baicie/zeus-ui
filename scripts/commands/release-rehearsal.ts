@@ -33,7 +33,7 @@
  * changing any caller.
  */
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -187,5 +187,13 @@ export function linkDependencies(
 
   if (!existsSync(source) || existsSync(target)) return
 
-  execFileSync('ln', ['-s', source, target], { encoding: 'utf8' })
+  /*
+   * `fs.symlinkSync` rather than `ln -s`: there is no `ln` on Windows, and the
+   * first version of this used `execFileSync('ln', ...)` and failed there.
+   *
+   * `junction` on Windows is a directory link that does not require the
+   * elevated privilege a plain symlink does, which matters because a rehearsal
+   * must work for any developer, not only admins.
+   */
+  symlinkSync(source, target, process.platform === 'win32' ? 'junction' : 'dir')
 }
