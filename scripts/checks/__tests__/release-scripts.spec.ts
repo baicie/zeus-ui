@@ -17,6 +17,7 @@ import {
   shellVariable,
   staticPairingCommand,
   UPLOAD_ARTIFACT_ACTION_REF,
+  verifiedPublishedCommand,
 } from '../release/check-release-workflows'
 
 interface WorkflowObject {
@@ -649,10 +650,14 @@ describe('release script contract', () => {
       contents: 'read',
       'id-token': 'write',
     })
-    // The publish job uploads pairing evidence, so it also uses the pinned
-    // upload-artifact action alongside the three release actions.
+    // Four evidence artifacts use the pinned upload-artifact action: pairing,
+    // publish preflight, the latest-tag baseline, and the registry verification
+    // report. The last two are what let a failed verification be re-checked
+    // read-only later, without the publish run's runner.
     expect(getActionRefs(publish)).toEqual([
       ...RELEASE_ACTION_REFS,
+      UPLOAD_ARTIFACT_ACTION_REF,
+      UPLOAD_ARTIFACT_ACTION_REF,
       UPLOAD_ARTIFACT_ACTION_REF,
       UPLOAD_ARTIFACT_ACTION_REF,
     ])
@@ -725,7 +730,7 @@ describe('release script contract', () => {
         'pnpm exec tsx scripts/checks/release/check-release-channel.ts --version "$VERSION" --tag "$TAG" --context publish',
         'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
       ].join('\n'),
-      'pnpm release:verify:published --version "$VERSION" --tag "$TAG" --latest-baseline "$LATEST_BASELINE" --release-sha "$RELEASE_SHA"',
+      verifiedPublishedCommand(),
     ])
     expect(captureLatestBaseline.id).toBeUndefined()
     expect(String(captureLatestBaseline.run).trim()).toBe(
@@ -766,8 +771,10 @@ describe('release script contract', () => {
       'Verify registry reachability and the recovery set',
       'Preserve publish preflight evidence',
       'Capture latest dist-tag baseline',
+      'Preserve latest dist-tag baseline',
       'Publish package',
       'Verify published packages',
+      'Preserve registry verification evidence',
     ])
     expectFailClosedRunSteps(publish)
     expect(getObject(publishStep, 'env')).toEqual({
@@ -775,13 +782,17 @@ describe('release script contract', () => {
       TAG: githubExpression('inputs.tag'),
       NODE_AUTH_TOKEN: githubExpression('secrets.NPM_PUBLISH_TOKEN'),
     })
-    expect(verifyPublished.run).toBe(
-      'pnpm release:verify:published --version "$VERSION" --tag "$TAG" --latest-baseline "$LATEST_BASELINE" --release-sha "$RELEASE_SHA"',
-    )
+    expect(String(verifyPublished.run).trim()).toBe(verifiedPublishedCommand())
     expect(getObject(verifyPublished, 'env')).toEqual({
       LATEST_BASELINE: `${githubExpression(
         'runner.temp',
       )}/published-latest-baseline.json`,
+      VERIFICATION_REPORT: `${githubExpression(
+        'runner.temp',
+      )}/registry-verification.json`,
+      // A shorter window is exactly what failed beta.35; the workflow must ask
+      // for the full ten minutes.
+      ZEUS_REGISTRY_VERIFICATION_WINDOW_SECONDS: '600',
       RELEASE_SHA: githubExpression('inputs.release_sha'),
       VERSION: githubExpression('inputs.version'),
       TAG: githubExpression('inputs.tag'),

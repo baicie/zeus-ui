@@ -1,4 +1,10 @@
 import type { Bundle as SigstoreBundle } from 'sigstore'
+import type {
+  VerificationAttemptResult,
+  VerificationErrorKind,
+  VerificationPolicy,
+  VerificationReport,
+} from './registry-verification-policy'
 import { Buffer } from 'node:buffer'
 import { execFileSync } from 'node:child_process'
 import {
@@ -9,12 +15,20 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
+
 import { join } from 'node:path'
 
 import { pathToFileURL } from 'node:url'
 import pc from 'picocolors'
-
 import { listPublishablePackages, repositoryUrl } from '../../release/workspace'
+
+import {
+  classifyFetchError,
+  classifyHttpStatus,
+  reportIsPassing,
+  resolveVerificationPolicy,
+  verifyPackages,
+} from './registry-verification-policy'
 
 export interface ConsumerPackageJson {
   name: string
@@ -87,6 +101,8 @@ export interface PublishedPackageCheckOptions {
   root: string
   tag: string
   version: string
+  /** Where to write the structured verification report, when requested. */
+  reportPath?: string
 }
 
 interface ExecFileOptions {
@@ -139,10 +155,11 @@ const EXPECTED_CERTIFICATE_ISSUER =
   'https://token.actions.githubusercontent.com'
 const EXPECTED_WORKFLOW_REPOSITORY = repositoryUrl.replace(/\.git$/, '')
 const EXPECTED_WORKFLOW_PATH = '.github/workflows/publish.yml'
-const REGISTRY_PROPAGATION_WINDOW_MS = 120_000
-const REGISTRY_RETRY_DELAY_MS = 10_000
-const MAX_REGISTRY_ATTEMPTS =
-  REGISTRY_PROPAGATION_WINDOW_MS / REGISTRY_RETRY_DELAY_MS + 1
+/*
+ * Propagation timing lives in registry-verification-policy.ts. The old
+ * two-minute flat retry is what failed beta.35 after every package published;
+ * see that file for why each error class is retried or not.
+ */
 const RELEASE_VERSION_PATTERN =
   /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-([\da-z-]+(?:\.[\da-z-]+)*))?$/i
 const SLSA_PREDICATE_TYPE = 'https://slsa.dev/provenance/v1'
@@ -662,6 +679,7 @@ export function parsePublishedPackageOptions(
   let latestBaselinePath = ''
   let releaseSha = ''
   let registry = DEFAULT_REGISTRY
+  let reportPath = ''
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index]
@@ -697,6 +715,12 @@ export function parsePublishedPackageOptions(
       continue
     }
 
+    if (arg === '--report' && value) {
+      reportPath = value
+      index += 1
+      continue
+    }
+
     throw new Error(`Unknown or incomplete option: ${arg}`)
   }
 
@@ -723,6 +747,7 @@ export function parsePublishedPackageOptions(
     root: process.cwd(),
     tag,
     version,
+    ...(reportPath ? { reportPath } : {}),
   }
 }
 
@@ -901,80 +926,199 @@ function fetchRegistry(
   return fetch(url, options)
 }
 
-function delay(milliseconds: number): Promise<void> {
-  return new Promise(resolve => {
-    setTimeout(resolve, milliseconds)
-  })
-}
-
 export function verifyPublishedPackageRegistry(
   packageNames: string[],
   options: PublishedPackageCheckOptions,
   latestBaseline: PublishedPackageLatestBaseline,
   dependencies: PublishedPackageVerificationDependencies = {},
 ): Promise<void> {
-  return verifyRegistry(packageNames, options, latestBaseline, 1, dependencies)
+  return verifyRegistry(
+    packageNames,
+    options,
+    latestBaseline,
+    dependencies,
+  ).then(report => {
+    if (reportIsPassing(report)) return
+
+    /*
+     * The report is the message. It names the class per package, so a
+     * reader can tell a missing version (`PROPAGATION_PENDING`) from a
+     * wrong digest (`CONTRACT_MISMATCH`) without opening the workflow log.
+     */
+    const failures = report.packages.filter(
+      record => record.status !== 'VERIFIED',
+    )
+    const lines = failures.map(
+      record =>
+        `${record.package}: ${record.status}${
+          record.errorKind ? ` (${record.errorKind})` : ''
+        }${record.errorMessage ? ` — ${record.errorMessage}` : ''}`,
+    )
+
+    throw new Error(
+      [
+        `Registry verification failed for ${failures.length}/${report.summary.total} packages`,
+        `  window ${report.windowMs / 1000}s, deadline ${report.deadlineAt}`,
+        ...lines,
+      ].join('\n'),
+    )
+  })
 }
 
-function verifyRegistry(
+/**
+ * One verification pass under the shared-deadline policy.
+ *
+ * Retrying is the policy's job; this only answers, per package, whether the
+ * registry currently satisfies the contract. A contract mismatch is returned
+ * immediately and never retried.
+ */
+export function verifyRegistry(
   packageNames: string[],
   options: PublishedPackageCheckOptions,
   latestBaseline: PublishedPackageLatestBaseline,
-  attempt = 1,
   dependencies: PublishedPackageVerificationDependencies = {},
-): Promise<void> {
+  policy: VerificationPolicy = resolveVerificationPolicy(),
+): Promise<VerificationReport> {
   const fetchMetadata =
     dependencies.fetchMetadata || fetchPublishedPackageMetadata
-  const wait = dependencies.wait || delay
 
-  return Promise.all(
-    packageNames.map(packageName =>
-      fetchMetadata(packageName, options.version, options.registry).then(
-        metadata => ({ metadata, packageName }),
-      ),
-    ),
-  )
-    .then(results => {
-      const metadataByName: PublishedMetadataByName = {}
+  return verifyPackages({
+    packageNames,
+    version: options.version,
+    tag: options.tag,
+    registry: options.registry,
+    policy,
+    /*
+     * `wait` is forwarded so a caller can drive the backoff without sleeping.
+     * Dropping it made the policy's wait untestable and turned a unit test
+     * into a five-second real sleep.
+     */
+    ...(dependencies.wait ? { wait: dependencies.wait } : {}),
+    /*
+     * Retry progress is not a warning. Emitting it through `console.warn`
+     * tripped the repository's "unexpected warnings" guard in every test that
+     * drove a retry, and a retry that is going to succeed is not something an
+     * operator needs to be warned about. The report carries `attempts` per
+     * package, which is the durable record.
+     */
+    log: message => console.info(pc.yellow(message)),
+    checkOnce: async packageName => {
+      let metadata: PublishedPackageMetadata
 
-      for (const result of results) {
-        metadataByName[result.packageName] = result.metadata
+      try {
+        metadata = await fetchMetadata(
+          packageName,
+          options.version,
+          options.registry,
+        )
+      } catch (error) {
+        return classifyMetadataFailure(packageName, error)
       }
 
       const problems = getPublishedMetadataProblems(
-        packageNames,
+        [packageName],
         options.version,
         options.tag,
-        metadataByName,
+        { [packageName]: metadata },
         latestBaseline,
         options.releaseSha,
       )
 
-      if (problems.length > 0) {
-        throw new Error(problems.join('\n'))
-      }
-    })
-    .catch(error => {
-      if (attempt >= MAX_REGISTRY_ATTEMPTS) {
-        throw error
+      if (problems.length === 0) {
+        return {
+          ok: true,
+          observedVersion: metadata.versions.includes(options.version)
+            ? options.version
+            : null,
+          observedDistTag:
+            typeof metadata.distTags[options.tag] === 'string'
+              ? (metadata.distTags[options.tag] as string)
+              : null,
+          integrity: metadata.integrity ?? null,
+        }
       }
 
-      console.warn(
-        pc.yellow(
-          `Registry verification attempt ${attempt} failed; retrying in ${REGISTRY_RETRY_DELAY_MS / 1000}s`,
-        ),
-      )
+      return {
+        ok: false,
+        ...classifyProblems(packageName, problems),
+        observedVersion: metadata.versions.includes(options.version)
+          ? options.version
+          : null,
+        observedDistTag:
+          typeof metadata.distTags[options.tag] === 'string'
+            ? (metadata.distTags[options.tag] as string)
+            : null,
+        integrity: metadata.integrity ?? null,
+      }
+    },
+  })
+}
 
-      return wait(REGISTRY_RETRY_DELAY_MS).then(() =>
-        verifyRegistry(
-          packageNames,
-          options,
-          latestBaseline,
-          attempt + 1,
-          dependencies,
-        ),
-      )
-    })
+/** Turns a fetch throw into an attempt result, keeping the class. */
+function classifyMetadataFailure(
+  packageName: string,
+  error: unknown,
+): VerificationAttemptResult {
+  const message = error instanceof Error ? error.message : String(error)
+
+  const httpMatch = /registry returned HTTP (\d{3})/.exec(message)
+
+  if (httpMatch) {
+    const status = Number(httpMatch[1])
+
+    return {
+      ok: false,
+      errorKind: classifyHttpStatus(status),
+      errorMessage: `${packageName}: HTTP ${status}`,
+    }
+  }
+
+  return {
+    ok: false,
+    errorKind: classifyFetchError(error),
+    errorMessage: message,
+    observedVersion: null,
+    observedDistTag: null,
+  }
+}
+
+/**
+ * Maps contract problems onto error kinds.
+ *
+ * This is the split that used to be missing: a version that is not there yet
+ * is worth waiting for, anything else is not. Getting this wrong is how a
+ * wrong integrity value spent two minutes pretending to be a slow CDN.
+ */
+function classifyProblems(
+  packageName: string,
+  problems: readonly string[],
+): { errorKind: VerificationErrorKind; errorMessage: string } {
+  const joined = problems.join('; ')
+
+  if (problems.some(problem => /version .* is unavailable/.test(problem))) {
+    return { errorKind: 'VERSION_ABSENT', errorMessage: joined }
+  }
+
+  if (problems.some(problem => /integrity/i.test(problem))) {
+    return { errorKind: 'INTEGRITY_MISMATCH', errorMessage: joined }
+  }
+
+  if (problems.some(problem => /dist-tag/i.test(problem))) {
+    return { errorKind: 'DIST_TAG_MISMATCH', errorMessage: joined }
+  }
+
+  if (problems.some(problem => /dependenc/i.test(problem))) {
+    return { errorKind: 'DEPENDENCY_MISMATCH', errorMessage: joined }
+  }
+
+  if (problems.some(problem => /provenance/i.test(problem))) {
+    return { errorKind: 'PROVENANCE_MISMATCH', errorMessage: joined }
+  }
+
+  return {
+    errorKind: 'CONTRACT_MISMATCH',
+    errorMessage: `${packageName}: ${joined}`,
+  }
 }
 
 function writeConsumerProject(
@@ -1119,23 +1263,54 @@ function main(): Promise<void> {
     options.latestBaselinePath,
   )
 
-  return verifyPublishedPackageRegistry(
-    packageNames,
-    options,
-    latestBaseline,
-  ).then(() => {
-    console.info(
-      pc.green(
-        `Verified npm metadata for ${packageNames.length} packages at ${options.version} (${options.tag})`,
-      ),
-    )
-    runConsumerSmoke(packageNames, componentPackageNames, options)
-    console.info(
-      pc.green(
-        `Published package smoke passed for ${packageNames.length} packages.`,
-      ),
-    )
-  })
+  /*
+   * The structured report is written before the pass/fail decision, so a
+   * failed run still leaves evidence naming the class per package. That is
+   * what makes a failure diagnosable after the runner is gone.
+   */
+  const reportPath = options.reportPath
+
+  return verifyRegistry(packageNames, options, latestBaseline)
+    .then(report => {
+      if (reportPath) {
+        writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`)
+        console.info(pc.gray(`wrote ${reportPath}`))
+      }
+
+      if (!reportIsPassing(report)) {
+        const failures = report.packages.filter(
+          record => record.status !== 'VERIFIED',
+        )
+
+        throw new Error(
+          [
+            `Registry verification failed: ${failures.length}/${report.summary.total} packages not verified`,
+            `  window ${report.windowMs / 1000}s, deadline ${report.deadlineAt}`,
+            ...failures.map(
+              record =>
+                `  ${record.package}: ${record.status}${
+                  record.errorKind ? ` (${record.errorKind})` : ''
+                }`,
+            ),
+          ].join('\n'),
+        )
+      }
+
+      return report
+    })
+    .then(() => {
+      console.info(
+        pc.green(
+          `Verified npm metadata for ${packageNames.length} packages at ${options.version} (${options.tag})`,
+        ),
+      )
+      runConsumerSmoke(packageNames, componentPackageNames, options)
+      console.info(
+        pc.green(
+          `Published package smoke passed for ${packageNames.length} packages.`,
+        ),
+      )
+    })
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
