@@ -136,6 +136,23 @@ export const RELEASE_DIST_TAGS = ['beta', 'rc', 'latest'] as const
 
 /** The publish job's Core/UI pinning gate, asserted verbatim by the checker. */
 /** The publish job's registry reachability preflight. */
+/**
+ * The read-only verification command. Shared by the publish workflow and its
+ * contract test so the two cannot drift: the report flag is what makes a
+ * failed run leave evidence, and the window is what gives npm's propagation
+ * tail enough room.
+ */
+export function verifiedPublishedCommand(): string {
+  return [
+    'pnpm release:verify:published \\',
+    '  --version "$VERSION" \\',
+    '  --tag "$TAG" \\',
+    '  --latest-baseline "$LATEST_BASELINE" \\',
+    '  --release-sha "$RELEASE_SHA" \\',
+    '  --report "$VERIFICATION_REPORT"',
+  ].join('\n')
+}
+
 export function publishPreflightCommand(): string {
   return [
     'pnpm exec tsx scripts/checks/release/check-publish-preflight.ts --version "$VERSION" --tag "$TAG" --out "$PREFLIGHT_REPORT"',
@@ -1182,9 +1199,14 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
   )
   expectEqual(
     getActionRefs(publish, 'publish.jobs.publish'),
-    // Both evidence artifacts use the same pinned action.
+    // Four evidence artifacts use the same pinned action: the pairing record,
+    // the publish preflight, the latest-tag baseline, and the registry
+    // verification report. The last two are what make a failure re-checkable
+    // after the runner is gone.
     [
       ...RELEASE_ACTION_REFS,
+      UPLOAD_ARTIFACT_ACTION_REF,
+      UPLOAD_ARTIFACT_ACTION_REF,
       UPLOAD_ARTIFACT_ACTION_REF,
       UPLOAD_ARTIFACT_ACTION_REF,
     ],
@@ -1311,7 +1333,7 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
         'pnpm exec tsx scripts/checks/release/check-release-channel.ts --version "$VERSION" --tag "$TAG" --context publish',
         'pnpm run ci-publish --version "$VERSION" --tag "$TAG"',
       ].join('\n'),
-      'pnpm release:verify:published --version "$VERSION" --tag "$TAG" --latest-baseline "$LATEST_BASELINE" --release-sha "$RELEASE_SHA"',
+      verifiedPublishedCommand(),
     ],
     'publish.jobs.publish run command order',
     errors,
@@ -1380,8 +1402,13 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       'Verify registry reachability and the recovery set',
       'Preserve publish preflight evidence',
       'Capture latest dist-tag baseline',
+      // The baseline must be durable before publishing: if the workflow fails
+      // at verification, a later read-only re-check has to reuse the original
+      // pre-release state instead of regenerating one from the result.
+      'Preserve latest dist-tag baseline',
       'Publish package',
       'Verify published packages',
+      'Preserve registry verification evidence',
     ],
     'publish.jobs.publish step order',
     errors,
@@ -1450,8 +1477,8 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
     errors,
   )
   expectEqual(
-    verifyPublished.run,
-    'pnpm release:verify:published --version "$VERSION" --tag "$TAG" --latest-baseline "$LATEST_BASELINE" --release-sha "$RELEASE_SHA"',
+    String(verifyPublished.run).trim(),
+    verifiedPublishedCommand(),
     'publish.jobs.publish.steps.Verify published packages.run',
     errors,
   )
@@ -1465,9 +1492,15 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
       LATEST_BASELINE: `${githubExpression(
         'runner.temp',
       )}/published-latest-baseline.json`,
+      VERIFICATION_REPORT: `${githubExpression(
+        'runner.temp',
+      )}/registry-verification.json`,
       RELEASE_SHA: githubExpression('inputs.release_sha'),
       VERSION: githubExpression('inputs.version'),
       TAG: githubExpression('inputs.tag'),
+      // The window is part of the contract: a shorter one is what failed
+      // beta.35, so the workflow must ask for the full ten minutes.
+      ZEUS_REGISTRY_VERIFICATION_WINDOW_SECONDS: '600',
     },
     'publish.jobs.publish.steps.Verify published packages.env',
     errors,
@@ -1479,6 +1512,147 @@ function checkPublishWorkflow(root: string, errors: string[]): void {
   expectNotContains(source, '--expected-latest', 'publish.yml', errors)
 }
 
+/**
+ * `verify-published-release.yml` re-checks a release after npm has propagated
+ * it. The whole reason it exists is that re-running the publish workflow to
+ * make a verification check green is unacceptable: it re-enters the publish
+ * path to answer a read-only question.
+ *
+ * So the contract is mostly prohibitions, and they are checked against parsed
+ * step bodies rather than the file text — a comment saying "no npm publish"
+ * must not trip a check that guards against `npm publish`.
+ */
+function checkVerifyPublishedWorkflow(root: string, errors: string[]): void {
+  const { source, workflow } = readWorkflow(
+    root,
+    'verify-published-release.yml',
+  )
+  const triggers = getObject(workflow, 'on', 'verify.on')
+  const dispatch = getObject(
+    triggers,
+    'workflow_dispatch',
+    'verify.on.workflow_dispatch',
+  )
+  const inputs = getObject(
+    dispatch,
+    'inputs',
+    'verify.on.workflow_dispatch.inputs',
+  )
+
+  for (const input of [
+    'version',
+    'tag',
+    'release_sha',
+    'publish_run_id',
+    'baseline_artifact',
+  ]) {
+    const value = getObject(inputs, input, 'verify.on.workflow_dispatch.inputs')
+    expectEqual(
+      value.required,
+      true,
+      `verify input "${input}" required`,
+      errors,
+    )
+  }
+
+  const permissions = getObject(workflow, 'permissions', 'verify.permissions')
+  expectEqual(
+    permissions.contents,
+    'read',
+    'verify.permissions.contents',
+    errors,
+  )
+
+  const jobs = getObject(workflow, 'jobs', 'verify.jobs')
+  const verify = getObject(jobs, 'verify', 'verify.jobs.verify')
+  const jobPermissions = getObject(
+    verify,
+    'permissions',
+    'verify.jobs.verify.permissions',
+  )
+  expectEqual(
+    jobPermissions.contents,
+    'read',
+    'verify.jobs.verify.permissions.contents',
+    errors,
+  )
+
+  /*
+   * The commands that would make this a publish path. Checked per step body,
+   * with shell comments stripped, so documentation cannot trip it and a real
+   * command cannot hide behind formatting.
+   */
+  const FORBIDDEN =
+    /\b(?:npm|pnpm)\s+(?:publish|dist-tag|unpublish)\b|\bnpm\s+(?:deprecate|owner|access)\b/
+
+  for (const step of getSteps(verify, 'verify.jobs.verify')) {
+    const run = typeof step.run === 'string' ? step.run : ''
+    const commands = run
+      .split('\n')
+      .map(line => line.replace(/(^|\s)#.*$/, ''))
+      .join('\n')
+
+    if (FORBIDDEN.test(commands)) {
+      errors.push(
+        `verify.jobs.verify step "${String(step.name ?? 'unnamed')}" must not publish, retag or unpublish`,
+      )
+    }
+
+    const env =
+      step.env && typeof step.env === 'object' && !Array.isArray(step.env)
+        ? (step.env as WorkflowObject)
+        : {}
+    for (const secret of [
+      'NPM_PUBLISH_TOKEN',
+      'NODE_AUTH_TOKEN',
+      'NPM_TOKEN',
+    ]) {
+      if (JSON.stringify(env).includes(`secrets.${secret}`)) {
+        errors.push(
+          `verify.jobs.verify step "${String(step.name ?? 'unnamed')}" must not read secrets.${secret}`,
+        )
+      }
+    }
+  }
+
+  /*
+   * The baseline has to come from the original publish run. Regenerating it
+   * here would compare the release against the post-release registry, which
+   * passes no matter what was published.
+   */
+  const restore = getNamedStep(
+    verify,
+    'Restore the original latest dist-tag baseline',
+    'verify.jobs.verify',
+  )
+  const restoreRun = String(restore.run ?? '')
+  if (!restoreRun.includes('gh run download')) {
+    errors.push(
+      'verify.jobs.verify must restore the baseline with `gh run download` from the original publish run',
+    )
+  }
+  if (restoreRun.includes('release:capture:latest')) {
+    errors.push(
+      'verify.jobs.verify must not regenerate the baseline; it must reuse the original publish artifact',
+    )
+  }
+
+  // Evidence survives a failed verdict; otherwise a red run proves nothing.
+  const upload = getActionStep(
+    verify,
+    UPLOAD_ARTIFACT_ACTION_REF,
+    'verify.jobs.verify',
+  )
+  if (upload.if !== 'always()') {
+    errors.push(
+      'verify.jobs.verify evidence upload must run with if: always() so a failure still leaves a report',
+    )
+  }
+
+  // The tag this run verifies must be the tag it checks out.
+  expectNotContains(source, 'ref: main', 'verify-published-release.yml', errors)
+}
+
 export function checkReleaseWorkflowContract(root = process.cwd()): string[] {
   const errors: string[] = []
 
@@ -1488,6 +1662,7 @@ export function checkReleaseWorkflowContract(root = process.cwd()): string[] {
   try {
     checkReleaseWorkflow(root, errors)
     checkPublishWorkflow(root, errors)
+    checkVerifyPublishedWorkflow(root, errors)
   } catch (error) {
     errors.push(
       `Release workflow contract could not be read: ${(error as Error).message}`,
