@@ -73,6 +73,17 @@ export default defineReleaseConfig({
        * a mispaired tree fails before anything irreversible happens.
        */
       ['pnpm', 'check:release-pairing'],
+      /*
+       * `packageKind` decides the publish order, but nothing checked that it
+       * still receives the dependency edges until this gate. If it silently
+       * lost them, every package would sort at depth 0, the order would
+       * collapse to alphabetical, and a publish would name a dependency that
+       * is not on the registry yet — with every other gate green.
+       *
+       * It runs before the release because a wrong order is only observable
+       * during the publish itself, when it is too late to reorder.
+       */
+      ['pnpm', 'check:publish-order'],
       ['pnpm', 'site:check'],
     ],
   },

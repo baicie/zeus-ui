@@ -67,6 +67,29 @@ Protected tags cannot safely be moved or reused, and npm versions cannot be
 overwritten to repair a half-published release. Advance to a new candidate
 version when recovery requires new immutable identities.
 
+## Publish order
+
+`@baicie/release` publishes in the order `scripts/release/publish-order.ts`
+returns: each package's `packageKind` is its longest dependency chain within
+the workspace, so a dependency always sorts below its dependents. Without it
+the release sorts alphabetically, which inverted 59 real `@zeus-web` edges.
+
+`pnpm check:publish-order` runs in the precheck and checks two things the unit
+tests cannot:
+
+- no `@zeus-web/*` dependency sorts after its dependent, and
+- every `workspace:*` dependency resolves inside the publishable set. A
+  dangling one is an error, not a silently dropped edge — that edge dropping
+  is what would put a dependent at depth 0, publish it first, and leave a
+  published version naming a dependency that is not on the registry yet.
+
+It also pins the comparator to `@baicie/release`'s own source: if a dependency
+bump changes how the vendor sorts, the check fails rather than trusting a copy
+that has quietly gone stale.
+
+**What it does not prove:** that npm accepts 46 sequential publishes. That is
+registry behaviour and only a real release answers it.
+
 ## What an acceptance report proves
 
 A passing static pairing check proves only that the declared version and
