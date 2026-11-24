@@ -44,15 +44,15 @@ on:
           - rc
           - latest
       release_sha:
-        description: 'The 40-character commit the release tag points at'
+        description: The 40-character commit the release tag points at
         required: true
         type: string
       publish_run_id:
-        description: 'The publish workflow run that produced the release. Used to locate the original latest-baseline artifact.'
+        description: The publish workflow run that produced the release, used to locate the original latest-baseline artifact
         required: true
         type: string
       baseline_artifact:
-        description: 'Name of the latest-baseline artifact on that run'
+        description: Name of the latest-baseline artifact on that run
         required: true
         default: ui-publish-latest-baseline
         type: string

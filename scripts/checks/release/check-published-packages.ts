@@ -988,7 +988,20 @@ export function verifyRegistry(
     tag: options.tag,
     registry: options.registry,
     policy,
-    log: message => console.warn(pc.yellow(message)),
+    /*
+     * `wait` is forwarded so a caller can drive the backoff without sleeping.
+     * Dropping it made the policy's wait untestable and turned a unit test
+     * into a five-second real sleep.
+     */
+    ...(dependencies.wait ? { wait: dependencies.wait } : {}),
+    /*
+     * Retry progress is not a warning. Emitting it through `console.warn`
+     * tripped the repository's "unexpected warnings" guard in every test that
+     * drove a retry, and a retry that is going to succeed is not something an
+     * operator needs to be warned about. The report carries `attempts` per
+     * package, which is the durable record.
+     */
+    log: message => console.info(pc.yellow(message)),
     checkOnce: async packageName => {
       let metadata: PublishedPackageMetadata
 
