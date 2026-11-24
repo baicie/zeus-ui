@@ -1,4 +1,3 @@
-/* eslint-disable style/quote-props -- Prettier unquotes non-hyphenated keys. */
 // Build metadata for the AI Workbench image. Keep the algorithm identical to
 // the Core scripts/release/build-info.ts so CI provenance can verify it.
 import { createHash } from 'node:crypto'

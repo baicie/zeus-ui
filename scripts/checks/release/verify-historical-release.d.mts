@@ -37,14 +37,29 @@ export interface HistoricalReleaseReport {
   items: Record<string, ItemResult>
 }
 
+/*
+ * Named interfaces rather than inline object types.
+ *
+ * A one-line object literal is formatted with semicolons by Prettier and with
+ * commas by this repository's `style/member-delimiter-style`, so whichever ran
+ * last made the other fail. The two rules cannot both be satisfied for an
+ * inline literal; they can for a named interface, and it reads better anyway.
+ */
+export interface JsonResponse {
+  status: number
+  body: unknown
+}
+
+export interface TarballDigest {
+  ok: boolean
+  status?: number
+  sha512?: string
+  bytes?: number
+}
+
 export interface VerificationDependencies {
-  fetchJson?: (url: string) => Promise<{ status: number, body: unknown }>
-  downloadAndHash?: (url: string) => Promise<{
-    ok: boolean
-    status?: number
-    sha512?: string
-    bytes?: number
-  }>
+  fetchJson?: (url: string) => Promise<JsonResponse>
+  downloadAndHash?: (url: string) => Promise<TarballDigest>
 }
 
 export declare function parseArgs(args: string[]): Record<string, string>
