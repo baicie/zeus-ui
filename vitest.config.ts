@@ -724,8 +724,8 @@ export default defineConfig({
         test: {
           name: 'web-c-instance-benchmark',
           environment: 'node',
-          include: ['benchmarks/web-c-instances/*.bench.ts'],
-          globalSetup: ['benchmarks/web-c-instances/setup.ts'],
+          include: ['scripts/benchmarks/web-c-instances/*.bench.ts'],
+          globalSetup: ['scripts/benchmarks/web-c-instances/setup.ts'],
           testTimeout: 120_000,
           hookTimeout: 120_000,
           pool: 'forks',

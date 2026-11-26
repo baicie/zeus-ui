@@ -7,7 +7,7 @@ const BENCHMARK_PORT = 5177
 
 export default function setup() {
   const root = fileURLToPath(new URL('.', import.meta.url))
-  const outDir = resolve(root, '../../temp/web-c-instance-benchmark')
+  const outDir = resolve(root, '../../../temp/web-c-instance-benchmark')
 
   return rm(outDir, { recursive: true, force: true })
     .then(() =>
