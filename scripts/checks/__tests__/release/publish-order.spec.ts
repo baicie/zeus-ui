@@ -170,6 +170,28 @@ describe('publish order', () => {
  * precheck entry impossible to pass — a gate that can only be removed.
  */
 describe('check-release-pairing CLI defaults', () => {
+  /*
+   * The workspace this runs in is not always a release workspace.
+   *
+   * The canary compatibility job rewrites every `@zeus-js/*` pin to a canary
+   * version before running `test-unit`, and it does so by editing the root
+   * manifest — so this test sees a UI version of `0.1.0-canary.…`. The UI has
+   * three release channels (beta, rc, latest) and canary is not one of them, so
+   * the CLI correctly refuses to derive a pairing for it.
+   *
+   * Asserting success unconditionally made the canary job red on every run
+   * since the alignment step was added. The refusal is the right behaviour; the
+   * test was asking for the wrong one.
+   */
+  const workspaceVersion =
+    (
+      JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as {
+        version?: string
+      }
+    ).version ?? ''
+
+  const isCanaryWorkspace = workspaceVersion.includes('-canary.')
+
   it('runs without arguments and reads the versions from the workspace', () => {
     const result = spawnSync(process.execPath, [TSX, CLI], {
       cwd: ROOT,
@@ -177,6 +199,15 @@ describe('check-release-pairing CLI defaults', () => {
     })
 
     expect(result.error).toBeUndefined()
+
+    if (isCanaryWorkspace) {
+      expect(result.status).not.toBe(0)
+      expect(`${result.stdout}${result.stderr}`).toMatch(
+        /Cannot derive a release channel from UI version \S*canary/,
+      )
+      return
+    }
+
     expect(result.status).toBe(0)
     expect(`${result.stdout}${result.stderr}`).toMatch(
       /UI release pairing \d+\.\d+\.\d+/,
