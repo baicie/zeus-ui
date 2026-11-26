@@ -23,7 +23,10 @@ import { runBenchmarkChurnSample, runBenchmarkSample } from './benchmark-runner'
 const BENCHMARK_RESULT_PREFIX = '[web-c-instance:benchmark]'
 const BENCHMARK_CHURN_PREFIX = '[web-c-instance:churn]'
 const RESULT_PATH = fileURLToPath(
-  new URL('../../temp/web-c-instance-benchmark-results.json', import.meta.url),
+  new URL(
+    '../../../temp/web-c-instance-benchmark-results.json',
+    import.meta.url,
+  ),
 )
 const runConfig = resolveBenchmarkRunConfig()
 const summaries: WebCInstanceBenchmarkSummary[] = []

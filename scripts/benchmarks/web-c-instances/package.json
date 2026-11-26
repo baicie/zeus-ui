@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "bench": "pnpm build:deps && vitest --root ../.. --project web-c-instance-benchmark --run --reporter=verbose",
+    "bench": "pnpm build:deps && vitest --root ../../.. --project web-c-instance-benchmark --run --reporter=verbose",
     "build:deps": "pnpm --filter @zeus-web/button build && pnpm --filter @zeus-web/accordion build",
     "check": "pnpm build:deps && tsc -p tsconfig.json --noEmit"
   },

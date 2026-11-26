@@ -1,4 +1,3 @@
-import type { Root } from 'react-dom/client'
 import type { App, Component, Ref } from 'vue'
 import type {
   WebCInstanceBenchmarkApi,
@@ -14,11 +13,23 @@ import React from 'react'
 
 import { flushSync } from 'react-dom'
 import { createRoot } from 'react-dom/client'
+
 import { createApp, h, nextTick, ref, Fragment as VueFragment } from 'vue'
 import { WEB_C_INSTANCE_BENCHMARK_KEY } from './benchmark-types'
 
 import '@zeus-web/accordion/wc/auto'
 import '@zeus-web/button/wc/auto'
+
+/*
+ * `Root` is not exported by `@types/react-dom@19` any more — the type exists
+ * under a different name. Deriving it from `createRoot` asks the same question
+ * and survives the rename.
+ *
+ * This surfaced only after the harness moved under `scripts/`: `tsconfig.json`
+ * includes everything under scripts but not benchmarks, so this file had
+ * never been typechecked before.
+ */
+type Root = ReturnType<typeof createRoot>
 
 interface BenchmarkAccordionElement extends HTMLElement {
   value?: string
