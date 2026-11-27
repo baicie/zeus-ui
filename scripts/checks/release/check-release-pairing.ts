@@ -1014,6 +1014,51 @@ function resolveWorkspaceCoreVersion(uiRoot: string): string | undefined {
   )
 }
 
+/**
+ * `@zeus-js/*` specs that are dist-tags rather than versions.
+ *
+ * A pin of `canary` says "whatever is on the canary tag right now", which is a
+ * different claim from "the release this was verified against". The pairing
+ * contract is the second one, so a workspace full of dist-tags has said nothing
+ * this command can check.
+ *
+ * It used to fall through to `FALLBACK_EXPECTED_ZEUS_VERSION` and *pass*: on a
+ * tree where every `@zeus-js/*` pin was `canary`, `check-release-pairing`
+ * printed `UI release pairing 0.1.0-beta.35 passed (beta, static)` and exited
+ * zero — inventing a Core version from a constant while the workspace named
+ * none. That is the canary compatibility job, so the job was green for a run
+ * that proved nothing.
+ */
+function distTagPins(
+  uiRoot: string,
+): Array<{ file: string; name: string; spec: string }> {
+  const found: Array<{ file: string; name: string; spec: string }> = []
+  for (const file of listZeusDependencyManifests(uiRoot)) {
+    let manifest: Record<string, unknown>
+    try {
+      manifest = JSON.parse(readFileSync(file, 'utf8')) as Record<
+        string,
+        unknown
+      >
+    } catch {
+      continue
+    }
+    for (const field of ['dependencies', 'devDependencies']) {
+      const deps = manifest[field]
+      if (!deps || typeof deps !== 'object') continue
+      for (const [name, spec] of Object.entries(
+        deps as Record<string, unknown>,
+      )) {
+        if (!name.startsWith('@zeus-js/')) continue
+        if (typeof spec !== 'string') continue
+        if (/^\d+\.\d+\.\d+/.test(spec)) continue
+        found.push({ file, name, spec })
+      }
+    }
+  }
+  return found
+}
+
 function main(): void {
   const { values } = parseArgs({
     options: {
@@ -1068,6 +1113,23 @@ function main(): void {
   }
 
   const uiRoot = path.resolve(values['ui-root'] ?? '.')
+
+  /*
+   * A tree pinned to dist-tags has named no Core release. Say that, rather than
+   * falling back to a constant and reporting a pairing nobody verified — the
+   * canary compatibility job ran in exactly this shape and was green.
+   */
+  const tags = distTagPins(uiRoot)
+  if (tags.length > 0 && values['core-version'] === undefined) {
+    const specs = [...new Set(tags.map(tag => tag.spec))].sort()
+    console.error(
+      `The workspace pins ${tags.length} @zeus-js package(s) to a dist-tag (${specs.join(', ')}), ` +
+        'which names no release to pair against. Pass --core-version with the exact version ' +
+        'this tree was verified against, or pin the workspace to that version.',
+    )
+    process.exitCode = 2
+    return
+  }
 
   if (!coreVersion) {
     console.error(
