@@ -1,7 +1,7 @@
 {
   "name": "@zeus-web/headless",
   "type": "module",
-  "version": "0.2.0-rc.7",
+  "version": "0.2.0-rc.8",
   "description": "Aggregated headless Web Components for Zeus Web.",
   "license": "MIT",
   "repository": {

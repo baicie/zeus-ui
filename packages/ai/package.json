@@ -1,7 +1,7 @@
 {
   "name": "@zeus-web/ai",
   "type": "module",
-  "version": "0.2.0-rc.7",
+  "version": "0.2.0-rc.8",
   "description": "AI metadata and LLM usage guide for Zeus Web.",
   "license": "MIT",
   "repository": {

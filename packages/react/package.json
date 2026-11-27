@@ -1,7 +1,7 @@
 {
   "name": "@zeus-web/react",
   "type": "module",
-  "version": "0.2.0-rc.7",
+  "version": "0.2.0-rc.8",
   "description": "React wrappers for Zeus Web primitives.",
   "license": "MIT",
   "repository": {
