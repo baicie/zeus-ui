@@ -1,7 +1,7 @@
 {
   "name": "@zeus-web/ui",
   "type": "module",
-  "version": "0.2.0-rc.6",
+  "version": "0.2.0-rc.7",
   "description": "Styled native Web Component entrypoints for Zeus Web.",
   "license": "MIT",
   "repository": {

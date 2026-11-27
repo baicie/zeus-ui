@@ -1,7 +1,7 @@
 {
   "name": "@zeus-web/ai-core",
   "type": "module",
-  "version": "0.2.0-rc.6",
+  "version": "0.2.0-rc.7",
   "description": "Domain, protocol and normalized store for Zeus AI Headless V2. Pure Node, no DOM.",
   "license": "MIT",
   "repository": {
