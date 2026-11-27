@@ -33,7 +33,14 @@
  * changing any caller.
  */
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs'
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -182,18 +189,84 @@ export function linkDependencies(
   fromCheckout: string,
   intoWorktree: string,
 ): void {
-  const source = resolve(fromCheckout, 'node_modules')
-  const target = resolve(intoWorktree, 'node_modules')
+  /*
+   * The root `node_modules` is not the whole dependency tree.
+   *
+   * pnpm gives every workspace package its own `node_modules` holding that
+   * package's dependencies, and a package's dev dependencies live only there —
+   * `examples/vue-showcase` reaches `@vue/test-utils` through its own link, not
+   * the root one. Linking only the root left those unresolved, and the
+   * rehearsal's `unit-jsdom` project failed with
+   *
+   *   Failed to resolve import "@vue/test-utils"
+   *
+   * on six files, while the same suite passed in ordinary CI where the checkout
+   * has every workspace link.
+   */
+  for (const relative of workspaceModuleDirectories(fromCheckout)) {
+    const source = resolve(fromCheckout, relative)
+    const target = resolve(intoWorktree, relative)
+    if (!existsSync(source) || existsSync(target)) continue
+    /*
+     * `fs.symlinkSync` rather than `ln -s`: there is no `ln` on Windows, and
+     * the first version of this used `execFileSync('ln', ...)` and failed
+     * there.
+     *
+     * `junction` on Windows is a directory link that does not require the
+     * elevated privilege a plain symlink does, which matters because a
+     * rehearsal must work for any developer, not only admins.
+     */
+    symlinkSync(
+      source,
+      target,
+      process.platform === 'win32' ? 'junction' : 'dir',
+    )
+  }
+}
 
-  if (!existsSync(source) || existsSync(target)) return
+/**
+ * Every `node_modules` a pnpm workspace install produces, relative to the root.
+ *
+ * Read from `pnpm-workspace.yaml` rather than hardcoded, so a new workspace
+ * glob does not silently reintroduce the unresolved-import failure above.
+ * A directory without its own `node_modules` is simply absent from the result.
+ */
+function workspaceModuleDirectories(root: string): string[] {
+  const manifest = resolve(root, 'pnpm-workspace.yaml')
+  if (!existsSync(manifest)) return ['node_modules']
+
+  const patterns = readFileSync(manifest, 'utf8')
+    .split('\n')
+    .map(line => /^\s*-\s*'([^']+)'\s*$/.exec(line)?.[1])
+    .filter((pattern): pattern is string => Boolean(pattern))
 
   /*
-   * `fs.symlinkSync` rather than `ln -s`: there is no `ln` on Windows, and the
-   * first version of this used `execFileSync('ln', ...)` and failed there.
-   *
-   * `junction` on Windows is a directory link that does not require the
-   * elevated privilege a plain symlink does, which matters because a rehearsal
-   * must work for any developer, not only admins.
+   * Expand one level per `*` segment, so `packages/primitives/*` reaches the
+   * packages under it rather than only `packages/`.
    */
-  symlinkSync(source, target, process.platform === 'win32' ? 'junction' : 'dir')
+  const directories = ['node_modules']
+  const expand = (segments: string[]): void => {
+    const star = segments.indexOf('*')
+    /*
+     * No `*` left: this path is a workspace package, not a directory to walk.
+     * The first version kept descending into its subdirectories and found
+     * nothing, so every package's `node_modules` was silently skipped.
+     */
+    if (star === -1) {
+      const packageDirectory = resolve(root, ...segments)
+      if (existsSync(resolve(packageDirectory, 'node_modules'))) {
+        directories.push(join(...segments, 'node_modules'))
+      }
+      return
+    }
+    const prefix = segments.slice(0, star)
+    const directory = resolve(root, ...prefix)
+    if (!existsSync(directory)) return
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      if (!entry.isDirectory() || entry.name === 'node_modules') continue
+      expand([...prefix, entry.name, ...segments.slice(star + 1)])
+    }
+  }
+  for (const pattern of patterns) expand(pattern.split('/'))
+  return [...new Set(directories)]
 }
