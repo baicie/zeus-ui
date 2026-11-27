@@ -164,6 +164,38 @@ describe('worktree lifecycle', () => {
     WORKTREE_TIMEOUT_MS,
   )
 
+  /*
+   * The root `node_modules` is not the whole tree: pnpm gives every workspace
+   * package its own, and a package's dev dependencies live only there.
+   *
+   * The rc.8 dry run failed exactly here — `unit-jsdom` reported
+   * `Failed to resolve import "@vue/test-utils"` on six files, because the
+   * rehearsal linked only the root and `examples/vue-showcase` reaches that
+   * package through its own link.
+   */
+  it(
+    'shares every workspace package node_modules, not only the root',
+    () => {
+      if (!root) return
+
+      const worktree = createRehearsalWorktree(root)
+
+      try {
+        linkDependencies(process.cwd(), worktree)
+
+        const showcase = `${process.cwd()}/examples/vue-showcase/node_modules`
+        if (!existsSync(showcase)) return
+
+        const target = `${worktree}/examples/vue-showcase/node_modules`
+        expect(existsSync(target)).toBe(true)
+        expect(lstatSync(target).isSymbolicLink()).toBe(true)
+      } finally {
+        removeRehearsalWorktree(root, worktree)
+      }
+    },
+    WORKTREE_TIMEOUT_MS,
+  )
+
   it(
     'removes a worktree twice without throwing',
     () => {
