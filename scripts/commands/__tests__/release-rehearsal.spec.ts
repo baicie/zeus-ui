@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, lstatSync } from 'node:fs'
 
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
 import {
   createRehearsalWorktree,
@@ -11,6 +11,28 @@ import {
   planRehearsal,
   removeRehearsalWorktree,
 } from '../release-rehearsal'
+
+/*
+ * `isRehearsal` reads `ZEUS_RELEASE_REHEARSAL` to stop the child process from
+ * recursing. The dry-run release sets that variable for everything it runs —
+ * including this suite — so a test that asserts "a plain --dry is a rehearsal"
+ * sees the guard and gets `false`.
+ *
+ * Measured on the rc.8 dry run: three tests in this file failed there and
+ * passed in ordinary CI, because CI never has the variable set.
+ *
+ * The variable is cleared for each test and restored afterwards, so the suite
+ * answers the same way in both places.
+ */
+const savedRehearsalFlag = process.env.ZEUS_RELEASE_REHEARSAL
+beforeEach(() => {
+  delete process.env.ZEUS_RELEASE_REHEARSAL
+})
+afterAll(() => {
+  if (savedRehearsalFlag === undefined)
+    delete process.env.ZEUS_RELEASE_REHEARSAL
+  else process.env.ZEUS_RELEASE_REHEARSAL = savedRehearsalFlag
+})
 
 describe('isRehearsal', () => {
   it('treats a plain --dry invocation as a rehearsal', () => {
