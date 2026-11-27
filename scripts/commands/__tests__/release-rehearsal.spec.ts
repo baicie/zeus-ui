@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, lstatSync } from 'node:fs'
+import { existsSync, lstatSync, readdirSync, realpathSync } from 'node:fs'
 
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
@@ -186,9 +186,45 @@ describe('worktree lifecycle', () => {
         const showcase = `${process.cwd()}/examples/vue-showcase/node_modules`
         if (!existsSync(showcase)) return
 
+        /*
+         * A real directory, not a symlink to the checkout's.
+         *
+         * Its entries are what matter: a workspace dependency must point at
+         * the worktree's own package, because pnpm writes those as relative
+         * links and Node resolves them against the link target's real path. A
+         * shared directory pointed them back at the caller's checkout, whose
+         * packages have no `dist` — which is how the build failed with
+         * `Cannot find module '@zeus-web/input'`.
+         */
         const target = `${worktree}/examples/vue-showcase/node_modules`
         expect(existsSync(target)).toBe(true)
-        expect(lstatSync(target).isSymbolicLink()).toBe(true)
+        expect(lstatSync(target).isSymbolicLink()).toBe(false)
+
+        /*
+         * The one assertion that would have caught the defect: a workspace
+         * dependency inside that directory must resolve into the worktree, not
+         * into the caller's checkout.
+         */
+        const workspaceScope = `${target}/@zeus-web`
+        const firstWorkspacePackage = existsSync(workspaceScope)
+          ? readdirSync(workspaceScope, { withFileTypes: true }).find(
+              entry => entry.name !== 'node_modules',
+            )
+          : undefined
+        if (firstWorkspacePackage) {
+          /*
+           * Resolve the entry itself, not the scope directory: the scope is a
+           * real directory either way, so resolving it proves nothing.
+           */
+          const resolved = realpathSync(
+            `${workspaceScope}/${firstWorkspacePackage.name}`,
+          )
+          console.error('DBG resolved=', resolved)
+          console.error('DBG worktree=', realpathSync(worktree))
+          console.error('DBG cwd=', realpathSync(process.cwd()))
+          expect(resolved.startsWith(realpathSync(worktree))).toBe(true)
+          expect(resolved.startsWith(realpathSync(process.cwd()))).toBe(false)
+        }
       } finally {
         removeRehearsalWorktree(root, worktree)
       }
