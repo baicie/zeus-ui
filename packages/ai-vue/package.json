@@ -1,7 +1,7 @@
 {
   "name": "@zeus-web/ai-vue",
   "type": "module",
-  "version": "0.2.0-rc.8",
+  "version": "0.2.0-rc.9",
   "description": "Vue composables and components for Zeus AI Headless V2. Renders natively with Vue; no Web Component runtime.",
   "license": "MIT",
   "repository": {
