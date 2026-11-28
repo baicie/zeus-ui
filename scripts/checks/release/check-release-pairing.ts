@@ -737,7 +737,7 @@ function readAmendmentVerdict(args: {
    * needs to know that a published amendment has *replaced* the candidate they
    * are trying to release, and that the release cannot proceed from it.
    */
-  const amendedReplacement = (parsedAmendment as PairingAmendment)?.replacement
+  const amendedReplacement = (parsedAmendment as PairingAmendment).replacement
     ?.uiCommit
   if (
     typeof amendedReplacement === 'string' &&
