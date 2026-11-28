@@ -737,8 +737,8 @@ function readAmendmentVerdict(args: {
    * needs to know that a published amendment has *replaced* the candidate they
    * are trying to release, and that the release cannot proceed from it.
    */
-  const amendedReplacement = (parsedAmendment as PairingAmendment).replacement
-    ?.uiCommit
+  const amended = parsedAmendment as PairingAmendment
+  const amendedReplacement = amended.replacement?.uiCommit
   if (
     typeof amendedReplacement === 'string' &&
     amendedReplacement.toLowerCase() !== input.uiCommit.toLowerCase()
