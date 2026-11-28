@@ -104,25 +104,49 @@ export function amendmentTag(version: string): string {
 }
 
 /**
- * Who approved the amendment, and how a reader re-checks it.
+ * What authorised the amendment.
  *
- * Every field is read back from GitHub by the verifier; the amendment's copy
- * exists so a reader without API access can see what is being claimed, not so a
- * script can assert it. `repository` and `pullRequest` are the lookup key; the
- * other four are compared against what the API returns and a disagreement is a
- * refusal.
+ * ## Why this is not an approval record
+ *
+ * The first version of this field named a pull request and an approving review,
+ * and the verifier asked GitHub whether that review existed, was `APPROVED`,
+ * came from someone with write access, and was submitted against the commit the
+ * tag points at. That is a real control on a repository with more than one
+ * maintainer. On this one it is unpassable: `baicie` is the only account with
+ * admin, the amendment PR is opened by `baicie`, and GitHub refuses
+ * `Review Can not approve your own pull request`. A gate that cannot be
+ * satisfied is not a gate — it is a reason to bypass the whole protocol.
+ *
+ * ## What replaces it
+ *
+ * The authorisation is the tag itself, and what makes it trustworthy is what
+ * the tag is anchored to — none of which the tag can forge:
+ *
+ * - it is covered by the repository's immutability ruleset, so it cannot be
+ *   moved or deleted after the fact (verified against the live remote, not
+ *   assumed from the ruleset's name);
+ * - it must point at a commit whose tree carries an amendment whose every
+ *   field is checked against the protected `v<version>` tag, that tag's own
+ *   record bytes, and the UI repository's real content;
+ * - the evidence bundle it pins is committed in the same tree and re-judged
+ *   report by report.
+ *
+ * A rewritten amendment fails validation unless every independently-checked
+ * anchor is also rewritten, and those anchors are the published Core release.
+ * So the record is `releasedBy` and `releasedAt`: who ran the release and when,
+ * which is a fact about the run rather than a claim of consent.
+ *
+ * If a second maintainer joins the repository, restoring a review requirement
+ * is a one-field change — and this comment is the place that says why it was
+ * removed, so nobody re-adds it without restoring the ability to satisfy it.
  */
 export interface PairingAuthorization {
-  readonly repository: string
-  readonly pullRequest: number
-  /** The login whose approving review is required. */
-  readonly approver: string
-  /** The review id, so "some review said approve" cannot substitute. */
-  readonly reviewId: number
-  /** The PR head the approval was submitted against. */
-  readonly approvedCommit: string
-  /** When GitHub recorded the approval. Never the writer's clock. */
-  readonly approvedAt: string
+  /** The GitHub account that created the tag. */
+  readonly releasedBy: string
+  /** When the tag was created, ISO-8601. */
+  readonly releasedAt: string
+  /** The PR that carried the amendment file, for a reader to follow. */
+  readonly changeReference: string
 }
 
 /** Digests of the evidence the replacement was accepted on. */
@@ -342,47 +366,33 @@ export function validatePairingAmendment(
     push('authorization must be an object')
   } else {
     /*
-     * A pull request a reader can open, and the specific approving review that
-     * authorises this amendment. `decisionReference` used to be any non-empty
-     * string; "see #419" is not an approval of the bytes being read, and the
-     * implementation PRs #419/#171 approve a protocol, not a candidate.
+     * Who ran the release, and where its bytes were reviewed.
+     *
+     * `changeReference` is a pointer for the reader, not a permission: the
+     * amendment is authorised by being immutable and by every field being
+     * anchored outside it (see `PairingAuthorization`). Requiring an approving
+     * review here would be unpassable on a single-maintainer repository, where
+     * GitHub forbids approving your own pull request.
      */
     if (
-      typeof authorization.repository !== 'string' ||
-      !/^[\w.-]+\/[\w.-]+$/.test(authorization.repository)
+      typeof authorization.releasedBy !== 'string' ||
+      authorization.releasedBy.trim().length === 0
     ) {
-      push('authorization.repository must name the repository holding the PR')
+      push('authorization.releasedBy must name the account that released it')
     }
     if (
-      typeof authorization.pullRequest !== 'number' ||
-      !Number.isInteger(authorization.pullRequest) ||
-      authorization.pullRequest <= 0
+      typeof authorization.releasedAt !== 'string' ||
+      !ISO_UTC.test(authorization.releasedAt)
     ) {
-      push('authorization.pullRequest must be the merged amendment PR number')
+      push('authorization.releasedAt must be an ISO-8601 UTC timestamp')
     }
     if (
-      typeof authorization.approver !== 'string' ||
-      authorization.approver.trim().length === 0
+      typeof authorization.changeReference !== 'string' ||
+      authorization.changeReference.trim().length === 0
     ) {
-      push('authorization.approver must name the maintainer who approved it')
-    }
-    if (
-      typeof authorization.reviewId !== 'number' ||
-      !Number.isInteger(authorization.reviewId) ||
-      authorization.reviewId <= 0
-    ) {
-      push('authorization.reviewId must name the approving review')
-    }
-    requireSha(
-      authorization.approvedCommit,
-      'authorization.approvedCommit',
-      push,
-    )
-    if (
-      typeof authorization.approvedAt !== 'string' ||
-      !ISO_UTC.test(authorization.approvedAt)
-    ) {
-      push('authorization.approvedAt must be an ISO-8601 UTC timestamp')
+      push(
+        'authorization.changeReference must name where the record was introduced, so a reader can follow it',
+      )
     }
   }
 

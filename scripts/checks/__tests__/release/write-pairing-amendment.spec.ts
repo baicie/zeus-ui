@@ -27,17 +27,12 @@ import {
   validatePairingAmendment,
   verifyAmendmentEvidence,
 } from '../../../release/pairing-amendment'
-import {
-  authorizationProblems,
-  verifyAuthorization,
-} from '../../../release/pairing-authorization'
 
 const VERSION = '0.2.0-rc.8'
 const HEX64 = 'a'.repeat(64)
 const CORE_COMMIT = 'c'.repeat(40)
 const UI_COMMIT = '2'.repeat(40)
 const UI_TREE = '3'.repeat(40)
-const APPROVAL_COMMIT = '4'.repeat(40)
 
 const file = amendmentFile(VERSION)
 const bundlePath = evidenceBundleFile(VERSION)
@@ -149,12 +144,9 @@ function amendment(
       lockfileSha256: HEX64,
     },
     authorization: {
-      repository: 'baicie/zeus',
-      pullRequest: 999,
-      approver: 'baicie',
-      reviewId: 4242,
-      approvedCommit: APPROVAL_COMMIT,
-      approvedAt: '2026-11-28T00:00:00.000Z',
+      releasedBy: 'baicie',
+      releasedAt: '2026-11-28T00:00:00.000Z',
+      changeReference: 'baicie/zeus#420',
     },
     evidence: {
       bundleSha256: evidenceSha256(bundleRaw),
@@ -244,26 +236,6 @@ describe('amendment writer guards', () => {
     expect(problems.map(p => p.message).join(' ')).toMatch(
       /evidence\.reports\.ui-candidate-report/,
     )
-  })
-
-  it('refuses an amendment whose authorization names no specific review', () => {
-    const problems = validatePairingAmendment(
-      amendment({
-        authorization: {
-          repository: 'baicie/zeus',
-          pullRequest: 999,
-          approver: 'baicie',
-          reviewId: 0,
-          approvedCommit: 'not-a-sha',
-          approvedAt: '2026-11-28T00:00:00.000Z',
-        },
-      }),
-      file,
-      expectation,
-    )
-    const messages = problems.map(p => p.message).join(' ')
-    expect(messages).toMatch(/authorization\.reviewId/)
-    expect(messages).toMatch(/authorization\.approvedCommit/)
   })
 
   it('refuses an amendment filed under another version', () => {
@@ -558,130 +530,66 @@ describe('a report is judged on its own numbers', () => {
   })
 })
 
-describe('an approval is checked against GitHub', () => {
-  const claim = {
-    repository: 'baicie/zeus',
-    pullRequest: 999,
-    approver: 'baicie',
-    reviewId: 4242,
-    approvedCommit: APPROVAL_COMMIT,
-    approvedAt: '2026-11-28T00:00:00.000Z',
-  }
-
-  const facts = {
-    merged: true,
-    headSha: APPROVAL_COMMIT,
-    review: {
-      id: 4242,
-      login: 'baicie',
-      state: 'APPROVED',
-      commitId: APPROVAL_COMMIT,
-      submittedAt: '2026-11-28T00:00:00.000Z',
-    },
-    permission: 'admin',
-  }
-
-  it('accepts an approval of this commit by a maintainer', () => {
-    expect(
-      verifyAuthorization(claim, { state: 'FOUND', facts }, APPROVAL_COMMIT),
-    ).toEqual([])
+describe('the authorization names the release, not a consent', () => {
+  /*
+   * This used to require an approving GitHub review. On a repository with one
+   * maintainer that is unpassable — GitHub refuses `Review Can not approve
+   * your own pull request` — so the field records who released and where the
+   * record came from, and the trust comes from the tag being immutable and
+   * every other field being anchored outside the file.
+   */
+  it('accepts a record that names who released it and where', () => {
+    expect(validatePairingAmendment(amendment(), file, expectation)).toEqual([])
   })
 
-  it('refuses an approval whose pull request is not merged', () => {
-    expect(
-      verifyAuthorization(
-        claim,
-        { state: 'FOUND', facts: { ...facts, merged: false } },
-        APPROVAL_COMMIT,
-      ).join(' '),
-    ).toMatch(/is not merged/)
-  })
-
-  it('refuses a review that was dismissed or changed', () => {
-    expect(
-      verifyAuthorization(
-        claim,
-        {
-          state: 'FOUND',
-          facts: { ...facts, review: { ...facts.review, state: 'DISMISSED' } },
+  it('refuses a record with no releasing account', () => {
+    const problems = validatePairingAmendment(
+      amendment({
+        authorization: {
+          releasedBy: '',
+          releasedAt: '2026-11-28T00:00:00.000Z',
+          changeReference: 'baicie/zeus#420',
         },
-        APPROVAL_COMMIT,
-      ).join(' '),
-    ).toMatch(/is DISMISSED, not APPROVED/)
+      }),
+      file,
+      expectation,
+    )
+    expect(problems.map(p => p.message).join(' ')).toMatch(
+      /authorization\.releasedBy/,
+    )
   })
 
-  it('refuses an approval attributed to someone else', () => {
-    expect(
-      verifyAuthorization(
-        claim,
-        {
-          state: 'FOUND',
-          facts: { ...facts, review: { ...facts.review, login: 'someone' } },
+  it('refuses a record with no timestamp', () => {
+    const problems = validatePairingAmendment(
+      amendment({
+        authorization: {
+          releasedBy: 'baicie',
+          releasedAt: 'yesterday',
+          changeReference: 'baicie/zeus#420',
         },
-        APPROVAL_COMMIT,
-      ).join(' '),
-    ).toMatch(/submitted by someone, not baicie/)
+      }),
+      file,
+      expectation,
+    )
+    expect(problems.map(p => p.message).join(' ')).toMatch(
+      /authorization\.releasedAt/,
+    )
   })
 
-  it('refuses an approval by a reader', () => {
-    expect(
-      verifyAuthorization(
-        claim,
-        { state: 'FOUND', facts: { ...facts, permission: 'read' } },
-        APPROVAL_COMMIT,
-      ).join(' '),
-    ).toMatch(/write access or better/)
-  })
-
-  it('refuses an approval given for older bytes', () => {
-    expect(
-      verifyAuthorization(
-        claim,
-        {
-          state: 'FOUND',
-          facts: {
-            ...facts,
-            review: { ...facts.review, commitId: '9'.repeat(40) },
-          },
+  it('refuses a record a reader cannot trace', () => {
+    const problems = validatePairingAmendment(
+      amendment({
+        authorization: {
+          releasedBy: 'baicie',
+          releasedAt: '2026-11-28T00:00:00.000Z',
+          changeReference: '  ',
         },
-        APPROVAL_COMMIT,
-      ).join(' '),
-    ).toMatch(/approval covers different bytes/)
-  })
-
-  it('refuses a recorded timestamp that GitHub did not record', () => {
-    expect(
-      verifyAuthorization(
-        { ...claim, approvedAt: '2026-01-01T00:00:00.000Z' },
-        { state: 'FOUND', facts },
-        APPROVAL_COMMIT,
-      ).join(' '),
-    ).toMatch(/GitHub recorded the approval at/)
-  })
-
-  it('refuses when the approval cannot be looked up', () => {
-    expect(
-      verifyAuthorization(
-        claim,
-        { state: 'ERROR', message: 'HTTP 502' },
-        APPROVAL_COMMIT,
-      ).join(' '),
-    ).toMatch(/could not verify the approval/)
-  })
-
-  it('refuses when the approval does not exist', () => {
-    expect(
-      verifyAuthorization(
-        claim,
-        { state: 'MISSING', message: 'review 4242 does not exist' },
-        APPROVAL_COMMIT,
-      ).join(' '),
-    ).toMatch(/does not exist/)
-  })
-
-  it('refuses a structurally impossible claim before asking GitHub', () => {
-    expect(authorizationProblems({ ...claim, reviewId: 0 }).join(' ')).toMatch(
-      /reviewId must be a review id/,
+      }),
+      file,
+      expectation,
+    )
+    expect(problems.map(p => p.message).join(' ')).toMatch(
+      /authorization\.changeReference/,
     )
   })
 })

@@ -1,7 +1,4 @@
-import type {
-  PairingAmendment,
-  PairingAuthorization,
-} from './pairing-amendment'
+import type { PairingAmendment } from './pairing-amendment'
 /**
  * Writes a pairing amendment for a published Core release.
  *
@@ -66,10 +63,6 @@ import {
   validatePairingAmendment,
   verifyAmendmentEvidence,
 } from './pairing-amendment'
-import {
-  readAuthorizationFromGitHub,
-  verifyAuthorization,
-} from './pairing-authorization'
 
 const CORE_REPOSITORY = 'baicie/zeus'
 
@@ -124,60 +117,6 @@ function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex')
 }
 
-interface ApprovalInput {
-  readonly repository: string
-  readonly pullRequest: number
-  readonly reviewId: number
-  readonly approver: string
-}
-
-/**
- * Reads the approval the amendment will cite, and refuses one that does not
- * hold.
- *
- * This is the part of the writer that cannot be satisfied by writing JSON: the
- * review is looked up by id, the reviewer's permission is asked for, and the
- * commit the review was submitted against is compared with the commit the tag
- * will point at.
- */
-function readApproval(
-  approval: ApprovalInput,
-  amendmentCommit: string,
-  gh: (args: readonly string[]) => string,
-): PairingAuthorization {
-  const lookup = readAuthorizationFromGitHub(
-    approval.repository,
-    approval.pullRequest,
-    approval.reviewId,
-    approval.approver,
-    gh,
-  )
-  if (lookup.state !== 'FOUND') {
-    throw new Error(
-      `cannot cite ${approval.repository}#${approval.pullRequest} as approval: ${lookup.message}`,
-    )
-  }
-
-  const claim: PairingAuthorization = {
-    repository: approval.repository,
-    pullRequest: approval.pullRequest,
-    approver: approval.approver,
-    reviewId: approval.reviewId,
-    approvedCommit: lookup.facts.review.commitId ?? '',
-    approvedAt: lookup.facts.review.submittedAt ?? '',
-  }
-
-  const problems = verifyAuthorization(claim, lookup, amendmentCommit)
-  if (problems.length > 0) {
-    for (const problem of problems) console.error(`  ${problem}`)
-    throw new Error(
-      `the approval this tool would record does not hold; an amendment is not authorised without a merged pull request and an approving review of these bytes`,
-    )
-  }
-
-  return claim
-}
-
 function main(): void {
   const { values } = parseArgs({
     options: {
@@ -185,10 +124,7 @@ function main(): void {
       'ui-commit': { type: 'string' },
       'ui-repository': { type: 'string', default: 'baicie/zeus-ui' },
       'amendment-commit': { type: 'string' },
-      'approval-repository': { type: 'string', default: CORE_REPOSITORY },
-      'approval-pull-request': { type: 'string' },
-      'approval-review': { type: 'string' },
-      approver: { type: 'string' },
+      'change-reference': { type: 'string' },
       reason: { type: 'string' },
       'evidence-bundle': { type: 'string' },
       out: { type: 'string' },
@@ -216,16 +152,10 @@ function main(): void {
     )
   }
 
-  const pullRequest = Number(values['approval-pull-request'])
-  if (!Number.isInteger(pullRequest) || pullRequest <= 0) {
-    throw new Error('--approval-pull-request must be the merged amendment PR')
-  }
-  const reviewId = Number(values['approval-review'])
-  if (!Number.isInteger(reviewId) || reviewId <= 0) {
-    throw new Error('--approval-review must be the approving review id')
-  }
-  if (!values.approver) {
-    throw new Error('--approver must name the maintainer who approved it')
+  if (!values['change-reference']) {
+    throw new Error(
+      '--change-reference is required: it is how a reader finds the pull request that introduced this record',
+    )
   }
 
   const releaseTag = `v${version}`
@@ -296,16 +226,20 @@ function main(): void {
     )
   }
 
-  const authorization = readApproval(
-    {
-      repository: values['approval-repository']!,
-      pullRequest,
-      reviewId,
-      approver: values.approver,
-    },
-    amendmentCommit,
-    gh,
-  )
+  /*
+   * Who is releasing, and when the tag will be created.
+   *
+   * Not a consent claim: the account comes from the authenticated `gh` session
+   * that is about to push the tag, and the timestamp from that same run. What
+   * makes the record trustworthy is the tag's immutability and the fact that
+   * every other field is anchored outside the file.
+   */
+  const releasedBy = gh(['api', 'user', '--jq', '.login']).trim()
+  if (!releasedBy) {
+    throw new Error(
+      'could not read the authenticated account; gh api user returned nothing',
+    )
+  }
 
   const amendment = {
     schema: PAIRING_AMENDMENT_SCHEMA,
@@ -322,7 +256,11 @@ function main(): void {
       uiTree,
       lockfileSha256: sha256(lockfile),
     },
-    authorization,
+    authorization: {
+      releasedBy,
+      releasedAt: new Date().toISOString(),
+      changeReference: values['change-reference']!,
+    },
     evidence: {
       bundleSha256: evidenceSha256(bundleRaw),
       bundlePath,

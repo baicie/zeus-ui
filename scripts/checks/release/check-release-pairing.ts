@@ -3,7 +3,6 @@ import type {
   PairingAmendment,
   TagLookup,
 } from '../../release/pairing-amendment'
-import type { AuthorizationLookup } from '../../release/pairing-authorization'
 /**
  * Immutable Core/UI pairing for a Zeus UI release — Core-anchored.
  *
@@ -81,10 +80,6 @@ import {
   validatePairingAmendment,
   verifyAmendmentEvidence,
 } from '../../release/pairing-amendment'
-import {
-  readAuthorizationFromGitHub,
-  verifyAuthorization,
-} from '../../release/pairing-authorization'
 import { planPairing } from '../../release/release-protocol'
 import { resolveWorkspaceZeusVersion } from '../../release/zeus-alignment-contract'
 import { listZeusDependencyManifests } from '../../release/zeus-dependency-manifests'
@@ -205,19 +200,6 @@ export interface OnlinePairingInput extends StaticPairingInput {
    * so a caller that already has the commit can answer from what it has.
    */
   readonly verifyUiCandidate?: VerifyUiCandidate
-  /**
-   * Reads the pull request, review, and reviewer permission an amendment cites.
-   *
-   * Injected for the same reason as the other hooks: the substantive check is
-   * what the caller does with the answer, and that has to be exercisable
-   * without a network.
-   */
-  readonly readAuthorization?: (
-    repository: string,
-    pullRequest: number,
-    reviewId: number,
-    approver: string,
-  ) => AuthorizationLookup
 }
 
 /** What an amendment's replacement UI commit must prove about itself. */
@@ -858,56 +840,6 @@ function readAmendmentVerdict(args: {
         }).map(problem => `${problem.file}: ${problem.message}`),
       )
     }
-  }
-
-  /*
-   * The approval is read from GitHub, never taken from the file.
-   *
-   * The amendment records a pull request and a review id; this asks the API
-   * whether that review exists, is APPROVED, was submitted against the commit
-   * the tag points at, and was given by someone with write access. A script
-   * can write a PR number; it cannot write someone else's review.
-   */
-  const authorization = amendment.authorization
-  if (
-    authorization !== undefined &&
-    typeof authorization.repository === 'string' &&
-    typeof authorization.pullRequest === 'number' &&
-    typeof authorization.reviewId === 'number' &&
-    typeof authorization.approver === 'string' &&
-    typeof authorization.approvedCommit === 'string' &&
-    typeof authorization.approvedAt === 'string'
-  ) {
-    const readAuthorization =
-      input.readAuthorization ?? readAuthorizationFromGitHub
-    let lookup: AuthorizationLookup
-    try {
-      lookup = readAuthorization(
-        authorization.repository,
-        authorization.pullRequest,
-        authorization.reviewId,
-        authorization.approver,
-      )
-    } catch (error) {
-      lookup = {
-        state: 'ERROR',
-        message: error instanceof Error ? error.message : String(error),
-      }
-    }
-    errors.push(
-      ...verifyAuthorization(
-        {
-          repository: authorization.repository,
-          pullRequest: authorization.pullRequest,
-          approver: authorization.approver,
-          reviewId: authorization.reviewId,
-          approvedCommit: authorization.approvedCommit,
-          approvedAt: authorization.approvedAt,
-        },
-        lookup,
-        amendmentCommit,
-      ),
-    )
   }
 
   if (errors.length > 0) {

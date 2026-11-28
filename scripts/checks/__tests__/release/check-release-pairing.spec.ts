@@ -1069,12 +1069,9 @@ describe('pairing amendment', () => {
         lockfileSha256: LOCKFILE_DIGEST,
       },
       authorization: {
-        repository: 'baicie/zeus',
-        pullRequest: 999,
-        approver: 'baicie',
-        reviewId: 4242,
-        approvedCommit: APPROVAL_COMMIT,
-        approvedAt: '2026-11-28T00:00:00.000Z',
+        releasedBy: 'baicie',
+        releasedAt: '2026-11-28T00:00:00.000Z',
+        changeReference: 'baicie/zeus#420',
       },
       evidence: {
         bundleSha256: sha256(bundleRaw),
@@ -1127,21 +1124,6 @@ describe('pairing amendment', () => {
                 lockfileSha256: LOCKFILE_DIGEST,
               }
             : { state: 'MISSING' as const, message: 'no such commit' },
-        readAuthorization: () => ({
-          state: 'FOUND' as const,
-          facts: {
-            merged: true,
-            headSha: APPROVAL_COMMIT,
-            review: {
-              id: 4242,
-              login: 'baicie',
-              state: 'APPROVED',
-              commitId: APPROVAL_COMMIT,
-              submittedAt: '2026-11-28T00:00:00.000Z',
-            },
-            permission: 'admin',
-          },
-        }),
         ...overrides,
       }),
     }
@@ -1333,107 +1315,15 @@ describe('pairing amendment', () => {
         {},
         {
           authorization: {
-            repository: '',
-            pullRequest: 0,
-            approver: '',
-            reviewId: 0,
-            approvedCommit: '',
-            approvedAt: '2026-11-28T00:00:00.000Z',
+            releasedBy: '',
+            releasedAt: 'not-a-timestamp',
+            changeReference: '',
           },
         },
       ),
     )
     expect(result.ok).toBe(false)
-    expect(result.errors.join(' ')).toMatch(/authorization\.repository/)
-  })
-
-  /*
-   * The four ways an approval can fail to be one. Each is a separate case
-   * because each is a different lie: an unmerged PR (the bytes are not on
-   * main), an unapproved review (someone commented, nobody consented), a
-   * reviewer without write access (no authority), and an approval of a
-   * different commit (the classic approve-then-edit).
-   */
-  describe('the approval must be real', () => {
-    function withFacts(facts: Record<string, unknown>): OnlinePairingInput {
-      return amendedInput({
-        readAuthorization: () => ({
-          state: 'FOUND' as const,
-          facts: {
-            merged: true,
-            headSha: APPROVAL_COMMIT,
-            review: {
-              id: 4242,
-              login: 'baicie',
-              state: 'APPROVED',
-              commitId: APPROVAL_COMMIT,
-              submittedAt: '2026-11-28T00:00:00.000Z',
-            },
-            permission: 'admin',
-            ...facts,
-          },
-        }),
-      })
-    }
-
-    it('refuses an approval from an unmerged pull request', () => {
-      const result = evaluatePairing(withFacts({ merged: false }))
-      expect(result.ok).toBe(false)
-      expect(result.errors.join(' ')).toMatch(/is not merged/)
-    })
-
-    it('refuses a review that is not an approval', () => {
-      const result = evaluatePairing(
-        withFacts({
-          review: {
-            id: 4242,
-            login: 'baicie',
-            state: 'COMMENTED',
-            commitId: APPROVAL_COMMIT,
-            submittedAt: '2026-11-28T00:00:00.000Z',
-          },
-        }),
-      )
-      expect(result.ok).toBe(false)
-      expect(result.errors.join(' ')).toMatch(/not APPROVED/)
-    })
-
-    it('refuses an approval from someone without write access', () => {
-      const result = evaluatePairing(withFacts({ permission: 'read' }))
-      expect(result.ok).toBe(false)
-      expect(result.errors.join(' ')).toMatch(/write access or better/)
-    })
-
-    it('refuses an approval given for a different commit', () => {
-      const result = evaluatePairing(
-        withFacts({
-          review: {
-            id: 4242,
-            login: 'baicie',
-            state: 'APPROVED',
-            commitId: '9'.repeat(40),
-            submittedAt: '2026-11-28T00:00:00.000Z',
-          },
-        }),
-      )
-      expect(result.ok).toBe(false)
-      expect(result.errors.join(' ')).toMatch(
-        /the approval covers different bytes/,
-      )
-    })
-
-    it('refuses when the approval cannot be looked up', () => {
-      const result = evaluatePairing(
-        amendedInput({
-          readAuthorization: () => ({
-            state: 'ERROR' as const,
-            message: 'HTTP 502 from api.github.com',
-          }),
-        }),
-      )
-      expect(result.ok).toBe(false)
-      expect(result.errors.join(' ')).toMatch(/could not verify the approval/)
-    })
+    expect(result.errors.join(' ')).toMatch(/authorization\.releasedBy/)
   })
 
   it('refuses an amendment missing any evidence report digest', () => {
