@@ -535,6 +535,8 @@ describe('the protocol is constructible', () => {
       coreVersion: VERSION,
       uiCommit: 'f'.repeat(40),
       resolveCoreTag: () => 'b'.repeat(40),
+      /* No amendment: this pair is direct, so none is ever consulted. */
+      resolvePairTag: () => undefined,
       readCoreFile: () => coreRecord({ uiCommit: 'e'.repeat(40) }),
     })
     expect(result.ok).toBe(false)

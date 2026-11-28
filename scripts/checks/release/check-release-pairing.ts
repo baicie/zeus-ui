@@ -1005,6 +1005,22 @@ export function resolveCoreTagOnGitHub(
   tag: string,
   repository = 'baicie/zeus',
 ): string | undefined {
+  /*
+   * A unit test that forgets to inject a resolver should fail fast, not block.
+   *
+   * This already cost two CI rounds: an unguarded case reached `gh api`, and
+   * Windows waited on it for the whole test timeout while Linux failed the call
+   * immediately. Refusing under `VITEST` turns "a test forgot" into a clear
+   * error at the ask, and leaves production — which never sets it — unchanged.
+   */
+  if (
+    process.env.VITEST === 'true' &&
+    process.env.ZEUS_ALLOW_GH_IN_TESTS !== '1'
+  ) {
+    throw new Error(
+      `resolveCoreTagOnGitHub(${tag}) was called from a unit test; inject resolveCoreTag or resolvePairTag instead`,
+    )
+  }
   const gh = (args: string[]): string =>
     execFileSync('gh', args, {
       encoding: 'utf8',
