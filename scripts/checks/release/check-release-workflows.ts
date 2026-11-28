@@ -694,6 +694,23 @@ function checkReleaseWorkflow(root: string, errors: string[]): void {
       core_tag: githubExpression('steps.pairing_core.outputs.core-tag'),
       pairing_mode: githubExpression('steps.pairing_core.outputs.mode'),
       channel: githubExpression('steps.pairing_core.outputs.channel'),
+      /*
+       * How the pair was established, and — when an amendment was used — the
+       * protected tag and commit that authorised it.
+       *
+       * Listed here because this assertion is exhaustive: a new output that
+       * nobody declares makes the whole audit surface invisible to it, and the
+       * next change to the workflow would be unconstrained. The values come
+       * from the pairing report, never from the dispatch, so the run cannot
+       * claim a pairing mode the check did not observe.
+       */
+      pairing_kind: githubExpression('steps.pairing_core.outputs.pairing-kind'),
+      amendment_tag: githubExpression(
+        'steps.pairing_core.outputs.amendment-tag',
+      ),
+      amendment_commit: githubExpression(
+        'steps.pairing_core.outputs.amendment-commit',
+      ),
     },
     'release.jobs.release.outputs',
     errors,

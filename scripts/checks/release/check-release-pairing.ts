@@ -1,5 +1,8 @@
 import type { ReleaseChannel } from '../../release/channel'
-import type { PairingAmendment } from '../../release/pairing-amendment'
+import type {
+  PairingAmendment,
+  TagLookup,
+} from '../../release/pairing-amendment'
 /**
  * Immutable Core/UI pairing for a Zeus UI release — Core-anchored.
  *
@@ -63,17 +66,19 @@ import {
   readFileSync,
   writeFileSync,
 } from 'node:fs'
+
 import path from 'node:path'
-
 import { pathToFileURL } from 'node:url'
-import { parseArgs } from 'node:util'
 
+import { parseArgs } from 'node:util'
 import pc from 'picocolors'
 import { resolveChannel } from '../../release/channel'
 import {
   amendmentFile,
   amendmentTag,
+  resolveRemoteTag,
   validatePairingAmendment,
+  verifyAmendmentEvidence,
 } from '../../release/pairing-amendment'
 import { planPairing } from '../../release/release-protocol'
 import { resolveWorkspaceZeusVersion } from '../../release/zeus-alignment-contract'
@@ -176,6 +181,14 @@ export interface OnlinePairingInput extends StaticPairingInput {
    * to prove what was published, the pair tag to prove who it was paired with.
    */
   readonly resolvePairTag?: (tag: string) => string | undefined
+  /**
+   * The three-state form of the same lookup.
+   *
+   * `resolvePairTag` cannot express "the API did not answer", and for an
+   * amendment that distinction decides whether the release may fall through to
+   * the tagged record. Tools pass this one; tests may keep the simple hook.
+   */
+  readonly resolvePairTagLookup?: (tag: string) => TagLookup
   /** Reads a file from a Core commit. */
   readonly readCoreFile?: (commit: string, file: string) => string | undefined
   /** The UI repository an amendment's replacement commit must exist on. */
@@ -192,13 +205,57 @@ export interface OnlinePairingInput extends StaticPairingInput {
 /** What an amendment's replacement UI commit must prove about itself. */
 export interface UiCandidateIdentity {
   readonly tree: string
-  readonly lockfileSha256?: string
+  /**
+   * The sha256 of the commit's `pnpm-lock.yaml`.
+   *
+   * Required, not optional. It used to be `string | undefined`, and the
+   * comparison below skipped when either side was missing — so a candidate
+   * whose lockfile could not be fetched, and an amendment that omitted the
+   * field, both passed on the tree alone. A UI tree whose lockfile resolves a
+   * different Core is a different release candidate; the digest is what says
+   * which one this is. A lookup that cannot produce it is a failure, never a
+   * skip.
+   */
+  readonly lockfileSha256: string
 }
+
+/**
+ * The outcome of reading a UI commit's identity.
+ *
+ * `MISSING` is the repository saying the commit is not there — a real finding.
+ * `ERROR` is the API not answering, which blocks rather than degrades, and
+ * carries the reason so a refusal names the cause instead of "(no message)".
+ */
+export type UiCandidateLookup =
+  | ({ readonly state: 'FOUND' } & UiCandidateIdentity)
+  | { readonly state: 'MISSING'; readonly message: string }
+  | { readonly state: 'ERROR'; readonly message: string }
 
 export type VerifyUiCandidate = (
   repository: string,
   commit: string,
-) => UiCandidateIdentity | undefined
+) => UiCandidateLookup
+
+/**
+ * The amendable identity of a release, decided in one place.
+ *
+ * The order is authoritative, not opportunistic: an amendment that exists and
+ * is valid *replaces* the tagged candidate, so the tagged candidate must then
+ * be refused. v1 only consulted an amendment when the two commits already
+ * differed, which left the original candidate with a live direct-verification
+ * path no matter what the amendment said — two valid pairings for one release.
+ */
+export interface AmendmentVerdict {
+  readonly state:
+    | 'ABSENT'
+    | 'PRESENT_VALID'
+    | 'PRESENT_INVALID'
+    | 'LOOKUP_FAILED'
+  readonly errors: readonly string[]
+  readonly amendment?: PairingAmendment
+  readonly tag?: string
+  readonly commit?: string
+}
 
 export interface PairingResult {
   readonly ok: boolean
@@ -449,31 +506,76 @@ export function evaluatePairing(input: OnlinePairingInput): PairingResult {
     )
   }
   /*
-   * The authoritative comparison. Core names the UI commit it paired with; the
-   * release must be that commit. This is what replaces the UI writing its own
-   * SHA into its own tree.
+   * Whether an amendment exists decides the whole shape of this check, so it is
+   * asked *before* comparing commits rather than as a reaction to a mismatch.
+   *
+   * That order is the point. v1 consulted the amendment only when the release
+   * commit already differed from the tagged one. An amendment is published to
+   * supersede a candidate, so while it is in force the superseded commit must
+   * be refused — and under the old order the superseded commit had a live
+   * direct-verification path forever. Two commits could both be paired with one
+   * Core release, and which one shipped depended on who ran the release.
+   */
+  const verdict = readAmendmentVerdict({
+    input,
+    coreVersion,
+    tagCommit,
+    recordPath,
+    recordRaw: raw,
+    originalUiCommit: parsed.uiCommit,
+  })
+
+  if (verdict.state === 'LOOKUP_FAILED') {
+    /*
+     * Not "no amendment". A network or permission failure must not send the
+     * release down the direct path, because whether an amendment exists is
+     * exactly the fact that could not be established.
+     */
+    errors.push(...verdict.errors)
+    return { ok: false, channel, coreTag, errors }
+  }
+
+  if (verdict.state === 'PRESENT_INVALID') {
+    /*
+     * An amendment exists and does not hold. Falling back to the tagged
+     * candidate here would make a corrupt amendment the way to restore a pair
+     * that was already superseded — a downgrade dressed as a resolution.
+     */
+    errors.push(...verdict.errors)
+    return { ok: false, channel, coreTag, errors }
+  }
+
+  if (verdict.state === 'PRESENT_VALID') {
+    /*
+     * A valid amendment names the replacement, and the validator has already
+     * refused any other commit — so reaching here means the release is that
+     * replacement. The branch exists to state the outcome, not to compare
+     * again: a second comparison is a second place for the rule to drift.
+     *
+     * Everything in `errors` was checked against the amendment as well — the
+     * version fields, the pins, the channel — so a clean run arrives with none.
+     */
+    return {
+      ok: errors.length === 0,
+      channel,
+      coreTag,
+      coreCommit: tagCommit,
+      record: parsed,
+      amended: {
+        tag: verdict.tag ?? amendmentTag(coreVersion),
+        commit: verdict.commit ?? '',
+        replacement: verdict.amendment?.replacement.uiCommit,
+      },
+      errors,
+    }
+  }
+
+  /*
+   * No amendment exists, so the tagged record is authoritative: Core names the
+   * UI commit it paired with and the release must be that commit. This is what
+   * replaces the UI writing its own SHA into its own tree.
    */
   if (parsed.uiCommit.toLowerCase() !== input.uiCommit.toLowerCase()) {
-    /*
-     * A published Core release whose tag names a UI candidate that will never
-     * ship can be amended — but only through a separate, protected record that
-     * is checked against the remote, the tag's own tree, and the UI history.
-     *
-     * This is deliberately not a fallback: `evaluatePairingAmendment` refuses
-     * unless the replacement was fully re-verified and the authorization is
-     * reviewable. When no amendment exists, the mismatch stays a refusal.
-     */
-    const amended = evaluatePairingAmendment({
-      input,
-      coreVersion,
-      tagCommit,
-      recordPath,
-      recordRaw: raw,
-      channel,
-      originalUiCommit: parsed.uiCommit,
-      errors,
-    })
-    if (amended !== undefined) return amended
     errors.push(
       `Core record at v${coreVersion} names UI commit ${parsed.uiCommit}, but this release is ${input.uiCommit}`,
     )
@@ -490,26 +592,38 @@ export function evaluatePairing(input: OnlinePairingInput): PairingResult {
 }
 
 /**
- * The pair for a published Core release whose tagged record names a UI
- * candidate that is not the one shipping.
+ * Finds out whether an amendment is in force for this release, and whether it
+ * holds.
  *
- * Returns `undefined` when no amendment exists, which leaves the caller's
- * ordinary mismatch refusal in place. Every failure *inside* an amendment that
- * does exist is pushed onto `errors`, so a malformed or unverifiable amendment
- * never quietly degrades into the direct path.
+ * ## The four states and why they are not two
+ *
+ * `ABSENT` means the remote has no `pair-amendment/v<version>` tag: the tagged
+ * record is authoritative. `LOOKUP_FAILED` means the question could not be
+ * asked — rate limit, token, network. They must never be the same value,
+ * because treating an unanswered question as "no amendment" is exactly how a
+ * superseded candidate gets released: the release falls through to the direct
+ * path and compares against a record that a valid amendment has already
+ * replaced. v1 returned `undefined` for both.
+ *
+ * `PRESENT_INVALID` is an amendment that exists and fails its own checks. It is
+ * a refusal, not a cue to retry the direct path, for the same reason: the file
+ * might be corrupt, but its existence proves someone intended to supersede the
+ * tagged candidate, and a corrupt amendment must not restore a pair that was
+ * meant to be replaced.
+ *
+ * `PRESENT_VALID` carries the recommendation; the caller decides what to do
+ * with it, because only the caller knows which commit it is releasing.
  */
-function evaluatePairingAmendment(args: {
+function readAmendmentVerdict(args: {
   input: OnlinePairingInput
   coreVersion: string
   tagCommit: string
   recordPath: string
   recordRaw: string
-  channel: ReleaseChannel
   originalUiCommit: string
-  errors: string[]
-}): PairingResult | undefined {
-  const { input, coreVersion, tagCommit, recordPath, recordRaw, channel } = args
-  const errors = args.errors
+}): AmendmentVerdict {
+  const { input, coreVersion, tagCommit, recordPath, recordRaw } = args
+  const errors: string[] = []
 
   /*
    * The amendment lives in the Core repository, addressed by tag — not in the
@@ -517,33 +631,103 @@ function evaluatePairingAmendment(args: {
    * a tag describes what was published.
    */
   const amendmentTagName = amendmentTag(coreVersion)
+
   /*
    * `resolvePairTag`, not `resolveCoreTag`: the amendment lives in its own tag
    * namespace, and a caller that answers for *any* tag would make every release
    * look amended. Bootstrap attestations already use this hook for the same
    * reason.
    */
-  const readRemoteTag =
-    input.resolvePairTag ?? (tag => resolveCoreTagOnGitHub(tag))
-  const amendmentCommit = readRemoteTag(amendmentTagName)
-  if (amendmentCommit === undefined) return undefined
+  /*
+   * A three-state lookup, not `string | undefined`.
+   *
+   * `resolveCoreTagOnGitHub` returns `undefined` for both "the tag is not
+   * there" and "the API did not answer", because the rest of the protocol can
+   * treat both as a refusal. Here that equivalence is wrong: an unanswered
+   * question about whether an amendment exists must not be answered "no",
+   * or the release falls through to the direct path and compares against a
+   * record a valid amendment may already have replaced. `resolveRemoteTag`
+   * keeps the two apart.
+   */
+  const remoteLookup = input.resolvePairTagLookup
+    ? (tag: string): TagLookup => input.resolvePairTagLookup!(tag)
+    : (tag: string): TagLookup => {
+        if (input.resolvePairTag !== undefined) {
+          /*
+           * An injected legacy hook can only say found-or-not. Treated as a
+           * test-only shortcut: a throw is a failed lookup, `undefined` is
+           * absent.
+           */
+          try {
+            const commit = input.resolvePairTag(tag)
+            return commit === undefined
+              ? { state: 'ABSENT' }
+              : { state: 'FOUND', commit }
+          } catch (error) {
+            return {
+              state: 'ERROR',
+              message: error instanceof Error ? error.message : String(error),
+            }
+          }
+        }
+        return resolveRemoteTag('baicie/zeus', tag)
+      }
+
+  const lookup = remoteLookup(amendmentTagName)
+  if (lookup.state === 'ERROR') {
+    return {
+      state: 'LOOKUP_FAILED',
+      errors: [
+        `could not determine whether ${amendmentTagName} exists: ${lookup.message}`,
+      ],
+    }
+  }
+  if (lookup.state === 'ABSENT') return { state: 'ABSENT', errors: [] }
+  const amendmentCommit = lookup.commit
 
   const readCoreFile = input.readCoreFile ?? readCoreFileAtCommit
   const amendmentPath = amendmentFile(coreVersion)
   const amendmentRaw = readCoreFile(amendmentCommit, amendmentPath)
   if (amendmentRaw === undefined) {
-    errors.push(
-      `${amendmentTagName} points at ${amendmentCommit}, which has no ${amendmentPath}`,
-    )
-    return { ok: false, channel, coreTag: `v${coreVersion}`, errors }
+    return {
+      state: 'PRESENT_INVALID',
+      errors: [
+        `${amendmentTagName} points at ${amendmentCommit}, which has no ${amendmentPath}`,
+      ],
+      tag: amendmentTagName,
+      commit: amendmentCommit,
+    }
   }
 
   let parsedAmendment: unknown
   try {
     parsedAmendment = JSON.parse(amendmentRaw)
   } catch {
-    errors.push(`${amendmentPath} at ${amendmentTagName} is not valid JSON`)
-    return { ok: false, channel, coreTag: `v${coreVersion}`, errors }
+    return {
+      state: 'PRESENT_INVALID',
+      errors: [`${amendmentPath} at ${amendmentTagName} is not valid JSON`],
+      tag: amendmentTagName,
+      commit: amendmentCommit,
+    }
+  }
+
+  /*
+   * Say what is actually happening before saying which field is wrong.
+   *
+   * The validator's message for this case is "replacement.uiCommit … is not the
+   * commit being released", which is accurate and explains nothing: a reader
+   * needs to know that a published amendment has *replaced* the candidate they
+   * are trying to release, and that the release cannot proceed from it.
+   */
+  const amended = parsedAmendment as PairingAmendment
+  const amendedReplacement = amended.replacement?.uiCommit
+  if (
+    typeof amendedReplacement === 'string' &&
+    amendedReplacement.toLowerCase() !== input.uiCommit.toLowerCase()
+  ) {
+    errors.push(
+      `v${coreVersion} is amended: the candidate that ships is ${amendedReplacement}, so ${input.uiCommit} cannot be released under this version`,
+    )
   }
 
   errors.push(
@@ -586,15 +770,25 @@ function evaluatePairingAmendment(args: {
    * The replacement must exist on the UI remote, and its tree and lockfile must
    * be the ones the amendment pinned. A commit that only exists locally cannot
    * be checked out by the publish job.
+   *
+   * The lockfile is not skippable. When the digest cannot be produced the
+   * answer is a refusal that says so, because "the tree matches" is a weaker
+   * claim than the one the amendment makes: two commits can share a tree and
+   * differ in their lockfile, and the lockfile is what names the Core this
+   * candidate installs.
    */
-  const verifyUiCandidate = input.verifyUiCandidate ?? verifyUiCandidateOnGitHub
+  const verifyUiCandidate = input.verifyUiCandidate ?? lookupUiCandidateOnGitHub
   const candidate = verifyUiCandidate(
     input.uiRepository ?? 'baicie/zeus-ui',
     amendment.replacement?.uiCommit ?? '',
   )
-  if (candidate === undefined) {
+  if (candidate.state === 'ERROR') {
     errors.push(
-      `amendment replacement uiCommit ${String(amendment.replacement?.uiCommit)} could not be read from the UI repository`,
+      `amendment replacement uiCommit ${String(amendment.replacement?.uiCommit)} could not be read from the UI repository: ${candidate.message}`,
+    )
+  } else if (candidate.state === 'MISSING') {
+    errors.push(
+      `amendment replacement uiCommit ${String(amendment.replacement?.uiCommit)} is not on the UI repository: ${candidate.message}`,
     )
   } else {
     if (
@@ -608,8 +802,8 @@ function evaluatePairingAmendment(args: {
     }
     if (
       typeof amendment.replacement?.lockfileSha256 === 'string' &&
-      candidate.lockfileSha256 !== undefined &&
-      candidate.lockfileSha256 !== amendment.replacement.lockfileSha256
+      candidate.lockfileSha256.toLowerCase() !==
+        amendment.replacement.lockfileSha256.toLowerCase()
     ) {
       errors.push(
         `amendment records lockfileSha256 ${amendment.replacement.lockfileSha256}, but the commit's pnpm-lock.yaml hashes to ${candidate.lockfileSha256}`,
@@ -617,18 +811,51 @@ function evaluatePairingAmendment(args: {
     }
   }
 
-  return {
-    ok: errors.length === 0,
-    channel,
-    coreTag: `v${coreVersion}`,
-    coreCommit: tagCommit,
-    record: undefined,
-    amended: {
+  /*
+   * The evidence travels with the amendment and is checked here rather than
+   * left to a reader.
+   *
+   * The amendment pins the bundle's digest; the bundle carries the five
+   * reports with their producer, subject commit, bytes and verdict; every one
+   * of those is recomputed. A digest of a file nobody holds would satisfy a
+   * format check and nothing else, which is what v1 accepted.
+   */
+  const bundlePath = amendment.evidence?.bundlePath
+  if (typeof bundlePath === 'string' && bundlePath.length > 0) {
+    const bundleRaw = readCoreFile(amendmentCommit, bundlePath)
+    if (bundleRaw === undefined) {
+      errors.push(
+        `${amendmentTagName} points at ${amendmentCommit}, which has no ${bundlePath}; the amendment's evidence must be committed with it`,
+      )
+    } else if (candidate.state === 'FOUND') {
+      errors.push(
+        ...verifyAmendmentEvidence(amendment, bundleRaw, bundlePath, {
+          version: coreVersion,
+          coreVersion,
+          coreCommit: tagCommit,
+          uiVersion: amendment.uiVersion ?? input.uiVersion,
+          uiCommit: amendment.replacement?.uiCommit ?? input.uiCommit,
+          uiTree: candidate.tree,
+          lockfileSha256: candidate.lockfileSha256,
+        }).map(problem => `${problem.file}: ${problem.message}`),
+      )
+    }
+  }
+
+  if (errors.length > 0) {
+    return {
+      state: 'PRESENT_INVALID',
+      errors,
       tag: amendmentTagName,
       commit: amendmentCommit,
-      replacement: amendment.replacement?.uiCommit,
-    },
-    errors,
+    }
+  }
+  return {
+    state: 'PRESENT_VALID',
+    errors: [],
+    amendment,
+    tag: amendmentTagName,
+    commit: amendmentCommit,
   }
 }
 
@@ -953,12 +1180,35 @@ export function listCorePins(uiRoot: string): CorePin[] {
  * from an API field, because the point of pinning it is that the amendment must
  * describe the lockfile that will ship. GitHub serves blobs base64-encoded; the
  * digest is over the decoded content.
+ *
+ * ## Why this returns three states instead of `undefined`
+ *
+ * The previous version returned `UiCandidateIdentity | undefined` and left
+ * `lockfileSha256` optional, so two different situations produced the same
+ * value: a commit that does not exist, and a lockfile whose fetch or decode
+ * failed. The caller skipped the lockfile comparison when the digest was
+ * missing, which meant a failed fetch *weakened* the check it should have
+ * blocked — the fail-open this function is now shaped to prevent.
+ *
+ * ## The large-file path
+ *
+ * The Contents API refuses to inline blobs above roughly 1 MB, and this
+ * repository's lockfile is already several hundred KB. When `content` is
+ * absent or the response says `encoding: "none"`, the blob is read through the
+ * Git Data API by its own SHA — that endpoint always returns the bytes, encoded
+ * in base64, and it is addressed by blob id so the content is pinned to the
+ * commit's tree rather than to a branch that may have moved.
  */
-export function verifyUiCandidateOnGitHub(
+export function lookupUiCandidateOnGitHub(
   repository: string,
   commit: string,
-): UiCandidateIdentity | undefined {
-  if (!/^[0-9a-f]{40}$/i.test(commit)) return undefined
+): UiCandidateLookup {
+  if (!/^[0-9a-f]{40}$/i.test(commit)) {
+    return {
+      state: 'MISSING',
+      message: `${commit || '(empty)'} is not a commit SHA`,
+    }
+  }
   const gh = (args: string[]): string =>
     execFileSync('gh', args, {
       encoding: 'utf8',
@@ -966,38 +1216,95 @@ export function verifyUiCandidateOnGitHub(
       timeout: 30_000,
     }) as string
 
+  let treeSha: string
   try {
     const tree = JSON.parse(
       gh(['api', `repos/${repository}/git/commits/${commit}`]),
     ) as { tree?: { sha?: string } }
-    const treeSha = tree.tree?.sha
-    if (typeof treeSha !== 'string') return undefined
-
-    /*
-     * The lockfile is optional only in the sense that a repository without one
-     * cannot be verified this way; the caller treats a missing digest as "could
-     * not check" rather than as a pass.
-     */
-    let lockfileSha256: string | undefined
-    try {
-      const blob = JSON.parse(
-        gh([
-          'api',
-          `repos/${repository}/contents/pnpm-lock.yaml?ref=${commit}`,
-        ]),
-      ) as { content?: string; encoding?: string }
-      if (blob.encoding === 'base64' && typeof blob.content === 'string') {
-        lockfileSha256 = createHash('sha256')
-          .update(Buffer.from(blob.content, 'base64'))
-          .digest('hex')
+    if (typeof tree.tree?.sha !== 'string') {
+      return {
+        state: 'MISSING',
+        message: `${commit} on ${repository} carries no root tree`,
       }
-    } catch {
-      lockfileSha256 = undefined
     }
+    treeSha = tree.tree.sha
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    return /HTTP 404|Not Found/i.test(message)
+      ? { state: 'MISSING', message: `${commit} is not on ${repository}` }
+      : {
+          state: 'ERROR',
+          message: `reading ${commit} from ${repository} failed: ${message}`,
+        }
+  }
 
-    return { tree: treeSha, lockfileSha256 }
-  } catch {
-    return undefined
+  /*
+   * The lockfile's blob id comes from the commit's own tree, so the bytes read
+   * next are the ones at that commit — never the current contents of a branch.
+   */
+  let blobSha: string
+  try {
+    const tree = JSON.parse(
+      gh(['api', `repos/${repository}/git/trees/${treeSha}`]),
+    ) as { tree?: Array<{ path?: string; type?: string; sha?: string }> }
+    const entry = (tree.tree ?? []).find(
+      item => item.path === 'pnpm-lock.yaml' && item.type === 'blob',
+    )
+    if (!entry?.sha) {
+      return {
+        state: 'MISSING',
+        message: `${commit} on ${repository} has no pnpm-lock.yaml; the amendment pins its digest, so there is nothing to compare`,
+      }
+    }
+    blobSha = entry.sha
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    return {
+      state: 'ERROR',
+      message: `reading the tree of ${commit} failed: ${message}`,
+    }
+  }
+
+  try {
+    const blob = JSON.parse(
+      gh(['api', `repos/${repository}/git/blobs/${blobSha}`]),
+    ) as { content?: string; encoding?: string; size?: number }
+    if (blob.encoding !== 'base64' || typeof blob.content !== 'string') {
+      return {
+        state: 'ERROR',
+        message: `blob ${blobSha} for ${commit}'s pnpm-lock.yaml came back as ${String(blob.encoding)} rather than base64`,
+      }
+    }
+    /*
+     * GitHub wraps base64 at 60 characters, and `gh` prints it verbatim, so the
+     * newlines are stripped before decoding. Keeping them makes some decoders
+     * stop at the first line and hash 60 bytes — a digest that looks plausible
+     * and matches nothing.
+     */
+    const encoded = blob.content.replace(/\s+/g, '')
+    const bytes = Buffer.from(encoded, 'base64')
+    /*
+     * A silent truncation would produce a valid-looking digest of the wrong
+     * bytes. Comparing against the size GitHub reports turns that into a named
+     * error instead.
+     */
+    if (typeof blob.size === 'number' && blob.size !== bytes.length) {
+      return {
+        state: 'ERROR',
+        message: `blob ${blobSha} declares ${String(blob.size)} bytes but decoded ${String(bytes.length)}; refusing to hash a truncated lockfile`,
+      }
+    }
+    return {
+      state: 'FOUND',
+      tree: treeSha,
+      lockfileSha256: createHash('sha256').update(bytes).digest('hex'),
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    return {
+      state: 'ERROR',
+      message: `reading blob ${blobSha} failed: ${message}`,
+    }
   }
 }
 
@@ -1139,6 +1446,27 @@ export interface PairingReport {
   readonly pairTagCommit: string | null
   readonly coreCommit: string | null
   readonly uiCommit: string | null
+  /**
+   * How the pair was established when it was not the tagged record.
+   *
+   * `null` means the record inside `v<coreVersion>` named this exact commit — a
+   * direct pair. An object means a weaker mode was used, and it says which one
+   * and from where.
+   *
+   * This field exists because the report is what the release workflow reads to
+   * decide whether to publish, and what an auditor reads afterwards. Without
+   * it, an amended release produced a report indistinguishable from a direct
+   * one: `pairTag` was computed as `pair/v<coreVersion>` regardless of mode, so
+   * the evidence positively named a bootstrap attestation that was never
+   * involved. A report that misdescribes its own authority is worse than no
+   * report.
+   */
+  readonly pairingMode: 'direct' | 'bootstrap' | 'amendment'
+  readonly amendment: {
+    readonly tag: string
+    readonly commit: string
+    readonly replacement: string | null
+  } | null
 }
 
 export interface WritePairingReportInput {
@@ -1184,8 +1512,17 @@ export function buildPairingReport(
     coreTagCommit: online
       ? (input.coreTagCommit ?? input.result.coreCommit ?? null)
       : null,
+    /*
+     * The bootstrap attestation tag, and only when bootstrap is the mode.
+     *
+     * It used to be emitted for every non-beta release, so an amended pair's
+     * report named a `pair/v…` tag that either did not exist or described a
+     * different pairing. `pairTagCommit` was `input.pairTagCommit ?? null`, and
+     * no caller ever passed it, so the field was always null while the tag name
+     * sat next to it — the worst of both: a claim with no supporting commit.
+     */
     pairTag:
-      input.result.channel === 'beta'
+      input.result.channel === 'beta' || input.result.amended !== undefined
         ? null
         : input.result.coreTag
           ? `pair/${input.result.coreTag}`
@@ -1205,6 +1542,20 @@ export function buildPairingReport(
         null)
       : null,
     uiCommit: online ? (input.uiCommit ?? null) : null,
+    pairingMode:
+      input.result.amended !== undefined
+        ? 'amendment'
+        : input.result.record === undefined
+          ? 'bootstrap'
+          : 'direct',
+    amendment:
+      input.result.amended === undefined
+        ? null
+        : {
+            tag: input.result.amended.tag,
+            commit: input.result.amended.commit,
+            replacement: input.result.amended.replacement ?? null,
+          },
   }
 }
 

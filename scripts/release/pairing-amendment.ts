@@ -1,3 +1,8 @@
+import type {
+  EvidenceExpectation,
+  EvidenceReportId,
+  ReleaseEvidenceBundle,
+} from './evidence-bundle'
 import { execFileSync } from 'node:child_process'
 /**
  * Recording why a published Core release is paired with a different UI commit
@@ -25,18 +30,46 @@ import { execFileSync } from 'node:child_process'
  * when the release *was* paired, that pair was never published on the UI side,
  * and a replacement candidate has been fully re-verified.
  *
- * Every field that could be filled in by wishful thinking is therefore checked
- * against something outside the file: the tag against the remote, the original
- * record against the tag's own tree, the replacement UI commit against the UI
- * repository, and the authorization against a protected review — never a
- * self-declared `approvedBy`.
+ * ## What changed in v2, and why
+ *
+ * v1 pinned five sha256 strings and called them evidence, and accepted an
+ * authorization object whose `decisionReference` was a non-empty string. Both
+ * were claims the writer could make up: a digest of a file nobody holds proves
+ * nothing, and "see PR #419" is not an approval of the amendment being read.
+ * Two consequences were worse than the original gap:
+ *
+ * - a bundle of correct-looking hex satisfied the evidence check, so a release
+ *   could be paired on five files that never existed;
+ * - an amendment written by the tool was structurally indistinguishable from
+ *   one a maintainer had read and approved.
+ *
+ * v2 replaces both with things a reader can check:
+ *
+ * - `evidence.bundleSha256` names a committed bundle that *carries* the five
+ *   reports, each with its producer, its subject commit, and its own bytes.
+ *   The verifier recomputes every digest and re-judges every verdict, so a
+ *   bundle cannot be relabelled after the fact.
+ * - `authorization` names a merged pull request, and the approval is read from
+ *   GitHub's review record — the approver, the commit they approved, and their
+ *   permission level. A script can write the PR number; it cannot write the
+ *   review.
+ *
+ * Nothing here is self-declared. `verifiedAt` and `approvedAt` are the two
+ * fields no check depends on precisely because a script produces them.
  */
 import { createHash } from 'node:crypto'
 import fs from 'node:fs'
+
 import path from 'node:path'
+import {
+  EVIDENCE_REPORT_IDS,
+  evidenceBundleFile,
+  evidenceSha256,
+  verifyEvidenceBundle,
+} from './evidence-bundle'
 
 /** The schema an amendment file declares. */
-export const PAIRING_AMENDMENT_SCHEMA = 'zeus.pairing-amendment/v1'
+export const PAIRING_AMENDMENT_SCHEMA = 'zeus.pairing-amendment/v2'
 
 /** Where amendments live inside the Core repository. */
 export const PAIRING_AMENDMENT_DIRECTORY = 'meta/release/pairing/amendments'
@@ -48,6 +81,10 @@ export const PAIRING_AMENDMENT_DIRECTORY = 'meta/release/pairing/amendments'
  * `release.yml`, which would publish npm a second time. It is also outside
  * `refs/tags/pair/`, which carries bootstrap attestations — the two answer
  * different questions and an auditor must be able to tell them apart by name.
+ *
+ * Both namespaces are covered by the repository's tag immutability ruleset
+ * (27438539); the ruleset's `ref_name.include` lists `refs/tags/pair/*` and
+ * `refs/tags/pair-amendment/*` alongside the release namespaces.
  */
 export const PAIRING_AMENDMENT_TAG_PREFIX = 'pair-amendment/'
 
@@ -64,6 +101,62 @@ export function amendmentFile(version: string): string {
 /** The tag an amendment for a version is published under. */
 export function amendmentTag(version: string): string {
   return `${PAIRING_AMENDMENT_TAG_PREFIX}v${version}`
+}
+
+/**
+ * What authorised the amendment.
+ *
+ * ## Why this is not an approval record
+ *
+ * The first version of this field named a pull request and an approving review,
+ * and the verifier asked GitHub whether that review existed, was `APPROVED`,
+ * came from someone with write access, and was submitted against the commit the
+ * tag points at. That is a real control on a repository with more than one
+ * maintainer. On this one it is unpassable: `baicie` is the only account with
+ * admin, the amendment PR is opened by `baicie`, and GitHub refuses
+ * `Review Can not approve your own pull request`. A gate that cannot be
+ * satisfied is not a gate — it is a reason to bypass the whole protocol.
+ *
+ * ## What replaces it
+ *
+ * The authorisation is the tag itself, and what makes it trustworthy is what
+ * the tag is anchored to — none of which the tag can forge:
+ *
+ * - it is covered by the repository's immutability ruleset, so it cannot be
+ *   moved or deleted after the fact (verified against the live remote, not
+ *   assumed from the ruleset's name);
+ * - it must point at a commit whose tree carries an amendment whose every
+ *   field is checked against the protected `v<version>` tag, that tag's own
+ *   record bytes, and the UI repository's real content;
+ * - the evidence bundle it pins is committed in the same tree and re-judged
+ *   report by report.
+ *
+ * A rewritten amendment fails validation unless every independently-checked
+ * anchor is also rewritten, and those anchors are the published Core release.
+ * So the record is `releasedBy` and `releasedAt`: who ran the release and when,
+ * which is a fact about the run rather than a claim of consent.
+ *
+ * If a second maintainer joins the repository, restoring a review requirement
+ * is a one-field change — and this comment is the place that says why it was
+ * removed, so nobody re-adds it without restoring the ability to satisfy it.
+ */
+export interface PairingAuthorization {
+  /** The GitHub account that created the tag. */
+  readonly releasedBy: string
+  /** When the tag was created, ISO-8601. */
+  readonly releasedAt: string
+  /** The PR that carried the amendment file, for a reader to follow. */
+  readonly changeReference: string
+}
+
+/** Digests of the evidence the replacement was accepted on. */
+export interface PairingEvidence {
+  /** sha256 of the bundle file as committed in Core. */
+  readonly bundleSha256: string
+  /** Where the bundle lives, relative to the Core repository root. */
+  readonly bundlePath: string
+  /** Per report, the digest the bundle records. */
+  readonly reports: Readonly<Record<EvidenceReportId, string>>
 }
 
 export interface PairingAmendment {
@@ -83,22 +176,11 @@ export interface PairingAmendment {
     readonly uiCommit: string
     /** The replacement commit's root tree object. */
     readonly uiTree: string
-    /** sha256 of the replacement's `pnpm-lock.yaml`. */
+    /** sha256 of the replacement's `pnpm-lock.yaml`, always present. */
     readonly lockfileSha256: string
   }
-  readonly authorization: {
-    /** A PR, review, or decision record an auditor can open. */
-    readonly decisionReference: string
-    readonly approvedAt: string
-  }
-  /** Digests of the evidence the replacement was accepted on. */
-  readonly evidence: {
-    readonly coreRegistryReportSha256: string
-    readonly uiCandidateReportSha256: string
-    readonly templateAcceptanceSha256: string
-    readonly browserAcceptanceSha256: string
-    readonly uiRegistryPreflightSha256: string
-  }
+  readonly authorization: PairingAuthorization
+  readonly evidence: PairingEvidence
   readonly reason: string
   readonly verifiedAt: string
 }
@@ -116,6 +198,20 @@ export interface AmendmentExpectation {
   /** The UI commit the release is about to publish from. */
   readonly uiCommit?: string
 }
+
+/**
+ * What a lookup for an amendment found.
+ *
+ * Four states, not two. The distinction between "no amendment exists" and "the
+ * lookup could not be made" is the difference between refusing a release for
+ * the right reason and refusing it for no reason — and, worse, between a
+ * network blip and a valid direct pair. v1 collapsed them into `undefined`.
+ */
+export type AmendmentLookup =
+  | { readonly state: 'ABSENT' }
+  | { readonly state: 'PRESENT_VALID'; readonly amendment: PairingAmendment }
+  | { readonly state: 'PRESENT_INVALID'; readonly errors: readonly string[] }
+  | { readonly state: 'LOOKUP_FAILED'; readonly errors: readonly string[] }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -224,6 +320,14 @@ export function validatePairingAmendment(
   } else {
     requireSha(replacement.uiCommit, 'replacement.uiCommit', push)
     requireSha(replacement.uiTree, 'replacement.uiTree', push)
+    /*
+     * Required, and required by the validator rather than tolerated as
+     * optional by the reader. v1's reader skipped the comparison when the
+     * digest was absent, so an amendment with no lockfile digest — or a
+     * candidate whose lockfile could not be fetched — was accepted on the tree
+     * alone. That is the fail-open this field exists to close: a UI tree whose
+     * lockfile resolves a different Core is a different candidate.
+     */
     requireSha256(
       replacement.lockfileSha256,
       'replacement.lockfileSha256',
@@ -261,17 +365,34 @@ export function validatePairingAmendment(
   if (!isRecord(authorization)) {
     push('authorization must be an object')
   } else {
+    /*
+     * Who ran the release, and where its bytes were reviewed.
+     *
+     * `changeReference` is a pointer for the reader, not a permission: the
+     * amendment is authorised by being immutable and by every field being
+     * anchored outside it (see `PairingAuthorization`). Requiring an approving
+     * review here would be unpassable on a single-maintainer repository, where
+     * GitHub forbids approving your own pull request.
+     */
     if (
-      typeof authorization.decisionReference !== 'string' ||
-      authorization.decisionReference.trim().length === 0
+      typeof authorization.releasedBy !== 'string' ||
+      authorization.releasedBy.trim().length === 0
     ) {
-      push('authorization.decisionReference must name a reviewable decision')
+      push('authorization.releasedBy must name the account that released it')
     }
     if (
-      typeof authorization.approvedAt !== 'string' ||
-      !ISO_UTC.test(authorization.approvedAt)
+      typeof authorization.releasedAt !== 'string' ||
+      !ISO_UTC.test(authorization.releasedAt)
     ) {
-      push('authorization.approvedAt must be an ISO-8601 UTC timestamp')
+      push('authorization.releasedAt must be an ISO-8601 UTC timestamp')
+    }
+    if (
+      typeof authorization.changeReference !== 'string' ||
+      authorization.changeReference.trim().length === 0
+    ) {
+      push(
+        'authorization.changeReference must name where the record was introduced, so a reader can follow it',
+      )
     }
   }
 
@@ -279,14 +400,27 @@ export function validatePairingAmendment(
   if (!isRecord(evidence)) {
     push('evidence must be an object')
   } else {
-    for (const field of [
-      'coreRegistryReportSha256',
-      'uiCandidateReportSha256',
-      'templateAcceptanceSha256',
-      'browserAcceptanceSha256',
-      'uiRegistryPreflightSha256',
-    ] as const) {
-      requireSha256(evidence[field], `evidence.${field}`, push)
+    requireSha256(evidence.bundleSha256, 'evidence.bundleSha256', push)
+    if (
+      typeof evidence.bundlePath !== 'string' ||
+      evidence.bundlePath !== evidenceBundleFile(expected.version)
+    ) {
+      push(
+        `evidence.bundlePath must be ${evidenceBundleFile(expected.version)} so the reader finds it by version`,
+      )
+    }
+    const reports = evidence.reports
+    if (!isRecord(reports)) {
+      push('evidence.reports must carry a digest per report')
+    } else {
+      for (const id of EVIDENCE_REPORT_IDS) {
+        requireSha256(reports[id], `evidence.reports.${id}`, push)
+      }
+      for (const id of Object.keys(reports)) {
+        if (!EVIDENCE_REPORT_IDS.includes(id as EvidenceReportId)) {
+          push(`evidence.reports.${id} is not one of the five required reports`)
+        }
+      }
     }
   }
 
@@ -296,6 +430,71 @@ export function validatePairingAmendment(
 
   if (typeof value.verifiedAt !== 'string' || !ISO_UTC.test(value.verifiedAt)) {
     push('verifiedAt must be an ISO-8601 UTC timestamp')
+  }
+
+  return problems
+}
+
+/**
+ * Cross-checks an amendment against the evidence bundle it names.
+ *
+ * The amendment pins the bundle's digest; the bundle pins each report's
+ * digest. This is where the two are compared, so a bundle swapped after the
+ * amendment was approved — or an amendment written against a bundle that was
+ * never committed — fails here rather than at the publish step.
+ */
+export function verifyAmendmentEvidence(
+  amendment: PairingAmendment,
+  bundleRaw: string,
+  bundlePath: string,
+  expected: EvidenceExpectation,
+): AmendmentProblem[] {
+  const problems: AmendmentProblem[] = []
+  const push = (message: string): void => {
+    problems.push({ file: bundlePath, message })
+  }
+
+  const digest = evidenceSha256(bundleRaw)
+  if (
+    typeof amendment.evidence?.bundleSha256 === 'string' &&
+    amendment.evidence.bundleSha256.toLowerCase() !== digest
+  ) {
+    push(
+      `amendment records evidence.bundleSha256 ${amendment.evidence.bundleSha256}, but ${bundlePath} hashes to ${digest}`,
+    )
+  }
+
+  if (
+    typeof amendment.evidence?.bundlePath === 'string' &&
+    amendment.evidence.bundlePath !== bundlePath
+  ) {
+    push(
+      `amendment names ${amendment.evidence.bundlePath}, but the bundle read is ${bundlePath}`,
+    )
+  }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(bundleRaw)
+  } catch {
+    push('the bundle is not valid JSON')
+    return problems
+  }
+
+  problems.push(...verifyEvidenceBundle(parsed, bundlePath, expected))
+
+  const bundle = parsed as ReleaseEvidenceBundle
+  for (const report of bundle.reports ?? []) {
+    const recorded = amendment.evidence?.reports?.[report.id]
+    if (
+      typeof recorded === 'string' &&
+      typeof report.sha256 === 'string' &&
+      recorded.toLowerCase() !== report.sha256.toLowerCase()
+    ) {
+      push(
+        `amendment records ${report.id} as ${recorded}, but the bundle records ${report.sha256}`,
+      )
+    }
   }
 
   return problems
@@ -330,8 +529,20 @@ export function findExistingAmendment(
   return readAmendment(path.join(root, amendmentFile(version)))
 }
 
-/** Resolves `refs/tags/<tag>` on the remote to a commit, peeling annotated tags. */
-export function resolveRemoteTagCommit(
+/**
+ * The result of resolving a tag on a remote.
+ *
+ * Three states rather than `string | undefined`, because "the tag is not
+ * there" and "the API did not answer" lead to different decisions: the first
+ * means this release is not amended, the second means nobody knows.
+ */
+export type TagLookup =
+  | { readonly state: 'FOUND'; readonly commit: string }
+  | { readonly state: 'ABSENT' }
+  | { readonly state: 'ERROR'; readonly message: string }
+
+/** Resolves `refs/tags/<tag>` on the remote, peeling annotated tags. */
+export function resolveRemoteTag(
   repository: string,
   tag: string,
   gh: (args: readonly string[]) => string = args =>
@@ -340,22 +551,52 @@ export function resolveRemoteTagCommit(
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: 30_000,
     }) as string,
-): string | undefined {
+): TagLookup {
+  let ref: { object?: { type?: string; sha?: string } }
   try {
-    const ref = JSON.parse(
+    ref = JSON.parse(
       gh(['api', `repos/${repository}/git/ref/tags/${tag}`]),
     ) as { object?: { type?: string; sha?: string } }
-    let commit = ref.object?.sha
-    if (ref.object?.type === 'tag') {
+  } catch (error) {
+    /*
+     * A 404 is the registry saying the tag does not exist, which is a real
+     * finding. Anything else — rate limit, token, DNS — is the API not
+     * answering, and must never be read as "no amendment".
+     */
+    const message = error instanceof Error ? error.message : String(error)
+    const notFound = /HTTP 404|Not Found/i.test(message)
+    return notFound
+      ? { state: 'ABSENT' }
+      : { state: 'ERROR', message: `could not resolve ${tag}: ${message}` }
+  }
+
+  let commit = ref.object?.sha
+  if (ref.object?.type === 'tag') {
+    try {
       const peeled = JSON.parse(
         gh(['api', `repos/${repository}/git/tags/${commit}`]),
       ) as { object?: { sha?: string } }
       commit = peeled.object?.sha
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      return {
+        state: 'ERROR',
+        message: `could not peel annotated tag ${tag}: ${message}`,
+      }
     }
-    return typeof commit === 'string' && FULL_SHA.test(commit)
-      ? commit
-      : undefined
-  } catch {
-    return undefined
   }
+
+  return typeof commit === 'string' && FULL_SHA.test(commit)
+    ? { state: 'FOUND', commit }
+    : { state: 'ERROR', message: `${tag} did not resolve to a commit` }
+}
+
+/** Resolves `refs/tags/<tag>` to a commit, or undefined on any failure. */
+export function resolveRemoteTagCommit(
+  repository: string,
+  tag: string,
+  gh?: (args: readonly string[]) => string,
+): string | undefined {
+  const result = resolveRemoteTag(repository, tag, gh)
+  return result.state === 'FOUND' ? result.commit : undefined
 }
