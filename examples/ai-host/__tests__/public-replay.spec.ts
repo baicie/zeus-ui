@@ -4,6 +4,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -373,7 +374,15 @@ describe('public replay isolation', { timeout: 20_000 }, () => {
   it('uses isolated generation directories and never deletes the workspace root', () => {
     const workspace = directory()
     const v1 = resolvePublicReplayRoot(workspace, 'v1')
-    expect(v1.root).toBe(path.join(workspace, 'public-replay', 'v1'))
+    /*
+     * `realpathSync`, because the resolver canonicalises: on macOS a temp
+     * directory is reached through `/var/...`, which is a symlink to
+     * `/private/var/...`, so the joined path and the resolved one differ by
+     * that prefix while naming the same directory.
+     */
+    expect(v1.root).toBe(
+      path.join(realpathSync(workspace), 'public-replay', 'v1'),
+    )
     writeFileSync(path.join(v1.root, 'important.txt'), 'keep me')
     const v2 = resolvePublicReplayRoot(workspace, 'v2')
     expect(v2.root).not.toBe(v1.root)

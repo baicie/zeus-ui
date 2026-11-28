@@ -1,4 +1,5 @@
 import type { ReleaseChannel } from '../../release/channel'
+import type { PairingAmendment } from '../../release/pairing-amendment'
 /**
  * Immutable Core/UI pairing for a Zeus UI release — Core-anchored.
  *
@@ -52,7 +53,9 @@ import type { ReleaseChannel } from '../../release/channel'
  * A failed lookup is a failure, never a skip. "I could not reach GitHub" and
  * "the record matches" are different answers.
  */
+import { Buffer } from 'node:buffer'
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import {
   existsSync,
   mkdirSync,
@@ -61,12 +64,17 @@ import {
   writeFileSync,
 } from 'node:fs'
 import path from 'node:path'
+
 import { pathToFileURL } from 'node:url'
-
 import { parseArgs } from 'node:util'
-import pc from 'picocolors'
 
+import pc from 'picocolors'
 import { resolveChannel } from '../../release/channel'
+import {
+  amendmentFile,
+  amendmentTag,
+  validatePairingAmendment,
+} from '../../release/pairing-amendment'
 import { planPairing } from '../../release/release-protocol'
 import { resolveWorkspaceZeusVersion } from '../../release/zeus-alignment-contract'
 import { listZeusDependencyManifests } from '../../release/zeus-dependency-manifests'
@@ -170,12 +178,38 @@ export interface OnlinePairingInput extends StaticPairingInput {
   readonly resolvePairTag?: (tag: string) => string | undefined
   /** Reads a file from a Core commit. */
   readonly readCoreFile?: (commit: string, file: string) => string | undefined
+  /** The UI repository an amendment's replacement commit must exist on. */
+  readonly uiRepository?: string
+  /**
+   * Reads a UI commit's tree and lockfile digest.
+   *
+   * Injected so the amendment checks can be exercised without a network, and
+   * so a caller that already has the commit can answer from what it has.
+   */
+  readonly verifyUiCandidate?: VerifyUiCandidate
 }
+
+/** What an amendment's replacement UI commit must prove about itself. */
+export interface UiCandidateIdentity {
+  readonly tree: string
+  readonly lockfileSha256?: string
+}
+
+export type VerifyUiCandidate = (
+  repository: string,
+  commit: string,
+) => UiCandidateIdentity | undefined
 
 export interface PairingResult {
   readonly ok: boolean
   readonly channel?: ReleaseChannel
   readonly record?: CorePairingRecord
+  /** Present when the pair came from an amendment rather than the tagged record. */
+  readonly amended?: {
+    readonly tag: string
+    readonly commit: string
+    readonly replacement?: string
+  }
   /**
    * The Core tag this release must resolve, `v<coreVersion>`.
    *
@@ -420,6 +454,26 @@ export function evaluatePairing(input: OnlinePairingInput): PairingResult {
    * SHA into its own tree.
    */
   if (parsed.uiCommit.toLowerCase() !== input.uiCommit.toLowerCase()) {
+    /*
+     * A published Core release whose tag names a UI candidate that will never
+     * ship can be amended — but only through a separate, protected record that
+     * is checked against the remote, the tag's own tree, and the UI history.
+     *
+     * This is deliberately not a fallback: `evaluatePairingAmendment` refuses
+     * unless the replacement was fully re-verified and the authorization is
+     * reviewable. When no amendment exists, the mismatch stays a refusal.
+     */
+    const amended = evaluatePairingAmendment({
+      input,
+      coreVersion,
+      tagCommit,
+      recordPath,
+      recordRaw: raw,
+      channel,
+      originalUiCommit: parsed.uiCommit,
+      errors,
+    })
+    if (amended !== undefined) return amended
     errors.push(
       `Core record at v${coreVersion} names UI commit ${parsed.uiCommit}, but this release is ${input.uiCommit}`,
     )
@@ -431,6 +485,149 @@ export function evaluatePairing(input: OnlinePairingInput): PairingResult {
     coreTag,
     coreCommit: tagCommit,
     record: parsed,
+    errors,
+  }
+}
+
+/**
+ * The pair for a published Core release whose tagged record names a UI
+ * candidate that is not the one shipping.
+ *
+ * Returns `undefined` when no amendment exists, which leaves the caller's
+ * ordinary mismatch refusal in place. Every failure *inside* an amendment that
+ * does exist is pushed onto `errors`, so a malformed or unverifiable amendment
+ * never quietly degrades into the direct path.
+ */
+function evaluatePairingAmendment(args: {
+  input: OnlinePairingInput
+  coreVersion: string
+  tagCommit: string
+  recordPath: string
+  recordRaw: string
+  channel: ReleaseChannel
+  originalUiCommit: string
+  errors: string[]
+}): PairingResult | undefined {
+  const { input, coreVersion, tagCommit, recordPath, recordRaw, channel } = args
+  const errors = args.errors
+
+  /*
+   * The amendment lives in the Core repository, addressed by tag — not in the
+   * UI checkout, and not on any branch. A file on `main` describes an intention;
+   * a tag describes what was published.
+   */
+  const amendmentTagName = amendmentTag(coreVersion)
+  /*
+   * `resolvePairTag`, not `resolveCoreTag`: the amendment lives in its own tag
+   * namespace, and a caller that answers for *any* tag would make every release
+   * look amended. Bootstrap attestations already use this hook for the same
+   * reason.
+   */
+  const readRemoteTag =
+    input.resolvePairTag ?? (tag => resolveCoreTagOnGitHub(tag))
+  const amendmentCommit = readRemoteTag(amendmentTagName)
+  if (amendmentCommit === undefined) return undefined
+
+  const readCoreFile = input.readCoreFile ?? readCoreFileAtCommit
+  const amendmentPath = amendmentFile(coreVersion)
+  const amendmentRaw = readCoreFile(amendmentCommit, amendmentPath)
+  if (amendmentRaw === undefined) {
+    errors.push(
+      `${amendmentTagName} points at ${amendmentCommit}, which has no ${amendmentPath}`,
+    )
+    return { ok: false, channel, coreTag: `v${coreVersion}`, errors }
+  }
+
+  let parsedAmendment: unknown
+  try {
+    parsedAmendment = JSON.parse(amendmentRaw)
+  } catch {
+    errors.push(`${amendmentPath} at ${amendmentTagName} is not valid JSON`)
+    return { ok: false, channel, coreTag: `v${coreVersion}`, errors }
+  }
+
+  errors.push(
+    ...validatePairingAmendment(parsedAmendment, amendmentPath, {
+      version: coreVersion,
+      coreTagCommit: tagCommit,
+      uiCommit: input.uiCommit,
+    }).map(problem => problem.message),
+  )
+
+  /*
+   * The amendment must describe *this* record, byte for byte. Without the
+   * digest, an amendment could be written against one pairing record and
+   * silently applied after the tag's record changed — which is impossible for a
+   * protected tag but is asserted rather than assumed.
+   */
+  const actualRecordSha256 = createHash('sha256')
+    .update(recordRaw)
+    .digest('hex')
+  const amendment = parsedAmendment as PairingAmendment
+  if (
+    typeof amendment.originalPairing?.recordSha256 === 'string' &&
+    amendment.originalPairing.recordSha256.toLowerCase() !== actualRecordSha256
+  ) {
+    errors.push(
+      `amendment records originalPairing.recordSha256 ${amendment.originalPairing.recordSha256}, but ${recordPath} at v${coreVersion} hashes to ${actualRecordSha256}`,
+    )
+  }
+  if (
+    typeof amendment.originalPairing?.uiCommit === 'string' &&
+    amendment.originalPairing.uiCommit.toLowerCase() !==
+      args.originalUiCommit.toLowerCase()
+  ) {
+    errors.push(
+      `amendment records originalPairing.uiCommit ${amendment.originalPairing.uiCommit}, but ${recordPath} names ${args.originalUiCommit}`,
+    )
+  }
+
+  /*
+   * The replacement must exist on the UI remote, and its tree and lockfile must
+   * be the ones the amendment pinned. A commit that only exists locally cannot
+   * be checked out by the publish job.
+   */
+  const verifyUiCandidate = input.verifyUiCandidate ?? verifyUiCandidateOnGitHub
+  const candidate = verifyUiCandidate(
+    input.uiRepository ?? 'baicie/zeus-ui',
+    amendment.replacement?.uiCommit ?? '',
+  )
+  if (candidate === undefined) {
+    errors.push(
+      `amendment replacement uiCommit ${String(amendment.replacement?.uiCommit)} could not be read from the UI repository`,
+    )
+  } else {
+    if (
+      typeof amendment.replacement?.uiTree === 'string' &&
+      candidate.tree.toLowerCase() !==
+        amendment.replacement.uiTree.toLowerCase()
+    ) {
+      errors.push(
+        `amendment records uiTree ${amendment.replacement.uiTree}, but ${candidate.tree} is what the commit has`,
+      )
+    }
+    if (
+      typeof amendment.replacement?.lockfileSha256 === 'string' &&
+      candidate.lockfileSha256 !== undefined &&
+      candidate.lockfileSha256 !== amendment.replacement.lockfileSha256
+    ) {
+      errors.push(
+        `amendment records lockfileSha256 ${amendment.replacement.lockfileSha256}, but the commit's pnpm-lock.yaml hashes to ${candidate.lockfileSha256}`,
+      )
+    }
+  }
+
+  return {
+    ok: errors.length === 0,
+    channel,
+    coreTag: `v${coreVersion}`,
+    coreCommit: tagCommit,
+    record: undefined,
+    amended: {
+      tag: amendmentTagName,
+      commit: amendmentCommit,
+      replacement: amendment.replacement?.uiCommit,
+    },
     errors,
   }
 }
@@ -748,10 +945,82 @@ export function listCorePins(uiRoot: string): CorePin[] {
  * dereferenced when needed. `undefined` means the lookup failed — missing tag,
  * rate limit, no token — and the caller treats it as a failure.
  */
+/**
+ * Reads a UI commit's identity from GitHub: its root tree, and the sha256 of
+ * its `pnpm-lock.yaml`.
+ *
+ * The lockfile digest is computed from the blob's own bytes rather than taken
+ * from an API field, because the point of pinning it is that the amendment must
+ * describe the lockfile that will ship. GitHub serves blobs base64-encoded; the
+ * digest is over the decoded content.
+ */
+export function verifyUiCandidateOnGitHub(
+  repository: string,
+  commit: string,
+): UiCandidateIdentity | undefined {
+  if (!/^[0-9a-f]{40}$/i.test(commit)) return undefined
+  const gh = (args: string[]): string =>
+    execFileSync('gh', args, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 30_000,
+    }) as string
+
+  try {
+    const tree = JSON.parse(
+      gh(['api', `repos/${repository}/git/commits/${commit}`]),
+    ) as { tree?: { sha?: string } }
+    const treeSha = tree.tree?.sha
+    if (typeof treeSha !== 'string') return undefined
+
+    /*
+     * The lockfile is optional only in the sense that a repository without one
+     * cannot be verified this way; the caller treats a missing digest as "could
+     * not check" rather than as a pass.
+     */
+    let lockfileSha256: string | undefined
+    try {
+      const blob = JSON.parse(
+        gh([
+          'api',
+          `repos/${repository}/contents/pnpm-lock.yaml?ref=${commit}`,
+        ]),
+      ) as { content?: string; encoding?: string }
+      if (blob.encoding === 'base64' && typeof blob.content === 'string') {
+        lockfileSha256 = createHash('sha256')
+          .update(Buffer.from(blob.content, 'base64'))
+          .digest('hex')
+      }
+    } catch {
+      lockfileSha256 = undefined
+    }
+
+    return { tree: treeSha, lockfileSha256 }
+  } catch {
+    return undefined
+  }
+}
+
 export function resolveCoreTagOnGitHub(
   tag: string,
   repository = 'baicie/zeus',
 ): string | undefined {
+  /*
+   * A unit test that forgets to inject a resolver should fail fast, not block.
+   *
+   * This already cost two CI rounds: an unguarded case reached `gh api`, and
+   * Windows waited on it for the whole test timeout while Linux failed the call
+   * immediately. Refusing under `VITEST` turns "a test forgot" into a clear
+   * error at the ask, and leaves production — which never sets it — unchanged.
+   */
+  if (
+    process.env.VITEST === 'true' &&
+    process.env.ZEUS_ALLOW_GH_IN_TESTS !== '1'
+  ) {
+    throw new Error(
+      `resolveCoreTagOnGitHub(${tag}) was called from a unit test; inject resolveCoreTag or resolvePairTag instead`,
+    )
+  }
   const gh = (args: string[]): string =>
     execFileSync('gh', args, {
       encoding: 'utf8',
@@ -1069,6 +1338,13 @@ function main(): void {
       'release-sha': { type: 'string' },
       online: { type: 'boolean', default: false },
       out: { type: 'string' },
+      /*
+       * Which repository an amendment's replacement commit must exist on.
+       * Defaults to the canonical UI repository; named here so a fork or a
+       * renamed repository reads correctly rather than silently checking the
+       * wrong place.
+       */
+      'ui-repository': { type: 'string' },
     },
   })
   /*
@@ -1145,6 +1421,9 @@ function main(): void {
         uiVersion,
         coreVersion,
         uiCommit: values['release-sha'] ?? '',
+        ...(values['ui-repository']
+          ? { uiRepository: values['ui-repository'] }
+          : {}),
       })
     : evaluateStatic({
         uiRoot,

@@ -15,6 +15,7 @@ import type { OnlinePairingInput } from '../../release/check-release-pairing'
  * constructed that way, the test fails.
  */
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import os from 'node:os'
 
@@ -113,6 +114,13 @@ function onlineInput(
     coreVersion: VERSION,
     uiCommit,
     resolveCoreTag: () => 'd'.repeat(40),
+    /*
+     * No amendment by default. Without this, the amendment lookup falls back to
+     * the real GitHub resolver and the test blocks on a network call — which
+     * timed out on Windows and only there, because the machine happened to have
+     * a `gh` that waited.
+     */
+    resolvePairTag: () => undefined,
     readCoreFile: () => coreRecord({ uiCommit }),
     ...overrides,
   }
@@ -504,6 +512,8 @@ describe('the protocol is constructible', () => {
       coreVersion: VERSION,
       uiCommit: after,
       resolveCoreTag: () => 'b'.repeat(40),
+      /* No amendment: this pair is direct, so none is ever consulted. */
+      resolvePairTag: () => undefined,
       readCoreFile: () =>
         fs.readFileSync(
           path.join(coreRoot, `release-pairing/v${VERSION}.json`),
@@ -525,6 +535,8 @@ describe('the protocol is constructible', () => {
       coreVersion: VERSION,
       uiCommit: 'f'.repeat(40),
       resolveCoreTag: () => 'b'.repeat(40),
+      /* No amendment: this pair is direct, so none is ever consulted. */
+      resolvePairTag: () => undefined,
       readCoreFile: () => coreRecord({ uiCommit: 'e'.repeat(40) }),
     })
     expect(result.ok).toBe(false)
@@ -826,5 +838,340 @@ describe('bootstrap → pair', () => {
     )
     expect(result.ok).toBe(false)
     expect(result.errors.join(' ')).toMatch(/does not declare bootstrap/)
+  })
+})
+
+/*
+ * Pairing amendments: a published Core release whose tagged record names a UI
+ * candidate that will never ship.
+ *
+ * Every case below supplies the amendment through `readCoreFile`, addressed by
+ * the amendment tag, so the production path is what runs. The negative cases
+ * are the point: an amendment is the weakest of the three pairing modes, and a
+ * defect here would let any Core release be paired with any UI tree.
+ */
+/** The digest an amendment pins a record with: sha256 over the file's bytes. */
+function sha256(value: string): string {
+  return createHash('sha256').update(value).digest('hex')
+}
+
+/*
+ * A guard against the failure this suite already had once: the amendment lookup
+ * falls back to a real `gh api` call when no resolver is injected, so a test
+ * that only exercises the direct path can block on the network. It timed out on
+ * Windows and nowhere else, because that machine's `gh` waited instead of
+ * failing fast.
+ *
+ * Every factory injects one. This asserts it, so a new case that builds its own
+ * input is caught here rather than on a slow runner.
+ */
+describe('test inputs', () => {
+  it('never reach the network for an amendment', () => {
+    const result = evaluatePairing(
+      onlineInput({ readCoreFile: () => taggedRecordForGuard() }),
+    )
+    /* The point is that this returned at all; a resolver reaching `gh` hangs. */
+    expect(result.ok).toBe(false)
+  })
+})
+
+function taggedRecordForGuard(): string {
+  return coreRecord({ uiCommit: 'a'.repeat(40) })
+}
+
+describe('pairing amendment', () => {
+  const CORE_COMMIT = 'd'.repeat(40)
+  const ORIGINAL_UI = 'a'.repeat(40)
+  const REPLACEMENT_UI = 'b'.repeat(40)
+  const REPLACEMENT_TREE = 'f'.repeat(40)
+  const HEX64 = (seed: string) => seed.repeat(64).slice(0, 64)
+  const AMENDMENT_TAG = `pair-amendment/v${VERSION}`
+  const AMENDMENT_FILE = `meta/release/pairing/amendments/v${VERSION}.json`
+
+  /** The record the published tag carries, naming the abandoned candidate. */
+  function taggedRecord(uiCommit = ORIGINAL_UI): string {
+    return coreRecord({ uiCommit })
+  }
+
+  function amendment(overrides: Record<string, unknown> = {}): string {
+    return JSON.stringify({
+      schema: 'zeus.pairing-amendment/v1',
+      releaseTag: `v${VERSION}`,
+      coreVersion: VERSION,
+      coreCommit: CORE_COMMIT,
+      uiVersion: VERSION,
+      originalPairing: {
+        uiCommit: ORIGINAL_UI,
+        recordSha256: sha256(taggedRecord()),
+      },
+      replacement: {
+        uiCommit: REPLACEMENT_UI,
+        uiTree: REPLACEMENT_TREE,
+        lockfileSha256: HEX64('1'),
+      },
+      authorization: {
+        decisionReference: 'baicie/zeus#999',
+        approvedAt: '2026-11-28T00:00:00.000Z',
+      },
+      evidence: {
+        coreRegistryReportSha256: HEX64('2'),
+        uiCandidateReportSha256: HEX64('3'),
+        templateAcceptanceSha256: HEX64('4'),
+        browserAcceptanceSha256: HEX64('5'),
+        uiRegistryPreflightSha256: HEX64('6'),
+      },
+      reason:
+        'the original candidate was never published and its tree lacks the release fixes',
+      verifiedAt: '2026-11-28T00:00:00.000Z',
+      ...overrides,
+    })
+  }
+
+  /** An input whose Core record names the abandoned candidate. */
+  function amendedInput(
+    overrides: Partial<OnlinePairingInput> = {},
+    amendmentOverrides: Record<string, unknown> = {},
+  ): OnlinePairingInput {
+    const files: Record<string, string> = {
+      [`meta/release/pairing/v${VERSION}.json`]: taggedRecord(),
+      [AMENDMENT_FILE]: amendment(amendmentOverrides),
+    }
+    return {
+      ...onlineInput({
+        uiCommit: REPLACEMENT_UI,
+        resolveCoreTag: () => CORE_COMMIT,
+        resolvePairTag: (tag: string) =>
+          tag === AMENDMENT_TAG ? 'e'.repeat(40) : undefined,
+        /*
+         * The amendment and the tagged record live in different commits, but
+         * the file names already distinguish them, so the commit is only used
+         * to prove the caller asked for the right one.
+         */
+        readCoreFile: (commit: string, file: string) =>
+          commit === CORE_COMMIT || commit === 'e'.repeat(40)
+            ? files[file]
+            : undefined,
+        verifyUiCandidate: (_repository: string, commit: string) =>
+          commit.toLowerCase() === REPLACEMENT_UI
+            ? { tree: REPLACEMENT_TREE, lockfileSha256: HEX64('1') }
+            : undefined,
+        ...overrides,
+      }),
+    }
+  }
+
+  it('accepts a valid amendment and reports how the pair was established', () => {
+    const result = evaluatePairing(amendedInput())
+    expect(result.errors).toEqual([])
+    expect(result.ok).toBe(true)
+    expect(result.amended?.tag).toBe(AMENDMENT_TAG)
+    expect(result.amended?.replacement).toBe(REPLACEMENT_UI)
+  })
+
+  it('still refuses a mismatch when no amendment exists', () => {
+    /* The direct path must not become a fallback. */
+    const result = evaluatePairing(
+      onlineInput({
+        uiCommit: REPLACEMENT_UI,
+        readCoreFile: (_commit: string, file: string) =>
+          file.includes('amendments') ? undefined : taggedRecord(),
+      }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/names UI commit/)
+  })
+
+  it('refuses an amendment whose coreCommit is another commit', () => {
+    const result = evaluatePairing(
+      amendedInput({}, { coreCommit: '9'.repeat(40) }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/is not the commit v/)
+  })
+
+  it('refuses an amendment whose original record digest does not match', () => {
+    const result = evaluatePairing(
+      amendedInput(
+        {},
+        {
+          originalPairing: { uiCommit: ORIGINAL_UI, recordSha256: HEX64('9') },
+        },
+      ),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/recordSha256/)
+  })
+
+  it('refuses an amendment whose original uiCommit contradicts the tag', () => {
+    const result = evaluatePairing(
+      amendedInput(
+        {},
+        {
+          originalPairing: {
+            uiCommit: '7'.repeat(40),
+            recordSha256: sha256(taggedRecord()),
+          },
+        },
+      ),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/originalPairing\.uiCommit/)
+  })
+
+  it('refuses an amendment that names a different replacement than the release', () => {
+    const result = evaluatePairing(
+      amendedInput(
+        {},
+        {
+          replacement: {
+            uiCommit: '8'.repeat(40),
+            uiTree: REPLACEMENT_TREE,
+            lockfileSha256: HEX64('1'),
+          },
+        },
+      ),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/is not the commit being released/)
+  })
+
+  it('refuses an amendment whose uiTree does not match the commit', () => {
+    const result = evaluatePairing(
+      amendedInput(
+        {},
+        {
+          replacement: {
+            uiCommit: REPLACEMENT_UI,
+            uiTree: 'a'.repeat(40),
+            lockfileSha256: HEX64('1'),
+          },
+        },
+      ),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/records uiTree/)
+  })
+
+  it('refuses an amendment whose lockfile digest does not match', () => {
+    const result = evaluatePairing(
+      amendedInput(
+        {},
+        {
+          replacement: {
+            uiCommit: REPLACEMENT_UI,
+            uiTree: REPLACEMENT_TREE,
+            lockfileSha256: HEX64('c'),
+          },
+        },
+      ),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/lockfileSha256/)
+  })
+
+  it('refuses an amendment whose replacement cannot be read from the UI remote', () => {
+    const result = evaluatePairing(
+      amendedInput({ verifyUiCandidate: () => undefined }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(
+      /could not be read from the UI repository/,
+    )
+  })
+
+  it('refuses an amendment with no reviewable authorization', () => {
+    const result = evaluatePairing(
+      amendedInput(
+        {},
+        {
+          authorization: {
+            decisionReference: '',
+            approvedAt: '2026-11-28T00:00:00.000Z',
+          },
+        },
+      ),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/decisionReference/)
+  })
+
+  it('refuses an amendment missing any evidence digest', () => {
+    const result = evaluatePairing(
+      amendedInput(
+        {},
+        {
+          evidence: {
+            coreRegistryReportSha256: HEX64('2'),
+            uiCandidateReportSha256: HEX64('3'),
+            templateAcceptanceSha256: HEX64('4'),
+            browserAcceptanceSha256: '',
+            uiRegistryPreflightSha256: HEX64('6'),
+          },
+        },
+      ),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/browserAcceptanceSha256/)
+  })
+
+  it('refuses an amendment whose replacement equals the original candidate', () => {
+    /*
+     * That is a direct pair wearing an amendment's name, and must not be
+     * laundered through the weaker path. The release commit stays the
+     * replacement so the mismatch branch is still the one under test.
+     */
+    const result = evaluatePairing(
+      amendedInput(
+        {
+          verifyUiCandidate: () => ({
+            tree: REPLACEMENT_TREE,
+            lockfileSha256: HEX64('1'),
+          }),
+        },
+        {
+          replacement: {
+            uiCommit: ORIGINAL_UI,
+            uiTree: REPLACEMENT_TREE,
+            lockfileSha256: HEX64('1'),
+          },
+        },
+      ),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/direct pair, not an amendment/)
+  })
+
+  it('refuses an amendment tag whose tree has no amendment file', () => {
+    const result = evaluatePairing(
+      amendedInput({
+        readCoreFile: (_commit: string, file: string) => {
+          if (file.includes('amendments')) return undefined
+          return taggedRecord()
+        },
+      }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(
+      /has no meta\/release\/pairing\/amendments/,
+    )
+  })
+
+  it('refuses an amendment file that is not JSON', () => {
+    const result = evaluatePairing(
+      amendedInput({
+        readCoreFile: (_commit: string, file: string) =>
+          file.includes('amendments') ? '{oops' : taggedRecord(),
+      }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/is not valid JSON/)
+  })
+
+  it('refuses an amendment with the wrong schema', () => {
+    const result = evaluatePairing(
+      amendedInput({}, { schema: 'zeus.pairing-amendment/v2' }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/schema must be/)
   })
 })
