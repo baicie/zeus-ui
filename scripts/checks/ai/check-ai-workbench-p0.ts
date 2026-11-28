@@ -276,6 +276,20 @@ async function runInteractive(
         )
       }
       await selectMode(page, 'byok')
+      /*
+       * Wait for the draft, not just for the mode.
+       *
+       * Switching to "My model" mounts a different composer, and the draft is
+       * restored into it a tick later. Waiting only on `kind === 'byok'`
+       * therefore returns during the window where the composer exists and its
+       * value is still empty, and the assertion below then reports a lost
+       * draft that was never lost.
+       *
+       * This is the same shape as the stop-button race fixed for the build
+       * gate: wait on the state that is actually being asserted, never on an
+       * earlier state that merely precedes it. The failing round trip moved
+       * between runs (1, 3, 6, 12, 20) precisely because it was a race.
+       */
       const onByok = await waitForComposer(
         page,
         state =>
