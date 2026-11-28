@@ -1322,6 +1322,13 @@ function main(): void {
       'release-sha': { type: 'string' },
       online: { type: 'boolean', default: false },
       out: { type: 'string' },
+      /*
+       * Which repository an amendment's replacement commit must exist on.
+       * Defaults to the canonical UI repository; named here so a fork or a
+       * renamed repository reads correctly rather than silently checking the
+       * wrong place.
+       */
+      'ui-repository': { type: 'string' },
     },
   })
   /*
@@ -1398,6 +1405,9 @@ function main(): void {
         uiVersion,
         coreVersion,
         uiCommit: values['release-sha'] ?? '',
+        ...(values['ui-repository']
+          ? { uiRepository: values['ui-repository'] }
+          : {}),
       })
     : evaluateStatic({
         uiRoot,
