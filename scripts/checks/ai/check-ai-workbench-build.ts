@@ -328,7 +328,33 @@ async function runProduction(
 
   await page.getByTestId('byok-input').fill('stop this stream')
   await page.getByTestId('byok-send').click()
-  await page.getByTestId('byok-stop').waitFor({ timeout: 15_000 })
+  /*
+   * Wait for the turn to be streaming, not for the stop button to be visible.
+   *
+   * The button is always in the DOM with `hidden` set; it unhides while a turn
+   * streams and hides again when the turn ends. `waitFor()` on it is therefore a
+   * race against the gateway: if the `mock-slow` reply finishes first, the
+   * button is hidden again and the wait times out even though nothing is wrong.
+   * That is exactly the flake this check has produced intermittently — the
+   * timeout fires, the button's markup is fine, and nothing about the product
+   * is broken.
+   *
+   * `data-streaming="true"` on the turn article is the state the UI itself uses
+   * to decide the button's visibility, so waiting for it removes the race
+   * instead of widening it: once it is set, the button is visible by
+   * construction.
+   */
+  await page.waitForFunction(
+    () =>
+      document.querySelector(
+        '[data-testid="byok-thread"] [data-streaming="true"]',
+      ) !== null,
+    null,
+    { timeout: 15_000 },
+  )
+  await page
+    .getByTestId('byok-stop')
+    .waitFor({ state: 'visible', timeout: 5_000 })
   await page.getByTestId('byok-stop').click()
   await page.waitForFunction(
     () =>
