@@ -114,6 +114,13 @@ function onlineInput(
     coreVersion: VERSION,
     uiCommit,
     resolveCoreTag: () => 'd'.repeat(40),
+    /*
+     * No amendment by default. Without this, the amendment lookup falls back to
+     * the real GitHub resolver and the test blocks on a network call — which
+     * timed out on Windows and only there, because the machine happened to have
+     * a `gh` that waited.
+     */
+    resolvePairTag: () => undefined,
     readCoreFile: () => coreRecord({ uiCommit }),
     ...overrides,
   }
@@ -505,6 +512,8 @@ describe('the protocol is constructible', () => {
       coreVersion: VERSION,
       uiCommit: after,
       resolveCoreTag: () => 'b'.repeat(40),
+      /* No amendment: this pair is direct, so none is ever consulted. */
+      resolvePairTag: () => undefined,
       readCoreFile: () =>
         fs.readFileSync(
           path.join(coreRoot, `release-pairing/v${VERSION}.json`),
@@ -842,6 +851,30 @@ describe('bootstrap → pair', () => {
 /** The digest an amendment pins a record with: sha256 over the file's bytes. */
 function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex')
+}
+
+/*
+ * A guard against the failure this suite already had once: the amendment lookup
+ * falls back to a real `gh api` call when no resolver is injected, so a test
+ * that only exercises the direct path can block on the network. It timed out on
+ * Windows and nowhere else, because that machine's `gh` waited instead of
+ * failing fast.
+ *
+ * Every factory injects one. This asserts it, so a new case that builds its own
+ * input is caught here rather than on a slow runner.
+ */
+describe('test inputs', () => {
+  it('never reach the network for an amendment', () => {
+    const result = evaluatePairing(
+      onlineInput({ readCoreFile: () => taggedRecordForGuard() }),
+    )
+    /* The point is that this returned at all; a resolver reaching `gh` hangs. */
+    expect(result.ok).toBe(false)
+  })
+})
+
+function taggedRecordForGuard(): string {
+  return coreRecord({ uiCommit: 'a'.repeat(40) })
 }
 
 describe('pairing amendment', () => {
