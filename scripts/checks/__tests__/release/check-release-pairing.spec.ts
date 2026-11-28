@@ -484,52 +484,62 @@ describe('the protocol is constructible', () => {
    * record changes nothing about the UI commit, so Core can be written after
    * the UI candidate is final.
    */
-  it('lets Core be recorded after the UI commit is final', () => {
-    const uiRoot = temporary('zeus-ui-order-')
-    initRepo(uiRoot)
-    fs.mkdirSync(path.join(uiRoot, 'packages/a'), { recursive: true })
-    fs.writeFileSync(
-      path.join(uiRoot, 'packages/a/package.json'),
-      JSON.stringify({
-        name: '@zeus-web/a',
-        version: VERSION,
-        dependencies: { '@zeus-js/zeus': VERSION },
-      }),
-    )
-    git(uiRoot, ['add', '-A'])
-    git(uiRoot, ['commit', '-qm', 'ui'])
-    const before = git(uiRoot, ['rev-parse', 'HEAD'])
+  /*
+   * These two build real repositories and run the checker against them, so
+   * they cost far more than a unit-test-shaped timeout allows. Under a full
+   * parallel run they exceeded the 5s default and failed for being scheduled
+   * next to forty other files, which is not a finding about the code.
+   */
+  it(
+    'lets Core be recorded after the UI commit is final',
+    { timeout: 30_000 },
+    () => {
+      const uiRoot = temporary('zeus-ui-order-')
+      initRepo(uiRoot)
+      fs.mkdirSync(path.join(uiRoot, 'packages/a'), { recursive: true })
+      fs.writeFileSync(
+        path.join(uiRoot, 'packages/a/package.json'),
+        JSON.stringify({
+          name: '@zeus-web/a',
+          version: VERSION,
+          dependencies: { '@zeus-js/zeus': VERSION },
+        }),
+      )
+      git(uiRoot, ['add', '-A'])
+      git(uiRoot, ['commit', '-qm', 'ui'])
+      const before = git(uiRoot, ['rev-parse', 'HEAD'])
 
-    /*
-     * Writing Core's record in a different repository does not touch the UI
-     * tree at all, so the SHA read before is still the SHA released.
-     */
-    const coreRoot = temporary('zeus-core-order-')
-    fs.mkdirSync(path.join(coreRoot, 'release-pairing'), { recursive: true })
-    fs.writeFileSync(
-      path.join(coreRoot, `release-pairing/v${VERSION}.json`),
-      coreRecord({ uiCommit: before }),
-    )
+      /*
+       * Writing Core's record in a different repository does not touch the UI
+       * tree at all, so the SHA read before is still the SHA released.
+       */
+      const coreRoot = temporary('zeus-core-order-')
+      fs.mkdirSync(path.join(coreRoot, 'release-pairing'), { recursive: true })
+      fs.writeFileSync(
+        path.join(coreRoot, `release-pairing/v${VERSION}.json`),
+        coreRecord({ uiCommit: before }),
+      )
 
-    const after = git(uiRoot, ['rev-parse', 'HEAD'])
-    expect(after).toBe(before)
+      const after = git(uiRoot, ['rev-parse', 'HEAD'])
+      expect(after).toBe(before)
 
-    const result = evaluatePairing({
-      uiRoot,
-      uiVersion: VERSION,
-      coreVersion: VERSION,
-      uiCommit: after,
-      resolveCoreTag: () => 'b'.repeat(40),
-      /* No amendment: this pair is direct, so none is ever consulted. */
-      resolvePairTag: () => undefined,
-      readCoreFile: () =>
-        fs.readFileSync(
-          path.join(coreRoot, `release-pairing/v${VERSION}.json`),
-          'utf8',
-        ),
-    })
-    expect(result.ok).toBe(true)
-  })
+      const result = evaluatePairing({
+        uiRoot,
+        uiVersion: VERSION,
+        coreVersion: VERSION,
+        uiCommit: after,
+        resolveCoreTag: () => 'b'.repeat(40),
+        /* No amendment: this pair is direct, so none is ever consulted. */
+        resolvePairTag: () => undefined,
+        readCoreFile: () =>
+          fs.readFileSync(
+            path.join(coreRoot, `release-pairing/v${VERSION}.json`),
+            'utf8',
+          ),
+      })
+      expect(result.ok).toBe(true)
+    },
+  )
 
   /*
    * The failure that motivated the remote-reachability check: a well-formed

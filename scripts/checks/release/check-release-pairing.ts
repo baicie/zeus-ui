@@ -1,4 +1,5 @@
 import type { ReleaseChannel } from '../../release/channel'
+import type { AcceptanceCoverage } from '../../release/evidence-bundle'
 import type {
   PairingAmendment,
   TagLookup,
@@ -68,8 +69,8 @@ import {
 } from 'node:fs'
 
 import path from 'node:path'
-import { pathToFileURL } from 'node:url'
 
+import { pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
 import pc from 'picocolors'
 import { resolveChannel } from '../../release/channel'
@@ -200,6 +201,16 @@ export interface OnlinePairingInput extends StaticPairingInput {
    * so a caller that already has the commit can answer from what it has.
    */
   readonly verifyUiCandidate?: VerifyUiCandidate
+  /**
+   * The acceptance coverage contract this release must prove.
+   *
+   * Supplied by the caller that knows the candidate matrix and the package
+   * inventory. Without it the bundle is judged on internal consistency alone,
+   * which cannot tell "6 of 6" from "1 of 1".
+   */
+  readonly coverage?: AcceptanceCoverage
+  /** Where the Core artifacts came from; recorded, never inferred. */
+  readonly coreSource?: 'registry' | 'workspace' | 'candidate' | 'unknown'
 }
 
 /** What an amendment's replacement UI commit must prove about itself. */
@@ -837,6 +848,8 @@ function readAmendmentVerdict(args: {
           uiCommit: amendment.replacement?.uiCommit ?? input.uiCommit,
           uiTree: candidate.tree,
           lockfileSha256: candidate.lockfileSha256,
+          ...(input.coreSource ? { coreSource: input.coreSource } : {}),
+          ...(input.coverage ? { coverage: input.coverage } : {}),
         }).map(problem => `${problem.file}: ${problem.message}`),
       )
     }
@@ -1679,6 +1692,45 @@ function distTagPins(
   return found
 }
 
+/**
+ * Reads the coverage contract a caller supplies.
+ *
+ * Malformed input is a refusal, not a silent skip: a file that was meant to
+ * tighten the check and does not parse would otherwise leave the run looking
+ * stricter than it is.
+ */
+function readCoverage(
+  file: string | undefined,
+): AcceptanceCoverage | undefined {
+  if (file === undefined) return undefined
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(readFileSync(file, 'utf8'))
+  } catch (error) {
+    throw new Error(
+      `--coverage ${file} could not be read: ${error instanceof Error ? error.message : String(error)}`,
+    )
+  }
+  if (typeof parsed !== 'object' || parsed === null) {
+    throw new Error(`--coverage ${file} must contain a JSON object`)
+  }
+  return parsed as AcceptanceCoverage
+}
+
+const CORE_SOURCES = ['registry', 'workspace', 'candidate', 'unknown'] as const
+
+function readCoreSource(
+  value: string | undefined,
+): 'registry' | 'workspace' | 'candidate' | 'unknown' | undefined {
+  if (value === undefined) return undefined
+  if (!(CORE_SOURCES as readonly string[]).includes(value)) {
+    throw new Error(
+      `--core-source must be one of ${CORE_SOURCES.join(', ')}, not ${value}`,
+    )
+  }
+  return value as (typeof CORE_SOURCES)[number]
+}
+
 function main(): void {
   const { values } = parseArgs({
     options: {
@@ -1696,6 +1748,15 @@ function main(): void {
        * wrong place.
        */
       'ui-repository': { type: 'string' },
+      /*
+       * The acceptance coverage contract, as JSON.
+       *
+       * A file rather than flags: the template list and package inventory are
+       * generated from the release tree, and typing them on a command line is
+       * how one of them silently goes missing.
+       */
+      coverage: { type: 'string' },
+      'core-source': { type: 'string' },
     },
   })
   /*
@@ -1766,6 +1827,9 @@ function main(): void {
     return
   }
 
+  const coverage = readCoverage(values.coverage)
+  const coreSource = readCoreSource(values['core-source'])
+
   const evaluated = values.online
     ? evaluatePairing({
         uiRoot,
@@ -1775,6 +1839,8 @@ function main(): void {
         ...(values['ui-repository']
           ? { uiRepository: values['ui-repository'] }
           : {}),
+        ...(coverage ? { coverage } : {}),
+        ...(coreSource ? { coreSource } : {}),
       })
     : evaluateStatic({
         uiRoot,

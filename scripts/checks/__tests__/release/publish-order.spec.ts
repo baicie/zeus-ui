@@ -228,43 +228,52 @@ describe('check-release-pairing CLI defaults', () => {
 
   const isCanaryWorkspace = canaryPins > 0
 
-  it('runs without arguments and reads the versions from the workspace', () => {
-    const result = spawnSync(process.execPath, [TSX, CLI], {
-      cwd: ROOT,
-      encoding: 'utf8',
-    })
+  /*
+   * Spawns the real CLI through tsx, which costs ~2s alone and has crossed the
+   * 5s default beside a full parallel suite. Tightening this to the default
+   * measured the scheduler, not the checker.
+   */
+  it(
+    'runs without arguments and reads the versions from the workspace',
+    { timeout: 30_000 },
+    () => {
+      const result = spawnSync(process.execPath, [TSX, CLI], {
+        cwd: ROOT,
+        encoding: 'utf8',
+      })
 
-    expect(result.error).toBeUndefined()
+      expect(result.error).toBeUndefined()
 
-    if (isCanaryWorkspace) {
-      /*
-       * A dist-tag names no release to pair against, so the only correct
-       * outcome is a refusal that says so.
-       *
-       * This assertion started as `status !== 0` plus a regex for the channel
-       * error, and that was wrong in a way worth keeping visible: the CLI used
-       * to exit **zero** here and print `UI release pairing 0.1.0-beta.35
-       * passed (beta, static)`, because `resolveWorkspaceZeusVersion` skips
-       * non-semver pins, the caller fell back to
-       * `FALLBACK_EXPECTED_ZEUS_VERSION`, and a constant then stood in for a
-       * version the workspace never named. The canary compatibility job ran on
-       * exactly this shape and was green for a run that verified nothing.
-       *
-       * The refusal is now explicit (`process.exitCode = 2`) and names both the
-       * tag and the remedy, so the message is asserted rather than merely the
-       * non-zero exit — "failed for some reason" was how the defect survived.
-       */
-      expect(result.status).toBe(2)
+      if (isCanaryWorkspace) {
+        /*
+         * A dist-tag names no release to pair against, so the only correct
+         * outcome is a refusal that says so.
+         *
+         * This assertion started as `status !== 0` plus a regex for the channel
+         * error, and that was wrong in a way worth keeping visible: the CLI used
+         * to exit **zero** here and print `UI release pairing 0.1.0-beta.35
+         * passed (beta, static)`, because `resolveWorkspaceZeusVersion` skips
+         * non-semver pins, the caller fell back to
+         * `FALLBACK_EXPECTED_ZEUS_VERSION`, and a constant then stood in for a
+         * version the workspace never named. The canary compatibility job ran on
+         * exactly this shape and was green for a run that verified nothing.
+         *
+         * The refusal is now explicit (`process.exitCode = 2`) and names both the
+         * tag and the remedy, so the message is asserted rather than merely the
+         * non-zero exit — "failed for some reason" was how the defect survived.
+         */
+        expect(result.status).toBe(2)
+        expect(`${result.stdout}${result.stderr}`).toMatch(
+          /pins \d+ @zeus-js package\(s\) to a dist-tag \(canary\)/,
+        )
+        expect(`${result.stdout}${result.stderr}`).toMatch(/--core-version/)
+        return
+      }
+
+      expect(result.status).toBe(0)
       expect(`${result.stdout}${result.stderr}`).toMatch(
-        /pins \d+ @zeus-js package\(s\) to a dist-tag \(canary\)/,
+        /UI release pairing \d+\.\d+\.\d+/,
       )
-      expect(`${result.stdout}${result.stderr}`).toMatch(/--core-version/)
-      return
-    }
-
-    expect(result.status).toBe(0)
-    expect(`${result.stdout}${result.stderr}`).toMatch(
-      /UI release pairing \d+\.\d+\.\d+/,
-    )
-  })
+    },
+  )
 })

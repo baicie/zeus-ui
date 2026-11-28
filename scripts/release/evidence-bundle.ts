@@ -127,6 +127,30 @@ export interface EvidenceProblem {
 }
 
 /** What the caller already established independently of the bundle. */
+/**
+ * What a complete acceptance covers, as a controlled contract.
+ *
+ * ## Why the expected set is an input, not a number in the report
+ *
+ * The first version of these checks compared a report's counts against each
+ * other: `passed === templates`, `passed === probes`. That is arithmetic the
+ * report does on itself, and it holds just as well for a run that covered one
+ * template as for one that covered six. "6 of 6" and "1 of 1" are the same
+ * statement to a reader who does not know how many exist.
+ *
+ * The expected set therefore comes from the contract — the candidate matrix,
+ * the package inventory — and the report is required to match it exactly:
+ * nothing missing, nothing duplicated, nothing invented.
+ */
+export interface AcceptanceCoverage {
+  /** Every template the release is contracted to verify. */
+  readonly templates?: readonly string[]
+  /** Templates that ship no page, so no browser probe exists for them. */
+  readonly templatesWithoutProbe?: readonly string[]
+  /** Every @zeus-web package the release publishes. */
+  readonly packages?: readonly string[]
+}
+
 export interface EvidenceExpectation {
   readonly version: string
   readonly coreVersion: string
@@ -135,6 +159,64 @@ export interface EvidenceExpectation {
   readonly uiCommit: string
   readonly uiTree: string
   readonly lockfileSha256: string
+  /**
+   * Where the Core artifacts came from.
+   *
+   * `registry` is the artifact users install; `workspace` is a build of the
+   * same tree; `candidate` is a tarball. They are not interchangeable —
+   * rc.8's joint acceptance ran against a workspace build of the release tree,
+   * which is a weaker claim than the published artifact and says so.
+   */
+  readonly coreSource?: 'registry' | 'workspace' | 'candidate' | 'unknown'
+  readonly coverage?: AcceptanceCoverage
+}
+
+/**
+ * Compares the identifiers a report covered with the ones the contract expects.
+ *
+ * All four failure modes matter and none is visible from a count:
+ *
+ * - **missing** — a template or package the release promised to verify and did
+ *   not. This is the one a `passed === templates` check lets through, because
+ *   dropping the template from the report also drops it from the count.
+ * - **duplicated** — the same id twice, which inflates a count without
+ *   covering anything new.
+ * - **unexpected** — an id the contract does not know. Usually a renamed
+ *   template, which means the "missing" id is silently gone.
+ * - **failed** — covered, but did not pass.
+ */
+export function coverageProblems(
+  label: string,
+  observed: readonly string[],
+  expected: readonly string[] | undefined,
+): string[] {
+  /*
+   * No contract, no completeness claim.
+   *
+   * The verdict still rests on internal consistency, and the caller records
+   * that this bundle carried less than a full coverage proof. Asserting a
+   * complete set here without a contract would be inventing one.
+   */
+  if (expected === undefined) return []
+
+  const problems: string[] = []
+  const counts = new Map<string, number>()
+  for (const id of observed) counts.set(id, (counts.get(id) ?? 0) + 1)
+
+  for (const id of expected) {
+    const seen = counts.get(id) ?? 0
+    if (seen === 0) problems.push(`${label}: ${id} is missing from the report`)
+    else if (seen > 1) problems.push(`${label}: ${id} appears ${seen} times`)
+  }
+  const known = new Set(expected)
+  for (const id of counts.keys()) {
+    if (!known.has(id)) {
+      problems.push(
+        `${label}: ${id} is not in the contract's expected set (renamed or invented?)`,
+      )
+    }
+  }
+  return problems
 }
 
 /** The sha256 of a report's bytes, which is how a report is pinned. */
@@ -193,7 +275,10 @@ function numberAt(
 export function judgeEvidenceReport(
   id: EvidenceReportId,
   content: string,
-  expected: Pick<EvidenceExpectation, 'coreVersion' | 'uiVersion' | 'uiCommit'>,
+  expected: Pick<
+    EvidenceExpectation,
+    'coreVersion' | 'uiVersion' | 'uiCommit' | 'coverage'
+  >,
 ): JudgedReport {
   let parsed: unknown
   try {
@@ -263,12 +348,14 @@ export function judgeEvidenceReport(
       if (templates.length === 0) {
         problems.push('templates must be a non-empty array')
       }
+      const covered: string[] = []
       for (const template of templates) {
         const entry = asRecord(template)
         if (!entry) {
           problems.push('a template entry is not an object')
           continue
         }
+        if (typeof entry.template === 'string') covered.push(entry.template)
         if (entry.passed !== true) {
           problems.push(`template ${String(entry.template)} did not pass`)
         }
@@ -278,6 +365,15 @@ export function judgeEvidenceReport(
           )
         }
       }
+      /*
+       * The candidate set must be the contracted set.
+       *
+       * Without this, deleting a template from the run also deletes it from the
+       * denominator, and the report still says "all templates passed".
+       */
+      problems.push(
+        ...coverageProblems('templates', covered, expected.coverage?.templates),
+      )
       break
     }
     case 'template-acceptance': {
@@ -288,6 +384,18 @@ export function judgeEvidenceReport(
         problems.push('templates must be a positive number')
       } else {
         requireEqual('passed', report.passed, templates)
+        /*
+         * The count must be the contracted count.
+         *
+         * `passed === templates` is satisfied by "1 of 1"; a release that
+         * promised six templates and verified one would read as complete.
+         */
+        const contracted = expected.coverage?.templates?.length
+        if (contracted !== undefined && templates !== contracted) {
+          problems.push(
+            `templates is ${templates}, but the contract expects ${contracted}`,
+          )
+        }
       }
       break
     }
@@ -298,6 +406,25 @@ export function judgeEvidenceReport(
       if (probes === undefined || probes <= 0) {
         problems.push('probes must be a positive number')
       } else {
+        /*
+         * Probes are templates minus the ones that ship no page. Derived from
+         * the same contract rather than a literal, so adding a page-less
+         * template does not make every future run look incomplete.
+         */
+        const contracted =
+          expected.coverage?.templates === undefined
+            ? undefined
+            : expected.coverage.templates.filter(
+                name =>
+                  !(expected.coverage?.templatesWithoutProbe ?? []).includes(
+                    name,
+                  ),
+              ).length
+        if (contracted !== undefined && probes !== contracted) {
+          problems.push(
+            `probes is ${probes}, but the contract expects ${contracted} templates with a page`,
+          )
+        }
         requireEqual('passed', report.passed, probes)
       }
       break
@@ -338,6 +465,22 @@ export function judgeEvidenceReport(
         )
       }
       requireEqual('ok', report.ok, true)
+      /*
+       * The three buckets must partition the contracted package set.
+       *
+       * A preflight that queried 46 packages out of a 46-package release and a
+       * preflight that queried 12 out of 12 both report "0 already published",
+       * and only one of them is about the release that ships.
+       */
+      const contracted = expected.coverage?.packages
+      if (contracted !== undefined) {
+        const seen = [
+          ...published,
+          ...absent,
+          ...(Array.isArray(report.failed) ? report.failed : []),
+        ].filter((name): name is string => typeof name === 'string')
+        problems.push(...coverageProblems('packages', seen, contracted))
+      }
       break
     }
   }

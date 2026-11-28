@@ -593,3 +593,164 @@ describe('the authorization names the release, not a consent', () => {
     )
   })
 })
+
+describe('the report must cover the contracted set', () => {
+  /*
+   * The defect these cases pin: `passed === templates` is arithmetic the report
+   * does on itself. It holds just as well for a run that verified one template
+   * as for one that verified six, so a gate built on it can be satisfied by
+   * shrinking the work.
+   */
+  const contract = { templates: ['basic-ts', 'admin-ts', 'webc-consumer-ts'] }
+
+  function candidate(templates: Array<Record<string, unknown>>): string {
+    return JSON.stringify({
+      schema: 'zeus.create-zeus-candidate/v2',
+      coreVersion: VERSION,
+      uiVersion: VERSION,
+      templates,
+      passed: true,
+    })
+  }
+
+  const entry = (name: string): Record<string, unknown> => ({
+    template: name,
+    pinMatch: true,
+    passed: true,
+  })
+
+  it('accepts a report covering exactly the contracted templates', () => {
+    const judged = judgeEvidenceReport(
+      'ui-candidate-report',
+      candidate(contract.templates.map(entry)),
+      { ...evidenceExpectation, coverage: contract },
+    )
+    expect(judged.problems).toEqual([])
+  })
+
+  it('refuses a report that quietly dropped a template', () => {
+    const judged = judgeEvidenceReport(
+      'ui-candidate-report',
+      candidate([entry('basic-ts'), entry('admin-ts')]),
+      { ...evidenceExpectation, coverage: contract },
+    )
+    expect(judged.verdict).toBe('FAIL')
+    expect(judged.problems.join(' ')).toMatch(
+      /webc-consumer-ts is missing from the report/,
+    )
+  })
+
+  it('refuses a run that verified one template and called it complete', () => {
+    const judged = judgeEvidenceReport(
+      'ui-candidate-report',
+      candidate([entry('basic-ts')]),
+      { ...evidenceExpectation, coverage: contract },
+    )
+    expect(judged.verdict).toBe('FAIL')
+    /* Both the missing ids and the shrunken set are named. */
+    expect(judged.problems.join(' ')).toMatch(/admin-ts is missing/)
+    expect(judged.problems.join(' ')).toMatch(/webc-consumer-ts is missing/)
+  })
+
+  it('refuses a duplicated template that inflates the count', () => {
+    const judged = judgeEvidenceReport(
+      'ui-candidate-report',
+      candidate([
+        entry('basic-ts'),
+        entry('basic-ts'),
+        entry('admin-ts'),
+        entry('webc-consumer-ts'),
+      ]),
+      { ...evidenceExpectation, coverage: contract },
+    )
+    expect(judged.verdict).toBe('FAIL')
+    expect(judged.problems.join(' ')).toMatch(/basic-ts appears 2 times/)
+  })
+
+  it('refuses a template the contract does not know', () => {
+    const judged = judgeEvidenceReport(
+      'ui-candidate-report',
+      candidate([...contract.templates.map(entry), entry('renamed-ts')]),
+      { ...evidenceExpectation, coverage: contract },
+    )
+    expect(judged.verdict).toBe('FAIL')
+    expect(judged.problems.join(' ')).toMatch(
+      /renamed-ts is not in the contract/,
+    )
+  })
+
+  it('says nothing about coverage when no contract was supplied', () => {
+    /*
+     * A report judged without a contract is judged on internal consistency
+     * only. Claiming completeness here would be inventing the contract.
+     */
+    const judged = judgeEvidenceReport(
+      'ui-candidate-report',
+      candidate([entry('basic-ts')]),
+      evidenceExpectation,
+    )
+    expect(judged.verdict).toBe('PASS')
+  })
+
+  it('holds template acceptance to the contracted count', () => {
+    const judged = judgeEvidenceReport(
+      'template-acceptance',
+      JSON.stringify({
+        schema: 'zeus.template-acceptance/v1',
+        version: VERSION,
+        uiCommit: UI_COMMIT,
+        templates: 1,
+        passed: 1,
+      }),
+      { ...evidenceExpectation, coverage: contract },
+    )
+    expect(judged.verdict).toBe('FAIL')
+    expect(judged.problems.join(' ')).toMatch(
+      /templates is 1, but the contract expects 3/,
+    )
+  })
+
+  it('derives the expected probe count from the page-less templates', () => {
+    const judged = judgeEvidenceReport(
+      'browser-acceptance',
+      JSON.stringify({
+        schema: 'zeus.browser-acceptance/v1',
+        version: VERSION,
+        uiCommit: UI_COMMIT,
+        probes: 3,
+        passed: 3,
+      }),
+      {
+        ...evidenceExpectation,
+        coverage: {
+          templates: ['a', 'b', 'c', 'page-less'],
+          templatesWithoutProbe: ['page-less'],
+        },
+      },
+    )
+    expect(judged.verdict).toBe('PASS')
+  })
+
+  it('refuses a preflight that queried part of the release', () => {
+    const judged = judgeEvidenceReport(
+      'ui-registry-preflight',
+      JSON.stringify({
+        schema: 'zeus-ui.publish-preflight/v1',
+        version: VERSION,
+        packages: [],
+        published: [],
+        absent: ['@zeus-web/button'],
+        failed: [],
+        ok: true,
+      }),
+      {
+        ...evidenceExpectation,
+        coverage: { packages: ['@zeus-web/button', '@zeus-web/input'] },
+      },
+    )
+    expect(judged.verdict).toBe('FAIL')
+    expect(judged.problems.join(' ')).toMatch(
+      /@zeus-web\/input is missing from the report/,
+    )
+  })
+})

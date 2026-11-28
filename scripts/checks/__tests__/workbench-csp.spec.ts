@@ -145,7 +145,12 @@ describe('workbench CSP', () => {
     }
   })
 
-  it('accepts only origin-shaped sources', () => {
+  /*
+   * 5000 hostile and shaped inputs through the parser. On an idle machine this
+   * is ~1.5s; beside a full suite it has crossed 5s and failed as a timeout
+   * rather than as an assertion.
+   */
+  it('accepts only origin-shaped sources', { timeout: 30_000 }, () => {
     for (const ok of [
       'https://api.openai.com',
       'https://gateway.example.com:8443',
