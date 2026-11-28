@@ -364,6 +364,20 @@ describe('release script contract', () => {
       core_tag: githubExpression('steps.pairing_core.outputs.core-tag'),
       pairing_mode: githubExpression('steps.pairing_core.outputs.mode'),
       channel: githubExpression('steps.pairing_core.outputs.channel'),
+      /*
+       * Which pairing mode was used, and — for an amendment — the protected
+       * tag and commit that authorised it. They are outputs rather than
+       * details inferred later from the report, because a release that pairs
+       * through an amendment is making a weaker claim than a direct pair and
+       * the difference has to survive into the run's own record.
+       */
+      pairing_kind: githubExpression('steps.pairing_core.outputs.pairing-kind'),
+      amendment_tag: githubExpression(
+        'steps.pairing_core.outputs.amendment-tag',
+      ),
+      amendment_commit: githubExpression(
+        'steps.pairing_core.outputs.amendment-commit',
+      ),
     })
     expect(getObject(release, 'env')).toEqual({
       PUPPETEER_SKIP_DOWNLOAD: 'true',
