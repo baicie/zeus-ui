@@ -77,8 +77,13 @@ const REPORTS: Readonly<Record<string, string>> = {
   'ui-registry-preflight': `${JSON.stringify({
     schema: 'zeus-ui.publish-preflight/v1',
     version: VERSION,
-    alreadyPublished: 0,
-    readyToPublish: 46,
+    tag: 'rc',
+    registry: 'https://registry.npmjs.org/',
+    packages: [{ name: '@zeus-web/button', state: 'ABSENT' }],
+    published: [],
+    absent: Array.from({ length: 46 }, (_, index) => `@zeus-web/pkg-${index}`),
+    failed: [],
+    ok: true,
   })}\n`,
 }
 
@@ -483,18 +488,47 @@ describe('a report is judged on its own numbers', () => {
   })
 
   it('fails a preflight that found packages already published', () => {
+    /*
+     * Read from the shape the producer actually emits: `published`,
+     * `absent`, `failed` and `ok`. A partial publish is the one state that
+     * must never be published over, so a non-empty `published` is a refusal
+     * even when `ok` was computed from `failed` alone.
+     */
     const judged = judgeEvidenceReport(
       'ui-registry-preflight',
       JSON.stringify({
         schema: 'zeus-ui.publish-preflight/v1',
         version: VERSION,
-        alreadyPublished: 3,
-        readyToPublish: 43,
+        packages: [],
+        published: ['@zeus-web/button', '@zeus-web/input', '@zeus-web/badge'],
+        absent: Array.from({ length: 43 }, (_, index) => `p${index}`),
+        failed: [],
+        ok: true,
       }),
       evidenceExpectation,
     )
     expect(judged.verdict).toBe('FAIL')
-    expect(judged.problems.join(' ')).toMatch(/alreadyPublished is 3/)
+    expect(judged.problems.join(' ')).toMatch(
+      /3 package\(s\) were already published: @zeus-web\/button/,
+    )
+  })
+
+  it('fails a preflight that could not query every package', () => {
+    const judged = judgeEvidenceReport(
+      'ui-registry-preflight',
+      JSON.stringify({
+        schema: 'zeus-ui.publish-preflight/v1',
+        version: VERSION,
+        packages: [],
+        published: [],
+        absent: ['@zeus-web/button'],
+        failed: ['@zeus-web/input'],
+        ok: false,
+      }),
+      evidenceExpectation,
+    )
+    expect(judged.verdict).toBe('FAIL')
+    expect(judged.problems.join(' ')).toMatch(/could not be queried/)
   })
 
   it('fails a candidate report whose template did not match its pins', () => {

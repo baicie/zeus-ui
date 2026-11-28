@@ -305,16 +305,39 @@ export function judgeEvidenceReport(
     case 'ui-registry-preflight': {
       requireEqual('version', report.version, expected.uiVersion)
       /*
-       * The preflight must have found the candidate unpublished. It is run
-       * before the publish, so anything else means the state it described is
-       * not the state the release acted on — and a partially published group
-       * is the one case that must never be published over.
+       * The preflight must have found the candidate unpublished, which is what
+       * `published` being empty means.
+       *
+       * This is read from the fields the producer actually writes —
+       * `published`/`absent`/`failed` arrays and `ok` — not from an invented
+       * `alreadyPublished` counter. An earlier version of this check looked for
+       * that counter, which no report has ever carried, so against a real
+       * preflight it would have compared `undefined` to `0` and failed for the
+       * wrong reason. Matching the producer's real shape is the difference
+       * between a check and a guess.
        */
-      requireEqual('alreadyPublished', report.alreadyPublished, 0)
-      const ready = numberAt(report, 'readyToPublish')
-      if (ready === undefined || ready <= 0) {
-        problems.push('readyToPublish must be a positive number')
+      const published = Array.isArray(report.published)
+        ? report.published
+        : undefined
+      const absent = Array.isArray(report.absent) ? report.absent : undefined
+      if (published === undefined || absent === undefined) {
+        problems.push('published and absent must be arrays')
+        break
       }
+      if (published.length !== 0) {
+        problems.push(
+          `${published.length} package(s) were already published: ${published.slice(0, 5).join(', ')}`,
+        )
+      }
+      if (absent.length === 0) {
+        problems.push('the preflight found no packages to publish')
+      }
+      if (Array.isArray(report.failed) && report.failed.length > 0) {
+        problems.push(
+          `${report.failed.length} package(s) could not be queried: ${report.failed.join(', ')}`,
+        )
+      }
+      requireEqual('ok', report.ok, true)
       break
     }
   }

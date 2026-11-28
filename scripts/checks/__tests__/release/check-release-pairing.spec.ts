@@ -971,16 +971,24 @@ describe('pairing amendment', () => {
   }
 
   function uiRegistryPreflight(): string {
+    /*
+     * The shape `check-publish-preflight.ts` actually writes: per-package
+     * states plus the three buckets and an `ok` derived from `failed`. Not a
+     * hand-rolled summary — the verifier judges what the producer emits.
+     */
     return report('ui-registry-preflight', {
       schema: 'zeus-ui.publish-preflight/v1',
       version: VERSION,
+      tag: 'rc',
+      registry: 'https://registry.npmjs.org/',
       packages: [{ name: '@zeus-web/button', state: 'ABSENT' }],
       published: [],
-      absent: ['@zeus-web/button'],
+      absent: Array.from(
+        { length: 46 },
+        (_, index) => `@zeus-web/pkg-${index}`,
+      ),
       failed: [],
-      alreadyPublished: 0,
-      readyToPublish: 46,
-      verifiedAt: '2026-11-28T00:00:00.000Z',
+      ok: true,
     })
   }
 
