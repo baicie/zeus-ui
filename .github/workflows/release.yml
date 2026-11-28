@@ -130,6 +130,9 @@ jobs:
       core_tag: ${{ steps.pairing_core.outputs.core-tag }}
       pairing_mode: ${{ steps.pairing_core.outputs.mode }}
       channel: ${{ steps.pairing_core.outputs.channel }}
+      pairing_kind: ${{ steps.pairing_core.outputs.pairing-kind }}
+      amendment_tag: ${{ steps.pairing_core.outputs.amendment-tag }}
+      amendment_commit: ${{ steps.pairing_core.outputs.amendment-commit }}
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
       VERSION: ${{ inputs.version }}
@@ -238,11 +241,40 @@ jobs:
               ;;
           esac
 
+          # How the pair was established. `direct` means the immutable Core
+          # tag's own record named this commit; `amendment` means a separate
+          # protected record superseded it. Both are valid pairings and they are
+          # not the same claim, so the value travels with the run rather than
+          # being inferred later from the absence of a field.
+          PAIRING_KIND=$(node -p "require('$PAIRING_REPORT').pairingMode ?? ''")
+          AMENDMENT_TAG=$(node -p "require('$PAIRING_REPORT').amendment?.tag ?? ''")
+          AMENDMENT_COMMIT=$(node -p "require('$PAIRING_REPORT').amendment?.commit ?? ''")
+
+          case "$PAIRING_KIND" in
+            direct) ;;
+            amendment)
+              # An amended pair is only as strong as the record that authorised
+              # it. Refuse to dispatch one whose report cannot name both the tag
+              # and the commit it resolved to.
+              if [ -z "$AMENDMENT_TAG" ] || ! [[ "$AMENDMENT_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+                echo "::error::the pairing report says pairingMode=amendment but carries no amendment tag and commit"
+                exit 1
+              fi
+              ;;
+            *)
+              echo "::error::the pairing report names no known pairingMode (pairingMode='$PAIRING_KIND')"
+              exit 1
+              ;;
+          esac
+
           {
             echo "core-commit=$CORE_COMMIT"
             echo "core-tag=$CORE_TAG"
             echo "mode=$PAIRING_MODE"
             echo "channel=$CHANNEL"
+            echo "pairing-kind=$PAIRING_KIND"
+            echo "amendment-tag=$AMENDMENT_TAG"
+            echo "amendment-commit=$AMENDMENT_COMMIT"
           } >> "$GITHUB_OUTPUT"
         env:
           VERSION: ${{ inputs.version }}

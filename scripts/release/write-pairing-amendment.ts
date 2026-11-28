@@ -1,3 +1,7 @@
+import type {
+  PairingAmendment,
+  PairingAuthorization,
+} from './pairing-amendment'
 /**
  * Writes a pairing amendment for a published Core release.
  *
@@ -16,11 +20,18 @@
  * - the Core commit comes from resolving the remote tag, not from an argument;
  * - the original record and its digest come from the tagged tree;
  * - the replacement's tree and lockfile digest come from the UI repository;
- * - each evidence digest is the sha256 of a file that exists.
+ * - the evidence digest is the sha256 of the committed bundle, which this tool
+ *   reads back from disk and cross-checks against the five reports inside it;
+ * - the authorization is read from GitHub — the pull request, the review, the
+ *   reviewer's permission — and the amendment records what the API returned.
  *
- * It also refuses to overwrite an existing amendment with a different
- * replacement: a version pairs once, and two amendments for one release leave
- * an auditor with no way to tell which pair shipped.
+ * The last one is the difference between an approval and the appearance of
+ * one. An earlier version recorded a `decisionReference` string and a
+ * script-generated timestamp; nothing checked that the PR named a candidate, or
+ * that a human had approved anything. This one will not write an amendment
+ * whose cited review does not exist, does not say APPROVED, was not submitted
+ * against the commit being tagged, or was given by someone without write
+ * access.
  *
  * ## What it does not do
  *
@@ -35,7 +46,9 @@
  *   --version 0.2.0-rc.8 \
  *   --ui-commit <sha> \
  *   --ui-repository baicie/zeus-ui \
- *   --decision-reference <pr-or-issue> \
+ *   --approval-repository baicie/zeus \
+ *   --approval-pull-request <n> \
+ *   --approval-review <review-id> \
  *   [--out <path>]
  * ```
  */
@@ -44,17 +57,23 @@ import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import { parseArgs } from 'node:util'
 
+import { parseArgs } from 'node:util'
+import { evidenceBundleFile, evidenceSha256 } from './evidence-bundle'
 import {
   amendmentFile,
   PAIRING_AMENDMENT_SCHEMA,
   validatePairingAmendment,
+  verifyAmendmentEvidence,
 } from './pairing-amendment'
+import {
+  readAuthorizationFromGitHub,
+  verifyAuthorization,
+} from './pairing-authorization'
 
 const CORE_REPOSITORY = 'baicie/zeus'
 
-function gh(args: string[]): string {
+function gh(args: readonly string[]): string {
   return execFileSync('gh', args, {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -105,20 +124,58 @@ function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex')
 }
 
+interface ApprovalInput {
+  readonly repository: string
+  readonly pullRequest: number
+  readonly reviewId: number
+  readonly approver: string
+}
+
 /**
- * The sha256 of a local evidence file.
+ * Reads the approval the amendment will cite, and refuses one that does not
+ * hold.
  *
- * Evidence is produced by the runs that verified the replacement, and the
- * amendment pins their digests so a later reader can tell whether the file they
- * hold is the one that was accepted.
+ * This is the part of the writer that cannot be satisfied by writing JSON: the
+ * review is looked up by id, the reviewer's permission is asked for, and the
+ * commit the review was submitted against is compared with the commit the tag
+ * will point at.
  */
-function evidenceDigest(file: string, flag: string): string {
-  if (!fs.existsSync(file)) {
+function readApproval(
+  approval: ApprovalInput,
+  amendmentCommit: string,
+  gh: (args: readonly string[]) => string,
+): PairingAuthorization {
+  const lookup = readAuthorizationFromGitHub(
+    approval.repository,
+    approval.pullRequest,
+    approval.reviewId,
+    approval.approver,
+    gh,
+  )
+  if (lookup.state !== 'FOUND') {
     throw new Error(
-      `--${flag} ${file} does not exist; a digest of nothing is not evidence`,
+      `cannot cite ${approval.repository}#${approval.pullRequest} as approval: ${lookup.message}`,
     )
   }
-  return sha256(fs.readFileSync(file, 'utf8'))
+
+  const claim: PairingAuthorization = {
+    repository: approval.repository,
+    pullRequest: approval.pullRequest,
+    approver: approval.approver,
+    reviewId: approval.reviewId,
+    approvedCommit: lookup.facts.review.commitId ?? '',
+    approvedAt: lookup.facts.review.submittedAt ?? '',
+  }
+
+  const problems = verifyAuthorization(claim, lookup, amendmentCommit)
+  if (problems.length > 0) {
+    for (const problem of problems) console.error(`  ${problem}`)
+    throw new Error(
+      `the approval this tool would record does not hold; an amendment is not authorised without a merged pull request and an approving review of these bytes`,
+    )
+  }
+
+  return claim
 }
 
 function main(): void {
@@ -127,13 +184,13 @@ function main(): void {
       version: { type: 'string' },
       'ui-commit': { type: 'string' },
       'ui-repository': { type: 'string', default: 'baicie/zeus-ui' },
-      'decision-reference': { type: 'string' },
+      'amendment-commit': { type: 'string' },
+      'approval-repository': { type: 'string', default: CORE_REPOSITORY },
+      'approval-pull-request': { type: 'string' },
+      'approval-review': { type: 'string' },
+      approver: { type: 'string' },
       reason: { type: 'string' },
-      'core-registry-report': { type: 'string' },
-      'ui-candidate-report': { type: 'string' },
-      'template-acceptance': { type: 'string' },
-      'browser-acceptance': { type: 'string' },
-      'ui-registry-preflight': { type: 'string' },
+      'evidence-bundle': { type: 'string' },
       out: { type: 'string' },
     },
   })
@@ -141,16 +198,34 @@ function main(): void {
   const version = values.version
   const uiCommit = values['ui-commit']
   const uiRepository = values['ui-repository']!
-  const decision = values['decision-reference']
+  const amendmentCommit = values['amendment-commit']
 
   if (!version) throw new Error('--version is required')
   if (!uiCommit || !/^[0-9a-f]{40}$/i.test(uiCommit)) {
     throw new Error('--ui-commit must be a full 40-character SHA')
   }
-  if (!decision) {
+  if (!amendmentCommit || !/^[0-9a-f]{40}$/i.test(amendmentCommit)) {
+    /*
+     * The commit the amendment tag will point at. Required, because the review
+     * has to be for exactly this commit: building the amendment and approving
+     * it are the same act, and a review given against a different revision
+     * approved different bytes.
+     */
     throw new Error(
-      '--decision-reference is required: the amendment must name a review a reader can open',
+      '--amendment-commit is required: the approval must be for the commit the amendment tag will point at',
     )
+  }
+
+  const pullRequest = Number(values['approval-pull-request'])
+  if (!Number.isInteger(pullRequest) || pullRequest <= 0) {
+    throw new Error('--approval-pull-request must be the merged amendment PR')
+  }
+  const reviewId = Number(values['approval-review'])
+  if (!Number.isInteger(reviewId) || reviewId <= 0) {
+    throw new Error('--approval-review must be the approving review id')
+  }
+  if (!values.approver) {
+    throw new Error('--approver must name the maintainer who approved it')
   }
 
   const releaseTag = `v${version}`
@@ -208,6 +283,30 @@ function main(): void {
     )
   }
 
+  /*
+   * The bundle the evidence came from. Read from the amendment commit rather
+   * than from the working tree: the tag will publish that commit, so a bundle
+   * that is only on disk is not part of what the amendment makes immutable.
+   */
+  const bundlePath = evidenceBundleFile(version)
+  const bundleRaw = readAtCommit(CORE_REPOSITORY, amendmentCommit, bundlePath)
+  if (bundleRaw === undefined) {
+    throw new Error(
+      `${amendmentCommit} has no ${bundlePath}; commit the evidence bundle before writing the amendment that pins it`,
+    )
+  }
+
+  const authorization = readApproval(
+    {
+      repository: values['approval-repository']!,
+      pullRequest,
+      reviewId,
+      approver: values.approver,
+    },
+    amendmentCommit,
+    gh,
+  )
+
   const amendment = {
     schema: PAIRING_AMENDMENT_SCHEMA,
     releaseTag,
@@ -223,30 +322,16 @@ function main(): void {
       uiTree,
       lockfileSha256: sha256(lockfile),
     },
-    authorization: {
-      decisionReference: decision,
-      approvedAt: new Date().toISOString(),
-    },
+    authorization,
     evidence: {
-      coreRegistryReportSha256: evidenceDigest(
-        values['core-registry-report'] ?? '',
-        'core-registry-report',
-      ),
-      uiCandidateReportSha256: evidenceDigest(
-        values['ui-candidate-report'] ?? '',
-        'ui-candidate-report',
-      ),
-      templateAcceptanceSha256: evidenceDigest(
-        values['template-acceptance'] ?? '',
-        'template-acceptance',
-      ),
-      browserAcceptanceSha256: evidenceDigest(
-        values['browser-acceptance'] ?? '',
-        'browser-acceptance',
-      ),
-      uiRegistryPreflightSha256: evidenceDigest(
-        values['ui-registry-preflight'] ?? '',
-        'ui-registry-preflight',
+      bundleSha256: evidenceSha256(bundleRaw),
+      bundlePath,
+      reports: Object.fromEntries(
+        (
+          JSON.parse(bundleRaw) as {
+            reports?: Array<{ id?: string; sha256?: string }>
+          }
+        ).reports?.map(report => [report.id, report.sha256]) ?? [],
       ),
     },
     reason:
@@ -255,7 +340,8 @@ function main(): void {
     verifiedAt: new Date().toISOString(),
   }
 
-  const problems = validatePairingAmendment(amendment, amendmentFile(version), {
+  const out = values.out ?? amendmentFile(version)
+  const problems = validatePairingAmendment(amendment, out, {
     version,
     coreTagCommit: coreCommit,
     uiCommit,
@@ -267,7 +353,34 @@ function main(): void {
     throw new Error('the amendment this tool would write does not validate')
   }
 
-  const out = values.out ?? amendmentFile(version)
+  /*
+   * The bundle is verified as a whole, not only digested. The five reports are
+   * re-judged from their own bytes, matched against the candidate and the Core
+   * commit, and refused if any of them describes a different release.
+   */
+  const evidenceProblems = verifyAmendmentEvidence(
+    amendment as PairingAmendment,
+    bundleRaw,
+    bundlePath,
+    {
+      version,
+      coreVersion: version,
+      coreCommit,
+      uiVersion: record.uiVersion ?? version,
+      uiCommit,
+      uiTree,
+      lockfileSha256: sha256(lockfile),
+    },
+  )
+  if (evidenceProblems.length > 0) {
+    for (const problem of evidenceProblems) {
+      console.error(`  ${problem.file}: ${problem.message}`)
+    }
+    throw new Error(
+      'the evidence bundle does not support this amendment; refusing to write it',
+    )
+  }
+
   fs.mkdirSync(path.dirname(out), { recursive: true })
 
   /*
